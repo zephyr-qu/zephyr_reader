@@ -99,44 +99,6 @@ impl EpubParser {
         .map_err(|e| AppError::InternalError { reason: format!("EPUB metadata extraction failed: {}", e).into() })?
     }
 
-    /// 提取指定章节内容
-    ///
-    /// # 参数
-    ///
-    /// * `file_path` - EPUB 文件路径
-    /// * `chapter_index` - 章节索引（从 0 开始）
-    ///
-    /// # 返回值
-    ///
-    /// * `Ok(String)` - 章节 HTML 内容
-    /// * `Err(AppError)` - 提取失败
-    pub async fn extract_chapter(
-        &self,
-        file_path: &str,
-        chapter_index: i32,
-    ) -> Result<String, AppError> {
-        let fp = file_path.to_string();
-        tokio::task::spawn_blocking(move || -> Result<String, AppError> {
-            let mut epub_file = unzip::EpubFile::open(&fp)?;
-            let chapters = toc::extract_chapters_from_epub(&mut epub_file, "");
-
-            let chapter = chapters
-                .iter()
-                .find(|c| c.chapter_index == chapter_index as i64)
-                .ok_or_else(|| {
-                    AppError::ChapterExtractError { index: chapter_index, reason: format!("chapter {} not found", chapter_index).into() }
-                })?;
-
-            let spine = epub_file.spine();
-            let href = spine.get(chapter.start_index as usize).ok_or_else(|| {
-                AppError::ChapterExtractError { index: (chapter.chapter_index as i64).try_into().unwrap(), reason: format!("chapter index out of range: {}", chapter.start_index).into() }
-            })?;
-
-            epub_file.read_resource(href)
-        })
-        .await
-        .map_err(|e| AppError::InternalError { reason: format!("EPUB chapter extraction failed: {}", e).into() })?
-    }
 }
 
 impl Default for EpubParser {

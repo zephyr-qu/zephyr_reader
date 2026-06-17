@@ -88,8 +88,8 @@ pub(crate) fn optimize_spaces<'a>(text: &'a str, _language: &str) -> Cow<'a, str
             in_leading = false;
         }
     }
-    // 尾随空白检查
-    if prev_space || in_leading {
+    // 尾随空白检查 — 仅当内容不含 \n 时压缩，避免破坏段落分隔
+    if !text.contains('\n') && (prev_space || in_leading) {
         return Cow::Owned(remove_extra_spaces(text));
     }
     Cow::Borrowed(text)

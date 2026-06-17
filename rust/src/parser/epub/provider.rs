@@ -24,6 +24,8 @@ pub struct EpubContentProvider {
     spine_hrefs: Vec<String>,
     /// 每个 spine item 的纯文本（含尾部 \n 分隔符，最后一个除外）
     spine_texts: Vec<OnceLock<String>>,
+    /// 每个 spine item 的原始 HTML（含尾部 \n 分隔符，最后一个除外）
+    spine_htmls: Vec<OnceLock<String>>,
     /// 累积偏移量，惰性构建：转换为 spin 时追加实际长度，
     /// 未转换的 spin 在 `build_offsets_up_to` 中按需转换。
     offsets: Mutex<Vec<u64>>,
@@ -73,6 +75,7 @@ impl EpubContentProvider {
             epub: Mutex::new(epub),
             spine_hrefs,
             spine_texts: (0..count).map(|_| OnceLock::new()).collect(),
+            spine_htmls: (0..count).map(|_| OnceLock::new()).collect(),
             offsets: Mutex::new(vec![0u64]),
         })
     }
@@ -90,6 +93,8 @@ impl EpubContentProvider {
         let html = epub.read_resource(href).map_err(|e| {
             AppError::ChapterExtractError { index: -1, reason: format!("failed to read spine item {}: {}", href, e).into() }
         })?;
+        // 缓存原始 HTML，供 read_html_range 使用
+        let _ = self.spine_htmls[index].get_or_init(|| html.clone());
         let plain = html_to_plain_text(&html);
 
         // 除最后一个 spine 外，追加 \n 分隔符以兼容 parts.join("\n") 行为
@@ -137,6 +142,10 @@ impl EpubContentProvider {
             }
         }
         Ok(self.offsets.lock().clone())
+    }
+    /// 读取 EPUB 资源文件的原始字节（用于图片加载）
+    pub fn read_resource_bytes(&self, href: &str) -> Option<Vec<u8>> {
+        self.epub.lock().read_resource_bytes(href)
     }
 }
 impl ChapterContentProvider for EpubContentProvider {
@@ -188,6 +197,23 @@ impl ChapterContentProvider for EpubContentProvider {
 
     fn supports_chunked_pagination(&self) -> bool {
         true
+    }
+    fn read_html_range(&self, _start: u64, _end: u64) -> Option<Result<String, AppError>> {
+        Some((|| {
+            let mut html = String::new();
+            for i in 0..self.spine_htmls.len() {
+                self.ensure_spine_text(i)?;
+                let content = self.spine_htmls[i].get()
+                    .ok_or_else(|| AppError::EpubParseError { reason: "spine HTML not cached".into() })?;
+                html.push_str(content);
+                html.push('\n');
+            }
+            // Trim trailing newline to match read_chapter_content join("\n") behavior
+            if html.ends_with('\n') {
+                html.pop();
+            }
+            Ok(html)
+        })())
     }
 }
 

@@ -6,6 +6,8 @@ use uuid::Uuid;
 
 use super::toc::extract_chapters_from_epub;
 use super::unzip::EpubFile;
+use super::provider::EpubContentProvider;
+use crate::parser::provider::ChapterContentProvider;
 use crate::domain::{
     AppError, ParseResult, RichChapterContent, RichParagraph, TypesetConfig,
 };
@@ -114,9 +116,25 @@ fn estimate_total_chars(epub_file: &mut EpubFile, chapters: &[Chapter]) -> i64 {
     let mut sampled_count = 0i64;
 
     for &idx in &sample_indices {
-        if let Ok(content) = read_chapter_content(epub_file, &chapters[idx]) {
-            let content_str: String = content;
-            total_sampled += content_str.chars().count() as i64;
+        // Inline: read_chapter_content logic (function deleted in Phase B)
+        let content: String = {
+            let spine = epub_file.spine();
+            let start = chapters[idx].start_index as usize;
+            let end = (chapters[idx].end_index as usize).min(spine.len()).max(start + 1);
+            const MAX_SPINE_ITEMS: usize = 20;
+            let end = end.min(start + MAX_SPINE_ITEMS);
+            let mut parts = Vec::new();
+            for i in start..end {
+                if let Some(href) = spine.get(i) {
+                    if let Ok(text) = epub_file.read_resource(href) {
+                        parts.push(text);
+                    }
+                }
+            }
+            parts.join("\n")
+        };
+        if !content.is_empty() {
+            total_sampled += content.chars().count() as i64;
             sampled_count += 1;
         }
     }
@@ -130,40 +148,6 @@ fn estimate_total_chars(epub_file: &mut EpubFile, chapters: &[Chapter]) -> i64 {
     }
 }
 
-/// 读取章节内容，合并 start_index..end_index 范围内的所有 spine 资源
-///
-/// EPUB 的正文常被切分为多个 HTML 文件（如 part0005_split_000.html ~ part0005_split_002.html），
-/// 但这些分片在 TOC 中可能只有一条记录。通过合并连续 spine 资源，确保完整内容被加载。
-fn read_chapter_content(epub_file: &mut EpubFile, chapter: &Chapter) -> Result<String, AppError> {
-    let spine = epub_file.spine();
-    let start = chapter.start_index as usize;
-    let end = (chapter.end_index as usize).min(spine.len());
-    let end = end.max(start + 1);
-
-    // ── 安全上限 ──────────────────────────────────────────
-    // 与 `EpubContentProvider::MAX_SPINE_ITEMS`（20）保持一致，
-    // 避免单章 spine 过多时 html5ever 解析全本 HTML 导致冻结。
-    const MAX_SPINE_ITEMS: usize = 20;
-    let end = end.min(start + MAX_SPINE_ITEMS);
-
-    let mut contents = Vec::new();
-    for i in start..end {
-        let href = spine.get(i).ok_or_else(|| {
-            AppError::ChapterExtractError { index: i as i32, reason: format!("spine index out of range: {}", i).into() }
-        })?;
-        tracing::debug!("[read_chapter_content] reading spine[{}] href={}", i, href);
-        match epub_file.read_resource(href) {
-            Ok(text) => contents.push(text),
-            Err(e) => tracing::warn!("[read_chapter_content] spine[{}] read failed: {}", i, e),
-        }
-    }
-
-    if contents.is_empty() {
-        return Err(AppError::ChapterExtractError { index: (chapter.chapter_index  as i64).try_into().unwrap(), reason: "chapter content is empty".into() });
-    }
-
-    Ok(contents.join("\n"))
-}
 
 /// 分页处理
 // ==================== 富文本支持 ====================
@@ -190,29 +174,9 @@ pub fn get_chapter_content_rich(
         chapter_id
     );
 
-    let mut epub_file = EpubFile::open(file_path)?;
-    let chapters = extract_chapters_from_epub(&mut epub_file, "");
-    tracing::info!(
-        "[get_chapter_content_rich] total chapters: {}, looking for chapter_id={}",
-        chapters.len(),
-        chapter_id
-    );
-
-    let chapter = chapters
-        .iter()
-        .find(|c| c.chapter_index == chapter_id  as i64)
-        .ok_or_else(|| {
-            AppError::ChapterExtractError { index: chapter_id, reason: format!("chapter {} not found", chapter_id).into() }
-        })?;
-    tracing::info!(
-        "[get_chapter_content_rich] chapter found: id={}, title={}, start_index={}",
-        chapter.id,
-        chapter.title,
-        chapter.start_index
-    );
-
-    // 读取章节 HTML 内容
-    let html_content = read_chapter_content(&mut epub_file, chapter)?;
+    let provider = EpubContentProvider::open(file_path, chapter_id)?;
+    let html_content = provider.read_html_range(0, u64::MAX)
+        .ok_or_else(|| AppError::EpubParseError { reason: "rich HTML extraction not supported".into() })??;
     tracing::info!(
         "[get_chapter_content_rich] HTML content length: {} bytes",
         html_content.len()
@@ -230,7 +194,7 @@ pub fn get_chapter_content_rich(
             html_content.len(),
         );
         return Ok(RichChapterContent {
-            chapter_id: chapter.id.clone(),
+            chapter_id: chapter_id.to_string(),
             paragraphs: Vec::new(),
             total_characters: 0,
         });
@@ -251,7 +215,7 @@ pub fn get_chapter_content_rich(
     for p in &mut paragraphs {
         if p.is_image {
             if let Some(src) = &p.image_src {
-                if let Some(bytes) = epub_file.read_resource_bytes(src) {
+                if let Some(bytes) = provider.read_resource_bytes(src) {
                     p.image_data = bytes;
                     tracing::info!(
                         "[get_chapter_content_rich] loading image: src={}, size={} bytes",
@@ -288,7 +252,7 @@ pub fn get_chapter_content_rich(
     );
 
     Ok(RichChapterContent {
-        chapter_id: chapter.id.clone(),
+        chapter_id: chapter_id.to_string(),
         paragraphs,
         total_characters,
     })

@@ -44,6 +44,8 @@ void main() {
           startOffset: 0,
           endOffset: 100,
           isLastPage: false,
+          firstParagraphIndex: 0,
+          lastParagraphIndex: 0,
         ),
       ]);
       when(() => dataSource.pageContent(0)).thenReturn('Page content text.');
@@ -136,6 +138,8 @@ void main() {
           startOffset: 0,
           endOffset: 100,
           isLastPage: true,
+          firstParagraphIndex: 0,
+          lastParagraphIndex: 0,
         ),
       ]);
       when(() => dataSource.nextChapterStaging).thenReturn(
@@ -148,6 +152,8 @@ void main() {
               startOffset: 0,
               endOffset: 80,
               isLastPage: false,
+              firstParagraphIndex: 0,
+              lastParagraphIndex: 0,
             ),
           ],
           firstPageContent: 'Preloaded next chapter text.',
@@ -325,6 +331,8 @@ void main() {
           startOffset: 0,
           endOffset: 10,
           isLastPage: false,
+          firstParagraphIndex: 0,
+          lastParagraphIndex: 0,
         ),
       ]);
       when(() => dataSource.pageContent(0)).thenReturn('Content.');

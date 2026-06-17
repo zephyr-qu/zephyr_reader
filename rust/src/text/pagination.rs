@@ -129,7 +129,25 @@ const LAZY_PAGINATION_CHAR_THRESHOLD: usize = 50_000;
 #[frb]
 impl PageStreamer {
     pub fn new(content: String, config: TypesetConfig) -> Self {
-        // Bypass optimization temporarily to test paragraph detection
+        // 标点/空格优化：避头避尾、CJK/Latin 间距等。
+        // 对任意大小都执行，但超过 OPTIMIZE_CHAR_LIMIT 时跳过以避免大 Vec<char> 分配。
+        const OPTIMIZE_CHAR_LIMIT: usize = 200_000;
+        let lang = match config.language {
+            LanguageType::Chinese => "zh",
+            LanguageType::English => "en",
+            LanguageType::Auto | LanguageType::Mixed => "auto",
+        };
+        let content = if content.chars().count() <= OPTIMIZE_CHAR_LIMIT {
+            let punct = optimize_punctuation(&content, lang);
+            let opt = optimize_spaces(&punct, lang);
+            match opt {
+                Cow::Owned(s) => s,
+                Cow::Borrowed(_) => content,
+            }
+        } else {
+            content
+        };
+
         if content.chars().count() > LAZY_PAGINATION_CHAR_THRESHOLD {
             return Self::new_lazy(content, config);
         }
@@ -200,8 +218,7 @@ impl PageStreamer {
 
         // M3: 一次性计算全文 char_indices，段落复用
         let full_char_indices: Vec<(usize, char)> = content.char_indices().collect();
-        // DEBUG: track content state
-        let content_has_newlines = content.contains('\n');
+
 
         for line_with_ending in content.split_inclusive(|c| c == '\n') {
             let paragraph = line_with_ending.trim_end_matches(['\r', '\n']);
@@ -254,13 +271,7 @@ impl PageStreamer {
                 }
             }
         }
-        // Verify: if content had newlines, we should have seen separators
-        if content_has_newlines && paragraph_count == 0 {
-            let all: Vec<String> = content.split_inclusive('\n')
-                .map(|c| format!("{:?}", c))
-                .collect();
-            panic!("newlines in content but NO empty paragraphs detected! content_chunks={:?}", all);
-        }
+
 
         let total_lines = line_offsets.len();
 
