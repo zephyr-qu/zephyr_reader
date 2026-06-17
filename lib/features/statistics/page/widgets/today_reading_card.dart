@@ -73,7 +73,7 @@ class TodayReadingCard extends StatelessWidget {
                     CircularProgressIndicator(
                       value: progress,
                       strokeWidth: 3.5,
-                      backgroundColor: cs.surfaceContainerHighest,
+                      backgroundColor: cs.outlineVariant,
                       color: cs.primary,
                       strokeCap: StrokeCap.round,
                     ),
@@ -97,7 +97,7 @@ class TodayReadingCard extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: progress,
                     minHeight: 3,
-                    backgroundColor: cs.surfaceContainerHighest,
+                    backgroundColor: cs.outlineVariant,
                     color: cs.primary.withValues(alpha: 0.6),
                   ),
                 ),

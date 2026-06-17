@@ -332,7 +332,10 @@ impl PageStreamer {
     #[frb(sync)]
     pub fn get_page(&self, page_index: usize, chapter_index: i32) -> Option<PageContent> {
         if let Some(ref pages) = self.cached_pages {
-            return pages.get(page_index).cloned();
+            return pages.get(page_index).cloned().map(|mut p| {
+                p.chapter_index = chapter_index;
+                p
+            });
         }
         if self.line_offsets.is_empty() {
             return self.get_page_lazy(page_index, chapter_index);

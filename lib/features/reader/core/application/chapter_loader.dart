@@ -106,6 +106,7 @@ class ChapterLoader {
     ReadingMode readingMode = ReadingMode.pagination,
     Future<void> Function()? onChapterLoaded,
     bool? preserveContent,
+    ChapterNavigationKind navigationKind = ChapterNavigationKind.manualJump,
   }) {
     return _orchestrator.run(
       ChapterLoadRequest(
@@ -114,6 +115,7 @@ class ChapterLoader {
         readingMode: readingMode,
         preserveContent: preserveContent,
         onChapterLoaded: onChapterLoaded,
+        navigationKind: navigationKind,
       ),
       scheduleSearchIndex: scheduleSearchIndex,
       preloadAdjacentFirstPages: preloadAdjacentFirstPages,

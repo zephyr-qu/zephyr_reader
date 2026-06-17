@@ -2,6 +2,55 @@
 
 ## [Unreleased]
 
+### 新增
+- **跨章丝滑体验优化**（#plane.md）：分页与仿真翻页模式跨章动效与延迟接近章内翻页
+  - **Rust**：`PageStreamer.is_partial` 字段 + `create_pagination_session_adopt` FFI（从 `STREAMER_CACHE` 零重 paginate 创建 session）+ 4 条 adopt hit/miss/partial 单元测试（`rust/tests/pagination_session_test.rs`）
+  - **Dart**：`beginPaginateFromCache`（RustPaginationSession，先 adopt 后 fallback）
+  - **Orchestrator**：`ChapterPaginationIntent.stagingPromoteForward/Backward` + `ChapterNavigationKind` enum + `resolveIntent` 优先查 staging 匹配（含 FFI guard）+ `_runStagingPromote` 执行路径（dispose → adopt → 同步写 signals → clear staging → preload adjacent）
+  - **Navigator**：`nextChapter`/`previousChapter` 传 `adjacentCrossChapter` + `preloadAdjacentFirstPages` 双向预加载（prev 末页 + next 首页）+ `ensurePrevChapterStaging` 条件加速（pageIndex≤1）
+  - **双向 staging**：`prevChapterStaging` + `preloadPreviousChapterStaging` + `clearAdjacentStaging`（`rust_chapter_content_repository.dart`）
+  - **分页 UI**：`AnimatedSwitcher` 仅在 `showChapterTransition==true`（manualJump）启用；`PaginatedModeRenderer` 双向虚拟页（`hasPreviousChapter ? 1 : 0` 索引偏移）；`useEffect([chapterId])` 中 `jumpToPage(0)` 改为条件执行
+  - **待完成**：Phase 4.2 pageTurn 向后卷曲虚拟页渲染；真机 `[Timing]` 日志验证跨章 <50ms
+
+### 文件变更
+| 创建 | `rust/src/text/pagination.rs` — `is_partial` 字段 |
+| 修改 | `rust/src/api/core.rs` — `create_pagination_session_adopt` |
+| 修改 | `rust/tests/pagination_session_test.rs` — 4 条新测 |
+| 修改 | `lib/features/reader/core/domain/pagination_session.dart` — +beginPaginateFromCache |
+| 修改 | `lib/features/reader/core/domain/reader_repository_interface.dart` — +prevChapterStaging/clearAdjacentStaging |
+| 修改 | `lib/features/reader/core/domain/chapter_content_repository.dart` — +prevChapterStaging 接口 |
+| 修改 | `lib/features/reader/core/data/rust_chapter_content_repository.dart` — +_prevChapterStaging/preloadPreviousChapterStaging |
+| 修改 | `lib/features/reader/core/data/rust_pagination_session.dart` — +beginPaginateFromCache |
+| 修改 | `lib/features/reader/core/application/chapter_pagination_intent.dart` — +stagingPromoteForward/Backward |
+| 修改 | `lib/features/reader/core/application/chapter_load_request.dart` — +ChapterNavigationKind |
+| 修改 | `lib/features/reader/core/application/chapter_load_orchestrator.dart` — stagingPromote 意图推导 + _runStagingPromote |
+| 修改 | `lib/features/reader/core/application/chapter_loader.dart` — +navigationKind 参数 |
+| 修改 | `lib/features/reader/core/application/chapter_navigator.dart` — adjacent 导航 + 双向 preload |
+| 修改 | `lib/features/reader/core/application/chapter_view_model.dart` — +showChapterTransition |
+| 修改 | `lib/features/reader/core/application/pagination_coordinator.dart` — +paginateFirstScreenFromCache |
+| 修改 | `lib/features/reader/data/repositories/rust_reader_repository.dart` — 新接口代理 |
+| 修改 | `lib/features/reader/page/widgets/reader_content.dart` — 条件 AnimatedSwitcher |
+| 修改 | `lib/features/reader/rendering/paginated_renderer.dart` — 双向虚拟页 |
+| 修改 | `lib/features/reader/core/presentation/reader_content_area.dart` — 新增 props |
+| 修改 | `test/features/reader/core/application/chapter_pagination_intent_resolver_test.dart` — +navigationKind |
+| 修改 | `test/features/reader/chapter_manager_test.dart` — +mock stubs |
+  - **待完成**：Phase 4.2 pageTurn 向后卷曲虚拟页渲染；真机 `[Timing]` 日志验证跨章 <50ms
+
+### 新增
+- **滚动跨章接缝修复**（#planf.md）：滚动模式跨章无硬底、无跳顶、视觉连续
+  - **ScrollChapterSegment**：段落级分割数据类（`lib/features/reader/core/data/scroll_chapter_segment.dart`）
+  - **ScrollDocumentComposer**：滑动窗口管理（append/prepend/reset/trim/charOffsetAtOffset），最多 3 段常驻，12 条单元测试
+  - **ScrollModeRenderer**：多段拼接 `_buildMultiSegmentPlainList`，按章节过滤高亮，章界可选 Divider
+  - **ScrollBoundaryCoordinator**：章界协调器，appendNext/prependPrev 异步加载 + onSegmentChanged 信号更新 + generation 防护
+  - _reader_content 接入（替换 onReachEnd→nextChapter）、进度映射待后续 PR 完成_
+
+### 文件变更
+| 创建 | `lib/features/reader/core/data/scroll_chapter_segment.dart` |
+| 创建 | `lib/features/reader/core/application/scroll_document_composer.dart` |
+| 创建 | `lib/features/reader/core/application/scroll_boundary_coordinator.dart` |
+| 创建 | `test/features/reader/core/application/scroll_document_composer_test.dart` |
+| 修改 | `lib/features/reader/rendering/scroll_mode_renderer.dart` — +segments/_buildMultiSegmentPlainList |
+| 修改 | `doc/planf.md` — todos 更新 |
 
 ### 新增
 - **翻译 API**：双语模式支持自动翻译（#feat/translation-service）

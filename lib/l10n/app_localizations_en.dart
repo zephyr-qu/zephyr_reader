@@ -272,7 +272,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get highlightPurple => 'Purple';
 
   @override
-  String get dictionary => 'Dictionary';
+  String get dictionary => 'Dictionary Management';
 
   @override
   String get lookupWord => 'Look Up';
@@ -1907,7 +1907,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get confirmClear => 'Confirm Clear';
 
   @override
-  String get translationApi => 'Translation API';
+  String get translationApi => 'Auto Translation';
 
   @override
   String get translationProvider => 'Provider';
@@ -1948,7 +1948,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get translationApiNotConfigured => 'Translation API not configured';
+  String get translationApiNotConfigured => 'Auto Translation not configured';
 
   @override
   String get translating => 'Translating…';

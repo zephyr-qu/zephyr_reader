@@ -52,6 +52,10 @@ class ReaderRepository
       _chapterContent.nextChapterStaging;
 
   @override
+  NextChapterStaging? get prevChapterStaging =>
+      _chapterContent.prevChapterStaging;
+
+  @override
   TextSpan? get currentRichContent => _chapterContent.currentRichContent;
 
   @override
@@ -107,6 +111,18 @@ class ReaderRepository
     maxChars: maxChars,
   );
   @override
+  Future<({int totalPages, bool isPartial})> beginPaginateFromCache({
+    required String bookId,
+    required int chapterIndex,
+    required PaginationParams params,
+    BigInt? maxChars,
+  }) => _session.beginPaginateFromCache(
+    bookId: bookId,
+    chapterIndex: chapterIndex,
+    params: params,
+    maxChars: maxChars,
+  );
+  @override
   Future<({int totalPages, bool isPartial})> expandToFullChapter({
     required String bookId,
     required int chapterIndex,
@@ -148,6 +164,32 @@ class ReaderRepository
     fontFamily: fontFamily,
   );
 
+
+  @override
+  Future<void> preloadPreviousChapterStaging(
+    String bookId,
+    int chapterIndex, {
+    double fontSize = 16,
+    double lineHeight = 1.6,
+    double width = 400,
+    double height = 600,
+    double padding = 20,
+    double devicePixelRatio = 1.0,
+    String fontFamily = 'Noto Sans SC',
+  }) => _chapterContent.preloadPreviousChapterStaging(
+    bookId,
+    chapterIndex,
+    fontSize: fontSize,
+    lineHeight: lineHeight,
+    width: width,
+    height: height,
+    padding: padding,
+    devicePixelRatio: devicePixelRatio,
+    fontFamily: fontFamily,
+  );
+
+  @override
+  void clearAdjacentStaging() => _chapterContent.clearAdjacentStaging();
   @override
   void clearNextChapterStaging() => _chapterContent.clearNextChapterStaging();
 

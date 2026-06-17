@@ -4,26 +4,25 @@ overview: 在分页与仿真翻页模式下，通过 Rust STREAMER_CACHE session
 todos:
   - id: rust-adopt-session
     content: "Rust: 新增 create_pagination_session_adopt + FRB codegen + pagination_session_test"
-    status: pending
+    status: completed
   - id: orchestrator-staging-promote
     content: "Dart: ChapterPaginationIntent.stagingPromote* + _runStagingPromote + navigationKind 字段"
-    status: pending
+    status: completed
   - id: navigator-adjacent-kind
     content: ChapterNavigator next/previousChapter 传 adjacentCrossChapter；jumpTo* 保持 manualJump
-    status: pending
+    status: completed
   - id: prev-chapter-staging
     content: Adjacent/Prev staging 预加载末页 + preloadAdjacent 双向触发
-    status: pending
+    status: completed
   - id: pagination-ui-continuity
     content: "分页: 条件 AnimatedSwitcher + 双向虚拟页 + 条件 jumpToPage"
-    status: pending
+    status: completed
   - id: pageturn-backward-curl
     content: "pageTurn: 向后虚拟页 + staging 渲染 + promote handoff"
     status: pending
   - id: tests-and-profile
     content: 单元/widget 测试 + 真机 [Timing] 验收跨章 <50ms
-    status: pending
-isProject: false
+    status: completed
 ---
 
 # 跨章丝滑体验优化（分页 + 仿真翻页）

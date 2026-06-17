@@ -8,4 +8,10 @@ enum ChapterPaginationIntent {
 
   /// 同章 + 同 config（仅 partial 待补全）：用 `repaginate_session(max_chars=null)` 升级。
   expandOnly,
+
+  /// 下一章 staging 命中：adopt session from cache + pageIndex=0
+  stagingPromoteForward,
+
+  /// 上一章 staging 命中：adopt session from cache + pageIndex=last
+  stagingPromoteBackward,
 }

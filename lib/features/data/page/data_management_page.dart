@@ -15,6 +15,7 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:zephyr_reader/features/profile/application/other_settings_view_model.dart';
 import 'package:zephyr_reader/features/data/application/backup_view_model.dart';
 import 'package:zephyr_reader/features/data/page/restore_confirm_dialog.dart';
 import 'package:zephyr_reader/src/rust/api/backup.dart';
@@ -253,6 +254,12 @@ class DataManagementPage extends HookWidget {
           label: l10n.dangerZone,
           children: [
             DangerItem(
+              icon: PhosphorIconsRegular.arrowCounterClockwise,
+              title: l10n.resetAllSettings,
+              description: l10n.resetAllSettingsDesc,
+              onTap: () => _confirmResetSettings(context),
+            ),
+            DangerItem(
               icon: PhosphorIconsRegular.broom,
               title: l10n.clearAllData,
               description: l10n.clearAllDataDesc,
@@ -410,6 +417,17 @@ class DataManagementPage extends HookWidget {
           vm.loading.value = false;
         }
       },
+    );
+  }
+
+  void _confirmResetSettings(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    showConfirmActionDialog(
+      context,
+      title: l10n.confirmReset,
+      content: l10n.confirmResetContent,
+      confirmLabel: l10n.confirmReset,
+      onConfirm: () => getIt<OtherSettingsViewModel>().resetAllSettings(),
     );
   }
 

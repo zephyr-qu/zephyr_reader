@@ -145,6 +145,54 @@ class RustPaginationSession implements PaginationSession {
     }
   }
 
+  /// Try to adopt an existing streamer from cache (zero-paginate path).
+  @override
+  Future<({int totalPages, bool isPartial})> beginPaginateFromCache({
+    required String bookId,
+    required int chapterIndex,
+    required PaginationParams params,
+    BigInt? maxChars,
+  }) async {
+    try {
+      final book = await _getBook(bookId);
+      if (book.filePath.isEmpty) {
+        throw Exception('beginPaginateFromCache: book not found for bookId=$bookId');
+      }
+      final config = _buildConfig(params);
+
+      _releaseHandle();
+      _contentCache.clear();
+
+      final sw = Stopwatch()..start();
+      final (handle, result) = await core_api.createPaginationSessionAdopt(
+        filePath: book.filePath,
+        chapterIndex: chapterIndex,
+        config: config,
+      );
+      Logging.info(
+        '[Timing] createPaginationSessionAdopt: HIT ${sw.elapsedMilliseconds}ms '
+        '(pages=${result.descriptors.length}, isPartial=${result.isPartial})',
+      );
+
+      _handle = handle;
+      _applyPaginateResult(result, chapterIndex: chapterIndex);
+      return (
+        totalPages: result.descriptors.length,
+        isPartial: result.isPartial,
+      );
+    } catch (e) {
+      Logging.info(
+        '[Timing] createPaginationSessionAdopt: MISS ($e), falling back',
+      );
+      return beginPaginate(
+        bookId: bookId,
+        chapterIndex: chapterIndex,
+        params: params,
+        maxChars: maxChars,
+      );
+    }
+  }
+
   @override
   Future<({int totalPages, bool isPartial})> expandToFullChapter({
     required String bookId,

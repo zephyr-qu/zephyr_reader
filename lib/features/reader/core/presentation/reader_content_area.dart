@@ -167,6 +167,7 @@ class ReaderContentArea extends HookWidget {
                 error: bError,
                 hasNextChapter: bChapterindex < bNumchapters - 1,
                 hasPreviousChapter: bChapterindex > 0,
+                showChapterTransition: vm.chapterManager.showChapterTransition.value,
                 scrollBuilder: (_, sc) => ScrollModeRenderer(
                   config: renderConfig,
                   scrollController: sc,
@@ -219,14 +220,10 @@ class ReaderContentArea extends HookWidget {
                   highlights: bHighlights,
                   readingMode: bCurrentreadingmode,
                   hasNextChapter: bChapterindex < bNumchapters - 1,
+                  hasPreviousChapter: bChapterindex > 0,
                   onReachEnd: () => unawaited(vm.chapterManager.nextChapter()),
+                  onReachStart: () => unawaited(vm.chapterManager.previousChapter()),
                   onHighlightTap: onHighlightTap,
-                  onSelectionChanged: vm.annotations.updateSelection,
-                  onSelectionGlobalPosition: (pos) =>
-                      selectionGlobalPos.value = pos,
-                  onPageChanged: vm.loadPage,
-                  onPositionChanged: vm.chapterManager.updateCurrentCharOffset,
-                  writingDirection: bWritingdirection,
                 ),
                 onPageChanged: vm.loadPage,
                 onRetry: () => vm.loadChapter(

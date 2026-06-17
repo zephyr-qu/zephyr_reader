@@ -272,7 +272,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get highlightPurple => '紫色';
 
   @override
-  String get dictionary => '词典';
+  String get dictionary => '词典管理';
 
   @override
   String get lookupWord => '查词';
@@ -1878,7 +1878,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get confirmClear => '确认清除';
 
   @override
-  String get translationApi => '翻译 API';
+  String get translationApi => '自动翻译';
 
   @override
   String get translationProvider => '翻译服务';
@@ -1919,7 +1919,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get translationApiNotConfigured => '未配置翻译 API';
+  String get translationApiNotConfigured => '未配置自动翻译';
 
   @override
   String get translating => '正在翻译…';

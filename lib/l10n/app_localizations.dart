@@ -611,7 +611,7 @@ abstract class AppLocalizations {
   /// No description provided for @dictionary.
   ///
   /// In zh, this message translates to:
-  /// **'词典'**
+  /// **'词典管理'**
   String get dictionary;
 
   /// No description provided for @lookupWord.
@@ -3653,7 +3653,7 @@ abstract class AppLocalizations {
   /// No description provided for @translationApi.
   ///
   /// In zh, this message translates to:
-  /// **'翻译 API'**
+  /// **'自动翻译'**
   String get translationApi;
 
   /// No description provided for @translationProvider.
@@ -3731,7 +3731,7 @@ abstract class AppLocalizations {
   /// No description provided for @translationApiNotConfigured.
   ///
   /// In zh, this message translates to:
-  /// **'未配置翻译 API'**
+  /// **'未配置自动翻译'**
   String get translationApiNotConfigured;
 
   /// No description provided for @translating.

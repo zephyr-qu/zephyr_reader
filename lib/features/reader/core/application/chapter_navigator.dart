@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_loader.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
@@ -31,7 +32,12 @@ class ChapterNavigator {
   Future<void> previousChapter() async {
     if (_chapterVM.chapterIndex.value > 0) {
       final newChapterIndex = _chapterVM.chapterIndex.value - 1;
-      await _loader.loadChapter(newChapterIndex, preserveContent: true);
+      _chapterVM.showChapterTransition.value = false;
+      await _loader.loadChapter(
+        newChapterIndex,
+        preserveContent: true,
+        navigationKind: ChapterNavigationKind.adjacentCrossChapter,
+      );
       _pageIndex.value = (_totalPages.value - 1).clamp(0, 0x7FFFFFFF);
       final descriptors = _repo.descriptors;
       if (descriptors != null && _pageIndex.value < descriptors.length) {
@@ -45,17 +51,27 @@ class ChapterNavigator {
     final chapterList = _chapters.value.value ?? [];
     if (_chapterVM.chapterIndex.value < chapterList.length - 1) {
       final newChapterIndex = _chapterVM.chapterIndex.value + 1;
-      await _loader.loadChapter(newChapterIndex, preserveContent: true);
+      _chapterVM.showChapterTransition.value = false;
+      await _loader.loadChapter(
+        newChapterIndex,
+        preserveContent: true,
+        navigationKind: ChapterNavigationKind.adjacentCrossChapter,
+      );
     }
   }
 
+
+
   Future<void> jumpToChapter(int chapterIndex) async {
+    _chapterVM.showChapterTransition.value = true;
     await _loader.loadChapter(chapterIndex);
   }
 
   Future<void> jumpToPosition(int chapterIndex, int charOffset) async {
+    _chapterVM.showChapterTransition.value = true;
     await _loader.loadChapter(chapterIndex, initialCharOffset: charOffset);
   }
+
 
   Future<void> previousPage() async {
     if (_pageIndex.value > 0) {
@@ -83,6 +99,8 @@ class ChapterNavigator {
     }
 
     _repo.ensurePageWindow(pageIndex);
+    // pageIndex <= 1 时加速上一章 staging 预加载
+    ensurePrevChapterStaging(pageIndex);
   }
 
   void updateCurrentCharOffset(int charOffset) {
@@ -94,10 +112,12 @@ class ChapterNavigator {
     _chapterVM.pendingJumpCharOffset.value = null;
   }
 
-  /// 预加载下一章 staging（descriptors + 首页 content），用于 pageTurn 跨章翻页。
+  /// 预加载相邻章节 staging（prev 末页 + next 首页）。
   Future<void> preloadAdjacentFirstPages(int centerIndex) async {
     final chapterList = _chapters.value.value ?? [];
     if (chapterList.isEmpty) return;
+
+    // 预加载下一章
     if (centerIndex + 1 < chapterList.length) {
       final nextIdx = centerIndex + 1;
       unawaited(_repo.preloadNextChapterStaging(
@@ -112,6 +132,40 @@ class ChapterNavigator {
         fontFamily: _pagination.fontFamily,
       ));
     }
+
+    // 预加载上一章（末页）
+    if (centerIndex - 1 >= 0) {
+      final prevIdx = centerIndex - 1;
+      unawaited(_repo.preloadPreviousChapterStaging(
+        _chapterVM.bookId.value,
+        prevIdx,
+        fontSize: _config.fontSize.value,
+        lineHeight: _config.lineHeight.value,
+        width: _pagination.pageWidth,
+        height: _pagination.pageHeight,
+        padding: _config.padding.value,
+        devicePixelRatio: _pagination.devicePixelRatio,
+        fontFamily: _pagination.fontFamily,
+      ));
+    }
   }
 
+  /// 条件触发上一章 staging 预加载（pageIndex <= 1 时加速）。
+  void ensurePrevChapterStaging(int pageIndex) {
+    if (pageIndex > 1) return;
+    final centerIndex = _chapterVM.chapterIndex.value;
+    if (centerIndex - 1 < 0) return;
+    if (_repo.prevChapterStaging != null) return;
+    unawaited(_repo.preloadPreviousChapterStaging(
+      _chapterVM.bookId.value,
+      centerIndex - 1,
+      fontSize: _config.fontSize.value,
+      lineHeight: _config.lineHeight.value,
+      width: _pagination.pageWidth,
+      height: _pagination.pageHeight,
+      padding: _config.padding.value,
+      devicePixelRatio: _pagination.devicePixelRatio,
+      fontFamily: _pagination.fontFamily,
+    ));
+  }
 }

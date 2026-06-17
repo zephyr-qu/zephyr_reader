@@ -429,7 +429,7 @@ async fn test_adopt_partial_staging_streamer() {
     let content: String = (0..50)
         .map(|i| format!("Paragraph {i}. Some filler text for pagination.\n\n"))
         .collect();
-    let (_dir, file_path) = setup_parsed_txt_book(content).await;
+    let (_dir, file_path) = setup_parsed_txt_book(&content).await;
     let config = TypesetConfig::default();
 
     // create_session with max_chars → partial streamer in cache

@@ -25,6 +25,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
   Book? _cachedBook;
 
   NextChapterStaging? _nextChapterStaging;
+  NextChapterStaging? _prevChapterStaging;
   /// staging 预加载 generation 计数器，用于丢弃过期结果。
   int _stagingGen = 0;
 
@@ -201,6 +202,8 @@ class RustChapterContentRepository implements ChapterContentRepository {
   NextChapterStaging? get nextChapterStaging => _nextChapterStaging;
 
   @override
+  NextChapterStaging? get prevChapterStaging => _prevChapterStaging;
+  @override
   Future<void> preloadNextChapterStaging(
     String bookId,
     int chapterIndex, {
@@ -268,8 +271,83 @@ class RustChapterContentRepository implements ChapterContentRepository {
   }
 
   @override
+  Future<void> preloadPreviousChapterStaging(
+    String bookId,
+    int chapterIndex, {
+    double fontSize = 16,
+    double lineHeight = 1.6,
+    double width = 400,
+    double height = 600,
+    double padding = 20,
+    double devicePixelRatio = 1.0,
+    String fontFamily = 'Noto Sans SC',
+  }) async {
+    final gen = ++_stagingGen;
+    final sw = Stopwatch()..start();
+    try {
+      final book = await _getBook(bookId);
+      if (book.filePath.isEmpty) return;
+
+      final config = buildTypesetConfig(
+        width: width,
+        height: height,
+        fontSize: fontSize,
+        lineHeight: lineHeight,
+        padding: padding,
+        devicePixelRatio: devicePixelRatio,
+        fontFamily: fontFamily,
+      );
+
+      // Use maxChars: null to hit KV cache for full paginate
+      final result = await core_api.paginateChapter(
+        filePath: book.filePath,
+        chapterIndex: chapterIndex,
+        config: config,
+        maxChars: null,
+      );
+      if (gen != _stagingGen) return;
+
+      final descriptors = result.descriptors;
+      if (descriptors.isEmpty) return;
+
+      final lastPageIndex = descriptors.length - 1;
+      // Fetch last page content via bare getPageContent (sync cache lookup)
+      final lastContent = core_api.getPageContent(
+        filePath: book.filePath,
+        chapterIndex: chapterIndex,
+        configHash: result.configHash,
+        pageIndex: lastPageIndex,
+      );
+      if (gen != _stagingGen) return;
+
+      _prevChapterStaging = NextChapterStaging(
+        chapterIndex: chapterIndex,
+        configHash: result.configHash.toInt(),
+        descriptors: result.descriptors,
+        firstPageContent: lastContent,
+        isPartial: result.isPartial,
+      );
+      preloadGeneration.value++;
+      Logging.info(
+        '[Timing] preloadPreviousChapterStaging: ${sw.elapsedMilliseconds}ms '
+        '(chapter=$chapterIndex, lastPage=$lastPageIndex)',
+      );
+    } catch (e) {
+      if (gen == _stagingGen) _prevChapterStaging = null;
+      Logging.debug('[Preload] prev chapter staging failed: $e');
+    }
+  }
+
+  @override
   void clearNextChapterStaging() {
     _stagingGen++;
     _nextChapterStaging = null;
+  }
+
+  @override
+  void clearAdjacentStaging() {
+    _stagingGen++;
+    _nextChapterStaging = null;
+    _prevChapterStaging = null;
   }
 }

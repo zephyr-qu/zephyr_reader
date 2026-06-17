@@ -4,8 +4,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:signals_hooks/signals_hooks.dart';
-import 'package:zephyr_reader/core/presentation/widgets/confirm_action_dialog.dart';
-import 'package:zephyr_reader/core/presentation/widgets/danger_section.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_navigation_tile.dart';
@@ -61,8 +59,6 @@ class OtherSettingsPage extends HookWidget {
           _buildExperimentalSection(context, cs, l10n, vm),
           const SizedBox(height: 16),
           LegalSection(appVersion: appVersion),
-          const SizedBox(height: 16),
-          _buildDangerSection(context, cs, l10n, vm),
           const SizedBox(height: 16),
           VersionFooter(
             appVersion: appVersion,
@@ -203,34 +199,6 @@ class OtherSettingsPage extends HookWidget {
         .slideY(begin: 0.03, end: 0);
   }
 
-  Widget _buildDangerSection(
-    BuildContext context,
-    ColorScheme cs,
-    AppLocalizations l10n,
-    OtherSettingsViewModel vm,
-  ) {
-    return DangerSection(
-          label: l10n.dangerZone,
-          children: [
-            DangerItem(
-              icon: PhosphorIconsRegular.arrowCounterClockwise,
-              title: l10n.resetAllSettings,
-              description: l10n.resetAllSettingsDesc,
-              onTap: () => _confirmResetSettings(context, cs, vm),
-            ),
-            DangerItem(
-              icon: PhosphorIconsRegular.broom,
-              title: l10n.clearAllData,
-              description: l10n.clearAllDataDesc,
-              onTap: () => _confirmClearData(context, cs, vm),
-            ),
-          ],
-        )
-        .animate()
-        .fadeIn(duration: 300.ms, delay: 250.ms)
-        .slideY(begin: 0.03, end: 0);
-  }
-
   void _showLanguageSheet(BuildContext context, AppLocalizations l10n) {
     showModalBottomSheet<void>(
       context: context,
@@ -282,36 +250,6 @@ class OtherSettingsPage extends HookWidget {
           ),
         ),
       ),
-    );
-  }
-
-  void _confirmResetSettings(
-    BuildContext context,
-    ColorScheme cs,
-    OtherSettingsViewModel vm,
-  ) {
-    final l10n = AppLocalizations.of(context)!;
-    showConfirmActionDialog(
-      context,
-      title: l10n.confirmReset,
-      content: l10n.confirmResetContent,
-      confirmLabel: l10n.confirmReset,
-      onConfirm: () => vm.resetAllSettings(),
-    );
-  }
-
-  void _confirmClearData(
-    BuildContext context,
-    ColorScheme cs,
-    OtherSettingsViewModel vm,
-  ) {
-    final l10n = AppLocalizations.of(context)!;
-    showConfirmActionDialog(
-      context,
-      title: l10n.clearAllDataTitle,
-      content: l10n.clearAllDataContent,
-      confirmLabel: l10n.confirmClear,
-      onConfirm: () => vm.clearAllLocalData(),
     );
   }
 }

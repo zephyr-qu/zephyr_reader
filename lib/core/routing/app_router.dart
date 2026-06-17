@@ -140,8 +140,8 @@ final router = GoRouter(
       builder: (_, _) => const AboutPage(),
     ),
     GoRoute(
-      name: AppRoute.translationApi.name,
-      path: AppRoute.translationApi.path,
+      name: AppRoute.TranslationSettings.name,
+      path: AppRoute.TranslationSettings.path,
       builder: (_, _) => const TranslationSettingsPage(),
     ),
 

@@ -9,8 +9,8 @@
 | 1 | [pland.md](pland.md) | pageContent fetch-on-miss + 自动推导 `ChapterPaginationIntent` | P0 |
 | 2 | [plane-cross-chapter-preload.md](plane-cross-chapter-preload.md) | 跨章无缝翻页（pageTurn 预分页） | P1 |
 | 3 | [planf-layout-kv-cache.md](planf-layout-kv-cache.md) | Layout KV 与 `paginate_chapter` / session 路径对齐 | P1 |
-| 4 | [plang-engine-polish.md](plang-engine-polish.md) | 小优化合集（跳过 redundant full、测试/文档） — ✅ 已实现 | P2 |
-| — | [READER_ARCH_GOVERNANCE_PHASES.md](READER_ARCH_GOVERNANCE_PHASES.md) | UI/VM 层架构治理（与引擎并行） | 工程债 |
+| 4 | [planf.md](planf.md) | 滚动跨章接缝修复（ScrollChapterSegment + ScrollDocumentComposer + ScrollBoundaryCoordinator） | P1 |
+| 5 | [plang-engine-polish.md](plang-engine-polish.md) | 小优化合集（跳过 redundant full、测试/文档） — ✅ 已实现 | P2 |
 
 ## 已完成（归档）
 

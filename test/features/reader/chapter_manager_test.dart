@@ -366,6 +366,21 @@ void main() {
         fontFamily: any(named: 'fontFamily'),
       ),
     ).thenAnswer((_) async {});
+    when(
+      () => repo.preloadPreviousChapterStaging(
+        any(),
+        any(),
+        fontSize: any(named: 'fontSize'),
+        lineHeight: any(named: 'lineHeight'),
+        width: any(named: 'width'),
+        height: any(named: 'height'),
+        padding: any(named: 'padding'),
+        devicePixelRatio: any(named: 'devicePixelRatio'),
+        fontFamily: any(named: 'fontFamily'),
+      ),
+    ).thenAnswer((_) async {});
+    when(() => repo.prevChapterStaging).thenReturn(null);
+    when(() => repo.clearAdjacentStaging()).thenReturn(null);
     when(() => repo.preloadChapter(any(), any())).thenAnswer((_) async {});
     when(() => repo.clearNextChapterStaging()).thenReturn(null);
     when(() => repo.ensurePageWindow(any())).thenReturn(null);

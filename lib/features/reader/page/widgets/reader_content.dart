@@ -40,18 +40,18 @@ class ReaderContent extends HookWidget {
   final VoidCallback? onReachStart;
   final bool hasNextChapter;
   final bool hasPreviousChapter;
+  final bool showChapterTransition;
   final VoidCallback? onJumpHandled;
-
   final Widget Function(BuildContext context, ScrollController scrollController)
-  scrollBuilder;
+      scrollBuilder;
   final Widget Function(
     BuildContext context,
     ScrollController scrollController,
     List<BilingualHighlightPair> bilingualPairs,
   )
-  bilingualBuilder;
+      bilingualBuilder;
   final Widget Function(BuildContext context, PageController pageController)
-  paginatedBuilder;
+      paginatedBuilder;
 
   const ReaderContent({
     super.key,
@@ -83,6 +83,7 @@ class ReaderContent extends HookWidget {
     this.onReachStart,
     this.hasNextChapter = false,
     this.hasPreviousChapter = false,
+    this.showChapterTransition = true,
   });
 
   @override
@@ -98,14 +99,13 @@ class ReaderContent extends HookWidget {
     final bilingualPairs = useState<List<BilingualHighlightPair>>([]);
     final disableAnim = MediaQuery.disableAnimationsOf(context);
 
-    // 跨章时直接跳转第 0 页，不带动画
+    // 跨章时直接跳转第 0 页，不带动画；promote 路径已由 orchestrator 设置正确 pageIndex
     useEffect(() {
-      if (pageController.hasClients) {
+      if (pageController.hasClients && showChapterTransition) {
         pageController.jumpToPage(0);
       }
       return null;
-    }, [chapterId]);
-
+    }, [chapterId, showChapterTransition]);
     // 章内翻页动画同步
     useEffect(() {
       if (readingMode != ReadingMode.pagination) {
@@ -360,26 +360,32 @@ class ReaderContent extends HookWidget {
     );
 
     if (readingMode == ReadingMode.pagination) {
-      final slideX = isForward ? 1.0 : -1.0;
-      return AnimatedSwitcher(
-        duration: AnimTokens.medium,
-        switchInCurve: Curves.easeInOut,
-        transitionBuilder: (child, animation) {
-          // 进入 child: animation 0→1, Offset(slideX→0) ✓ 外→中
-          // 离开 child: animation 1→0, Offset(0→slideX) 中→外方向一致
-          return SlideTransition(
-            position: Tween<Offset>(
-              begin: Offset(slideX, 0.0),
-              end: Offset.zero,
-            ).animate(animation),
-            child: child,
-          );
-        },
-        child: Container(
-          key: ValueKey('chapter_$chapterId'),
-          color: renderConfig.backgroundColor,
-          child: contentWidget,
-        ),
+      if (showChapterTransition) {
+        final slideX = isForward ? 1.0 : -1.0;
+        return AnimatedSwitcher(
+          duration: AnimTokens.medium,
+          switchInCurve: Curves.easeInOut,
+          transitionBuilder: (child, animation) {
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: Offset(slideX, 0.0),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            );
+          },
+          child: Container(
+            key: ValueKey('chapter_$chapterId'),
+            color: renderConfig.backgroundColor,
+            child: contentWidget,
+          ),
+        );
+      }
+      // adjacentCrossChapter promote：直接渲染，无 AnimatedSwitcher 过渡
+      return Container(
+        key: const ValueKey('promote_content'),
+        color: renderConfig.backgroundColor,
+        child: contentWidget,
       );
     }
     return Container(color: renderConfig.backgroundColor, child: contentWidget);

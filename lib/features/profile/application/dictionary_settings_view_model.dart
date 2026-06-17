@@ -11,7 +11,7 @@ import 'package:zephyr_reader/src/rust/api/dictionary.dart' as dict_api;
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 @injectable
-/// 词典设置 ViewModel。
+/// 词典管理 ViewModel。
 ///
 /// 管理当前词典路径、词典列表的加载/切换/删除/重置，
 /// 所有设置变更自动持久化。
