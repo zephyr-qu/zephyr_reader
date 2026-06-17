@@ -69,15 +69,17 @@ pub(crate) fn optimize_punctuation<'a>(text: &'a str, language: &str) -> Cow<'a,
     Cow::Owned(result)
 }
 
-/// 优化空格
 pub(crate) fn optimize_spaces<'a>(text: &'a str, _language: &str) -> Cow<'a, str> {
     // 快速检查：是否有连续空白、前导或尾随空白
+    // 注意：`\n` 是段落/行分隔符，不参与空白压缩
     let mut prev_space = false;
     let mut in_leading = true;
     for c in text.chars() {
-        if c.is_whitespace() {
+        if c == '\n' {
+            prev_space = false;
+            in_leading = false;
+        } else if c.is_whitespace() {
             if in_leading || prev_space {
-                // 需要压缩空格
                 return Cow::Owned(remove_extra_spaces(text));
             }
             prev_space = true;
@@ -112,11 +114,9 @@ fn remove_extra_spaces(text: &str) -> String {
 
     result.trim().to_string()
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
 
     #[test]
     fn test_remove_extra_spaces() {

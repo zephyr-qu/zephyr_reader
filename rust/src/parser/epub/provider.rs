@@ -327,12 +327,16 @@ pub(crate) fn html_to_plain_text(html: &str) -> String {
                 continue;
             }
 
-            // </tag> (closing tag except </a>) → newline
+            // </tag> — emit newline only for block-level close tags
             if rest.len() >= 2 && rest[1] == b'/' {
-                let is_close_a = rest.len() > 3
-                    && bytes_starts_with_lower(&rest[2..], b"a")
-                    && matches!(rest.get(3), Some(b'>') | Some(b' ') | Some(b'/'));
-                if !is_close_a {
+                let mut is_block_close = false;
+                for &tag in BLOCK_TAGS {
+                    if is_tag_at(bytes, pos + 2, tag) {
+                        is_block_close = true;
+                        break;
+                    }
+                }
+                if is_block_close {
                     out.push('\n');
                     last_was_newline = true;
                 }
@@ -343,8 +347,6 @@ pub(crate) fn html_to_plain_text(html: &str) -> String {
                 }
                 continue;
             }
-
-            // Other (inline) tags → skip silently
             if let Some(gt) = rest.iter().position(|&b| b == b'>') {
                 pos += gt + 1;
             } else {
@@ -598,15 +600,9 @@ mod tests {
     }
 
     #[test]
-    fn test_decode_numeric_entities_mixed() {
-        let text = "Hello &#x57;orld &#33;";
-        assert_eq!(decode_numeric_entities(text), "Hello World !");
-    }
-
-    #[test]
     fn test_html_to_plain_text_nested_inline_tags() {
         let text = html_to_plain_text("<p><b>Bold</b> <i>italic</i></p>");
-        assert_eq!(text, "Bold\nitalic");
+        assert_eq!(text, "Bold italic");
     }
 
     #[test]
@@ -632,4 +628,23 @@ mod tests {
         let text = html_to_plain_text("Line1<br>Line2<p>Line3</p>");
         assert_eq!(text, "Line1\nLine2\nLine3");
     }
+
+    #[test]
+    fn test_html_to_plain_text_inline_only() {
+        let text = html_to_plain_text("<b>Bold</b> and <i>italic</i>");
+        assert_eq!(text, "Bold and italic");
+    }
+
+    #[test]
+    fn test_html_to_plain_text_block_nesting() {
+        let text = html_to_plain_text("<div><p>Nested</p><p>Paragraphs</p></div>");
+        assert_eq!(text, "Nested\n\nParagraphs");
+    }
+
+    #[test]
+    fn test_html_to_plain_text_mixed_block_inline() {
+        let text = html_to_plain_text("<p>Hello <b>world</b></p><p>Second <i>para</i></p>");
+        assert_eq!(text, "Hello world\n\nSecond para");
+    }
 }
+

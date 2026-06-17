@@ -3,6 +3,7 @@ import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'highlight_painter.dart';
+import 'package:zephyr_reader/features/reader/data/rich_text_converter.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'reader_render_config.dart';
@@ -125,6 +126,16 @@ class PaginatedModeRenderer extends StatelessWidget {
     int pageIndex,
     int startOffset,
   ) {
+    // Rich text path: check if we have paragraph-level indices for the page
+    final richParagraphs = dataSource.currentRichParagraphs;
+    final descriptors = dataSource.descriptors;
+    if (richParagraphs != null && descriptors != null && pageIndex < descriptors.length) {
+      final desc = descriptors[pageIndex];
+      if (desc.firstParagraphIndex >= 0 && desc.lastParagraphIndex >= 0) {
+        return _buildRichPageContent(context, pageIndex, startOffset);
+      }
+    }
+    // Plain text fallback
     final pageContent = dataSource.pageContent(pageIndex);
     if (pageContent == null) {
       return const SizedBox(width: double.infinity, height: 600);
@@ -147,6 +158,134 @@ class PaginatedModeRenderer extends StatelessWidget {
       strutStyle,
       startOffset,
     );
+  }
+
+  /// 使用富文本（含图片+样式）渲染页面内容。
+  /// 仅在 [PageDescriptor] 包含合法段落索引时调用。
+  Widget _buildRichPageContent(
+    BuildContext context,
+    int pageIndex,
+    int startOffset,
+  ) {
+    final richParagraphs = dataSource.currentRichParagraphs!;
+    final descriptors = dataSource.descriptors!;
+    final desc = descriptors[pageIndex];
+    final firstIdx = desc.firstParagraphIndex;
+    final lastIdx = desc.lastParagraphIndex;
+    final pageParagraphs = richParagraphs.sublist(firstIdx, lastIdx + 1);
+
+    // Convert page's paragraphs to TextSpan, then split into per-paragraph spans
+    final richConverter = const RichTextConverter();
+    final pageRichSpan = richConverter.toTextSpan(pageParagraphs).$1;
+    final textParagraphs = _extractParagraphSpans(pageRichSpan);
+
+    // Calculate text offset for each text paragraph
+    final paraOffsets = <int>[];
+    var accOffset = 0;
+    for (final p in textParagraphs) {
+      paraOffsets.add(accOffset);
+      accOffset += _spanTextLength(p) + 2;
+    }
+
+    // Map: RichParagraph index → text paragraph index (-1 = image)
+    final textParaIndex = <int>[];
+    var ti = 0;
+    for (final rp in pageParagraphs) {
+      if (rp.isImage) {
+        textParaIndex.add(-1);
+      } else {
+        textParaIndex.add(ti);
+        ti++;
+      }
+    }
+
+    final maxWidth = MediaQuery.sizeOf(context).width - 2 * config.pageMargin;
+    final textStyle = config.buildTextStyle();
+    final strutStyle = config.buildStrutStyle();
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.symmetric(
+        horizontal: config.pageMargin,
+        vertical: 20,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: List.generate(pageParagraphs.length, (index) {
+          final rp = pageParagraphs[index];
+          if (rp.isImage) {
+            if (rp.imageData.isEmpty) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: Image.memory(
+                  rp.imageData,
+                  width: maxWidth,
+                  fit: BoxFit.contain,
+                  cacheWidth:
+                      (maxWidth * MediaQuery.devicePixelRatioOf(context))
+                          .ceil(),
+                  errorBuilder: (_, e, s) => Container(
+                    height: 100,
+                    color: Colors.grey.withValues(alpha: 0.1),
+                    child: const Center(
+                      child: Icon(Icons.broken_image, color: Colors.grey),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          } else {
+            final textIdx = textParaIndex[index];
+            if (textIdx < 0 || textIdx >= textParagraphs.length) {
+              return const SizedBox.shrink();
+            }
+            final span = textParagraphs[textIdx];
+            final offset = paraOffsets[textIdx];
+            final painted = HighlightPainter.paintRich(
+              span,
+              offset,
+              highlights,
+              onHighlightTap: onHighlightTap,
+              vocabularyWords: config.effectiveVocabWords,
+            );
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: textIdx < textParagraphs.length - 1
+                    ? config.paragraphSpacing
+                    : 0,
+              ),
+              child: SelectableText.rich(
+                painted,
+                style: textStyle,
+                strutStyle: strutStyle,
+                textAlign: config.textAlign,
+                onSelectionChanged: (sel, cause) =>
+                    _onRichSelection(sel, span, offset, context),
+                contextMenuBuilder: (_, _) => const SizedBox.shrink(),
+              ),
+            );
+          }
+        }),
+      ),
+    );
+  }
+
+  void _onRichSelection(
+    TextSelection sel,
+    TextSpan span,
+    int offset,
+    BuildContext context,
+  ) {
+    final fullText = span.toPlainText();
+    if (!sel.isValid || sel.isCollapsed || sel.start >= fullText.length) {
+      onSelectionChanged?.call('', 0, 0);
+      return;
+    }
+    final end = sel.end > fullText.length ? fullText.length : sel.end;
+    final text = fullText.substring(sel.start, end);
+    onSelectionChanged?.call(text, offset + sel.start, offset + end);
+    _reportSelectionPosition(context, sel);
   }
 
   Widget _buildPageContentVertical(
@@ -423,6 +562,118 @@ Widget buildSinglePageContent({
   required void Function(String text, int start, int end)? onSelectionChanged,
   required void Function(Offset?)? onSelectionGlobalPosition,
 }) {
+  // Rich text path
+  final richParagraphs = dataSource.currentRichParagraphs;
+  final descriptors = dataSource.descriptors;
+  if (richParagraphs != null && descriptors != null && pageIndex < descriptors.length) {
+    final desc = descriptors[pageIndex];
+    if (desc.firstParagraphIndex >= 0 && desc.lastParagraphIndex >= 0) {
+      final firstIdx = desc.firstParagraphIndex;
+      final lastIdx = desc.lastParagraphIndex;
+      final pageParagraphs = richParagraphs.sublist(firstIdx, lastIdx + 1);
+      final richConverter = const RichTextConverter();
+      final pageRichSpan = richConverter.toTextSpan(pageParagraphs).$1;
+      final textParagraphs = _extractParagraphSpans(pageRichSpan);
+
+      final paraOffsets = <int>[];
+      var accOffset = 0;
+      for (final p in textParagraphs) {
+        paraOffsets.add(accOffset);
+        accOffset += _spanTextLength(p) + 2;
+      }
+
+      final textParaIndex = <int>[];
+      var ti = 0;
+      for (final rp in pageParagraphs) {
+        if (rp.isImage) {
+          textParaIndex.add(-1);
+        } else {
+          textParaIndex.add(ti);
+          ti++;
+        }
+      }
+
+      final maxWidth = MediaQuery.sizeOf(context).width - 2 * config.pageMargin;
+      final textStyle = config.buildTextStyle();
+      final strutStyle = config.buildStrutStyle();
+
+      return SingleChildScrollView(
+        padding: EdgeInsets.symmetric(
+          horizontal: config.pageMargin,
+          vertical: 20,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: List.generate(pageParagraphs.length, (index) {
+            final rp = pageParagraphs[index];
+            if (rp.isImage) {
+              if (rp.imageData.isEmpty) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Image.memory(
+                    rp.imageData,
+                    width: maxWidth,
+                    fit: BoxFit.contain,
+                    cacheWidth:
+                        (maxWidth * MediaQuery.devicePixelRatioOf(context))
+                            .ceil(),
+                    errorBuilder: (_, e, s) => Container(
+                      height: 100,
+                      color: Colors.grey.withValues(alpha: 0.1),
+                      child: const Center(
+                        child: Icon(Icons.broken_image, color: Colors.grey),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            } else {
+              final textIdx = textParaIndex[index];
+              if (textIdx < 0 || textIdx >= textParagraphs.length) {
+                return const SizedBox.shrink();
+              }
+              final span = textParagraphs[textIdx];
+              final offset = paraOffsets[textIdx];
+              final painted = HighlightPainter.paintRich(
+                span,
+                offset,
+                highlights,
+                onHighlightTap: onHighlightTap,
+                vocabularyWords: config.effectiveVocabWords,
+              );
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom: textIdx < textParagraphs.length - 1
+                      ? config.paragraphSpacing
+                      : 0,
+                ),
+                child: SelectableText.rich(
+                  painted,
+                  style: textStyle,
+                  strutStyle: strutStyle,
+                  textAlign: config.textAlign,
+                  onSelectionChanged: (sel, cause) =>
+                      _handlePageContentSelection(
+                    sel,
+                    span.toPlainText(),
+                    offset,
+                    context,
+                    onSelectionChanged,
+                    onSelectionGlobalPosition,
+                  ),
+                  contextMenuBuilder: (_, _) => const SizedBox.shrink(),
+                ),
+              );
+            }
+          }),
+        ),
+      );
+    }
+  }
+
+  // Plain text fallback
   final pageContent = dataSource.pageContent(pageIndex);
   if (pageContent == null) {
     return Container(color: config.backgroundColor);
@@ -475,4 +726,41 @@ Widget buildSinglePageContent({
       ),
     ),
   );
+}
+
+/// 将富文本 [TextSpan] 按段落分隔（\n\n）拆分为独立 [TextSpan] 列表。
+List<TextSpan> _extractParagraphSpans(TextSpan rootSpan) {
+  if (rootSpan.children == null || rootSpan.children!.isEmpty) {
+    return [rootSpan];
+  }
+  final paragraphs = <TextSpan>[];
+  var currentChildren = <InlineSpan>[];
+  for (final child in rootSpan.children!) {
+    if (child is! TextSpan) continue;
+    if (child.text == '\n\n') {
+      if (currentChildren.isNotEmpty) {
+        paragraphs.add(TextSpan(children: currentChildren));
+        currentChildren = [];
+      }
+    } else {
+      currentChildren.add(child);
+    }
+  }
+  if (currentChildren.isNotEmpty) {
+    paragraphs.add(TextSpan(children: currentChildren));
+  }
+  return paragraphs;
+}
+
+/// 计算 [TextSpan] 的纯文本长度。
+int _spanTextLength(TextSpan span) {
+  if (span.text != null) return span.text!.length;
+  if (span.children != null) {
+    var len = 0;
+    for (final child in span.children!) {
+      if (child is TextSpan) len += _spanTextLength(child);
+    }
+    return len;
+  }
+  return 0;
 }

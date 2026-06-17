@@ -62,6 +62,8 @@ mod tests {
                 is_last_page: true,
                 start_offset: 0,
                 end_offset: 9,
+                first_paragraph_index: 0,
+                last_paragraph_index: 0,
             }],
         );
         kv.save_layout_cache(&key, &cache).unwrap();

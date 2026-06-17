@@ -405,7 +405,14 @@ pub async fn get_chapter_partial(
 
     if matches!(format, BookFormat::Txt | BookFormat::Md | BookFormat::Epub) {
         let provider = get_or_create_provider(&validated_path, chapter_index, &format).await?;
-        Ok(provider.read_text_range(0, max_chars)?)
+        if matches!(format, BookFormat::Txt | BookFormat::Md) {
+            // max_chars 是字符数，但 read_text_range 用字节偏移。
+            let read_end = (max_chars * 3).min(provider.content_length());
+            let content = provider.read_text_range(0, read_end)?;
+            Ok(content.chars().take(max_chars as usize).collect())
+        } else {
+            Ok(provider.read_text_range(0, max_chars)?)
+        }
     } else {
         let text = extract_chapter_content(&validated_path, chapter_index).await?;
         Ok(text.chars().take(max_chars as usize).collect())
@@ -568,8 +575,17 @@ pub async fn paginate_chapter(
         };
         match effective_max {
             Some(limit) => {
-                let content = provider.read_text_range(0, limit)?;
-                (content, true)
+                if matches!(format, BookFormat::Txt | BookFormat::Md) {
+                    // max_chars 是字符数，但 read_text_range 用字节偏移。
+                    // UTF-8 CJK 最多 3 字节/字符，预读 limit*3 字节再取 limit 个字符。
+                    let read_end = (limit * 3).min(content_len);
+                    let content = provider.read_text_range(0, read_end)?;
+                    let partial: String = content.chars().take(limit as usize).collect();
+                    (partial, true)
+                } else {
+                    let content = provider.read_text_range(0, limit)?;
+                    (content, true)
+                }
             }
             None => {
                 let (start, end) = if format == BookFormat::Epub {

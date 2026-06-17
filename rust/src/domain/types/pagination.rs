@@ -25,6 +25,10 @@ pub struct PageContent {
     pub start_offset: i32,
     /// 此页在章节原文中的结束字节偏移（用于阅读进度定位）
     pub end_offset: i32,
+    /// 此页在富文本段落列表中的起始段落索引（用于富文本渲染）
+    pub first_paragraph_index: i32,
+    /// 此页在富文本段落列表中的结束段落索引（用于富文本渲染）
+    pub last_paragraph_index: i32,
 }
 
 // ==================== 页面描述符 ====================
@@ -40,6 +44,10 @@ pub struct PageDescriptor {
     pub start_offset: i32,
     /// 此页在章节原文中的结束字节偏移
     pub end_offset: i32,
+    /// 此页在富文本段落列表中的起始段落索引（用于富文本渲染）
+    pub first_paragraph_index: i32,
+    /// 此页在富文本段落列表中的结束段落索引（用于富文本渲染）
+    pub last_paragraph_index: i32,
     /// 是否为最后一页
     pub is_last_page: bool,
 }

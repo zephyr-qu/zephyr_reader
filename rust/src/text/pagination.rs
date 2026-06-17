@@ -112,6 +112,8 @@ pub struct PageStreamer {
     first_of_paragraph: Vec<bool>,
     /// Indentation string (e.g., "  ") (eager mode)
     indent_str: String,
+    /// Paragraph index for each line (eager mode), used for rich text slicing
+    line_paragraph_indices: Vec<u32>,
     /// Whether the streamer was created from partial content
     pub(crate) is_partial: bool,
     /// Pre-computed pages from KV cache (populated by from_pages)
@@ -127,25 +129,7 @@ const LAZY_PAGINATION_CHAR_THRESHOLD: usize = 50_000;
 #[frb]
 impl PageStreamer {
     pub fn new(content: String, config: TypesetConfig) -> Self {
-        // 标点/空格优化：避头避尾、CJK/Latin 间距等。
-        // 对任意大小都执行，但超过 OPTIMIZE_CHAR_LIMIT 时跳过以避免大 Vec<char> 分配。
-        const OPTIMIZE_CHAR_LIMIT: usize = 200_000;
-        let lang = match config.language {
-            LanguageType::Chinese => "zh",
-            LanguageType::English => "en",
-            LanguageType::Auto | LanguageType::Mixed => "auto",
-        };
-        let content = if content.chars().count() <= OPTIMIZE_CHAR_LIMIT {
-            let punct = optimize_punctuation(&content, lang);
-            let opt = optimize_spaces(&punct, lang);
-            match opt {
-                Cow::Owned(s) => s,
-                Cow::Borrowed(_) => content, // 未修改则复用原文
-            }
-        } else {
-            content
-        };
-
+        // Bypass optimization temporarily to test paragraph detection
         if content.chars().count() > LAZY_PAGINATION_CHAR_THRESHOLD {
             return Self::new_lazy(content, config);
         }
@@ -167,6 +151,7 @@ impl PageStreamer {
             char_boundaries: Vec::new(),
             first_of_paragraph: Vec::new(),
             indent_str: String::new(),
+            line_paragraph_indices: Vec::new(),
             is_partial: false,
         }
     }
@@ -208,10 +193,15 @@ impl PageStreamer {
         let estimated_lines = content.chars().count() / chars_per_line + 1;
         let mut line_offsets = Vec::with_capacity(estimated_lines);
         let mut first_of_paragraph = Vec::with_capacity(estimated_lines);
+        let mut line_paragraph_indices = Vec::with_capacity(estimated_lines);
+        let mut paragraph_count: u32 = 0;
+        let mut seen_separator = false;
         let mut global_offset = 0;
 
         // M3: 一次性计算全文 char_indices，段落复用
         let full_char_indices: Vec<(usize, char)> = content.char_indices().collect();
+        // DEBUG: track content state
+        let content_has_newlines = content.contains('\n');
 
         for line_with_ending in content.split_inclusive(|c| c == '\n') {
             let paragraph = line_with_ending.trim_end_matches(['\r', '\n']);
@@ -219,8 +209,15 @@ impl PageStreamer {
             if paragraph.is_empty() {
                 line_offsets.push((global_offset, global_offset));
                 first_of_paragraph.push(false);
+                line_paragraph_indices.push(paragraph_count);
+                seen_separator = true;
                 global_offset += line_with_ending.len();
                 continue;
+            }
+            // Non-empty paragraph — advance paragraph index after a separator
+            if seen_separator {
+                paragraph_count += 1;
+                seen_separator = false;
             }
 
             let para_start = global_offset;
@@ -237,6 +234,7 @@ impl PageStreamer {
                 compute_line_breaks_from_indices(para_indices, para_start, para_end, max_line_width, &width_table, auto_space_px, config.letter_spacing, config.punctuation_squeeze);
             for (i, (start, end)) in line_breaks.iter().enumerate() {
                 let line_start = global_offset + *start;
+                line_paragraph_indices.push(paragraph_count);
                 let line_end = global_offset + *end;
                 line_offsets.push((line_start, line_end));
                 first_of_paragraph.push(i == 0);
@@ -252,8 +250,16 @@ impl PageStreamer {
                 for _ in 0..spacer_lines {
                     line_offsets.push((global_offset, global_offset));
                     first_of_paragraph.push(false);
+                    line_paragraph_indices.push(paragraph_count);
                 }
             }
+        }
+        // Verify: if content had newlines, we should have seen separators
+        if content_has_newlines && paragraph_count == 0 {
+            let all: Vec<String> = content.split_inclusive('\n')
+                .map(|c| format!("{:?}", c))
+                .collect();
+            panic!("newlines in content but NO empty paragraphs detected! content_chunks={:?}", all);
         }
 
         let total_lines = line_offsets.len();
@@ -275,6 +281,7 @@ impl PageStreamer {
             char_boundaries: Vec::new(),
             first_of_paragraph,
             indent_str,
+            line_paragraph_indices,
             cached_pages: None,
             is_partial: false,
         }
@@ -312,6 +319,7 @@ impl PageStreamer {
             char_boundaries,
             first_of_paragraph: Vec::new(),
             indent_str: String::new(),
+            line_paragraph_indices: Vec::new(),
             cached_pages: None,
             is_partial: false,
         }
@@ -367,6 +375,8 @@ impl PageStreamer {
             is_last_page: end >= self.total_lines,
             start_offset: self.line_offsets[start].0 as i32,
             end_offset: self.line_offsets[end - 1].1 as i32,
+            first_paragraph_index: self.line_paragraph_indices[start] as i32,
+            last_paragraph_index: self.line_paragraph_indices[end.saturating_sub(1)] as i32,
         })
     }
 
@@ -398,6 +408,8 @@ impl PageStreamer {
             is_last_page: char_end >= self.total_chars(),
             start_offset: byte_start as i32,
             end_offset: byte_end as i32,
+            first_paragraph_index: -1,
+            last_paragraph_index: -1,
         })
     }
 
@@ -482,6 +494,8 @@ impl PageStreamer {
                 start_offset: p.start_offset,
                 end_offset: p.end_offset,
                 is_last_page: p.is_last_page,
+                first_paragraph_index: p.first_paragraph_index,
+                last_paragraph_index: p.last_paragraph_index,
             }).collect();
         }
         if self.line_offsets.is_empty() {
@@ -502,6 +516,8 @@ impl PageStreamer {
                 start_offset,
                 end_offset,
                 is_last_page,
+                first_paragraph_index: self.line_paragraph_indices[start_line] as i32,
+                last_paragraph_index: self.line_paragraph_indices[end_line.saturating_sub(1)] as i32,
             });
         }
         descriptors
@@ -530,6 +546,8 @@ impl PageStreamer {
                 start_offset: byte_start as i32,
                 end_offset: byte_end as i32,
                 is_last_page: char_end >= total_chars,
+                first_paragraph_index: -1,
+                last_paragraph_index: -1,
             });
         }
         descriptors
@@ -575,6 +593,23 @@ mod tests {
         assert_eq!(streamer.total_pages(), 0);
         assert_eq!(streamer.total_lines(), 0);
         assert!(streamer.get_page(0, 0).is_none());
+    }
+
+    #[test]
+    fn test_content_split_empty_chunks() {
+        let p1 = "A. ".repeat(3);
+        let p2 = "B. ".repeat(3);
+        let p3 = "C. ".repeat(3);
+        let content = format!("{p1}\n\n{p2}\n\n{p3}");
+        // Verify content has \n\n
+        let nn_count = content.matches("\n\n").count();
+        assert_eq!(nn_count, 2, "should have 2 \\n\\n separators, got {nn_count}");
+        // Verify split_inclusive produces empty chunks
+        let chunks: Vec<_> = content.split_inclusive('\n').collect();
+        let empty_chunks = chunks.iter().filter(|c| c.trim_end_matches(['\r','\n']).is_empty()).count();
+        assert_eq!(empty_chunks, 2, "should have 2 empty chunks from \\n\\n separators, got {empty_chunks} from {chunks:?}");
+        // Verify the content ends without trailing newline
+        assert!(!content.ends_with('\n'), "content should not end with newline");
     }
 
     #[test]
@@ -730,5 +765,74 @@ mod tests {
             lines_yes,
             lines_no,
         );
+    }
+
+    #[test]
+    fn test_paragraph_indices_in_descriptors() {
+        let p1 = "Paragraph one content with enough text. ".repeat(3);
+        let p2 = "Paragraph two content with enough text. ".repeat(3);
+        let p3 = "Paragraph three content with enough text. ".repeat(3);
+        let content = format!("{p1}\n\n{p2}\n\n{p3}");
+        // Verify content structure
+        assert!(content.contains("\n\n"), "content should have \\n\\n, got: {:?}",
+            &content[..content.len().min(100)]);
+        let chunks: Vec<_> = content.split_inclusive('\n').collect();
+        let empty: Vec<_> = chunks.iter().filter(|c| c.trim_end_matches(['\r','\n']).is_empty()).collect();
+        assert_eq!(empty.len(), 2, "expected 2 empty chunks, got {}: {:?}", empty.len(), chunks);
+        let mut config = TypesetConfig::default();
+        config.font_size = 40;
+        config.page_width = 200;
+        config.page_height = 200;
+        let streamer = PageStreamer::new(content, config);
+
+        // Verify eager mode (line_offsets populated)
+        assert!(!streamer.line_offsets.is_empty(), "should use eager mode");
+
+        let descriptors = streamer.get_descriptors();
+        assert!(descriptors.len() >= 2, "should have at least 2 pages, got {}", descriptors.len());
+
+        // Check the last page's paragraph index
+        for (i, d) in descriptors.iter().enumerate() {
+            assert!(
+                d.first_paragraph_index >= 0,
+                "page {i}: first_paragraph_index should be >= 0, got {}",
+                d.first_paragraph_index
+            );
+            assert!(
+                d.last_paragraph_index >= d.first_paragraph_index,
+                "page {i}: last {} < first {}",
+                d.last_paragraph_index, d.first_paragraph_index
+            );
+        }
+
+        // First page starts at paragraph 0
+        assert_eq!(descriptors[0].first_paragraph_index, 0);
+
+        // The last page should end at paragraph 2 (3 paragraphs: 0, 1, 2)
+        let last = descriptors.last().unwrap();
+        assert!(last.last_paragraph_index >= 0);
+        assert_eq!(last.last_paragraph_index, 2);
+    }
+
+    #[test]
+    fn test_paragraph_indices_lazy_are_minus_one() {
+        // 50K+ characters to trigger lazy mode
+        let content = "中".repeat(60_000);
+        let mut config = TypesetConfig::default();
+        config.font_size = 100;
+        config.page_width = 200;
+        config.page_height = 200;
+        let streamer = PageStreamer::new(content, config);
+
+        // Verify lazy mode was triggered
+        assert!(streamer.line_offsets.is_empty());
+
+        let descriptors = streamer.get_descriptors();
+        assert!(!descriptors.is_empty());
+
+        for desc in &descriptors {
+            assert_eq!(desc.first_paragraph_index, -1);
+            assert_eq!(desc.last_paragraph_index, -1);
+        }
     }
 }
