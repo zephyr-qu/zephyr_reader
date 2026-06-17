@@ -74,7 +74,7 @@ impl Parser {
     ) -> Result<String, AppError> {
         match self {
             Parser::Txt(p) => p.extract_chapter(file_path, chapter_index).await,
-            Parser::Epub(p) => p.extract_chapter(file_path, chapter_index).await,
+            Parser::Epub(_) => Err(AppError::UnsupportedFormat { format: "epub".into() }),
             Parser::Pdf(p) => p.extract_chapter(file_path, chapter_index).await,
             Parser::Md(p) => p.extract_chapter(file_path, chapter_index).await,
         }

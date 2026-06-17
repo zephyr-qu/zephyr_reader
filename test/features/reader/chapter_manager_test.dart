@@ -271,12 +271,16 @@ void _setupPaginateChapter(_MockRepo repo, {bool isFallback = false}) {
         startOffset: 0,
         endOffset: 50,
         isLastPage: false,
+        firstParagraphIndex: 0,
+        lastParagraphIndex: 0,
       ),
       const PageDescriptor(
         pageIndex: 1,
         startOffset: 50,
         endOffset: 100,
         isLastPage: true,
+        firstParagraphIndex: 0,
+        lastParagraphIndex: 0,
       ),
     ]);
   }
@@ -727,12 +731,16 @@ void main() {
             startOffset: 0,
             endOffset: 50,
             isLastPage: false,
+            firstParagraphIndex: 0,
+            lastParagraphIndex: 0,
           ),
           const PageDescriptor(
             pageIndex: 1,
             startOffset: 50,
             endOffset: 100,
             isLastPage: true,
+            firstParagraphIndex: 0,
+            lastParagraphIndex: 0,
           ),
         ]);
 
@@ -821,6 +829,8 @@ void main() {
             startOffset: 0,
             endOffset: 50,
             isLastPage: false,
+            firstParagraphIndex: 0,
+            lastParagraphIndex: 0,
           ),
         ];
         expect(PaginationEngine.resolvePageIndexForOffset(descriptors, 25), 0);
@@ -833,12 +843,16 @@ void main() {
             startOffset: 0,
             endOffset: 50,
             isLastPage: false,
+            firstParagraphIndex: 0,
+            lastParagraphIndex: 0,
           ),
           const PageDescriptor(
             pageIndex: 1,
             startOffset: 50,
             endOffset: 100,
             isLastPage: true,
+            firstParagraphIndex: 0,
+            lastParagraphIndex: 0,
           ),
         ];
         expect(PaginationEngine.resolvePageIndexForOffset(descriptors, 75), 1);
@@ -851,12 +865,16 @@ void main() {
             startOffset: 0,
             endOffset: 50,
             isLastPage: false,
+            firstParagraphIndex: 0,
+            lastParagraphIndex: 0,
           ),
           const PageDescriptor(
             pageIndex: 1,
             startOffset: 50,
             endOffset: 100,
             isLastPage: true,
+            firstParagraphIndex: 0,
+            lastParagraphIndex: 0,
           ),
         ];
         expect(PaginationEngine.resolvePageIndexForOffset(descriptors, 999), 1);

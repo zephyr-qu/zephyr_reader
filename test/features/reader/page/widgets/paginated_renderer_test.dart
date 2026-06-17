@@ -179,6 +179,8 @@ void main() {
           startOffset: 0,
           endOffset: 10,
           isLastPage: false,
+          firstParagraphIndex: 0,
+          lastParagraphIndex: 0,
         ),
       ]);
       when(() => dataSource.pageContent(0)).thenReturn('Page content.');
@@ -214,6 +216,8 @@ void main() {
           startOffset: 0,
           endOffset: 10,
           isLastPage: false,
+          firstParagraphIndex: 0,
+          lastParagraphIndex: 0,
         ),
       ]);
       when(() => dataSource.pageContent(0)).thenReturn('Page content.');

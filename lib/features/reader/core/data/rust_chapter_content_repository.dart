@@ -84,7 +84,6 @@ class RustChapterContentRepository implements ChapterContentRepository {
 
       final filePath = book.filePath;
       final isEpub = filePath.toLowerCase().endsWith('.epub');
-      final isPaginated = readingMode == ReadingMode.pagination;
 
       Future<List<RichParagraph>>? epubRichFuture;
       if (isEpub) {

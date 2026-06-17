@@ -62,6 +62,8 @@ void main() {
           startOffset: 0,
           endOffset: 100,
           isLastPage: false,
+          firstParagraphIndex: 0,
+          lastParagraphIndex: 0,
         ),
       ]);
 
@@ -84,6 +86,8 @@ void main() {
           startOffset: 0,
           endOffset: 100,
           isLastPage: true,
+          firstParagraphIndex: 0,
+          lastParagraphIndex: 0,
         ),
       ]);
       when(() => pagination.computeConfigHash()).thenReturn(67890);
@@ -107,6 +111,8 @@ void main() {
           startOffset: 0,
           endOffset: 100,
           isLastPage: true,
+          firstParagraphIndex: 0,
+          lastParagraphIndex: 0,
         ),
       ]);
       when(() => pagination.computeConfigHash()).thenReturn(12345);
