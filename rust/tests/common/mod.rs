@@ -83,3 +83,6 @@ pub async fn ensure_test_book(book_id: &str) {
     };
     book::upsert_book(b).await.unwrap();
 }
+
+pub mod epub_local;
+pub mod reading_chain;

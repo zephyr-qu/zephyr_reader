@@ -1,19 +1,33 @@
+import 'package:flutter/material.dart';
+import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
+
 /// 滚动模式下单章分段数据。
 ///
-/// 每个 [ScrollChapterSegment] 对应一个章节的文本段落序列，
+/// 每个 [ScrollChapterSegment] 对应一个章节的段落序列，
 /// 供 [ScrollDocumentComposer] 拼接多章时使用。
+/// Phase 2：可选 [richParagraphs] / [richRootSpan] 支持 EPUB/MD 富文本与图片。
 class ScrollChapterSegment {
   final int chapterIndex;
   final List<String> paragraphs;
   final List<int> paragraphCharOffsets;
+  final List<RichParagraph>? richParagraphs;
+  final TextSpan? richRootSpan;
 
   const ScrollChapterSegment({
     required this.chapterIndex,
     required this.paragraphs,
     required this.paragraphCharOffsets,
+    this.richParagraphs,
+    this.richRootSpan,
   });
 
-  int get paragraphCount => paragraphs.length;
+  bool get isRich => richParagraphs != null && richParagraphs!.isNotEmpty;
+
+  bool get hasImages => richParagraphs?.any((p) => p.isImage) ?? false;
+
+  /// ListView item 数：富文本按 RichParagraph（含图片），纯文本按段落。
+  int get paragraphCount =>
+      isRich ? richParagraphs!.length : paragraphs.length;
 
   int get totalCharLength =>
       paragraphCharOffsets.isNotEmpty
@@ -25,7 +39,6 @@ class ScrollChapterSegment {
   /// 根据章节内 charOffset 查找段落索引（含值，即段落起点）。
   /// 返回 -1 当 offset 超出范围。
   int paragraphIndexForCharOffset(int charOffset) {
-    // paragraphCharOffsets 是升序的
     var lo = 0;
     var hi = paragraphCharOffsets.length;
     while (lo < hi) {

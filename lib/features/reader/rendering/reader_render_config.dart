@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 ///
 /// 聚合文本颜色、背景色、字体、行距等排版参数，供各渲染器使用。
 class ReaderRenderConfig {
+  /// 分页/翻页正文区域上下内边距（逻辑像素）。
+  /// 须与 [PaginatedModeRenderer] 一致，并计入 Rust 分页有效页高。
+  static const double pageContentVerticalPadding = 20.0;
   final Color textColor;
   final Color backgroundColor;
   final double fontSize;

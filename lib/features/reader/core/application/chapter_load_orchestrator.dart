@@ -455,6 +455,16 @@ class ChapterLoadOrchestrator {
     });
     if (_isStale(gen)) return;
 
+    if (request.readingMode == ReadingMode.scroll &&
+        request.navigationKind == ChapterNavigationKind.manualJump) {
+      _chapterVM.resetScrollDocument(
+        content,
+        request.chapterIndex,
+        richParagraphs: _contentRepo.currentRichParagraphs,
+        richRootSpan: _contentRepo.currentRichContent,
+      );
+    }
+
     if (!_pagination.isPaginationValid(total)) {
       _applyIfCurrent(gen, () {
         _error.value = AppErrorMapper.humanReadable(

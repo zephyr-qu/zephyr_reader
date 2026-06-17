@@ -91,8 +91,6 @@ configReload 全链路测试受限于 Rust FFI mock 不可用，intent resolver 
 
 [`fallbackToCalculatePages`](lib/features/reader/core/application/pagination_coordinator.dart) 仍用 Dart `calculatePages`。
 
-**建议**：当生产 telemetry 显示 fallback 率 <0.1% 时再考虑改为「报错 + 重试 repaginate」；当前保留。
-
 ---
 
 ## 改动历史

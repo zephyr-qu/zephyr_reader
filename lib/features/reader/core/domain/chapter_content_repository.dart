@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
+import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
@@ -9,6 +10,13 @@ abstract class ChapterContentRepository {
   Future<List<Chapter>> getChapters(String bookId);
 
   Future<String> loadContent(
+    String bookId,
+    int chapterId, {
+    ReadingMode? readingMode,
+  });
+
+  /// 加载单章滚动拼接数据，不更新 [currentRichContent] / [currentRichParagraphs]。
+  Future<ScrollChapterPayload> loadScrollSegment(
     String bookId,
     int chapterId, {
     ReadingMode? readingMode,

@@ -10,6 +10,7 @@ import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 import '../../core/data/reader_render_data_source.dart';
+import '../../core/data/scroll_chapter_segment.dart';
 
 /// 阅读内容容器组件。
 ///
@@ -42,6 +43,9 @@ class ReaderContent extends HookWidget {
   final bool hasPreviousChapter;
   final bool showChapterTransition;
   final VoidCallback? onJumpHandled;
+  final List<ScrollChapterSegment> scrollSegments;
+  final Future<void> Function()? onScrollAppendNext;
+  final Future<int> Function()? onScrollPrependPrev;
   final Widget Function(BuildContext context, ScrollController scrollController)
       scrollBuilder;
   final Widget Function(
@@ -84,6 +88,9 @@ class ReaderContent extends HookWidget {
     this.hasNextChapter = false,
     this.hasPreviousChapter = false,
     this.showChapterTransition = true,
+    this.scrollSegments = const [],
+    this.onScrollAppendNext,
+    this.onScrollPrependPrev,
   });
 
   @override
@@ -99,16 +106,22 @@ class ReaderContent extends HookWidget {
     final bilingualPairs = useState<List<BilingualHighlightPair>>([]);
     final disableAnim = MediaQuery.disableAnimationsOf(context);
 
-    // 跨章时直接跳转第 0 页，不带动画；promote 路径已由 orchestrator 设置正确 pageIndex
+    // 跨章时跳转目标页；adjacent promote 用 jumpToPage 避免循环翻页
     useEffect(() {
-      if (pageController.hasClients && showChapterTransition) {
-        pageController.jumpToPage(0);
-      }
+      if (readingMode != ReadingMode.pagination) return null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!pageController.hasClients) return;
+        if (showChapterTransition) {
+          pageController.jumpToPage(0);
+        } else {
+          pageController.jumpToPage(pageIndex);
+        }
+      });
       return null;
-    }, [chapterId, showChapterTransition]);
-    // 章内翻页动画同步
+    }, [chapterId, showChapterTransition, readingMode]);
+    // 章内翻页动画同步（仅手动翻页，跨章 promote 已在上方 jumpToPage）
     useEffect(() {
-      if (readingMode != ReadingMode.pagination) {
+      if (readingMode != ReadingMode.pagination || !showChapterTransition) {
         return null;
       }
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -124,7 +137,7 @@ class ReaderContent extends HookWidget {
         }
       });
       return null;
-    }, [pageIndex, readingMode, disableAnim]);
+    }, [pageIndex, readingMode, disableAnim, showChapterTransition]);
 
     useEffect(() {
       if (readingMode != ReadingMode.bilingual) {
@@ -150,7 +163,7 @@ class ReaderContent extends HookWidget {
       reachStartTriggered.value = false;
       hasScrolledBelowTop.value = false;
       return null;
-    }, [chapterId]);
+    }, [chapterId, scrollSegments.length]);
 
     useEffect(() {
       if (autoScrollTick == null) return null;
@@ -185,6 +198,8 @@ class ReaderContent extends HookWidget {
       return null;
     }, [autoScrollTick]);
 
+    final useScrollSegments = scrollSegments.isNotEmpty;
+
     useEffect(() {
       if (readingMode == ReadingMode.pagination) {
         return null;
@@ -208,7 +223,39 @@ class ReaderContent extends HookWidget {
           hasScrolledBelowTop.value = true;
         }
 
-        // Auto-next-chapter: detect near bottom of scroll
+        if (useScrollSegments && !isLoading) {
+          if (hasNextChapter &&
+              scrollController.offset >= maxExtent - threshold) {
+            if (!reachEndTriggered.value) {
+              reachEndTriggered.value = true;
+              onScrollAppendNext?.call().whenComplete(() {
+                reachEndTriggered.value = false;
+              });
+            }
+          }
+          if (hasPreviousChapter &&
+              hasScrolledBelowTop.value &&
+              scrollController.offset <= threshold) {
+            if (!reachStartTriggered.value) {
+              reachStartTriggered.value = true;
+              onScrollPrependPrev?.call().then((added) {
+                if (added <= 0 || !scrollController.hasClients) return;
+                final estHeight = renderConfig.textRowHeight +
+                    renderConfig.paragraphSpacing;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (scrollController.hasClients) {
+                    scrollController.jumpTo(
+                      scrollController.offset + added * estHeight,
+                    );
+                  }
+                  reachStartTriggered.value = false;
+                });
+              });
+            }
+          }
+          return;
+        }
+
         if (onReachEnd != null && !isLoading) {
           if (scrollController.offset >= maxExtent - threshold) {
             if (!reachEndTriggered.value) {
@@ -218,7 +265,6 @@ class ReaderContent extends HookWidget {
           }
         }
 
-        // Auto-previous-chapter: detect near top after user scrolled down first
         if (onReachStart != null &&
             !isLoading &&
             hasScrolledBelowTop.value &&
@@ -230,8 +276,21 @@ class ReaderContent extends HookWidget {
         }
       }
 
+      scrollController.addListener(handleScroll);
       return () => scrollController.removeListener(handleScroll);
-    }, [scrollController, readingMode, content, isLoading, onReachEnd, onReachStart]);
+    }, [
+      scrollController,
+      readingMode,
+      content,
+      isLoading,
+      onReachEnd,
+      onReachStart,
+      useScrollSegments,
+      hasNextChapter,
+      hasPreviousChapter,
+      onScrollAppendNext,
+      onScrollPrependPrev,
+    ]);
 
     useEffect(() {
       if (jumpToCharOffset == null) {

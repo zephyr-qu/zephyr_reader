@@ -3,6 +3,7 @@ import 'package:zephyr_reader/features/reader/core/domain/progress_repository.da
 import 'package:zephyr_reader/features/reader/domain/model/page_info.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
+import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -23,6 +24,13 @@ abstract class ReaderRepositoryInterface {
 
   /// 加载章节纯文本内容。
   Future<String> loadChapterContent(
+    String bookId,
+    int chapterId, {
+    ReadingMode? readingMode,
+  });
+
+  /// 滚动跨章拼接：加载单章 payload，不覆盖当前章富文本缓存。
+  Future<ScrollChapterPayload> loadScrollSegment(
     String bookId,
     int chapterId, {
     ReadingMode? readingMode,
