@@ -8,7 +8,6 @@ use once_cell::sync::OnceCell as OnceLock;
 
 use parking_lot::Mutex;
 
-use super::toc::extract_chapters_from_epub;
 use super::unzip::EpubFile;
 use crate::domain::AppError;
 use crate::parser::provider::ChapterContentProvider;
@@ -32,44 +31,36 @@ pub struct EpubContentProvider {
 }
 
 impl EpubContentProvider {
-    /// Maximum spine items to load per chapter.
+    /// 使用 DB 中的 spine 边界打开 EPUB 章节。
     ///
-    /// Safety net for already-imported books whose chapter spans
-    /// the entire spine. New imports are split at import time in
-    /// `extract_toc_items`, but existing books still have the
-    /// oversized chapter. This cap bounds per-chapter spine items
-    /// so no single chapter takes more than ~1-2s to load.
-    const MAX_SPINE_ITEMS: usize = 20;
-
-    /// 打开 EPUB 文件并绑定到指定章节
-    ///
-    /// # 参数
-    /// * `file_path` - EPUB 文件路径
-    /// * `chapter_index` - TOC 章节索引（从 0 开始）
-    pub fn open(file_path: &str, chapter_index: i32) -> Result<Self, AppError> {
+    /// 调用方在打开前通过 `get_chapter_bounds` 从 DB 读取边界；
+    /// 导入阶段已按 `MAX_SPINE_ITEMS_PER_CHAPTER` 拆章，阅读侧不再截断。
+    pub fn open_from_bounds(
+        file_path: &str,
+        start_index: i32,
+        end_index: i32,
+    ) -> Result<Self, AppError> {
         let mut epub = EpubFile::open(file_path)?;
-        let chapters = extract_chapters_from_epub(&mut epub, "");
-
-        let chapter = chapters
-            .iter()
-            .find(|c| c.chapter_index == chapter_index as i64)
-            .ok_or_else(|| {
-                AppError::ChapterExtractError { index: chapter_index, reason: format!("chapter {} not found", chapter_index).into() }
-            })?;
-
         let spine = epub.spine();
-        let start = chapter.start_index as usize;
-        let end = (chapter.end_index as usize)
+        let start = start_index.max(0) as usize;
+        let end = (end_index.max(0) as usize)
             .min(spine.len())
             .max(start + 1);
 
-        // ── Safety cap ──────────────────────────────────────
-        // Bound the number of spine items loaded at once to
-        // prevent multi-second freeze on oversized chapters.
-        let end = end.min(start + Self::MAX_SPINE_ITEMS);
-
         let spine_hrefs: Vec<String> = spine[start..end].to_vec();
         let count = spine_hrefs.len();
+
+        // Detect oversized single-spine chapters (>2MB HTML)
+        if count == 1 {
+            if let Ok(html) = epub.read_resource(&spine_hrefs[0]) {
+                if html.len() > 2_000_000 {
+                    return Err(AppError::ChapterTooLarge {
+                        size_bytes: html.len(),
+                        details: format!("spine {} is {} bytes", &spine_hrefs[0], html.len()),
+                    });
+                }
+            }
+        }
 
         Ok(Self {
             epub: Mutex::new(epub),
@@ -671,6 +662,74 @@ mod tests {
     fn test_html_to_plain_text_mixed_block_inline() {
         let text = html_to_plain_text("<p>Hello <b>world</b></p><p>Second <i>para</i></p>");
         assert_eq!(text, "Hello world\n\nSecond para");
+    }
+
+    #[test]
+    fn test_oversized_single_spine_returns_too_large() {
+        use std::io::{Read, Write};
+        use std::path::PathBuf;
+        use zip::write::SimpleFileOptions;
+        use zip::CompressionMethod;
+        use zip::ZipWriter;
+
+        // Start from the real medium.epub fixture, extract all entries,
+        // then replace a spine XHTML with >2MB content
+        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let src_path = manifest_dir.join("../test/fixtures/medium.epub");
+
+        // Read the real EPUB
+        let src_bytes = std::fs::read(&src_path).unwrap();
+        let src_zip = std::io::Cursor::new(src_bytes);
+        let mut src_archive = zip::ZipArchive::new(src_zip).unwrap();
+
+        let dir = tempfile::TempDir::new().unwrap();
+        let out_path = dir.path().join("large.epub");
+        let out_file = std::fs::File::create(&out_path).unwrap();
+        let mut out_zip = ZipWriter::new(out_file);
+
+        // Get all entry names, keep mimetype first
+        let mut names: Vec<String> = (0..src_archive.len())
+            .map(|i| src_archive.by_index(i).unwrap().name().to_string())
+            .collect();
+        // Sort so mimetype is first
+        names.sort_by(|a, b| {
+            if a == "mimetype" { std::cmp::Ordering::Less }
+            else if b == "mimetype" { std::cmp::Ordering::Greater }
+            else { a.cmp(b) }
+        });
+
+        for name in &names {
+            let mut entry = src_archive.by_name(name).unwrap();
+            let opts = if name == "mimetype" {
+                SimpleFileOptions::default().compression_method(CompressionMethod::Stored)
+            } else {
+                SimpleFileOptions::default()
+            };
+            out_zip.start_file(name, opts).unwrap();
+            let mut data = Vec::new();
+            entry.read_to_end(&mut data).unwrap();
+
+            // Replace the first XHTML entry (spine) with >2MB content
+            if name.ends_with(".xhtml") && !name.contains("nav") {
+                let mut large_html = Vec::new();
+                write!(&mut large_html, r#"<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><title>Large</title></head>
+<body><p>"#).unwrap();
+                let content = "A".repeat(2_100_000);
+                write!(&mut large_html, "{}</p></body></html>", content).unwrap();
+                out_zip.write_all(&large_html).unwrap();
+            } else {
+                out_zip.write_all(&data).unwrap();
+            }
+        }
+        out_zip.finish().unwrap();
+
+        let path = out_path.to_string_lossy().to_string();
+        let result = EpubContentProvider::open_from_bounds(&path, 0, 1);
+        assert!(result.as_ref().is_err_and(|e| matches!(e, AppError::ChapterTooLarge { .. })),
+            "expected ChapterTooLarge, got {:?}", result.as_ref().err());
     }
 }
 

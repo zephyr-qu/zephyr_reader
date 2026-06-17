@@ -73,7 +73,13 @@ fn extract_toc_items(
 
         let index = epub_file
             .find_spine_index_by_toc_href(pure_href)
-            .unwrap_or(*chapter_id as usize);
+            .unwrap_or_else(|| {
+                tracing::warn!(
+                    "[extract_toc_items] cannot map TOC href '{pure_href}' to any spine item. \
+                     Falling back to spine index 0."
+                );
+                0
+            });
 
         chapters.push(Chapter::new(
             book_id, title, *chapter_id as i64, *level as i64, index as i64, 0,

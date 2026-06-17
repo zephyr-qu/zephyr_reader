@@ -124,7 +124,7 @@ pub struct PageStreamer {
 const PAGE_STREAMER_MEMORY_THRESHOLD: usize = 100 * 1024 * 1024;
 /// 懒加载模式字符数阈值（50K 字符）
 /// 当内容字符数超过此值时使用懒加载分页，避免预计算所有行偏移
-const LAZY_PAGINATION_CHAR_THRESHOLD: usize = 50_000;
+const LAZY_PAGINATION_CHAR_THRESHOLD: usize = 200_000;
 
 #[frb]
 impl PageStreamer {
@@ -320,6 +320,27 @@ impl PageStreamer {
 
         // 预计算 char_indices 供 get_page_lazy 安全索引
         let char_boundaries: Vec<usize> = content.char_indices().map(|(i, _)| i).collect();
+
+        // 段落跟踪：按 \n 分割，为每段估算行数，标记段落首行和段落索引
+        let mut paragraph_count: u32 = 0;
+        let mut first_of_paragraph = Vec::new();
+        let mut line_paragraph_indices = Vec::new();
+        for chunk in content.split_inclusive('\n') {
+            let trimmed = chunk.trim_end_matches(['\r', '\n']);
+            if trimmed.is_empty() {
+                // 空行分隔符：估算一行
+                first_of_paragraph.push(false);
+                line_paragraph_indices.push(paragraph_count);
+                continue;
+            }
+            let para_chars = trimmed.chars().count();
+            let para_lines = para_chars.div_ceil(chars_per_line).max(1);
+            for i in 0..para_lines {
+                first_of_paragraph.push(i == 0);
+                line_paragraph_indices.push(paragraph_count);
+            }
+            paragraph_count += 1;
+        }
         Self {
             content,
             current_page: 0,
@@ -328,9 +349,9 @@ impl PageStreamer {
             total_lines,
             chars_per_line,
             char_boundaries,
-            first_of_paragraph: Vec::new(),
+            first_of_paragraph,
             indent_str: String::new(),
-            line_paragraph_indices: Vec::new(),
+            line_paragraph_indices,
             cached_pages: None,
             is_partial: false,
         }
@@ -400,6 +421,9 @@ impl PageStreamer {
         let char_start = page_index * chars_per_page;
         let char_end = (char_start + chars_per_page).min(self.total_chars());
 
+        let start_line = page_index * self.lines_per_page;
+        let end_line = (start_line + self.lines_per_page).min(self.total_lines);
+
         // 将字符索引转换为安全的字节索引
         let byte_start = self.char_boundaries
             .get(char_start)
@@ -419,8 +443,14 @@ impl PageStreamer {
             is_last_page: char_end >= self.total_chars(),
             start_offset: byte_start as i32,
             end_offset: byte_end as i32,
-            first_paragraph_index: -1,
-            last_paragraph_index: -1,
+            first_paragraph_index: self.line_paragraph_indices
+                .get(start_line)
+                .copied()
+                .unwrap_or(0) as i32,
+            last_paragraph_index: self.line_paragraph_indices
+                .get(end_line.saturating_sub(1))
+                .copied()
+                .unwrap_or(0) as i32,
         })
     }
 
@@ -552,13 +582,22 @@ impl PageStreamer {
                 .copied()
                 .unwrap_or(self.content.len());
 
+            let start_line = page_idx * self.lines_per_page;
+            let end_line = (start_line + self.lines_per_page).min(self.total_lines);
+
             descriptors.push(PageDescriptor {
                 page_index: page_idx as i32,
                 start_offset: byte_start as i32,
                 end_offset: byte_end as i32,
                 is_last_page: char_end >= total_chars,
-                first_paragraph_index: -1,
-                last_paragraph_index: -1,
+                first_paragraph_index: self.line_paragraph_indices
+                    .get(start_line)
+                    .copied()
+                    .unwrap_or(0) as i32,
+                last_paragraph_index: self.line_paragraph_indices
+                    .get(end_line.saturating_sub(1))
+                    .copied()
+                    .unwrap_or(0) as i32,
             });
         }
         descriptors
@@ -674,8 +713,8 @@ mod tests {
 
     #[test]
     fn test_lazy_mode_large_chinese_text_no_panic() {
-        // 50K+ characters to trigger lazy mode
-        let content = "中".repeat(60_000);
+        // 200K+ characters to trigger lazy mode
+        let content = "中".repeat(250_000);
         let mut config = TypesetConfig::default();
         // Force small pages to have multiple pages
         config.font_size = 100;
@@ -826,9 +865,9 @@ mod tests {
     }
 
     #[test]
-    fn test_paragraph_indices_lazy_are_minus_one() {
-        // 50K+ characters to trigger lazy mode
-        let content = "中".repeat(60_000);
+    fn test_paragraph_indices_lazy_are_not_minus_one() {
+        // 200K+ characters to trigger lazy mode
+        let content = "中".repeat(250_000);
         let mut config = TypesetConfig::default();
         config.font_size = 100;
         config.page_width = 200;
@@ -842,8 +881,16 @@ mod tests {
         assert!(!descriptors.is_empty());
 
         for desc in &descriptors {
-            assert_eq!(desc.first_paragraph_index, -1);
-            assert_eq!(desc.last_paragraph_index, -1);
+            assert!(
+                desc.first_paragraph_index >= 0,
+                "lazy mode should provide paragraph indices, got first={}",
+                desc.first_paragraph_index,
+            );
+            assert!(
+                desc.last_paragraph_index >= 0,
+                "lazy mode should provide paragraph indices, got last={}",
+                desc.last_paragraph_index,
+            );
         }
     }
 }

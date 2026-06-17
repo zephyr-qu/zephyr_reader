@@ -121,10 +121,6 @@ pub struct TypesetConfig {
     pub punctuation_squeeze: bool,
     /// 语言类型
     pub language: LanguageType,
-    /// 是否启用连字符（英文）
-    pub enable_hyphenation: bool,
-    /// 连字符语言
-    pub hyphenation_language: Option<String>,
     /// 字体系列名（用于校准关联）
     pub font_family: String,
     /// Flutter 校准的字符宽度数据（可选，未提供时使用保守默认值）
@@ -142,10 +138,8 @@ impl Default for TypesetConfig {
             paragraph_spacing: 1.0,
             auto_space_ratio: 0.25,
             first_line_indent: 2,
-            language: LanguageType::Auto,
             punctuation_squeeze: true,
-            enable_hyphenation: false,
-            hyphenation_language: None,
+            language: LanguageType::Auto,
             font_family: "Noto Sans SC".into(),
             calibration: None,
         }

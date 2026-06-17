@@ -74,7 +74,7 @@ class ReaderShell extends HookWidget {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!context.mounted) return;
         final mq = MediaQuery.of(context);
-        vm.chapterManager.pageWidth = mq.size.width - mq.padding.horizontal;
+        vm.chapterManager.pageWidth = mq.size.width;
         vm.chapterManager.pageHeight = mq.size.height - mq.padding.vertical;
         vm.chapterManager.devicePixelRatio = mq.devicePixelRatio;
         vm.chapterManager.updateFont(fontRepo.currentFontFamily);

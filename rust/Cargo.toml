@@ -71,10 +71,6 @@ tokio = { version = "1.52.3", features = [
     ] }
 # Memory mapping
 memmap2 = "0.9.10"
-
-# Hyphenation
-hyphenation = { version = "0.8.4", features = ["embed_en-us"] }
-
 # Markdown parsing (GFM tables, footnotes)
 comrak = "0.52.0"
 
@@ -108,13 +104,10 @@ bincode = "2.0"
 xxhash-rust = { version = "0.8", features = ["xxh3"] }
 tempfile = "3.27.0"
 
-[package.metadata.hyphenation]
-embeds = ["EnglishUS"]
-
 [dev-dependencies]
 criterion = { version = "0.8.2", features = ["html_reports"] }
 pretty_assertions = "1.4"
-tempfile = "3.27.0"
+zip = "3.0"
 
 [[bin]]
 name = "stress_test"

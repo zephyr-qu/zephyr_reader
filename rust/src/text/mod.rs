@@ -6,7 +6,6 @@ pub mod chapter_detect;
 pub mod char_width;
 pub mod constants;
 pub mod css;
-pub mod line_break;
 pub mod pagination;
 pub mod rich_text;
 pub mod typeset;

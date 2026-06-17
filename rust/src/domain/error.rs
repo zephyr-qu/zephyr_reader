@@ -37,6 +37,8 @@ pub enum AppError {
 
     #[error("Chapter {index} extract error: {reason}")]
     ChapterExtractError { index: i32, reason: String },
+    #[error("Chapter too large ({size_bytes} bytes, max 2MB). Consider re-importing: {details}")]
+    ChapterTooLarge { size_bytes: usize, details: String },
 
     // ========== 配置错误 ==========
     #[error("Typeset config error: {reason}")]
@@ -58,6 +60,10 @@ pub enum AppError {
     // ========== 安全错误 ==========
     #[error("Security error: {reason} (path: {path})")]
     SecurityError { reason: String, path: String },
+
+    // ========== 存储数据过时 ==========
+    #[error("Stale book data: {message}")]
+    StaleBookData { message: String },
 
     // ========== 其他错误 ==========
     #[error("Invalid input: {reason}")]

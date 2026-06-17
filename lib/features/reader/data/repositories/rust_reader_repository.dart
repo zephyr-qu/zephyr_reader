@@ -45,10 +45,6 @@ class ReaderRepository
     return null;
   }
 
-  Future<void> _fetchMissedPage(int pageIndex) async {
-    _session.ensureWindow(pageIndex);
-    preloadGeneration.value++;
-  }
 
   @override
   void warmPageCache(int pageIndex, String content) {
@@ -223,30 +219,15 @@ class ReaderRepository
     );
   }
 
+
   @override
-  Future<List<PageInfo>> calculatePages({
-    required String bookId,
-    required int chapterId,
-    required double fontSize,
-    required double lineHeight,
-    required double width,
-    required double height,
-    required double padding,
-  }) async {
-    final content = await loadChapterContent(bookId, chapterId);
-    final pages = PaginationEngine.paginateApproximate(
-      content,
-      fontSize: fontSize,
-      lineHeight: lineHeight,
-      width: width,
-      height: height,
-      padding: padding,
-    );
-    return pages;
+  void ensurePageWindow(int centerPage) {
+    _session.ensureWindow(centerPage);
+    preloadGeneration.value++;
   }
 
   @override
-  void ensurePageWindow(int centerPage) => _session.ensureWindow(centerPage);
+  void ensureWindow(int centerPage) => ensurePageWindow(centerPage);
 
   @override
   Future<ReadingProgressData?> loadReadingProgress(String bookId) =>

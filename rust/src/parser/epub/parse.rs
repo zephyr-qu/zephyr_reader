@@ -121,8 +121,6 @@ fn estimate_total_chars(epub_file: &mut EpubFile, chapters: &[Chapter]) -> i64 {
             let spine = epub_file.spine();
             let start = chapters[idx].start_index as usize;
             let end = (chapters[idx].end_index as usize).min(spine.len()).max(start + 1);
-            const MAX_SPINE_ITEMS: usize = 20;
-            let end = end.min(start + MAX_SPINE_ITEMS);
             let mut parts = Vec::new();
             for i in start..end {
                 if let Some(href) = spine.get(i) {
@@ -166,15 +164,17 @@ fn estimate_total_chars(epub_file: &mut EpubFile, chapters: &[Chapter]) -> i64 {
 /// * `Err(AppError)` - 解析失败
 pub fn get_chapter_content_rich(
     file_path: &str,
-    chapter_id: i32,
+    start_index: i32,
+    end_index: i32,
 ) -> Result<RichChapterContent, AppError> {
     tracing::info!(
-        "[get_chapter_content_rich] start: file_path={}, chapter_id={}",
+        "[get_chapter_content_rich] start: file_path={}, spine={}..{}",
         file_path,
-        chapter_id
+        start_index,
+        end_index
     );
 
-    let provider = EpubContentProvider::open(file_path, chapter_id)?;
+    let provider = EpubContentProvider::open_from_bounds(file_path, start_index, end_index)?;
     let html_content = provider.read_html_range(0, u64::MAX)
         .ok_or_else(|| AppError::EpubParseError { reason: "rich HTML extraction not supported".into() })??;
     tracing::info!(
@@ -194,7 +194,7 @@ pub fn get_chapter_content_rich(
             html_content.len(),
         );
         return Ok(RichChapterContent {
-            chapter_id: chapter_id.to_string(),
+            chapter_id: format!("{start_index}..{end_index}"),
             paragraphs: Vec::new(),
             total_characters: 0,
         });
@@ -252,7 +252,7 @@ pub fn get_chapter_content_rich(
     );
 
     Ok(RichChapterContent {
-        chapter_id: chapter_id.to_string(),
+        chapter_id: format!("{start_index}..{end_index}"),
         paragraphs,
         total_characters,
     })
@@ -274,10 +274,11 @@ pub fn get_chapter_content_rich(
 /// * `Err(AppError)` - 解析失败
 pub fn get_chapter_content_rich_with_typeset(
     file_path: &str,
-    chapter_id: i32,
+    start_index: i32,
+    end_index: i32,
     config: &TypesetConfig,
 ) -> Result<Vec<RichParagraph>, AppError> {
-    let rich_content = get_chapter_content_rich(file_path, chapter_id)?;
+    let rich_content = get_chapter_content_rich(file_path, start_index, end_index)?;
 
     // 对富文本段落应用排版优化
     let mut optimized_paragraphs = Vec::with_capacity(rich_content.paragraphs.len());

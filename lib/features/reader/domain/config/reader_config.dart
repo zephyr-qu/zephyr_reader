@@ -159,13 +159,6 @@ class ReaderConfig {
     debounce: Duration.zero,
   );
 
-  /// 英文连字符断词
-  late final enableHyphenation = persistedBool(
-    prefs,
-    SettingsKeys.readerEnableHyphenation,
-    false,
-    debounce: Duration.zero,
-  );
 
   /// 语言类型
   late final language = persistedEnum<LanguageType>(
@@ -241,14 +234,11 @@ class ReaderConfig {
     autoScroll.reset();
     autoScrollSpeed.reset();
     letterSpacing.reset();
-    punctuationSqueeze.reset();
     baselineAlign.reset();
     autoSpaceRatio.reset();
     firstLineIndent.reset();
-    enableHyphenation.reset();
     language.reset();
     tapLayout.reset();
-    textAlign.reset();
   }
 
   /// 释放所有 signal 资源。
@@ -259,14 +249,12 @@ class ReaderConfig {
     paragraphSpacing.dispose();
     padding.dispose();
     readerBgColorIndex.dispose();
-    autoScroll.dispose();
     autoScrollSpeed.dispose();
     letterSpacing.dispose();
     punctuationSqueeze.dispose();
     firstLineIndent.dispose();
     autoSpaceRatio.dispose();
     baselineAlign.dispose();
-    enableHyphenation.dispose();
     language.dispose();
     tapLayout.dispose();
     followSystemFontScale.dispose();
