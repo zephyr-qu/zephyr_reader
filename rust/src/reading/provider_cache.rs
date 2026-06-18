@@ -1,0 +1,122 @@
+//! `PROVIDER_CACHE` — `(file_path, chapter_index) → Arc<dyn ChapterContentProvider>` LRU。
+//!
+//! 章节内容提供器缓存，避免每次分页/章节读取都重新打开文件、解析目录、扫描 spine。
+//! 容量 16，命中后直接 `Arc::clone` 出去。
+//!
+//! 行为契约（与 god module 阶段一致）：
+//! - 命中：返回缓存值的 clone，不重新构建。
+//! - 未命中：调用方在 `provider_cache` 之外构造 provider 后 put（去重由调用方保证）。
+//! - `parking_lot::MutexGuard` 不是 Send，锁内只 `get`/`put`，不跨 `await`。
+
+use parking_lot::Mutex;
+use std::num::NonZeroUsize;
+use std::sync::{Arc, LazyLock};
+
+use crate::domain::AppError;
+use crate::storage::models::BookFormat;
+
+use lru::LruCache;
+
+use crate::parser::provider::ChapterContentProvider;
+
+const PROVIDER_CACHE_CAPACITY: NonZeroUsize = match NonZeroUsize::new(16) {
+    Some(v) => v,
+    None => unreachable!(),
+};
+
+pub(crate) type CacheKey = (String, i32);
+
+pub(crate) static PROVIDER_CACHE: LazyLock<Mutex<LruCache<CacheKey, Arc<dyn ChapterContentProvider>>>> =
+    LazyLock::new(|| Mutex::new(LruCache::new(PROVIDER_CACHE_CAPACITY)));
+
+/// 从 LRU 缓存获取已存在的 provider；不构造新实例。
+#[allow(dead_code)] // Phase 2 接入：替代 core.rs 内的 PROVIDER_CACHE.lock().get
+pub(crate) fn get_cached_provider(
+    validated_path: &str,
+    chapter_index: i32,
+) -> Option<Arc<dyn ChapterContentProvider>> {
+    let key = (validated_path.to_string(), chapter_index);
+    let mut cache = PROVIDER_CACHE.lock();
+    cache.get(&key).cloned()
+}
+
+/// 写入 provider（仅在 key 尚未存在时插入，避免覆盖并发结果）。
+#[allow(dead_code)] // Phase 2 接入：替代 core.rs 内的 PROVIDER_CACHE.lock().put
+pub(crate) fn put_provider(
+    validated_path: &str,
+    chapter_index: i32,
+    provider: Arc<dyn ChapterContentProvider>,
+) {
+    let key = (validated_path.to_string(), chapter_index);
+    let mut cache = PROVIDER_CACHE.lock();
+    if !cache.contains(&key) {
+        cache.put(key, provider);
+    }
+}
+
+/// 清空 provider LRU（仅供测试使用）。
+pub(crate) fn clear_for_test() {
+    PROVIDER_CACHE.lock().clear();
+}
+
+/// 从 LRU 缓存获取或创建 Provider
+pub(crate) async fn get_or_create_provider(
+    validated_path: &str,
+    chapter_index: i32,
+    format: &BookFormat,
+) -> Result<Arc<dyn ChapterContentProvider>, AppError> {
+    let cache_key = (validated_path.to_string(), chapter_index);
+    {
+        let mut cache = PROVIDER_CACHE.lock();
+        if let Some(cached) = cache.get(&cache_key) {
+            return Ok(cached.clone());
+        }
+    }
+
+    let p: Arc<dyn ChapterContentProvider> = match format {
+        BookFormat::Txt => {
+            let path = validated_path.to_string();
+            let provider = tokio::task::spawn_blocking(move || {
+                crate::parser::txt::TxtContentProvider::open(&path)
+            })
+            .await
+            .map_err(|e| AppError::TaskPanic { task_name: "txt provider".into(), details: e.to_string().into() })??;
+            Arc::new(provider)
+        }
+        BookFormat::Epub => {
+            // Fetch spine bounds from DB *before* spawn_blocking —
+            // get_chapter_bounds is async (DB query).
+            let (start_idx, end_idx) = super::chapter_access::get_chapter_bounds(validated_path, chapter_index).await?;
+            // Detect stale pre-migration books: start/end both DEFAULT 0
+            if start_idx == 0 && end_idx == 0 {
+                return Err(AppError::StaleBookData {
+                    message: "Chapter bounds missing. Please re-import this book.".into(),
+                });
+            }
+            let path = validated_path.to_string();
+            let provider = tokio::task::spawn_blocking(move || {
+                crate::parser::epub::provider::EpubContentProvider::open_from_bounds(
+                    &path, start_idx, end_idx,
+                )
+            })
+            .await
+            .map_err(|e| AppError::TaskPanic { task_name: "epub provider".into(), details: e.to_string().into() })??;
+            Arc::new(provider)
+        }
+        BookFormat::Md => {
+            let content = tokio::fs::read_to_string(validated_path)
+                .await
+                .map_err(|e| AppError::FileReadError { path: validated_path.into(), details: e.to_string().into() })?;
+            Arc::new(crate::parser::md::MdContentProvider::new(content))
+        }
+        BookFormat::Pdf => {
+            return Err(AppError::InvalidInput { reason: "PDF does not support range-based text access".into() });
+        }
+    };
+
+    let mut cache = PROVIDER_CACHE.lock();
+    if !cache.contains(&cache_key) {
+        cache.put(cache_key, p.clone());
+    }
+    Ok(p)
+}

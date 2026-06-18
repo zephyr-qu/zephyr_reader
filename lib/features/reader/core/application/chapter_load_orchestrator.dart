@@ -455,8 +455,7 @@ class ChapterLoadOrchestrator {
     });
     if (_isStale(gen)) return;
 
-    if (request.readingMode == ReadingMode.scroll &&
-        request.navigationKind == ChapterNavigationKind.manualJump) {
+    if (request.readingMode == ReadingMode.scroll) {
       _chapterVM.resetScrollDocument(
         content,
         request.chapterIndex,
@@ -465,12 +464,24 @@ class ChapterLoadOrchestrator {
       );
     }
 
-    if (!_pagination.isPaginationValid(total)) {
+    final paginationRequired = request.readingMode != ReadingMode.scroll;
+    if (paginationRequired && !_pagination.isPaginationValid(total)) {
       _applyIfCurrent(gen, () {
         _error.value = AppErrorMapper.humanReadable(
           Exception('Pagination failed (total=$total)'),
         );
         _loadPhase.value = ChapterLoadPhase.failed;
+      });
+      return;
+    }
+
+    if (!paginationRequired) {
+      _applyIfCurrent(gen, () {
+        _chapterVM.currentCharOffset.value = request.initialCharOffset.clamp(
+          0,
+          content.length,
+        );
+        _error.value = null;
       });
       return;
     }

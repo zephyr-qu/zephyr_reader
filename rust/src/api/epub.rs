@@ -157,7 +157,7 @@ pub async fn get_epub_chapter_rich_content(
     }
 
     let (start_idx, end_idx) =
-        crate::api::core::get_chapter_bounds(&validated_path, chapter_index).await?;
+        crate::reading::chapter_access::get_chapter_bounds(&validated_path, chapter_index).await?;
 
     let result = crate::parser::epub::parse::get_chapter_content_rich_with_typeset(
         &validated_path,
