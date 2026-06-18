@@ -57,6 +57,12 @@ GIT铁律：
 -
   在使用脚本（Python/Bash等）批量修改文本文件时，必须显式指定 UTF-8 编码，严禁依赖系统默认编码，防止中文注释或字符串乱码。
 
+新需求或改代码前，只问三句：
+
+在 [READING_BOUNDARIES](discuss/READING_BOUNDARIES.md) 的 Must/Won't 里吗？
+违反 [DOMAIN_MODEL](discuss/DOMAIN_MODEL.md) 五条不变量吗？
+属于 [ROADMAP](discuss/ROADMAP.md) 哪一 Phase？——不是当前 Phase 就排队，不插队。
+需要改边界 → 新开 ADR，不 silent 扩 scope。
 ## Launching Dart and Flutter Applications
 
 - Always pass the `--print-dtd` flag to `dart` or `flutter` when spawning an
