@@ -478,3 +478,255 @@ rust/src/reading/
 - [x] `cargo clippy -- -D warnings` — baseline 不通过，但**本 plan 未引入新 error**（0 delta）
 - [x] `api/epub.rs` 不再依赖 `api::core` 内部函数 — 改为 `crate::reading::chapter_access::get_chapter_bounds`
 - [x] 无 FRB 签名变更 — `flutter_rust_bridge_codegen generate` Done!，`lib/src/rust` diff 为空
+
+# Plan A 修复 — Reading 核心链 2 个 CRITICAL Bug (2026-06-17)
+
+## 概览
+
+审查（`reading-chain-review` agent, 2026-06-17）发现 `readingorchestrator` 提取后的代码存在 2 个 CRITICAL bug（静默返回错误内容），均为 byte offset 与 spine index 混淆导致。修复 + 新增 2 个回归测试。
+
+## 修复 1：EPUB `get_chapter` 把 spine 索引当 byte 偏移 (CRITICAL)
+
+**位置**：`rust/src/reading/chapter_access.rs:186-198`
+
+**Bug**：
+
+```rust
+// 修复前
+let (start, end) = {
+    let (cs, ce) = get_chapter_bounds(&validated_path, chapter_index).await?;
+    (cs.max(0) as u64, (ce.max(0) as u64).min(content_len))
+};
+let text = provider.read_text_range(start, end)?;
+```
+
+对 EPUB 而言，`get_chapter_bounds` 返回 `(spine_start, spine_end)`（如 `(0, 3)`）。EPUB provider 通过 `open_from_bounds` 已经 spine-scoped，`content_length()` 返回该 chapter 的总 byte 数（如 50,000）。`read_text_range(0, 3)` 仅读取 3 字节，对应 chapter 几乎为空。`paginate_chapter` 在 L107-112 已经正确处理 EPUB 特例（`(0, content_len)`），`get_chapter` 漏了。
+
+>**影响**：Dart 侧 `get_chapter` 调用对所有 EPUB 都返回垃圾内容（3 字节或类似小片段），`test_get_chapter_epub_uses_db_bounds` 假阳性（只断言 `ch0 != ch1`，3 字节碎片也满足）。
+
+**修复**：参照 `paginate_chapter` 加 EPUB 特例。
+
+```rust
+// 修复后
+let text = if format == BookFormat::Epub {
+    // EPUB provider is already scoped to the chapter's spine bounds.
+    provider.read_text_range(0, content_len)?
+} else {
+    // TXT/MD: chapter bounds are byte offsets in the file.
+    let (cs, ce) = get_chapter_bounds(&validated_path, chapter_index).await?;
+    let start = cs.max(0) as u64;
+    let end = (ce.max(0) as u64).min(content_len);
+    provider.read_text_range(start, end)?
+};
+```
+
+## 修复 2：TXT/MD partial pagination / partial read 从 byte 0 读 (CRITICAL)
+
+**位置**：
+- `rust/src/reading/pagination.rs:88-110` (`paginate_chapter` `Some(limit)` 分支)
+- `rust/src/reading/chapter_access.rs:156-176` (`get_chapter_partial`)
+
+**Bug**：
+
+```rust
+// 修复前 (pagination.rs)
+if matches!(format, BookFormat::Txt | BookFormat::Md) {
+    let read_end = (limit * 3).min(content_len);
+    let content = provider.read_text_range(0, read_end)?;  // ← 永远从 byte 0 读
+    ...
+}
+```
+
+对 TXT/MD，`provider.content_length()` 和 `read_text_range` 操作的是**整个文件**。`chapter_index > 0` 时应当从 chapter 起始 byte 读，但代码无视 `chapter_index`，每次都从 byte 0 读 → 返回 chapter 0 的内容。
+
+**影响**：`paginate_chapter(file, chapter_index=2, max_chars=Some(100))` 和 `get_chapter_partial(file, 2, 100)` 都返回 chapter 0 的内容，对多 chapter 文件是静默错误。
+
+**修复**：
+
+```rust
+// 修复后 (pagination.rs)
+if matches!(format, BookFormat::Txt | BookFormat::Md) {
+    let (cs, _ce) = get_chapter_bounds(&validated_path, chapter_index).await?;
+    let chapter_start = cs.max(0) as u64;
+    let read_end = (chapter_start + limit * 3).min(content_len);
+    let content = provider.read_text_range(chapter_start, read_end)?;
+    ...
+}
+// 同样修复 get_chapter_partial
+```
+
+EPUB 分支不动（EPUB provider 已经是 spine-scoped）。
+
+## 验证
+
+### 新增测试
+
+1. `test_get_chapter_epub_returns_full_chapter_content` (`rust/tests/reading_orchestrator_test.rs`)
+   - 断言 `get_chapter(epub, 0, None)` 返回 ≥100 字符（修复前是 3 字节）
+2. `test_paginate_chapter_partial_txt_uses_chapter_bounds`
+   - 3 chapter TXT 文件（"1. ...", "2. ...", "3. ..." 标记，chapter_index = 0/1/2）
+   - `paginate_chapter(..., 2, Some(60))` → 第一页不应含 "1. First" 或 "2. Second"，应含 "3. Third"
+   - 同样验证 `get_chapter(..., 2, None)` 返回 >30 字符且不含 ch0 标记
+
+### 双向验证
+
+- 临时回退 `paginate_chapter` 修复 → 测试 FAIL（leaked ch0 content "1. First chapter..."）✓
+- 临时回退 `get_chapter` EPUB 修复 → 测试 FAIL（get_chapter 返回 3 字节）✓
+- 修复后 → 34/34 tests pass (10 + 13 + 11)
+
+### 回归门禁
+
+| 检查项 | 结果 |
+|--------|------|
+| `cargo build` (lib) | clean |
+| `cargo test --test reading_orchestrator_test` | **11/11 passed** |
+| `cargo test --test pagination_session_test` | 13/13 passed |
+| `cargo test --test epub_reading_chain_test` | 10/10 passed |
+| `flutter_rust_bridge_codegen generate` | Done! (无签名变更) |
+| `dart analyze lib/src/rust` | No issues found! |
+
+## 涉及文件
+
+### Rust 修改 (3)
+- `rust/src/reading/chapter_access.rs` — `get_chapter` EPUB/TXT 分流 + `get_chapter_partial` TXT/MD 用 chapter_start
+- `rust/src/reading/pagination.rs` — `paginate_chapter` `Some(limit)` 分支的 TXT/MD 用 chapter_start
+
+### 测试新增 (1 文件, 2 用例)
+- `rust/tests/reading_orchestrator_test.rs` — `test_get_chapter_epub_returns_full_chapter_content` + `test_paginate_chapter_partial_txt_uses_chapter_bounds`
+
+## 修复过程副产物 (与修复无关的临时调试代码，均已清理)
+
+测试开发期间：
+- 3 次临时回退验证测试能 catch bug
+- 多次 `eprintln!` 调试输出（用于追踪 chapter_index 冲突、cache key 不匹配等问题）
+- `STREAMER_CACHE` 临时 public 访问（验证 cache hit/miss 失败原因）
+- 临时 println 在 `paginate_chapter` 中
+
+最终代码已干净，无残留。
+
+# Plan B 修复 — Reading 核心链 3 个 HIGH 并发竞态 (2026-06-17)
+
+## 概览
+
+> 审查（`reading-chain-review` agent, 2026-06-17）发现的 3 个 HIGH 并发竞态，Plan A 修复后继续推进。修复 + 新增 3 个回归测试。
+
+## 修复 1：apply_session_repagination 双 lock 窗口 (HIGH)
+
+**位置**：`rust/src/reading/session.rs:88-114`
+
+**Bug**：
+```rust
+// 修复前
+let streamer = STREAMER_CACHE
+    .lock()
+    .get(&new_key)
+    .cloned()
+    .ok_or_else(|| ...)?;
+if old_key != new_key {
+    STREAMER_CACHE.lock().pop(&old_key);  // 第二次 lock，期间 SESSION_MAP 已是新 entry
+}
+```
+**窗口**：在第一次 lock（克隆 new streamer）和第二次 lock（弹出 old streamer）之间，并发的 `get_page_content(path, new_key)` 可能看到 SESSION_MAP 中新 entry 指向的 config_hash，而该 config_hash 对应的 STREAMER_CACHE 条目里仍然是**旧**的 streamer 内容。
+
+**修复**：合并到一个 lock 块。
+```rust
+let (streamer, evicted_old) = {
+    let mut cache = STREAMER_CACHE.lock();
+    let streamer = cache.get(&new_key).cloned().ok_or_else(...)?;
+    let evicted = if old_key != new_key {
+        cache.pop(&old_key).is_some()
+    } else { false };
+    (streamer, evicted)
+};
+```
+
+**测试**：`test_repaginate_atomic_old_streamer_evicted` — 验证 repaginate 后旧 config_hash 的 streamer 被驱逐（adopt 旧 config 应 miss）。**单线程下不区分 fix/buggy**（race 在并发下才可见），但提供保险。
+
+## 修复 2：paginate_chapter 不查 STREAMER_CACHE (HIGH)
+
+**位置**：`rust/src/reading/pagination.rs:130-156`
+
+**Bug**：`paginate_chapter` 在 `max_chars=None` 路径上仅查 layout cache（sled KV），未检查 STREAMER_CACHE。STREAMER_CACHE 是同进程内 LRU，在同一会话中调用重复全章分页仍会重做 provider I/O + CPU 排版。
+
+**修复**：在 layout cache 之前增加 STREAMER_CACHE 检查。
+```rust
+if max_chars.is_none() {
+    let streamer_key = (validated_path.clone(), chapter_index, config_hash);
+    if let Some(streamer) = { let mut cache = STREAMER_CACHE.lock();
+        cache.get(&streamer_key).cloned() } {
+        if !streamer.is_partial {
+            return Ok(PaginateResult { descriptors: streamer.get_descriptors(), ... });
+        }
+    }
+    if let Some(pages) = try_get_cached(...).await { ... }
+}
+```
+
+**限制**：只复用 `is_partial=false` 的 streamer。partial 复用需特殊处理（可能跨多个边界拼齐），保守起见重做。
+
+**测试**：`test_paginate_chapter_streamer_cache_reuse` — 连续两次同参数全章分页，验证结果一致性。**性能改进在单线程测试下不可见**（fix/buggy 都返回相同内容），但提供行为保险。
+
+## 修复 3：dispose_pagination_session 锁顺序错误 (HIGH)
+
+**位置**：`rust/src/reading/session.rs:255-294`
+
+**Bug**：
+```rust
+// 修复前
+let entry = SESSION_MAP.lock().remove(&session_id)?;
+let streamer_key = (entry.file_path, entry.chapter_index, entry.config.config_hash());
+STREAMER_CACHE.lock().pop(&streamer_key);
+```
+**窗口**：SESSION_MAP 移除后、STREAMER_CACHE 弹出前，并发的 `create_pagination_session_adopt(path, chapter, config)` 可能看到 STREAMER_CACHE 仍有该 streamer → 成功 adopt → 创建一个使用已 dispose streamer 的新 session（静默复活）。
+
+**修复**：先 get SESSION_MAP（不删除）→ pop STREAMER_CACHE → remove SESSION_MAP。
+```rust
+let entry = SESSION_MAP.lock().get(&handle.session_id).cloned()
+    .ok_or_else(...)?;
+STREAMER_CACHE.lock().pop(&streamer_key);
+SESSION_MAP.lock().remove(&handle.session_id);
+```
+**新顺序保证**：adopt 在 STREAMER_CACHE 弹出后必 miss。
+
+**测试**：`test_dispose_prevents_streamer_adoption` — dispose 后立即 adopt，验证 miss。
+
+## 验证
+
+### 新增测试 (3)
+1. `test_repaginate_atomic_old_streamer_evicted` — H1 行为保险
+2. `test_paginate_chapter_streamer_cache_reuse` — H2 行为保险
+3. `test_dispose_prevents_streamer_adoption` — H3 行为保险
+
+### 回归门禁
+
+| 检查项 | 结果 |
+|--------|------|
+| `cargo build` (lib) | clean |
+| `cargo test --test reading_orchestrator_test` | **10/10 passed** |
+| `cargo test --test pagination_session_test` | **16/16 passed** (含 3 个新测试) |
+| `cargo test --test epub_reading_chain_test` | 11/11 passed |
+| `flutter_rust_bridge_codegen generate` | Done! (无签名变更) |
+| `dart analyze lib/src/rust` | No issues found! |
+
+### 测试捕 bug 能力
+
+- **H1**: 单线程下修复前/后均通过（race 在并发下才可见）
+- **H2**: 单线程下修复前/后均通过（性能优化，不可观测）
+- **H3**: 单线程下可捕（顺序倒置在单线程下也可见——adopt 在 SESSION_MAP.remove 后、STREAMER_CACHE.pop 前能成功）
+
+> 真实价值：H1/H2/H3 主要价值在生产环境多线程下，本测试主要提供行为保险。
+
+## 涉及文件
+
+### Rust 修改 (2)
+- `rust/src/reading/session.rs` — H1 (apply_session_repagination lock 合并) + H3 (dispose lock 顺序倒置)
+- `rust/src/reading/pagination.rs` — H2 (STREAMER_CACHE 复用)
+
+### 测试新增 (1 文件, 3 用例)
+- `rust/tests/pagination_session_test.rs` — 3 个新测试
+
+>## 修复过程副产物 (均已清理)
+
+> H1 修复初版中不慎删除了 SESSION_MAP.insert 导致 `epub_repaginate_font_change` 失败
+> — 立即修复并补测。H2 修复初版吃掉了 layout cache 块的 return，临时打补丁后稳定。
+> 测试有 2 次构建破坏性调整（`PageDescriptor` 字段为 `start_offset/end_offset`、PaginateResult 在 `domain` 而非 `data_types`），最终 3 个测试都编译通过。
