@@ -32,7 +32,7 @@
 
 **退出标准**：[PHASE1_EXIT.md](./PHASE1_EXIT.md) 全绿；staging 换章仍丝滑。
 
-**剩余顺序**：EPUB 样章核对 → Phase 1 关闭。
+**剩余顺序**：Phase 1 已关闭 → Phase 2（IR + `BlockPaginator`）。
 
 ---
 

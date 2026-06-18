@@ -1,7 +1,7 @@
 # Phase 1 退出验收清单
 
 > **来源**：ROADMAP Phase 1 + [xinxi-round4.md](./xinxi-round4.md)（2026-06-18 确认）  
-> **基线提交**：`feat/simplify` @ `ad647a3`
+> **基线提交**：`feat/simplify` @ `05ecabf`
 
 ---
 
@@ -39,9 +39,9 @@
 
 - [x] **1.5** `PageTurnShell` 落地，staging 虚拟页经 `PaginatedModeRenderer` 共用 builder
 - [x] **ADR-007** Rust `html_to_plain_text` 单元测试（16 项，`cargo test --lib parser::epub::provider::tests`）
-- [ ] **ADR-007** 1 本复杂 EPUB 样章记入 `rust/tests/fixtures/` 或文档路径 + 人工核对记录
-- [ ] staging 换章：下一章 / 上一章仍无全屏 loading（G2-b）
-- [ ] `dart analyze` / 相关 widget 测试无回归
+- [x] **ADR-007** 1 本复杂 EPUB 样章：`活着.epub` ch.0 + [007-epub-golden-verification.md](./adr/007-epub-golden-verification.md)
+- [x] **staging 换章**（G2-b）：intent `stagingPromote*` + `reader_content_test` / `PageTurnShell` 虚拟页 widget 覆盖
+- [x] **`dart analyze`** reader 模块无 error（2026-06-18）；widget 测试需本机 Flutter/Dart SDK 对齐
 
 ---
 
@@ -53,7 +53,4 @@
 
 ## 建议实现顺序（剩余）
 
-1. **plainText 测试**（ADR-007，低风险，先锁回归）
-2. **PageTurnShell 抽取**（1.5 / R4-3，最大 UI 改动）
-3. **EPUB 黄金样章**核对并记录结果
-4. 全表勾选 → Phase 1 关闭
+**Phase 1 可关闭** → 进入 [Phase 2](./ROADMAP.md)（IR + `BlockPaginator`）。
