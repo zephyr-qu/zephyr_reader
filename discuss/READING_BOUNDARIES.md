@@ -67,6 +67,7 @@
 | [004](./adr/004-cross-chapter-staging.md) | 保留 staging |
 | [005](./adr/005-bilingual-optional.md) | 双语可选 |
 | [006](./adr/006-rust-flutter-division.md) | Rust/Flutter 分工 |
+| [007](./adr/007-plaintext-segmentation-stability.md) | plainText 分段冻结 |
 
 ---
 

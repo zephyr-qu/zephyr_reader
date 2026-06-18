@@ -5,7 +5,7 @@
 | 术语 | 定义 | 非本项目的含义 |
 |------|------|----------------|
 | **ChapterDocument** | 单章阅读单元：至少含 `plainText`；scroll/bilingual 可附加 `richParagraphs`。 | 不等于「分页结果」。 |
-| **plainText** | 章节权威正文字符串；进度、书签、搜索、TTS、Rust 分页的输入。 | 不等于屏幕可见的富文本。 |
+| **plainText** | 章节权威正文字符串；进度、书签、搜索、TTS、Rust 分页的输入。EPUB 分段规则见 ADR-007（块级单 `\n`，Phase 2 前冻结）。 | 不等于屏幕可见的富文本。 |
 | **charOffset** | 在 `plainText` 内的字符索引；与 `chapterIndex` 组成 **ReadingPosition**。 | EPUB 下不是 spine index。 |
 | **ReadingPosition** | `{ chapterIndex, charOffset }`；持久化进度、书签、笔记锚点。 | 不等于 `pageIndex`。 |
 | **PaginationView** | 对 `plainText` 的派生视图：`descriptors` + `pageIndex`；仅 pagination / pageTurn 使用。 | 不是第二套正文。 |
