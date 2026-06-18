@@ -14,7 +14,7 @@
 //! - `orchestrator` — `ReadingOrchestrator` 业务方法入口 + 全局单例
 //! - `types` — FRB-exposed types（`PaginationSessionHandle`）
 
-pub(crate) mod book_id_cache;
+pub mod book_id_cache;
 pub mod chapter_access;
 pub(crate) mod layout_cache;
 pub mod orchestrator;

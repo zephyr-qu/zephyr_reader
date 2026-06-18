@@ -38,28 +38,45 @@ pub fn format_from_file_path(file_path: &str) -> Result<BookFormat, AppError> {
 /// 2. 未命中 → `find_by_file_path` 反查 book_id → 写缓存 → 读 chapter row
 ///
 /// `parking_lot::MutexGuard` 不是 Send，所有锁内操作必须仅做 clone/get，跨 `await` 之前释放。
-pub(crate) async fn get_chapter_bounds(
+pub async fn get_chapter_bounds(
     validated_path: &str,
     chapter_index: i32,
 ) -> Result<(i32, i32), AppError> {
     let pool = storage_pool()?;
-    // 从 LRU 缓存获取 book_id，避免重复的 find_by_file_path DB 查询
-    // 注意：parking_lot::MutexGuard 不是 Send，必须在 await 前释放锁
-    if let Some(book_id) = {
+
+    // Try cached book_id first (fast path).
+    // M8 fix: if `find_by_index` misses, the cached book_id may be
+    // stale (e.g. user re-imported the same path with different book_id,
+    // or DB row was reset). Invalidate the cache entry and retry via
+    // `find_by_file_path` once. Without this, stale cache returns
+    // `ChapterExtractError` and the user has to clear the cache
+    // manually to recover.
+    let cached_book_id = {
         let mut cache = BOOK_ID_CACHE.lock();
         cache.get(validated_path).cloned()
-    } {
-        let chapter = ChapterRepository::find_by_index(&pool, &book_id, chapter_index)
-            .await?
-            .ok_or_else(|| AppError::ChapterExtractError { index: chapter_index, reason: "chapter not found in DB".into() })?;
-        return Ok((chapter.start_index as i32, chapter.end_index as i32));
+    };
+    if let Some(book_id) = cached_book_id {
+        if let Ok(Some(chapter)) =
+            ChapterRepository::find_by_index(&pool, &book_id, chapter_index).await
+        {
+            return Ok((chapter.start_index as i32, chapter.end_index as i32));
+        }
+        // Miss → invalidate and fall through to fresh lookup.
+        {
+            let mut cache = BOOK_ID_CACHE.lock();
+            cache.pop(validated_path);
+        }
+        tracing::debug!(
+            "BOOK_ID_CACHE invalidated for {validated_path} (find_by_index miss), retrying via find_by_file_path"
+        );
     }
 
+    // Slow path: no cached book_id (or stale one was just invalidated).
+    // Resolve via DB and populate the cache for next time.
     let book = BookRepository::find_by_file_path(&pool, validated_path)
         .await?
         .ok_or_else(|| AppError::FileNotFound { path: validated_path.into() })?;
     let book_id = book.book_id.clone();
-    // 填充缓存（不持有锁跨 await）
     {
         let mut cache = BOOK_ID_CACHE.lock();
         cache.put(validated_path.to_string(), book_id.clone());

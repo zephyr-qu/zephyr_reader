@@ -16,7 +16,10 @@ use lru::LruCache;
 
 use crate::text::PageStreamer;
 
-const STREAMER_CACHE_CAPACITY: NonZeroUsize = match NonZeroUsize::new(4) {
+// M7 fix: 4 → 16 匹配 PROVIDER_CACHE。13 个 pagination_session_test
+// 并行下 4 不够,频繁 LRU 淘汰导致测试 flake("NotFound: page streamer
+// for session N")。真实用户多 chapter 翻页同样受益。
+const STREAMER_CACHE_CAPACITY: NonZeroUsize = match NonZeroUsize::new(16) {
     Some(v) => v,
     None => unreachable!(),
 };

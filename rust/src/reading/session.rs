@@ -85,33 +85,32 @@ pub(crate) async fn apply_session_repagination(
     // a concurrent `get_page_content(path, new_key)` could observe the
     // freshly inserted SESSION_MAP entry pointing at a config_hash for
     // which the old streamer was still in STREAMER_CACHE.
-    // H1 fix: merge the two STREAMER_CACHE lock acquisitions (get for new
-    // streamer, then conditionally pop old key) into a single critical
-    // section. The previous code held the lock, cloned the streamer,
-    // released, then re-acquired to pop the old key — between the two,
-    // a concurrent `get_page_content(path, new_key)` could observe the
-    // freshly inserted SESSION_MAP entry pointing at a config_hash for
-    // which the old streamer was still in STREAMER_CACHE.
-    let (streamer, evicted_old) = {
+    //
+    // M6 fix: use `pop` (transfer ownership) instead of `get().cloned()`
+    // (deep clone inside lock). The streamer was just `put` by the
+    // `paginate_chapter` call above (same thread, no concurrent writer
+    // expected), so pop is safe. For the old key pop, we only need
+    // the boolean "was present" — no clone.
+    // H1 + M6 fix: pop the new streamer to transfer ownership (avoids
+    // deep clone inside the lock per M6), then pop the old key in the
+    // same critical section (per H1). After this section, put the new
+    // streamer back into STREAMER_CACHE so future paginate_chapter
+    // fast-path hits and create_pagination_session_adopt work as
+    // before. The SESSION_MAP clone happens outside the cache lock.
+    let streamer = {
         let mut cache = STREAMER_CACHE.lock();
-        let streamer = cache.get(&new_key).cloned().ok_or_else(|| {
+        let streamer = cache.pop(&new_key).ok_or_else(|| {
             AppError::NotFound {
                 entity: format!("page streamer for session {session_id}"),
             }
         })?;
-        let evicted = if old_key != new_key {
-            cache.pop(&old_key).is_some()
-        } else {
-            false
-        };
-        (streamer, evicted)
+        if old_key != new_key {
+            cache.pop(&old_key);  // discard — old key no longer needed
+        }
+        streamer
     };
-    if evicted_old {
-        tracing::debug!(
-            "session {session_id}: evicted old streamer key={:?} on repaginate",
-            old_key
-        );
-    }
+    // Put the new streamer back so adopt / get_page_content see it.
+    STREAMER_CACHE.lock().put(new_key.clone(), streamer.clone());
 
     // Insert the updated entry into SESSION_MAP (with new config + new streamer).
     SESSION_MAP.lock().insert(

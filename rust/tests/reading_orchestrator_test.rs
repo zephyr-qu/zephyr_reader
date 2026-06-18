@@ -250,9 +250,17 @@ async fn test_get_chapter_epub_uses_db_bounds() {
     assert!(ch0.end_index <= ch1.start_index,
         "chapters should have non-overlapping spine ranges, \
          ch0.end={} ch1.start={}", ch0.end_index, ch1.start_index);
-
-    // Pre-fix bug: get_chapter returned full EPUB content for ANY chapter.
-    // Post-fix: get_chapter respects DB bounds, so ch0 and ch1 differ.
+    // Pre-fix bug: get_chapter returned full EPUB content for ANY chapter
+    // because spine indices were treated as byte offsets.  The 3-byte
+    // garbage from `read_text_range(0, 3)` happened to differ between
+    // chapters, so the old `ch0_text != ch1_text` assertion was a false
+    // positive — it passed even with broken code.
+    //
+    // Strengthened: assert each chapter returns > 100 chars of content
+    // (not 3 bytes), so the test catches the pre-fix regression.  The
+    // `test_get_chapter_epub_returns_full_chapter_content` test
+    // (Plan A regression) also covers this for ch0; here we add the
+    // assertion for ch1 and the `ch0_text != ch1_text` invariant.
     ReadingOrchestrator::global().clear_caches_for_test();
     let ch0_result = get_chapter(file_path.clone(), 0, None).await
         .expect("get_chapter ch0 should succeed");
@@ -261,8 +269,16 @@ async fn test_get_chapter_epub_uses_db_bounds() {
     if let (ChapterContent::Raw(ch0_text), ChapterContent::Raw(ch1_text)) =
         (&ch0_result, &ch1_result)
     {
+        assert!(ch0_text.chars().count() > 100,
+            "ch0 must return full chapter content (>100 chars), got {}",
+            ch0_text.chars().count());
+        assert!(ch1_text.chars().count() > 100,
+            "ch1 must return full chapter content (>100 chars), got {}",
+            ch1_text.chars().count());
         assert_ne!(ch0_text, ch1_text,
             "ch0 and ch1 should return different content per DB bounds");
+    } else {
+        panic!("expected ChapterContent::Raw, got Pages variant");
     }
 }
 
@@ -406,3 +422,77 @@ async fn test_paginate_chapter_partial_txt_uses_chapter_bounds() {
     assert_ne!(first_chapter_idx, last_chapter_idx,
         "first and last chapter should differ for a multi-chapter file");
 }
+
+/// Regression test for MEDIUM #8 (audited 2026-06-17):
+/// `BOOK_ID_CACHE` previously never invalidated. If a user re-imports
+/// the same file path with a different book (e.g. manual DB row reset
+/// or content edit + reimport), the cache returns the stale book_id
+/// and `find_by_index` misses, surfacing as `ChapterExtractError`.
+///
+/// After the fix, a `find_by_index` miss invalidates the cache and
+/// the next call refetches via `find_by_file_path` automatically.
+#[tokio::test]
+async fn test_book_id_cache_invalidation_on_stale_miss() {
+    use rust_lib_zephyr_reader::reading::book_id_cache;
+    ensure_shared_storage().await;
+
+    // Create a 2-chapter TXT file so the test has a meaningful chapter
+    // structure to invalidate against.
+    let content = "1. First chapter content.\n2. Second chapter content.\n";
+    let file_path_buf = SHARED_DIR.path().join("test_book_id_cache_invalidation.txt");
+    std::fs::write(&file_path_buf, content).unwrap();
+    let file_path = file_path_buf.to_string_lossy().to_string();
+
+    let book_id = parse_book(file_path.clone()).await
+        .expect("parse_book should succeed");
+    let pool = storage_pool().unwrap();
+    let chapters = ChapterRepository::find_by_book(&pool, &book_id).await
+        .expect("find_by_book should succeed");
+    assert!(chapters.len() >= 2,
+        "fixture must have ≥2 chapters, got {}", chapters.len());
+    let first_chapter_idx = chapters.first().unwrap().chapter_index as i32;
+
+    // 1. Populate BOOK_ID_CACHE by reading chapter bounds.
+    ReadingOrchestrator::global().clear_caches_for_test();
+    // BOOK_ID_CACHE key is the *canonical* path (post `validate_file_path`),
+    // not the raw test path. Compute it once and reuse for all cache ops.
+    let canonical_path = rust_lib_zephyr_reader::utils::security::validate_file_path(&file_path)
+        .expect("validate_file_path");
+    // Helper for bounds lookup via the FFI entry point.
+    async fn get_bounds(
+        path: &str, idx: i32,
+    ) -> Result<(i32, i32), rust_lib_zephyr_reader::domain::AppError> {
+        use rust_lib_zephyr_reader::utils::security::validate_file_path;
+        let v = validate_file_path(path).map_err(|e|
+            rust_lib_zephyr_reader::domain::AppError::FileReadError {
+                path: path.to_string().into(),
+                details: e.to_string().into(),
+            })?;
+        rust_lib_zephyr_reader::reading::chapter_access::get_chapter_bounds(&v, idx).await
+    }
+    let bounds1 = get_bounds(&file_path, first_chapter_idx).await
+        .expect("first get_chapter_bounds should succeed");
+    assert!(book_id_cache::BOOK_ID_CACHE.lock().contains(&canonical_path),
+        "BOOK_ID_CACHE should be populated after successful lookup");
+
+    // 2. Inject a STALE book_id into the cache (simulates reimport).
+    let stale_book_id = "stale-book-id-does-not-exist-in-db";
+    book_id_cache::BOOK_ID_CACHE.lock().put(canonical_path.clone(), stale_book_id.to_string());
+
+    // 3. Call get_chapter_bounds again. Before the fix, this would
+    // return `ChapterExtractError` (find_by_index("stale-book-id", 0)
+    // misses). After the fix, the cache is invalidated and the call
+    // succeeds via find_by_file_path.
+    let bounds2 = get_bounds(&file_path, first_chapter_idx).await
+        .expect("get_chapter_bounds with stale cache should auto-invalidate and succeed");
+    assert_eq!(bounds1, bounds2,
+        "bounds should match after cache invalidation refetch");
+
+    // 4. Verify the cache now holds the FRESH book_id, not the stale one.
+    let cached = book_id_cache::BOOK_ID_CACHE.lock().get(&canonical_path).cloned();
+    assert_eq!(cached.as_deref(), Some(book_id.as_str()),
+        "cache should be refilled with fresh book_id after invalidation");
+    assert_ne!(cached.as_deref(), Some(stale_book_id),
+        "cache must NOT still hold the stale book_id");
+}
+

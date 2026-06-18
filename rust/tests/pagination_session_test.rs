@@ -103,8 +103,15 @@ async fn test_dispose_unknown_session_returns_not_found() {
     );
 }
 
-#[tokio::test]
-async fn test_get_page_content_after_dispose_returns_not_found() {
+/// After dispose, the SESSION_MAP entry is removed so any subsequent
+/// `get_session_page_content` call (which routes via SESSION_MAP) must
+/// return NotFound.  This complements `test_dispose_evicts_streamer`
+/// which tests the STREAMER_CACHE path (used by `get_page_content`).
+///
+/// (Renamed from `test_get_page_content_after_dispose_returns_not_found`
+/// which was misleading — the test exercises the SESSION_MAP path,
+/// not the file-based `get_page_content` API.)
+async fn test_get_session_page_content_after_dispose_returns_not_found() {
     let content = "Short chapter text.\n";
     let (_dir, file_path) = setup_parsed_txt_book(content).await;
     let config = TypesetConfig::default();
