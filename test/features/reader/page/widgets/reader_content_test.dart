@@ -12,6 +12,7 @@ import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/rendering/page_curl_widget.dart';
+import 'package:zephyr_reader/features/reader/rendering/paginated_renderer.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/features/reader/page/widgets/reader_content.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
@@ -30,6 +31,42 @@ Widget _wrapApp(Widget child) {
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: child,
+  );
+}
+
+const _testRenderConfig = ReaderRenderConfig(
+  textColor: Colors.black87,
+  backgroundColor: Color(0xFFFAFAFA),
+  fontSize: 16,
+  lineHeight: 1.5,
+  fontFamily: '',
+  letterSpacing: 0,
+  paragraphSpacing: 12,
+  pageMargin: 16,
+  showVocabularyMark: false,
+  vocabularyWords: {},
+);
+
+Widget Function(BuildContext, PageController) _pageTurnPaginatedBuilder({
+  required _MockDataSource dataSource,
+  required int chapterId,
+  required int pageIndex,
+  required String content,
+  bool hasNextChapter = false,
+  bool hasPreviousChapter = false,
+}) {
+  return (_, pageController) => PaginatedModeRenderer(
+    config: _testRenderConfig,
+    pageController: pageController,
+    dataSource: dataSource,
+    bookId: 'test_book',
+    chapterId: chapterId,
+    pageIndex: pageIndex,
+    content: content,
+    highlights: const [],
+    readingMode: ReadingMode.pageTurn,
+    hasNextChapter: hasNextChapter,
+    hasPreviousChapter: hasPreviousChapter,
   );
 }
 
@@ -65,25 +102,19 @@ void main() {
             chapterId: 0,
             pageIndex: 0,
             totalPages: 1,
-            renderConfig: const ReaderRenderConfig(
-              textColor: Colors.black87,
-              backgroundColor: Color(0xFFFAFAFA),
-              fontSize: 16,
-              lineHeight: 1.5,
-              fontFamily: '',
-              letterSpacing: 0,
-              paragraphSpacing: 12,
-              pageMargin: 16,
-              showVocabularyMark: false,
-              vocabularyWords: {},
-            ),
+            renderConfig: _testRenderConfig,
             readingMode: ReadingMode.pageTurn,
             content: 'Page content text.',
             isLoading: false,
             highlights: const [],
             scrollBuilder: (_, _) => const SizedBox(),
             bilingualBuilder: (_, _, _) => const SizedBox(),
-            paginatedBuilder: (_, _) => const SizedBox(),
+            paginatedBuilder: _pageTurnPaginatedBuilder(
+              dataSource: dataSource,
+              chapterId: 0,
+              pageIndex: 0,
+              content: 'Page content text.',
+            ),
           ),
         ),
       );
@@ -181,18 +212,7 @@ void main() {
               chapterId: 0,
               pageIndex: 0,
               totalPages: 1,
-              renderConfig: const ReaderRenderConfig(
-                textColor: Colors.black87,
-                backgroundColor: Color(0xFFFAFAFA),
-                fontSize: 16,
-                lineHeight: 1.5,
-                fontFamily: '',
-                letterSpacing: 0,
-                paragraphSpacing: 12,
-                pageMargin: 16,
-                showVocabularyMark: false,
-                vocabularyWords: {},
-              ),
+              renderConfig: _testRenderConfig,
               readingMode: ReadingMode.pageTurn,
               content: 'Page content text.',
               isLoading: false,
@@ -200,7 +220,13 @@ void main() {
               highlights: const [],
               scrollBuilder: (_, _) => const SizedBox(),
               bilingualBuilder: (_, _, _) => const SizedBox(),
-              paginatedBuilder: (_, _) => const SizedBox(),
+              paginatedBuilder: _pageTurnPaginatedBuilder(
+                dataSource: dataSource,
+                chapterId: 0,
+                pageIndex: 0,
+                content: 'Page content text.',
+                hasNextChapter: true,
+              ),
             ),
           ),
         ),
@@ -256,18 +282,7 @@ void main() {
               chapterId: 1,
               pageIndex: 0,
               totalPages: 2,
-              renderConfig: const ReaderRenderConfig(
-                textColor: Colors.black87,
-                backgroundColor: Color(0xFFFAFAFA),
-                fontSize: 16,
-                lineHeight: 1.5,
-                fontFamily: '',
-                letterSpacing: 0,
-                paragraphSpacing: 12,
-                pageMargin: 16,
-                showVocabularyMark: false,
-                vocabularyWords: {},
-              ),
+              renderConfig: _testRenderConfig,
               readingMode: ReadingMode.pageTurn,
               content: 'Current chapter page.',
               isLoading: false,
@@ -275,7 +290,13 @@ void main() {
               highlights: const [],
               scrollBuilder: (_, _) => const SizedBox(),
               bilingualBuilder: (_, _, _) => const SizedBox(),
-              paginatedBuilder: (_, _) => const SizedBox(),
+              paginatedBuilder: _pageTurnPaginatedBuilder(
+                dataSource: dataSource,
+                chapterId: 1,
+                pageIndex: 0,
+                content: 'Current chapter page.',
+                hasPreviousChapter: true,
+              ),
             ),
           ),
         ),
@@ -434,25 +455,19 @@ void main() {
             chapterId: 0,
             pageIndex: 0,
             totalPages: 1,
-            renderConfig: const ReaderRenderConfig(
-              textColor: Colors.black87,
-              backgroundColor: Color(0xFFFAFAFA),
-              fontSize: 16,
-              lineHeight: 1.5,
-              fontFamily: '',
-              letterSpacing: 0,
-              paragraphSpacing: 12,
-              pageMargin: 16,
-              showVocabularyMark: false,
-              vocabularyWords: {},
-            ),
+            renderConfig: _testRenderConfig,
             readingMode: ReadingMode.pageTurn,
             content: 'Content.',
             isLoading: false,
             highlights: const [],
             scrollBuilder: (_, _) => const SizedBox(),
             bilingualBuilder: (_, _, _) => const SizedBox(),
-            paginatedBuilder: (_, _) => const SizedBox(),
+            paginatedBuilder: _pageTurnPaginatedBuilder(
+              dataSource: dataSource,
+              chapterId: 0,
+              pageIndex: 0,
+              content: 'Content.',
+            ),
           ),
         ),
       );

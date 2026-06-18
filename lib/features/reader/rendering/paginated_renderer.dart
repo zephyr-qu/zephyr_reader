@@ -6,6 +6,8 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'reader_render_config.dart';
 import 'find_render_box.dart';
+import 'package:zephyr_reader/features/reader/data/pagination_viewport_index.dart';
+import 'package:zephyr_reader/features/reader/rendering/page_turn_shell.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 
 /// 分页模式渲染器。
@@ -108,15 +110,51 @@ class PaginatedModeRenderer extends StatelessWidget {
     );
   }
 
-  Widget _buildPageTurn(BuildContext context) {
+  Widget _buildPageTurnShell(BuildContext context) {
     final descriptors = dataSource.descriptors;
-    if (descriptors != null && descriptors.isNotEmpty) {
-      final index = pageIndex.clamp(0, descriptors.length - 1);
-      Logging.debug('[Renderer] _buildPageTurn: page=$index/${descriptors.length}');
-      return _buildPageContent(context, index, descriptors[index].startOffset);
+    if (descriptors == null || descriptors.isEmpty) {
+      Logging.warning('[Renderer] _buildPageTurnShell: descriptors null/empty → fallback');
+      return _buildFallbackPagination(context);
     }
-    Logging.warning('[Renderer] _buildPageTurn: descriptors null/empty → fallback');
-    return _buildFallbackPagination(context);
+
+    return AnimatedBuilder(
+      animation: dataSource.preloadGeneration,
+      builder: (context, _) {
+        return PageTurnShell(
+          logicalPageIndex: pageIndex.clamp(0, descriptors.length - 1),
+          logicalPageCount: descriptors.length,
+          hasPreviousChapter: hasPreviousChapter,
+          hasNextStagingPage: _stagingReadyForNext(),
+          descriptors: descriptors,
+          onLogicalPageChanged: (idx) => onPageChanged?.call(idx),
+          onReachEnd: onReachEnd,
+          onReachStart: onReachStart,
+          onPositionChanged: onPositionChanged,
+          pageBuilder: (physicalIdx) =>
+              _buildPageTurnPhysicalPage(context, physicalIdx, descriptors),
+        );
+      },
+    );
+  }
+
+  Widget _buildPageTurnPhysicalPage(
+    BuildContext context,
+    int physicalIdx,
+    List<PageDescriptor> descriptors,
+  ) {
+    final virtualPrev = paginationVirtualPrevOffset(hasPreviousChapter);
+    if (hasPreviousChapter && physicalIdx == 0) {
+      return _buildPreviousChapterPage(context);
+    }
+    final logicalIdx = physicalIdx - virtualPrev;
+    if (logicalIdx >= descriptors.length) {
+      return _buildCrossChapterPage(context, physicalIdx);
+    }
+    return _buildPageContent(
+      context,
+      logicalIdx,
+      descriptors[logicalIdx].startOffset,
+    );
   }
 
   /// 构建页面内容组件（描述符模式）。
@@ -290,7 +328,7 @@ class PaginatedModeRenderer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (readingMode == ReadingMode.pageTurn) {
-      return _buildPageTurn(context);
+      return _buildPageTurnShell(context);
     }
     final descriptors = dataSource.descriptors;
     if (descriptors != null && descriptors.isNotEmpty) {
