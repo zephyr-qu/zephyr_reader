@@ -25,6 +25,7 @@ rust/target/
 .env
 integration_test
 test/fixtures/*
+!test/fixtures/README.md
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
 # is commented out by default.

@@ -12,7 +12,7 @@ mod common;
 use rust_lib_zephyr_reader::api::core::{
     create_pagination_session, paginate_session_full, repaginate_session,
     get_session_page_content, dispose_pagination_session, get_chapter_first_spine_only,
-    paginate_chapter,
+    paginate_chapter, get_chapter, ChapterContent,
 };
 use rust_lib_zephyr_reader::domain::{AppError, TypesetConfig};
 use rust_lib_zephyr_reader::storage::{storage_pool, repos::ChapterRepository};
@@ -259,6 +259,39 @@ async fn epub_multi_chapter_index_1() {
     );
 
     dispose_pagination_session(handle).expect("dispose should succeed");
+}
+
+// =========================================================================
+// ADR-007 — Golden EPUB plain sample (`活着.epub` ch.0)
+// =========================================================================
+
+#[tokio::test]
+async fn epub_golden_plain_chapter0_adr007() {
+    let Some(path) = require_fixture("活着.epub") else { return; };
+    let (_dir, file_path, _book_id) = setup_parsed_epub(&path).await;
+
+    let result = get_chapter(file_path, 0, None)
+        .await
+        .expect("get_chapter ch0 should succeed");
+    let text = match result {
+        ChapterContent::Raw(t) => t,
+        _ => panic!("expected ChapterContent::Raw for EPUB ch0"),
+    };
+
+    let char_count = text.chars().count();
+    assert!(
+        char_count > 1000,
+        "golden ch0 plain should be substantial, got {char_count} chars"
+    );
+    assert!(!text.contains('<'), "plain text must not leak HTML tags");
+    assert!(
+        text.contains("自序"),
+        "golden marker: ch0 must contain 自序 (ADR-007 manual check)"
+    );
+    assert!(
+        !text.contains("\n\n\n"),
+        "plain must not have triple newlines"
+    );
 }
 
 // =========================================================================
