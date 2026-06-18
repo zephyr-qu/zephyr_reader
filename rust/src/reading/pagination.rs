@@ -9,7 +9,7 @@ use crate::storage::models::BookFormat;
 use crate::text::{paginate_all, PageStreamer};
 use crate::utils::security::validate_file_path;
 
-use super::chapter_access::{extract_chapter_content, format_from_file_path, get_chapter_bounds};
+use super::chapter_access::{format_from_file_path, get_chapter_bounds};
 use super::layout_cache::{try_get_cached, try_save_cached};
 use super::provider_cache::get_or_create_provider;
 use super::streamer_cache::STREAMER_CACHE;
@@ -33,7 +33,7 @@ pub(crate) async fn paginate_all_content(
 
     // 优先使用 Provider LRU 路径（与 getChapter 共享解析器缓存，避免重复 I/O）
     let format = format_from_file_path(&validated_path)?;
-    let content = if matches!(format, BookFormat::Txt | BookFormat::Md | BookFormat::Epub) {
+    let content = if matches!(format, BookFormat::Txt | BookFormat::Epub) {
         let provider = get_or_create_provider(&validated_path, chapter_index, &format).await?;
         let content_len = provider.content_length();
         let (start, end) = if format == BookFormat::Epub {
@@ -44,7 +44,9 @@ pub(crate) async fn paginate_all_content(
         };
         provider.read_text_range(start, end)?
     } else {
-        extract_chapter_content(&validated_path, chapter_index).await?
+        return Err(AppError::UnsupportedFormat {
+            format: format!("unsupported format for pagination: {:?}", format).into(),
+        });
     };
 
     let chapter_idx = chapter_index;
@@ -76,7 +78,7 @@ pub(crate) async fn paginate_chapter(
 
     // 提取章节文本（只读取必要的 spine，惰性转换）
     let format = format_from_file_path(&validated_path)?;
-    let (content, is_partial) = if matches!(format, BookFormat::Txt | BookFormat::Md | BookFormat::Epub) {
+    let (content, is_partial) = if matches!(format, BookFormat::Txt | BookFormat::Epub) {
         let provider = get_or_create_provider(&validated_path, chapter_index, &format).await?;
         let content_len = provider.content_length();
         // 短路：如果 max_chars >= 全文长度，降级为完整分页（避免不完整结果）
@@ -86,8 +88,8 @@ pub(crate) async fn paginate_chapter(
         };
         match effective_max {
             Some(limit) => {
-                if matches!(format, BookFormat::Txt | BookFormat::Md) {
-                    // TXT/MD: chapter bounds are byte offsets in the file.
+                if format == BookFormat::Txt {
+                    // TXT: chapter bounds are byte offsets in the file.
                     // The provider operates on the full file, so for
                     // chapter_index > 0 we must read from the chapter's
                     let (cs, _ce) = get_chapter_bounds(&validated_path, chapter_index).await?;
@@ -116,7 +118,7 @@ pub(crate) async fn paginate_chapter(
                     // we don't accidentally treat spine indices as byte offsets.
                     (0u64, content_len)
                 } else {
-                    // TXT/MD: chapter bounds are byte offsets in the file.
+                    // TXT: chapter bounds are byte offsets in the file.
                     let (cs, ce) = get_chapter_bounds(&validated_path, chapter_index).await?;
                     (cs.max(0) as u64, (ce.max(0) as u64).min(content_len))
                 };
@@ -124,7 +126,9 @@ pub(crate) async fn paginate_chapter(
             }
          }
      } else {
-         (extract_chapter_content(&validated_path, chapter_index).await?, false)
+         return Err(AppError::UnsupportedFormat {
+             format: format!("unsupported format for pagination: {:?}", format).into(),
+         });
      };
 
     // 全章分页：先查 STREAMER_CACHE（H2 修复），再查 layout cache。

@@ -127,19 +127,6 @@ class ChapterLoadOrchestrator {
               fontFamily: _pagination.fontFamily,
             );
 
-      unawaited(
-        contentFuture
-            .then(
-              (content) => _postLoadTasks(
-                gen,
-                request.chapterIndex,
-                content,
-                scheduleSearchIndex: scheduleSearchIndex,
-              ),
-            )
-            .catchError((_) {}),
-      );
-
       final ({int totalPages, bool isPartial})? quickResult;
 
       switch (intent) {
@@ -241,6 +228,12 @@ class ChapterLoadOrchestrator {
         '${sw.elapsedMilliseconds}ms',
       );
       await _runComplete(gen, request);
+      await _postLoadTasks(
+        gen,
+        request.chapterIndex,
+        content,
+        scheduleSearchIndex: scheduleSearchIndex,
+      );
       _setPhase(gen, ChapterLoadPhase.completed);
       _applyIfCurrent(gen, () {
         _loadPhase.value = ChapterLoadPhase.idle;
@@ -338,12 +331,6 @@ class ChapterLoadOrchestrator {
   }) async {
     _setPhase(gen, ChapterLoadPhase.firstSpine);
 
-    final firstText = await _contentRepo.loadChapterFirstSpine(
-      _chapterVM.bookId.value,
-      request.chapterIndex,
-    );
-    if (_isStale(gen)) return null;
-
     // 等待校准完成，并把结果写入 calibration.value，使后续 buildPaginationParams
     // 能读到非 null 的 CharWidthTable。session 内的 config 由 beginPaginate 当下构建，
     // 后续 paginate_session_full 也会沿用带校准的存储 config。
@@ -359,8 +346,10 @@ class ChapterLoadOrchestrator {
     final descriptors = _contentRepo.descriptors;
     if (descriptors != null && descriptors.isNotEmpty) {
       final fullOffset = request.initialCharOffset;
-      final offsetBeyondPartial = fullOffset > firstText.length;
-      final charOffsetForPartial = fullOffset.clamp(0, firstText.length);
+      final partialEnd = descriptors.last.endOffset;
+      final offsetBeyondPartial =
+          quickResult.isPartial && fullOffset > partialEnd;
+      final charOffsetForPartial = fullOffset.clamp(0, partialEnd);
       final resolvedPage = offsetBeyondPartial
           ? 0
           : PaginationEngine.resolvePageIndexForOffset(
@@ -369,7 +358,6 @@ class ChapterLoadOrchestrator {
             );
 
       _applyIfCurrent(gen, () {
-        _chapterVM.chapterContent.value = AsyncState.data(firstText);
         _totalPages.value = quickResult.totalPages;
         _chapterVM.chapterIndex.value = request.chapterIndex;
         _chapterVM.currentCharOffset.value = charOffsetForPartial;

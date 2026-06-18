@@ -9,9 +9,7 @@ import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.d
 import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
 import 'package:zephyr_reader/features/reader/core/domain/pagination_session.dart';
 import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart';
-import 'package:zephyr_reader/features/reader/domain/model/page_info.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
-import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -221,26 +219,6 @@ class ReaderRepository
   void clearAdjacentStaging() => _chapterContent.clearAdjacentStaging();
   @override
   void clearNextChapterStaging() => _chapterContent.clearNextChapterStaging();
-
-  @override
-  List<PageInfo> paginateApproximate(
-    String content, {
-    required double fontSize,
-    required double lineHeight,
-    required double width,
-    required double height,
-    required double padding,
-  }) {
-    return PaginationEngine.paginateApproximate(
-      content,
-      fontSize: fontSize,
-      lineHeight: lineHeight,
-      width: width,
-      height: height,
-      padding: padding,
-    );
-  }
-
 
   @override
   void ensurePageWindow(int centerPage) {

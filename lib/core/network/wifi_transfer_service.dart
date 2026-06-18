@@ -25,7 +25,7 @@ class WifiTransferService {
   String _localIp = '';
   final _logController = StreamController<TransferLogEntry>.broadcast();
   final _statusController = StreamController<bool>.broadcast();
-  final _supportedExtensions = {'txt', 'epub', 'pdf', 'md', 'markdown'};
+  final _supportedExtensions = {'txt', 'epub'};
 
   WifiTransferService(this._prefs);
   int get port => _port;
@@ -222,7 +222,7 @@ class WifiTransferService {
       final ext = p.extension(fileName).toLowerCase().replaceFirst('.', '');
       if (!_supportedExtensions.contains(ext)) {
         _serveJson(request, {
-          'error': 'Unsupported format: .$ext (supported: txt, epub, pdf, md)',
+          'error': 'Unsupported format: .$ext (supported: txt, epub)',
         });
         return;
       }

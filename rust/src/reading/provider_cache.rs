@@ -112,15 +112,6 @@ pub(crate) async fn get_or_create_provider(
             .map_err(|e| AppError::TaskPanic { task_name: "epub provider".into(), details: e.to_string().into() })??;
             Arc::new(provider)
         }
-        BookFormat::Md => {
-            let content = tokio::fs::read_to_string(validated_path)
-                .await
-                .map_err(|e| AppError::FileReadError { path: validated_path.into(), details: e.to_string().into() })?;
-            Arc::new(crate::parser::md::MdContentProvider::new(content))
-        }
-        BookFormat::Pdf => {
-            return Err(AppError::InvalidInput { reason: "PDF does not support range-based text access".into() });
-        }
     };
 
     let mut cache = PROVIDER_CACHE.lock();

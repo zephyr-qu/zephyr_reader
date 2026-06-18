@@ -5,7 +5,7 @@ import 'package:zephyr_reader/features/reader/domain/model/page_info.dart';
 
 /// 无状态分页引擎。
 ///
-/// 封装 Rust 全量分页、部分分页和 Dart 估算分页算法。
+/// 封装 Rust 全量分页、部分分页算法。
 /// 所有方法为纯计算或 FFI 调用，不持有任何可变状态。
 class PaginationEngine {
   /// Rust 分页排版。
@@ -28,76 +28,6 @@ class PaginationEngine {
 
   /// 首屏快速分页截止字符数（2000 字符）。
   static final BigInt firstScreenMaxChars = BigInt.from(2000);
-
-  /// Dart 估算分页（无需 TextPainter，毫秒级）。
-  ///
-  /// 基于字符宽度和行高近似计算每页容纳的字符数，
-  /// 在段落边界处断页以避免截断。
-  static List<PageInfo> paginateApproximate(
-    String content, {
-    required double fontSize,
-    required double lineHeight,
-    required double width,
-    required double height,
-    required double padding,
-  }) {
-    final maxWidth = width - padding * 2;
-    final availableHeight = height - padding * 2;
-    final charsPerLine = (maxWidth / fontSize).floor().clamp(10, 200);
-    final linesPerPage = (availableHeight / (fontSize * lineHeight))
-        .floor()
-        .clamp(1, 100);
-    final charsPerPage = charsPerLine * linesPerPage;
-
-    final pages = <PageInfo>[];
-    var offset = 0;
-    var pageIndex = 0;
-
-    while (offset < content.length) {
-      var end = offset + charsPerPage;
-      if (end >= content.length) {
-        end = content.length;
-      } else {
-        // 在段落边界处断开，避免断词
-        final searchStart = (end - (charsPerLine ~/ 2)).clamp(
-          0,
-          content.length,
-        );
-        final newlinePos = content.lastIndexOf('\n', end);
-        if (newlinePos > searchStart) {
-          end = newlinePos + 1;
-        } else {
-          final paraBreak = content.lastIndexOf('\n\n', end);
-          if (paraBreak > searchStart) {
-            end = paraBreak + 2;
-          }
-        }
-      }
-
-      pages.add(
-        PageInfo(
-          pageIndex: pageIndex,
-          content: content.substring(offset, end),
-          startOffset: offset,
-          endOffset: end,
-        ),
-      );
-      offset = end;
-      pageIndex++;
-    }
-
-    if (pages.isEmpty) {
-      pages.add(
-        PageInfo(
-          pageIndex: 0,
-          content: content,
-          startOffset: 0,
-          endOffset: content.length,
-        ),
-      );
-    }
-    return pages;
-  }
 
   static int _resolvePageIndex<T>(
     List<T> pages,

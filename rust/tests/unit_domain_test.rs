@@ -32,7 +32,6 @@ fn test_apperror_display() {
     check(AppError::FileWriteError { path: "/out".into(), details: "full".into() },   "FileWriteError", &["File write error", "/out", "full"]);
     check(AppError::UnsupportedFormat { format: "docx".into() },          "UnsupportedFormat",  &["docx", "Unsupported file format"]);
     check(AppError::EpubParseError { reason: "missing container.xml".into() },         "EpubParseError",  &["EPUB parse error", "missing container.xml"]);
-    check(AppError::PdfParseError { reason: "invalid cross reference".into() },         "PdfParseError",   &["PDF parse error", "invalid cross reference"]);
     check(AppError::ChapterExtractError { index: 3, reason: "toc not found".into() },   "ChapterExtractError", &["Chapter 3", "toc not found"]);
     check(AppError::TypesetConfigError { reason: "font size out of range".into() },     "TypesetConfigError",  &["config error", "font size out of range"]);
     check(AppError::DatabaseError { reason: "connection timeout".into() },              "DatabaseError",       &["Database error", "connection timeout"]);

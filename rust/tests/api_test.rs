@@ -298,21 +298,13 @@ fn test_parser_for_format_epub() {
 }
 
 #[test]
-fn test_parser_for_format_pdf() {
-    let parser = rust_lib_zephyr_reader::parser::registry::parser_for_format(
-        rust_lib_zephyr_reader::storage::models::BookFormat::Pdf,
-    );
-    assert_eq!(parser.name(), "PDF Parser");
-    assert!(parser.supported_formats().contains(&"pdf"));
-}
-
-#[test]
-fn test_parser_for_format_md() {
-    let parser = rust_lib_zephyr_reader::parser::registry::parser_for_format(
-        rust_lib_zephyr_reader::storage::models::BookFormat::Md,
-    );
-    assert_eq!(parser.name(), "MD Parser");
-    assert!(parser.supported_formats().contains(&"md"));
+fn test_parser_for_format_epub_only() {
+    use rust_lib_zephyr_reader::storage::models::BookFormat;
+    for format in &[BookFormat::Txt, BookFormat::Epub] {
+        let parser = rust_lib_zephyr_reader::parser::registry::parser_for_format(*format);
+        let name = parser.name();
+        assert!(!name.is_empty(), "Parser name should not be empty for {format:?}");
+    }
 }
 
 #[test]
@@ -320,8 +312,8 @@ fn test_parser_for_file_valid_extensions() {
     use rust_lib_zephyr_reader::parser::registry::parser_for_file;
     assert!(parser_for_file("book.txt").is_ok());
     assert!(parser_for_file("book.epub").is_ok());
-    assert!(parser_for_file("book.pdf").is_ok());
-    assert!(parser_for_file("book.md").is_ok());
+    assert!(parser_for_file("book.pdf").is_err());
+    assert!(parser_for_file("book.md").is_err());
 }
 
 #[test]
@@ -339,7 +331,7 @@ fn test_parser_for_file_no_extension() {
 #[test]
 fn test_parser_name_covers_all_formats() {
     use rust_lib_zephyr_reader::storage::models::BookFormat;
-    for format in &[BookFormat::Txt, BookFormat::Epub, BookFormat::Pdf, BookFormat::Md] {
+    for format in &[BookFormat::Txt, BookFormat::Epub] {
         let parser = rust_lib_zephyr_reader::parser::registry::parser_for_format(*format);
         let name = parser.name();
         assert!(!name.is_empty(), "Parser name should not be empty for {format:?}");

@@ -1,7 +1,5 @@
 pub(crate) use crate::domain::{AppError, TypesetConfig};
 use crate::domain::{PageContent, PaginateResult};
-use crate::parser::pdf::provider::PdfContentProvider;
-use crate::parser::provider::{PageData, PagedContentProvider};
 use crate::parser::registry::parser_for_file;
 use crate::reading::chapter_access::format_from_file_path;
 use crate::storage::models::BookFormat;
@@ -181,33 +179,11 @@ pub fn dispose_pagination_session(
 pub fn compute_config_hash(config: TypesetConfig) -> u64 {
     config.config_hash()
 }
-/// Get PDF page text.
-#[frb]
-pub async fn get_pdf_page(file_path: String, page_index: u32) -> Result<PageData, AppError> {
-    let validated_path = validate_file_path(&file_path)?;
-    tokio::task::spawn_blocking(move || {
-        let provider = PdfContentProvider::open(&validated_path)?;
-        provider.get_page(page_index)
-    })
-    .await
-    .map_err(|e| AppError::TaskPanic { task_name: "pdf page".into(), details: e.to_string().into() })?
-}
-/// Get PDF total pages.
-#[frb]
-pub async fn get_pdf_total_pages(file_path: String) -> Result<u32, AppError> {
-    let validated_path = validate_file_path(&file_path)?;
-    tokio::task::spawn_blocking(move || {
-        let provider = crate::parser::pdf::provider::PdfContentProvider::open(&validated_path)?;
-        Ok(provider.total_pages())
-    })
-    .await
-    .map_err(|e| AppError::TaskPanic { task_name: "pdf total pages".into(), details: e.to_string().into() })?
-}
 /// Check if format supports chunked pagination.
 #[frb(sync)]
 pub fn supports_chunked_pagination(file_path: String) -> bool {
     matches!(
         format_from_file_path(&file_path),
-        Ok(BookFormat::Txt | BookFormat::Md | BookFormat::Epub)
+        Ok(BookFormat::Txt | BookFormat::Epub)
     )
 }

@@ -35,7 +35,6 @@ class AppErrorMapper {
         unsupportedFormat: (format) => '不支持的格式: $format',
         fileWriteError: (path, details) => '文件写入失败: $details',
         epubParseError: (reason) => 'EPUB 解析失败: $reason',
-        pdfParseError: (reason) => 'PDF 解析失败: $reason',
         chapterExtractError: (index, reason) => '章节 $index 提取失败: $reason',
         chapterTooLarge: (sizeBytes, details) => '章节过大（${sizeBytes}bytes，最大2MB），建议重新导入',
         typesetConfigError: (reason) => '排版配置错误: $reason',

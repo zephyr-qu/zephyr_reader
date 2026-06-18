@@ -7,7 +7,6 @@ pub mod cover;
 pub mod data;
 pub mod dictionary;
 pub mod epub;
-pub mod md;
 pub mod search;
 pub mod vocab_marker;
 

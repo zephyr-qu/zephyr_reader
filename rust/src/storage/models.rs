@@ -391,14 +391,6 @@ pub enum BookFormat {
     #[strum(serialize = "txt", serialize = "text")]
     Txt,
     Epub,
-    Pdf,
-    #[strum(
-        serialize = "md",
-        serialize = "markdown",
-        serialize = "mdown",
-        serialize = "mkdn"
-    )]
-    Md,
 }
 
 //

@@ -582,9 +582,7 @@ void main() {
         () async {
           await manager.loadChapter(0);
 
-          verify(
-            () => repo.loadChapterFirstSpine(any(), any()),
-          ).called(1);
+          verifyNever(() => repo.loadChapterFirstSpine(any(), any()));
           verify(
             () => repo.beginPaginate(
               bookId: any(named: 'bookId'),
@@ -644,13 +642,6 @@ void main() {
             return (totalPages: 99, isPartial: false);
           }
           return (totalPages: 2, isPartial: false);
-        });
-
-        when(() => repo.loadChapterFirstSpine(any(), any())).thenAnswer((
-          invocation,
-        ) async {
-          final chapterIndex = invocation.positionalArguments[1] as int;
-          return 'A' * (100 + chapterIndex);
         });
 
         final load0 = manager.loadChapter(0);

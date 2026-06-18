@@ -13,7 +13,6 @@ import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/chapter.dart' as chapter_api;
 import 'package:zephyr_reader/src/rust/api/epub.dart' as epub_api;
-import 'package:zephyr_reader/src/rust/api/md.dart' as md_api;
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -83,7 +82,11 @@ class RustChapterContentRepository implements ChapterContentRepository {
     int chapterId, {
     ReadingMode? readingMode,
   }) async {
-    final payload = await _loadChapterPayload(bookId, chapterId);
+    final payload = await _loadChapterPayload(
+      bookId,
+      chapterId,
+      readingMode: readingMode,
+    );
     _applyCurrentRich(chapterId, payload);
     return payload.content;
   }
@@ -94,7 +97,11 @@ class RustChapterContentRepository implements ChapterContentRepository {
     int chapterId, {
     ReadingMode? readingMode,
   }) =>
-      _loadChapterPayload(bookId, chapterId);
+      _loadChapterPayload(bookId, chapterId, readingMode: readingMode);
+
+  /// 仅滚动/双语模式需要 EPUB 富文本；分页路径只用 plain。
+  static bool _needsRichContent(ReadingMode? mode) =>
+      mode == ReadingMode.scroll || mode == ReadingMode.bilingual;
 
   void _applyCurrentRich(int chapterId, ScrollChapterPayload payload) {
     _currentRichContent = payload.richRootSpan;
@@ -200,8 +207,10 @@ class RustChapterContentRepository implements ChapterContentRepository {
 
   Future<ScrollChapterPayload> _loadChapterPayload(
     String bookId,
-    int chapterId,
-  ) async {
+    int chapterId, {
+    ReadingMode? readingMode,
+  }) async {
+    final loadRich = _needsRichContent(readingMode);
     final sw = Stopwatch()..start();
     try {
       final book = await _getBook(bookId);
@@ -213,7 +222,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
       final isEpub = filePath.toLowerCase().endsWith('.epub');
 
       Future<List<RichParagraph>>? epubRichFuture;
-      if (isEpub) {
+      if (isEpub && loadRich) {
         final config = _resolveTypesetConfig();
         epubRichFuture = epub_api
             .getEpubChapterRichContent(
@@ -262,28 +271,6 @@ class RustChapterContentRepository implements ChapterContentRepository {
         }
       }
 
-      final isMd = filePath.toLowerCase().endsWith('.md');
-      if (isMd) {
-        try {
-          final paragraphs = await md_api.getMdChapterRichContent(
-            filePath: filePath,
-            chapterIndex: chapterId,
-          );
-          if (paragraphs.isNotEmpty) {
-            final result = _richTextConverter.toTextSpan(paragraphs);
-            content = result.$2;
-            return (
-              content: content,
-              richParagraphs: paragraphs,
-              richRootSpan: result.$1,
-              epubRichSkipped: false,
-            );
-          }
-        } catch (e) {
-          Logging.error('loadContent MD rich typeset failed: $e');
-        }
-      }
-
       if (content.isEmpty) {
         throw Exception('Chapter content is empty');
       }
@@ -291,7 +278,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
       final tTotal = sw.elapsedMilliseconds;
       Logging.info(
         '[Timing] loadContent total: ${tTotal}ms '
-        '(EPUB=$isEpub MD=$isMd)',
+        '(EPUB=$isEpub)',
       );
 
       _flagEpubRichSkipped(epubRichSkipped);

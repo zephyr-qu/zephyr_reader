@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart';
-import 'package:zephyr_reader/features/reader/domain/model/page_info.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.dart';
@@ -65,21 +64,6 @@ abstract class ReaderRepositoryInterface {
 
   /// 取出并清除「EPUB 富文本已降级」标记。
   bool consumeEpubRichSkippedNotice();
-
-  // ==================== 分页排版 ====================
-
-  /// Dart 估算分页（毫秒级，无需 TextPainter）。
-  /// 仅用于 Rust 分页失败时的显式 fallback 路径。
-  @Deprecated('Rust fallback only — do not use in production flow')
-  List<PageInfo> paginateApproximate(
-    String content, {
-    required double fontSize,
-    required double lineHeight,
-    required double width,
-    required double height,
-    required double padding,
-  });
-
 
   // ==================== 缓存和页面内容 ====================
 

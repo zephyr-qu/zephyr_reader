@@ -1,6 +1,6 @@
 //! 封面提取 API
 //!
-//! 提供统一的封面提取入口，支持 EPUB、PDF 等多种格式。
+//! 提供统一的封面提取入口，支持 EPUB 格式。
 //! 通过 CoverExtractorRegistry 自动根据文件类型选择对应的提取器。
 
 use crate::domain::AppError;
@@ -114,36 +114,6 @@ impl CoverExtractor for EpubCoverExtractor {
             .map_err(|e| AppError::FileWriteError { path: output_path.clone().into(), details: e.to_string().into() })?;
 
         Ok(output_path)
-    }
-}
-
-/// PDF 封面提取器
-#[frb(opaque)]
-pub struct PdfCoverExtractor;
-
-impl PdfCoverExtractor {
-    pub fn new() -> Self {
-        Self
-    }
-}
-
-impl Default for PdfCoverExtractor {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl CoverExtractor for PdfCoverExtractor {
-    fn name(&self) -> &str {
-        "PDF Cover Extractor"
-    }
-
-    fn supported_formats(&self) -> Vec<&str> {
-        vec!["pdf"]
-    }
-
-    fn extract_cover(&self, file_path: &str, output_dir: &str) -> Result<String, AppError> {
-        crate::parser::pdf::images::extract_pdf_cover(file_path, output_dir)
     }
 }
 
@@ -284,11 +254,6 @@ fn init_cover_registry() -> ThreadSafeCoverRegistry {
         tracing::warn!("failed to register EPUB cover extractor: {}", e);
     }
 
-    // 注册 PDF 提取器
-    if let Err(e) = registry.register(Arc::new(PdfCoverExtractor::new())) {
-        tracing::warn!("failed to register PDF cover extractor: {}", e);
-    }
-
     tracing::info!("cover extractor registry initialized");
     registry
 }
@@ -309,12 +274,6 @@ mod tests {
     }
 
     #[test]
-    fn test_pdf_cover_extractor_name() {
-        let extractor = PdfCoverExtractor::new();
-        assert_eq!(extractor.name(), "PDF Cover Extractor");
-    }
-
-    #[test]
     fn test_cover_registry_register() {
         let mut registry = CoverExtractorRegistry::new();
         let extractor = Arc::new(EpubCoverExtractor::new());
@@ -329,12 +288,9 @@ mod tests {
         registry
             .register(Arc::new(EpubCoverExtractor::new()))
             .unwrap();
-        registry
-            .register(Arc::new(PdfCoverExtractor::new()))
-            .unwrap();
 
         assert!(registry.get_extractor("epub").is_some());
-        assert!(registry.get_extractor("pdf").is_some());
+        assert!(registry.get_extractor("pdf").is_none());
         assert!(registry.get_extractor("txt").is_none());
     }
 }

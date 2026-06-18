@@ -31,7 +31,7 @@ pub fn format_from_file_path(file_path: &str) -> Result<BookFormat, AppError> {
     registry::format_from_extension(ext)
 }
 
-/// 从 DB 获取章节边界信息（TXT/MD 的文件字节偏移，EPUB/PDF 的 spine/页索引）。
+/// 从 DB 获取章节边界信息（TXT 的文件字节偏移，EPUB 的 spine 索引）。
 ///
 /// 流程：
 /// 1. 命中 `BOOK_ID_CACHE` → 直接读 chapter row
@@ -89,7 +89,8 @@ pub async fn get_chapter_bounds(
     Ok((chapter.start_index as i32, chapter.end_index as i32))
 }
 
-/// 提取章节原始文本内容
+/// 提取章节原始文本内容（仅 TXT；EPUB 走 provider 路径）。
+#[allow(dead_code)]
 pub(crate) async fn extract_chapter_content(file_path: &str, chapter_index: i32) -> Result<String, AppError> {
     let parser = registry::parser_for_file(file_path)?;
     parser.extract_chapter(file_path, chapter_index).await
@@ -110,7 +111,7 @@ fn chapter_content_pages(pages: Vec<PageContent>) -> ChapterContent {
 ///
 /// Dart 侧用于快速渲染第 0 页，全文和分页后台异步补齐。
 /// EPUB: 只读第一个 spine 的 HTML → 截断为 8KB → html_to_plain_text → 再截断 2000 字符
-/// TXT/MD: 读文件前 2000 字符
+/// TXT: 读文件前 2000 字符
 pub(crate) async fn get_chapter_first_spine_only(
     file_path: String,
     chapter_index: i32,
@@ -170,10 +171,10 @@ pub(crate) async fn get_chapter_partial(
     let validated_path = validate_file_path(&file_path)?;
     let format = format_from_file_path(&validated_path)?;
 
-    if matches!(format, BookFormat::Txt | BookFormat::Md | BookFormat::Epub) {
+    if matches!(format, BookFormat::Txt | BookFormat::Epub) {
         let provider = get_or_create_provider(&validated_path, chapter_index, &format).await?;
         let content_len = provider.content_length();
-        if matches!(format, BookFormat::Txt | BookFormat::Md) {
+        if format == BookFormat::Txt {
             // provider's `content_length` and `read_text_range` operate on the
             // full file, so for chapter_index > 0 we must read from the
             // chapter's start offset, not from byte 0.
@@ -192,9 +193,9 @@ pub(crate) async fn get_chapter_partial(
             Ok(content.chars().take(max_chars as usize).collect())
         }
     } else {
-        // PDF and other formats: fall back to extract_chapter_content.
-        let text = extract_chapter_content(&validated_path, chapter_index).await?;
-        Ok(text.chars().take(max_chars as usize).collect())
+        Err(AppError::UnsupportedFormat {
+            format: format!("unsupported format for partial read: {:?}", format).into(),
+        })
     }
 }
 
@@ -210,7 +211,7 @@ pub(crate) async fn get_chapter(
     let format = format_from_file_path(&validated_path)?;
 
     // 支持分块格式走 Provider 路径
-    if matches!(format, BookFormat::Txt | BookFormat::Md | BookFormat::Epub) {
+    if matches!(format, BookFormat::Txt | BookFormat::Epub) {
         let provider = get_or_create_provider(&validated_path, chapter_index, &format).await?;
         let content_len = provider.content_length();
 
@@ -221,7 +222,7 @@ pub(crate) async fn get_chapter(
             // we don't accidentally treat spine indices as byte offsets.
             provider.read_text_range(0, content_len)?
         } else {
-            // TXT/MD: chapter bounds are byte offsets in the file.
+            // TXT: chapter bounds are byte offsets in the file.
             let (cs, ce) = get_chapter_bounds(&validated_path, chapter_index).await?;
             let start = cs.max(0) as u64;
             let end = (ce.max(0) as u64).min(content_len);
@@ -254,29 +255,8 @@ pub(crate) async fn get_chapter(
             None => Ok(ChapterContent::Raw(text)),
         }
     } else {
-        // 旧路径（PDF 等格式的 fallback）
-        let text = extract_chapter_content(&validated_path, chapter_index).await?;
-        match config {
-            Some(cfg) => {
-                let cfg = cfg.validate_and_fix();
-                let config_hash = cfg.config_hash();
-
-                // 查缓存
-                if let Some(pages) =
-                    try_get_cached(&validated_path, chapter_index, None, config_hash).await
-                {
-                    return Ok(chapter_content_pages(pages));
-                }
-
-                let pages = paginate_all(text, chapter_index, cfg);
-
-                // 写缓存
-                try_save_cached(&validated_path, chapter_index, None, config_hash, pages.clone())
-                    .await;
-
-                Ok(chapter_content_pages(pages))
-            }
-            None => Ok(ChapterContent::Raw(text)),
-        }
+        Err(AppError::UnsupportedFormat {
+            format: format!("unsupported format for chapter read: {:?}", format).into(),
+        })
     }
 }
