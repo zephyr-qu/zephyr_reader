@@ -25,14 +25,14 @@
 | 1.2 | 全文 plain ready 后再 TTS / 搜索索引 | ✅ | finalize 后 `_postLoadTasks` |
 | 1.3 | 分页路径 gate EPUB rich | ✅ | `_needsRichContent` |
 | 1.4 | Orchestrator intent 文档化 | ✅ | [INTENTS.md](./INTENTS.md)（代码保留 5 intent） |
-| 1.5 | pageTurn 皮肤（代码） | ⬜ | `PageTurnShell`；ADR-002 + R4-3 |
+| 1.5 | pageTurn 皮肤（代码） | ✅ | `PageTurnShell`；ADR-002 + R4-3 |
 | 1.6 | 分页 EPUB toast（可选） | ✅ | `epubRichSkipped` |
 
 **R4 追加**：主链 EPUB+TXT（PDF/MD 已剥离）；[ADR-007](./adr/007-plaintext-segmentation-stability.md) plain 稳定；首屏可用 `pageContent` 交互（R4-7）。
 
 **退出标准**：[PHASE1_EXIT.md](./PHASE1_EXIT.md) 全绿；staging 换章仍丝滑。
 
-**剩余顺序**：plain 测试 → PageTurnShell → EPUB 样章核对。
+**剩余顺序**：EPUB 样章核对 → Phase 1 关闭。
 
 ---
 

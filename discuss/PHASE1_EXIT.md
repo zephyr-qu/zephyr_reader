@@ -12,8 +12,8 @@
 | 1.1 | 合并 load / firstSpine / contentFuture | ✅ 已做 | 去掉 `loadChapterFirstSpine`；无 parallel 早索引；finalize 写 full plain |
 | 1.2 | 全文 plain 后再 TTS / 搜索 | ✅ 已做 | `_postLoadTasks` 在 finalize 之后 |
 | 1.3 | 分页 gate EPUB rich | ✅ 已做 | `_needsRichContent` 仅 scroll/bilingual |
-| 1.4 | Intent 文档化 | ✅ 文档 | [INTENTS.md](./INTENTS.md)；代码仍 5 intent |
-| 1.5 | pageTurn 皮肤（代码） | ⬜ **待做** | 抽 `PageTurnShell`；动画层只收 `pageIndex→Widget` |
+| 1.4 | Intent 文档化 + 路径收敛 | ✅ | [INTENTS.md](./INTENTS.md)；5 intent；resolver + `_runCalibratedPartialPaginate` |
+| 1.5 | pageTurn 皮肤（代码） | ✅ | `PageTurnShell`；`PaginatedModeRenderer` 统一 pageTurn / pagination |
 | 1.6 | 分页 EPUB 插图 toast | ✅ 可选保留 | `ReaderNotice.epubRichSkipped`（分页不触发 rich） |
 
 **附加（simplify）**：主链移除 PDF/MD；删除 `paginateApproximate`。
@@ -37,8 +37,8 @@
 
 ## 退出前必须全绿
 
-- [ ] **1.5** `PageTurnShell`（或扩展 `PaginatedRenderer`）落地，staging 虚拟页行为不变
-- [ ] **ADR-007** Rust `html_to_plain_text` 单元测试（≥2 fixture）
+- [x] **1.5** `PageTurnShell` 落地，staging 虚拟页经 `PaginatedModeRenderer` 共用 builder
+- [x] **ADR-007** Rust `html_to_plain_text` 单元测试（16 项，`cargo test --lib parser::epub::provider::tests`）
 - [ ] **ADR-007** 1 本复杂 EPUB 样章记入 `rust/tests/fixtures/` 或文档路径 + 人工核对记录
 - [ ] staging 换章：下一章 / 上一章仍无全屏 loading（G2-b）
 - [ ] `dart analyze` / 相关 widget 测试无回归

@@ -1,8 +1,8 @@
 # 章节分页 Intent 契约（Phase 1 冻结）
 
 > **状态**：已文档化（R4-5，2026-06-18）  
-> **代码**：`ChapterPaginationIntent` + `ChapterLoadOrchestrator.resolveIntent`  
-> **原则**：Phase 1 **保留 5 个 intent**，不合并代码；新 intent 须 ADR。
+> **代码**：`ChapterPaginationIntent` + `chapter_pagination_intent_resolver.dart`  
+> **原则**：Phase 1 **保留 5 个 intent**；`normalLoad` / `configReload` 共用 `_runCalibratedPartialPaginate`；新 intent 须 ADR。
 
 ---
 
@@ -10,8 +10,8 @@
 
 | Intent | 触发场景 | 执行路径 | 典型产出 |
 |--------|----------|----------|----------|
-| `normalLoad` | 换章、无有效 session、format 不匹配 | `_runFirstSpine` → `beginPaginate(2000)` → await plain → expand | 新 descriptors + full plain |
-| `configReload` | 同章 + `config_hash` 变化（字号/行距等） | calib → `repaginateInPlace(maxChars=2000)` → await plain → expand | 新 descriptors，**不** dispose handle |
+| `normalLoad` | 换章、无有效 session、format 不匹配 | `_runCalibratedPartialPaginate` → `beginPaginate(2000)` → await plain → expand | 新 descriptors + full plain |
+| `configReload` | 同章 + `config_hash` 变化（字号/行距等） | `_runCalibratedPartialPaginate` → `repaginateInPlace(maxChars=2000)` → expand | 新 descriptors，**不** dispose handle |
 | `expandOnly` | 同章 + 同 config + session 已有 partial | 跳过首屏；直接 `expandToFullChapter` | 全章 descriptors |
 | `stagingPromoteForward` | 跨章下一章 + `nextChapterStaging` hash 命中 | adopt cache → pageIndex=0 | 零感知换章 |
 | `stagingPromoteBackward` | 跨章上一章 + `prevChapterStaging` hash 命中 | adopt cache → pageIndex=last | 零感知换章 |
@@ -20,7 +20,7 @@
 
 ---
 
-## 推导顺序（`resolveIntent`）
+## 推导顺序（`resolveChapterPaginationIntent`）
 
 ```mermaid
 flowchart TD

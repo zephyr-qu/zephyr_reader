@@ -4,8 +4,6 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_viewport_index.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/features/reader/rendering/page_curl_widget.dart';
-import 'package:zephyr_reader/features/reader/rendering/paginated_renderer.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -401,113 +399,7 @@ class ReaderContent extends HookWidget {
       return null;
     }, [chapterId]);
 
-    // pageTurn mode: bypass AnimatedSwitcher, use interactive PageCurlWidget
-    if (readingMode == ReadingMode.pageTurn &&
-        !isLoading &&
-        error == null &&
-        content.isNotEmpty) {
-      final descriptors = dataSource.descriptors;
-      // ignore: unused_local_variable
-      final preloadGen = useListenable(dataSource.preloadGeneration);
-      final nextStaging = dataSource.nextChapterStaging;
-      final prevStaging = dataSource.prevChapterStaging;
-      final nextStagingReady = hasNextChapter &&
-          nextStaging != null &&
-          nextStaging.chapterIndex == chapterId + 1;
-      final prevStagingReady = hasPreviousChapter &&
-          prevStaging != null &&
-          prevStaging.chapterIndex == chapterId - 1;
-      final virtualPrev = paginationVirtualPrevOffset(hasPreviousChapter);
-      final extendedTotal = totalPages +
-          virtualPrev +
-          (nextStagingReady ? 1 : 0);
-      final physicalPageIndex = paginationPhysicalPageIndex(
-        logicalPageIndex: pageIndex,
-        hasPreviousChapter: hasPreviousChapter,
-      );
-
-      Widget pageBuilder(int physicalIdx) {
-        if (hasPreviousChapter && physicalIdx == 0) {
-          if (prevStagingReady) {
-            final lastIdx = prevStaging.descriptors.length - 1;
-            final startOffset = lastIdx >= 0
-                ? prevStaging.descriptors[lastIdx].startOffset
-                : 0;
-            return buildStagingPageContent(
-              context: context,
-              pageContent: prevStaging.firstPageContent,
-              startOffset: startOffset,
-              config: renderConfig,
-              highlights: highlights,
-              onHighlightTap: onHighlightTap,
-              onSelectionChanged: onSelectionChanged,
-              onSelectionGlobalPosition: onSelectionGlobalPosition,
-            );
-          }
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        final logicalIdx = physicalIdx - virtualPrev;
-        if (logicalIdx >= totalPages) {
-          if (nextStagingReady) {
-            final startOffset = nextStaging.descriptors.isNotEmpty
-                ? nextStaging.descriptors[0].startOffset
-                : 0;
-            return buildStagingPageContent(
-              context: context,
-              pageContent: nextStaging.firstPageContent,
-              startOffset: startOffset,
-              config: renderConfig,
-              highlights: highlights,
-              onHighlightTap: onHighlightTap,
-              onSelectionChanged: onSelectionChanged,
-              onSelectionGlobalPosition: onSelectionGlobalPosition,
-            );
-          }
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        final startOffset = (descriptors != null && logicalIdx < descriptors.length)
-            ? descriptors[logicalIdx].startOffset
-            : 0;
-        return buildSinglePageContent(
-          context: context,
-          pageIndex: logicalIdx,
-          startOffset: startOffset,
-          dataSource: dataSource,
-          config: renderConfig,
-          highlights: highlights,
-          onHighlightTap: onHighlightTap,
-          onSelectionChanged: onSelectionChanged,
-          onSelectionGlobalPosition: onSelectionGlobalPosition,
-        );
-      }
-
-      return PageCurlWidget(
-        pageIndex: physicalPageIndex,
-        totalPages: extendedTotal,
-        hasPreviousChapter: hasPreviousChapter,
-        onReachStart: onReachStart,
-        pageBuilder: pageBuilder,
-        onPageChanged: (physicalIdx) {
-          if (hasPreviousChapter && physicalIdx == 0) {
-            onReachStart?.call();
-            return;
-          }
-          final logicalIdx = physicalIdx - virtualPrev;
-          if (logicalIdx >= totalPages) {
-            onReachEnd?.call();
-          }
-          onPageChanged?.call(logicalIdx);
-          if (descriptors != null &&
-              logicalIdx >= 0 &&
-              logicalIdx < descriptors.length) {
-            onPositionChanged?.call(descriptors[logicalIdx].startOffset);
-          }
-        },
-      );
-    }
-
+    // pageTurn 与 pagination 共用 PaginatedModeRenderer（见 PageTurnShell）
     final contentWidget = _buildContent(
       context,
       pageController,
@@ -591,11 +483,10 @@ class ReaderContent extends HookWidget {
           child: bilingualBuilder(context, scrollController, bilingualPairs),
         );
       case ReadingMode.pagination:
+      case ReadingMode.pageTurn:
         return RepaintBoundary(
           child: paginatedBuilder(context, pageController),
         );
-      case ReadingMode.pageTurn:
-        return const SizedBox.shrink();
     }
   }
 

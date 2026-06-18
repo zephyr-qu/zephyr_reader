@@ -6,6 +6,7 @@ import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/core/utils/app_error_mapper.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_phase.dart';
+import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent_resolver.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
@@ -84,14 +85,14 @@ class ChapterLoadOrchestrator {
 
     try {
       // 自动推导分页意图（必须在 _runStarting 之前，以得到正确的 preserveContent 默认值）
-      final intent = resolveIntent(
+      final intent = resolveChapterPaginationIntent(
         chapterIndex: request.chapterIndex,
         navigationKind: request.navigationKind,
         repo: _contentRepo,
         pagination: _pagination,
       );
       final effectivePreserveContent = request.preserveContent ??
-          (intent != ChapterPaginationIntent.normalLoad);
+          shouldPreserveContentForIntent(intent);
       Logging.info(
         '[Timing] gen=$gen intent=$intent preserveContent=$effectivePreserveContent',
       );
@@ -129,45 +130,13 @@ class ChapterLoadOrchestrator {
 
       final ({int totalPages, bool isPartial})? quickResult;
 
-      switch (intent) {
-        case ChapterPaginationIntent.normalLoad:
-          quickResult = await _runFirstSpine(
-            gen,
-            request,
-            calibFuture: calibFuture,
-            preloadAdjacentFirstPages: preloadAdjacentFirstPages,
-          );
-        case ChapterPaginationIntent.configReload:
-          quickResult = await _runConfigReload(
-            gen,
-            request,
-            calibFuture: calibFuture,
-            preloadAdjacentFirstPages: preloadAdjacentFirstPages,
-          );
-        case ChapterPaginationIntent.expandOnly:
-          quickResult = await _runExpandOnly(
-            gen,
-            request,
-            calibFuture: calibFuture,
-            preloadAdjacentFirstPages: preloadAdjacentFirstPages,
-          );
-        case ChapterPaginationIntent.stagingPromoteForward:
-          quickResult = await _runStagingPromote(
-            gen,
-            request,
-            isForward: true,
-            calibFuture: calibFuture,
-            preloadAdjacentFirstPages: preloadAdjacentFirstPages,
-          );
-        case ChapterPaginationIntent.stagingPromoteBackward:
-          quickResult = await _runStagingPromote(
-            gen,
-            request,
-            isForward: false,
-            calibFuture: calibFuture,
-            preloadAdjacentFirstPages: preloadAdjacentFirstPages,
-          );
-      }
+      quickResult = await _runQuickPaginateForIntent(
+        gen,
+        intent,
+        request,
+        calibFuture: calibFuture,
+        preloadAdjacentFirstPages: preloadAdjacentFirstPages,
+      );
 
       Logging.info(
         '[Timing] gen=$gen phase=quickPaginate quickPaginate: '
@@ -323,117 +292,116 @@ class ChapterLoadOrchestrator {
   }
 
 
-  Future<({int totalPages, bool isPartial})?> _runFirstSpine(
+  Future<({int totalPages, bool isPartial})?> _runQuickPaginateForIntent(
+    int gen,
+    ChapterPaginationIntent intent,
+    ChapterLoadRequest request, {
+    required Future<CalibrationData?> calibFuture,
+    Future<void> Function(int chapterIndex)? preloadAdjacentFirstPages,
+  }) {
+    switch (intent) {
+      case ChapterPaginationIntent.normalLoad:
+        return _runCalibratedPartialPaginate(
+          gen,
+          request,
+          calibFuture: calibFuture,
+          preloadAdjacentFirstPages: preloadAdjacentFirstPages,
+          paginate: () => _pagination.paginateFirstScreen(request.chapterIndex),
+          updateCurrentCharOffset: true,
+          fallbackPageIndex: 0,
+          logLabel: 'firstSpine',
+        );
+      case ChapterPaginationIntent.configReload:
+        return _runCalibratedPartialPaginate(
+          gen,
+          request,
+          calibFuture: calibFuture,
+          preloadAdjacentFirstPages: preloadAdjacentFirstPages,
+          paginate: () => _pagination.repaginateCurrentChapter(
+            maxChars: PaginationEngine.firstScreenMaxChars,
+          ),
+          updateCurrentCharOffset: false,
+          fallbackPageIndex: _pageIndex.value,
+          logLabel: 'configReload',
+        );
+      case ChapterPaginationIntent.expandOnly:
+        return _runExpandOnly(
+          gen,
+          request,
+          calibFuture: calibFuture,
+          preloadAdjacentFirstPages: preloadAdjacentFirstPages,
+        );
+      case ChapterPaginationIntent.stagingPromoteForward:
+        return _runStagingPromote(
+          gen,
+          request,
+          isForward: true,
+          calibFuture: calibFuture,
+          preloadAdjacentFirstPages: preloadAdjacentFirstPages,
+        );
+      case ChapterPaginationIntent.stagingPromoteBackward:
+        return _runStagingPromote(
+          gen,
+          request,
+          isForward: false,
+          calibFuture: calibFuture,
+          preloadAdjacentFirstPages: preloadAdjacentFirstPages,
+        );
+    }
+  }
+
+  /// normalLoad / configReload 共用：校准 → partial paginate → 按 offset 落页。
+  Future<({int totalPages, bool isPartial})?> _runCalibratedPartialPaginate(
     int gen,
     ChapterLoadRequest request, {
     required Future<CalibrationData?> calibFuture,
+    required Future<({int totalPages, bool isPartial})> Function() paginate,
+    required bool updateCurrentCharOffset,
+    required int fallbackPageIndex,
+    required String logLabel,
     Future<void> Function(int chapterIndex)? preloadAdjacentFirstPages,
   }) async {
     _setPhase(gen, ChapterLoadPhase.firstSpine);
 
-    // 等待校准完成，并把结果写入 calibration.value，使后续 buildPaginationParams
-    // 能读到非 null 的 CharWidthTable。session 内的 config 由 beginPaginate 当下构建，
-    // 后续 paginate_session_full 也会沿用带校准的存储 config。
     final calibResult = await calibFuture;
     if (_isStale(gen)) return null;
     _pagination.calibration.value ??= calibResult;
 
-    final quickResult = await _pagination.paginateFirstScreen(
-      request.chapterIndex,
-    );
+    final quickResult = await paginate();
     if (_isStale(gen)) return null;
 
     final descriptors = _contentRepo.descriptors;
     if (descriptors != null && descriptors.isNotEmpty) {
-      final fullOffset = request.initialCharOffset;
-      final partialEnd = descriptors.last.endOffset;
-      final offsetBeyondPartial =
-          quickResult.isPartial && fullOffset > partialEnd;
-      final charOffsetForPartial = fullOffset.clamp(0, partialEnd);
-      final resolvedPage = offsetBeyondPartial
-          ? 0
-          : PaginationEngine.resolvePageIndexForOffset(
-              descriptors,
-              charOffsetForPartial,
-            );
+      final resolved = resolveQuickPageForPartial(
+        descriptors: descriptors,
+        initialCharOffset: request.initialCharOffset,
+        isPartial: quickResult.isPartial,
+        fallbackPageIndex: fallbackPageIndex,
+      );
 
       _applyIfCurrent(gen, () {
         _totalPages.value = quickResult.totalPages;
         _chapterVM.chapterIndex.value = request.chapterIndex;
-        _chapterVM.currentCharOffset.value = charOffsetForPartial;
-        _pageIndex.value = resolvedPage;
-        _chapterVM.pendingJumpCharOffset.value = fullOffset;
+        if (updateCurrentCharOffset) {
+          _chapterVM.currentCharOffset.value = resolved.charOffsetForPartial;
+        }
+        _pageIndex.value = resolved.pageIndex;
+        _chapterVM.pendingJumpCharOffset.value = request.initialCharOffset;
         _error.value = null;
         _isLoading.value = false;
       });
-      _contentRepo.ensurePageWindow(resolvedPage);
+      _contentRepo.ensurePageWindow(resolved.pageIndex);
     }
 
     unawaited(
       preloadAdjacentFirstPages?.call(request.chapterIndex) ?? Future.value(),
     );
-
-    Logging.info('[Timing] gen=$gen phase=firstSpine firstSpine done');
-    return quickResult;
-  }
-
-  /// configReload：等 calib 完成后用新 config in-place repaginate。
-  Future<({int totalPages, bool isPartial})?> _runConfigReload(
-    int gen,
-    ChapterLoadRequest request, {
-    required Future<CalibrationData?> calibFuture,
-    Future<void> Function(int chapterIndex)? preloadAdjacentFirstPages,
-  }) async {
-    _setPhase(gen, ChapterLoadPhase.firstSpine);
-    final calibResult = await calibFuture;
-    if (_isStale(gen)) return null;
-    _pagination.calibration.value ??= calibResult;
-
-    final quickResult = await _pagination.repaginateCurrentChapter(
-      maxChars: PaginationEngine.firstScreenMaxChars,
-    );
-    if (_isStale(gen)) return null;
-
-    // 按 request.initialCharOffset + 新 descriptors 重算 pageIndex
-    // （request 是统一入口，currentCharOffset 可能是 stale 值）
-    final descriptors = _contentRepo.descriptors;
-    final fullOffset = request.initialCharOffset;
-    final partialEnd = descriptors?.isNotEmpty == true
-        ? descriptors!.last.endOffset
-        : 0;
-    final offsetBeyondPartial =
-        quickResult.isPartial && fullOffset > partialEnd;
-    int resolvedPage = _pageIndex.value;
-    if (!offsetBeyondPartial && descriptors != null && descriptors.isNotEmpty) {
-      final newResolved = PaginationEngine.resolvePageIndexForOffset(
-        descriptors,
-        fullOffset,
-      );
-      if (newResolved >= 0) resolvedPage = newResolved;
-    } else if (offsetBeyondPartial) {
-      resolvedPage = 0;
-    }
-
-    _applyIfCurrent(gen, () {
-      _totalPages.value = quickResult.totalPages;
-      _chapterVM.chapterIndex.value = request.chapterIndex;
-      _pageIndex.value = resolvedPage;
-      _chapterVM.pendingJumpCharOffset.value = fullOffset;
-      _error.value = null;
-      _isLoading.value = false;
-    });
-    if (resolvedPage >= 0) {
-      _contentRepo.ensurePageWindow(resolvedPage);
-    }
-    Logging.info('[Timing] gen=$gen phase=firstSpine configReload done');
-    unawaited(
-      preloadAdjacentFirstPages?.call(request.chapterIndex) ?? Future.value(),
-    );
+    Logging.info('[Timing] gen=$gen phase=firstSpine $logLabel done');
     return quickResult;
   }
 
   /// expandOnly：同章同 config，handle 已存在则直接 expand to full。
-  /// session 不存在时退回 [firstSpine] 流程。
+  /// session 不存在时退回 normalLoad 等价路径。
   Future<({int totalPages, bool isPartial})?> _runExpandOnly(
     int gen,
     ChapterLoadRequest request, {
@@ -443,15 +411,18 @@ class ChapterLoadOrchestrator {
     _setPhase(gen, ChapterLoadPhase.firstSpine);
     final descriptors = _contentRepo.descriptors;
     if (descriptors == null || descriptors.isEmpty) {
-      // session 不存在 → 退回 firstSpine（normalLoad 等价路径）
       Logging.info(
         '[Timing] gen=$gen phase=firstSpine expandOnly fell back to firstSpine',
       );
-      return _runFirstSpine(
+      return _runCalibratedPartialPaginate(
         gen,
         request,
         calibFuture: calibFuture ?? Future.value(_pagination.calibration.value),
         preloadAdjacentFirstPages: preloadAdjacentFirstPages,
+        paginate: () => _pagination.paginateFirstScreen(request.chapterIndex),
+        updateCurrentCharOffset: true,
+        fallbackPageIndex: 0,
+        logLabel: 'expandOnlyFallback',
       );
     }
     _applyIfCurrent(gen, () {
@@ -642,47 +613,4 @@ class ChapterLoadOrchestrator {
   /// 分页链路；scroll/bilingual 直接渲染全文，跳过所有 FFI 分页调用。
   static bool _needsPagination(ReadingMode mode) =>
       mode == ReadingMode.pagination || mode == ReadingMode.pageTurn;
-
-  /// 根据当前 session 状态、导航类型与 staging 自动推导分页意图。
-  static ChapterPaginationIntent resolveIntent({
-    required int chapterIndex,
-    required ChapterNavigationKind navigationKind,
-    required ReaderRepositoryInterface repo,
-    required PaginationCoordinator pagination,
-  }) {
-    // stagingPromote 路径优先检查
-    if (navigationKind == ChapterNavigationKind.adjacentCrossChapter) {
-      // 先检查 staging 存在且 chapterIndex 匹配，再计算 configHash（避免 FFI 调用）
-      final nextStaging = repo.nextChapterStaging;
-      if (nextStaging != null && nextStaging.chapterIndex == chapterIndex) {
-        final currentHash = pagination.computeConfigHash();
-        if (nextStaging.configHash == currentHash) {
-          return ChapterPaginationIntent.stagingPromoteForward;
-        }
-      }
-      // 后退 staging（prevChapterStaging 末页）
-      final prevStaging = repo.prevChapterStaging;
-      if (prevStaging != null && prevStaging.chapterIndex == chapterIndex) {
-        final currentHash = pagination.computeConfigHash();
-        if (prevStaging.configHash == currentHash) {
-          return ChapterPaginationIntent.stagingPromoteBackward;
-        }
-      }
-    }
-
-    final hash = repo.sessionConfigHash;
-    final descriptors = repo.descriptors;
-    final sessionChapterIndex = repo.sessionChapterIndex;
-
-    final sessionValid = hash != null &&
-        (descriptors?.isNotEmpty == true) &&
-        sessionChapterIndex == chapterIndex;
-
-    if (!sessionValid) return ChapterPaginationIntent.normalLoad;
-
-    final currentHash = pagination.computeConfigHash();
-    if (currentHash != hash) return ChapterPaginationIntent.configReload;
-
-    return ChapterPaginationIntent.expandOnly;
-  }
 }
