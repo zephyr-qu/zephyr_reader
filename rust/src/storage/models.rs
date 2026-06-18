@@ -381,7 +381,8 @@ pub struct GlobalStats {
 ///
 /// 数据库中存储为小写文本。`FromStr` 额外兼容 markdown 别名。
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, strum::AsRefStr, strum::EnumString,
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize,
+    strum::AsRefStr, strum::EnumString,
 )]
 #[strum(serialize_all = "lowercase")]
 #[frb]

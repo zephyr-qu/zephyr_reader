@@ -139,12 +139,28 @@ pub(crate) async fn paginate_chapter(
         // H2 fix: fast path — check STREAMER_CACHE first (LRU, in-memory)
         // before falling through to layout cache (sled KV) or full re-pagination.
         let streamer_key = (validated_path.clone(), chapter_index, config_hash);
-        if let Some(streamer) = {
+        // M6 fix: use `pop` to transfer ownership out of LRU before
+        // reading descriptors, then `put` back. Avoids deep-cloning
+        // the entire `PageStreamer.content` (could be 100s of KB)
+        // while holding the cache lock, which blocks concurrent
+        // readers for the duration of the clone.
+        //
+        // Safety: the pop→put window is racy only if another thread
+        // concurrently calls paginate_chapter for the same key. In
+        // that case both threads will write the same content (they
+        // share the same `paginate_chapter` body), so last-writer-wins
+        // is semantically fine. Slight memory waste (extra allocation)
+        // is preferable to blocking.
+        let streamer = {
             let mut cache = STREAMER_CACHE.lock();
-            cache.get(&streamer_key).cloned()
-        } {
+            cache.pop(&streamer_key)
+        };
+        if let Some(streamer) = streamer {
             if !streamer.is_partial {
                 let descriptors = streamer.get_descriptors();
+                // Put the streamer back so future adopt / get_page_content
+                // calls can find it. Use a fresh lock to avoid nested locks.
+                STREAMER_CACHE.lock().put(streamer_key, streamer);
                 tracing::info!(
                     "[Timing] paginate_chapter streamer_cache=HIT config_hash={:016x} chapter={} elapsed={:?}",
                     config_hash, chapter_index, start.elapsed()
@@ -154,6 +170,10 @@ pub(crate) async fn paginate_chapter(
                     config_hash,
                     is_partial: false,
                 });
+            } else {
+                // Partial — put back and let the rest of the function
+                // re-paginate as a non-partial.
+                STREAMER_CACHE.lock().put(streamer_key, streamer);
             }
         }
         if let Some(pages) = try_get_cached(&validated_path, chapter_index, None, config_hash).await {

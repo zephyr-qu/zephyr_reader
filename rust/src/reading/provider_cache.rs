@@ -1,4 +1,4 @@
-//! `PROVIDER_CACHE` — `(file_path, chapter_index) → Arc<dyn ChapterContentProvider>` LRU。
+//! `PROVIDER_CACHE` — `(file_path, chapter_index, format) → Arc<dyn ChapterContentProvider>` LRU。
 //!
 //! 章节内容提供器缓存，避免每次分页/章节读取都重新打开文件、解析目录、扫描 spine。
 //! 容量 16，命中后直接 `Arc::clone` 出去。
@@ -12,19 +12,25 @@ use parking_lot::Mutex;
 use std::num::NonZeroUsize;
 use std::sync::{Arc, LazyLock};
 
-use crate::domain::AppError;
-use crate::storage::models::BookFormat;
-
 use lru::LruCache;
 
+use crate::domain::AppError;
 use crate::parser::provider::ChapterContentProvider;
+use crate::storage::models::BookFormat;
 
 const PROVIDER_CACHE_CAPACITY: NonZeroUsize = match NonZeroUsize::new(16) {
     Some(v) => v,
     None => unreachable!(),
 };
 
-pub(crate) type CacheKey = (String, i32);
+// M9 fix: include `BookFormat` in the key. Without it, a cache hit
+// for `(path, chapter_index)` could theoretically return a provider
+// built for a different format if the file's format somehow changed
+// (not currently possible — format is determined by file extension
+// at import and never mutates — but the invariant should be explicit).
+// Also: 3-tuple is `Eq + Hash` so the LRU key keeps the same
+// behavior, and `BookFormat` is a small Copy enum.
+pub(crate) type CacheKey = (String, i32, BookFormat);
 
 pub(crate) static PROVIDER_CACHE: LazyLock<Mutex<LruCache<CacheKey, Arc<dyn ChapterContentProvider>>>> =
     LazyLock::new(|| Mutex::new(LruCache::new(PROVIDER_CACHE_CAPACITY)));
@@ -34,8 +40,9 @@ pub(crate) static PROVIDER_CACHE: LazyLock<Mutex<LruCache<CacheKey, Arc<dyn Chap
 pub(crate) fn get_cached_provider(
     validated_path: &str,
     chapter_index: i32,
+    format: BookFormat,
 ) -> Option<Arc<dyn ChapterContentProvider>> {
-    let key = (validated_path.to_string(), chapter_index);
+    let key = (validated_path.to_string(), chapter_index, format);
     let mut cache = PROVIDER_CACHE.lock();
     cache.get(&key).cloned()
 }
@@ -45,9 +52,10 @@ pub(crate) fn get_cached_provider(
 pub(crate) fn put_provider(
     validated_path: &str,
     chapter_index: i32,
+    format: BookFormat,
     provider: Arc<dyn ChapterContentProvider>,
 ) {
-    let key = (validated_path.to_string(), chapter_index);
+    let key = (validated_path.to_string(), chapter_index, format);
     let mut cache = PROVIDER_CACHE.lock();
     if !cache.contains(&key) {
         cache.put(key, provider);
@@ -65,7 +73,8 @@ pub(crate) async fn get_or_create_provider(
     chapter_index: i32,
     format: &BookFormat,
 ) -> Result<Arc<dyn ChapterContentProvider>, AppError> {
-    let cache_key = (validated_path.to_string(), chapter_index);
+    // M9 fix: include `format` in cache key (see CacheKey doc).
+    let cache_key = (validated_path.to_string(), chapter_index, *format);
     {
         let mut cache = PROVIDER_CACHE.lock();
         if let Some(cached) = cache.get(&cache_key) {

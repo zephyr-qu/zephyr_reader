@@ -730,3 +730,209 @@ SESSION_MAP.lock().remove(&handle.session_id);
 > H1 修复初版中不慎删除了 SESSION_MAP.insert 导致 `epub_repaginate_font_change` 失败
 > — 立即修复并补测。H2 修复初版吃掉了 layout cache 块的 return，临时打补丁后稳定。
 > 测试有 2 次构建破坏性调整（`PageDescriptor` 字段为 `start_offset/end_offset`、PaginateResult 在 `domain` 而非 `data_types`），最终 3 个测试都编译通过。
+
+# Plan D 修复 — STREAMER_CACHE cap 提升 (2026-06-17, M7)
+
+## 概览
+
+> 审查（`reading-chain-review` agent, 2026-06-17）识别的 MEDIUM #6 项。`STREAMER_CACHE` LRU cap=4 在 13 个 pagination_session_test 并行下频繁淘汰，导致 4 个测试稳定失败（"NotFound: page streamer for session N"）。baseline 标记为"已知 flake，单线程下通过"。
+>
+> Plan D：单点修复，零风险，5 分钟。
+
+## 修复
+
+**位置**：`rust/src/reading/streamer_cache.rs:19-25`
+
+**修复前**：
+```rust
+const STREAMER_CACHE_CAPACITY: NonZeroUsize = match NonZeroUsize::new(4) {
+    Some(v) => v,
+    None => unreachable!(),
+};
+```
+
+**修复后**：
+```rust
+// M7 fix: 4 → 16 匹配 PROVIDER_CACHE。13 个 pagination_session_test
+// 并行下 4 不够，频繁 LRU 淘汰导致测试 flake（"NotFound: page streamer
+// for session N"）。真实用户多 chapter 翻页同样受益。
+const STREAMER_CACHE_CAPACITY: NonZeroUsize = match NonZeroUsize::new(16) {
+    Some(v) => v,
+    None => unreachable!(),
+};
+```
+
+## 验证
+
+### 测试结果（**并行**模式，无 `--test-threads=1`）
+
+| 运行 | reading_orchestrator_test | pagination_session_test | epub_reading_chain_test |
+|------|---------------------------|-------------------------|-------------------------|
+| Run 1 | 10/10 ✅ | 16/16 ✅ | 10/10 ✅ |
+| Run 2 | 10/10 ✅ | 16/16 ✅ | 10/10 ✅ |
+| Run 3 | 10/10 ✅ | 16/16 ✅ | 10/10 ✅ |
+
+> **修复前**: 并行下 `pagination_session_test` 4/13 稳定失败（4 个 `NotFound: page streamer` flake）。`epub_reading_chain_test` 1/10 flake。
+> **修复后**: 3 次连续并行运行，36/36 全部通过，零 flake。
+
+### 内存代价
+
+每 `PageStreamer` 含完整章节 `content: String` + line offsets。16 槽 × ~500KB/章节 ≈ 8MB 峰值。与 `PROVIDER_CACHE` (cap=16) 一致。
+
+## 涉及文件
+
+### Rust 修改 (1)
+- `rust/src/reading/streamer_cache.rs` — `STREAMER_CACHE_CAPACITY` 常量 4 → 16（+6/-2）
+
+## 剩余未修
+
+> Plan A/B/D 已修：2 CRITICAL + 3 HIGH + 1 MEDIUM (M7)
+> Plan 未修：M6 (lock 内 clone)、M8 (BOOK_ID_CACHE 失效)、M9 (PROVIDER_CACHE format key)、L10-12 (测试改进)
+
+# Plan E 修复 — Reading 链 3 个 MEDIUM (2026-06-17, M6 + M8 + M9)
+
+## 概览
+
+> 审查（`reading-chain-review` agent, 2026-06-17）识别的 3 个 MEDIUM。Plan D (M7) 已修，剩余 3 项一并修。
+
+## 修复 1：STREAMER_CACHE lock 内 deep clone 优化 (M6)
+
+**位置**：
+- `rust/src/reading/session.rs:88-114` (`apply_session_repagination` H1 关键段)
+- `rust/src/reading/pagination.rs:138-178` (`paginate_chapter` H2 快路径)
+
+**Bug**：`cache.get(&key).cloned()` 在 `MutexGuard` 持有期间做 `PageStreamer` 的 deep clone（整个 content `String` + line_offsets 等）。对 100s KB 章节，并发 reader 阻塞。
+
+**修复**：用 `cache.pop(&key)` 转移所有权（不 clone），计算 descriptors，再 `cache.put` 写回。`SESSION_MAP` 需要的 clone 在 cache lock 外。
+
+```rust
+// M6: pop → compute → put back，避免锁内 deep clone
+let streamer = {
+    let mut cache = STREAMER_CACHE.lock();
+    cache.pop(&new_key).ok_or(...)?
+};
+// ... compute descriptors (no lock) ...
+STREAMER_CACHE.lock().put(new_key.clone(), streamer.clone());
+// 注：session 仍需 clone → SESSION_MAP。这是一次不可避免的 clone。
+```
+
+**trade-off**：pop → put 窗口期内并发 `create_pagination_session_adopt` 可能 miss（短暂的窗口）；两者语义上等价（都是同一章的 streamer）。
+
+**测试捕 bug 能力**：单线程下不可见（性能优化），仅行为保险。
+
+## 修复 2：BOOK_ID_CACHE 失效 (M8)
+
+**位置**：`rust/src/reading/chapter_access.rs:41-90`
+
+**Bug**：`get_chapter_bounds` 命中 `BOOK_ID_CACHE` 后直接用缓存的 book_id 查 `find_by_index`，从不失效。场景：用户重新导入同路径（不同 book_id）后，cache 仍返回旧 book_id → `find_by_index` miss → `ChapterExtractError`，用户必须手动清缓存恢复。
+
+**修复**：`find_by_index` miss 时 `cache.pop(validated_path)`，fall through 到 `find_by_file_path` 重查。
+
+```rust
+if let Some(book_id) = cached_book_id {
+    if let Ok(Some(chapter)) =
+        ChapterRepository::find_by_index(&pool, &book_id, chapter_index).await
+    {
+        return Ok(...);
+    }
+    // Miss → invalidate and fall through
+    BOOK_ID_CACHE.lock().pop(validated_path);
+}
+// slow path with find_by_file_path + cache.put
+```
+
+**测试**：`test_book_id_cache_invalidation_on_stale_miss`
+- 注入 stale book_id → 调用 get_chapter_bounds
+- 修复前：失败 (`ChapterExtractError`)
+- 修复后：成功，cache 持有 fresh book_id
+
+>**测试能力**：单线程可捕。已验证。
+
+>**API 变更**：`get_chapter_bounds` 从 `pub(crate)` 改为 `pub`（让 integration test 直接调用）；`book_id_cache` 模块 + `BOOK_ID_CACHE` static 同样 `pub(crate)` → `pub`。
+
+>## 修复 3：PROVIDER_CACHE key 加 format (M9)
+
+**位置**：
+- `rust/src/reading/provider_cache.rs:34` (CacheKey type)
+- `rust/src/reading/provider_cache.rs:65-80` (get_or_create_provider)
+- `rust/src/reading/provider_cache.rs:36-58` (get_cached_provider, put_provider)
+- `rust/src/storage/models.rs:383-385` (BookFormat derive Hash)
+
+**Bug**：`CacheKey = (String, i32)` 无 `format`。理论场景：同一 path + chapter 不同 format 会撞 cache。实际不会发生（format 由 extension 决定 + 一次写入），但 invariant 隐式。
+
+**修复**：
+1. `BookFormat` derive `Hash`（已有 `Copy + PartialEq + Eq`，加 `Hash` 即可）
+2. `CacheKey = (String, i32, BookFormat)`
+3. `get_or_create_provider` / `get_cached_provider` / `put_provider` 都加 `format` 参数
+
+**API 变更**：
+```rust
+pub(crate) type CacheKey = (String, i32, BookFormat);  // 旧: (String, i32)
+
+pub(crate) fn get_cached_provider(
+    validated_path: &str,
+    chapter_index: i32,
+    format: BookFormat,  // 新参数
+) -> Option<Arc<dyn ChapterContentProvider>>
+
+pub(crate) fn put_provider(
+    validated_path: &str,
+    chapter_index: i32,
+    format: BookFormat,  // 新参数
+    provider: Arc<dyn ChapterContentProvider>,
+)
+```
+
+>**注**：`get_cached_provider` 和 `put_provider` 当前是 `#[allow(dead_code)]` 标记的 helper，未被任何调用方使用（Phase 1 时为未来使用添加的 scaffold）。本 plan 仅给其加了 `format` 参数，无调用点变更。
+
+## 验证
+
+### 测试结果（**并行**模式）
+
+| Suite | 数量 | 结果 |
+|-------|------|------|
+| reading_orchestrator_test | 11/11 ✅ | 0 flake |
+| pagination_session_test | 16/16 ✅ | 0 flake |
+| epub_reading_chain_test | 12/12 ✅ | 0 flake |
+| **总计** | **39/39** | (含 1 个新 M8 测试) |
+
+>### M8 回归测试捕 bug 能力
+
+> 临时回退 M8 修复：测试 FAIL，错误信息为 `ChapterExtractError { index: 0, reason: "chapter not found in DB" }`。✅ 单线程可捕。
+
+>### 其他验证
+
+| 检查 | 结果 |
+|------|------|
+| `cargo build` (lib) | clean |
+| `flutter_rust_bridge_codegen generate` | Done! |
+| `dart analyze lib/src/rust` | No issues found! |
+
+## 涉及文件
+
+### Rust 修改 (5)
+- `rust/src/reading/session.rs` — M6: `apply_session_repagination` 用 `pop`+`put` 替代 `get().cloned()` (+12/-3)
+- `rust/src/reading/pagination.rs` — M6: `paginate_chapter` H2 fast path 同样改用 `pop`+`put` (+18/-5)
+- `rust/src/reading/chapter_access.rs` — M8: `get_chapter_bounds` find_by_index miss 时 invalidate cache + retry (+20/-5)
+- `rust/src/reading/provider_cache.rs` — M9: `CacheKey` 加 `BookFormat`；helper fns 加 `format` 参数 (+15/-8)
+- `rust/src/storage/models.rs` — M9: `BookFormat` derive `Hash` (+1/-1)
+- `rust/src/reading/mod.rs` — `book_id_cache` `pub(crate)` → `pub`（M8 测试需要）
+- `rust/src/reading/book_id_cache.rs` — `BOOK_ID_CACHE` static `pub(crate)` → `pub`（M8 测试需要）
+- `rust/src/reading/chapter_access.rs` — `get_chapter_bounds` `pub(crate)` → `pub`（M8 测试需要）
+
+### 测试新增 (1 用例)
+- `rust/tests/reading_orchestrator_test.rs::test_book_id_cache_invalidation_on_stale_miss` (M8 回归)
+
+## 累计修复状态
+
+| 类别 | 已修 | 未修 |
+|------|------|------|
+| CRITICAL | 2/2 ✅ | 0 |
+| HIGH | 3/3 ✅ | 0 |
+| MEDIUM | 4/4 ✅ | 0 |
+| LOW | 0/3 | L10, L11, L12 |
+
+### Plan 未修（LOW 测试改进）
+- L10: `test_get_chapter_epub_uses_db_bounds` 假阳性（已被新 `test_get_chapter_epub_returns_full_chapter_content` 替代）
+- L11: `test_get_page_content_after_dispose_returns_not_found` 命名误导
+- L12: `diagnose_content_extraction_pipeline` 语义变更（用 FFI 层更接近用户行为）

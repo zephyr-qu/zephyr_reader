@@ -21,7 +21,7 @@ const BOOK_ID_CACHE_CAPACITY: NonZeroUsize = match NonZeroUsize::new(16) {
 
 pub(crate) type BookIdCache = LruCache<String, String>;  // file_path → book_id
 
-pub(crate) static BOOK_ID_CACHE: LazyLock<Mutex<BookIdCache>> =
+pub static BOOK_ID_CACHE: LazyLock<Mutex<BookIdCache>> =
     LazyLock::new(|| Mutex::new(LruCache::new(BOOK_ID_CACHE_CAPACITY)));
 
 /// 命中则返回 book_id 的 clone；未命中返回 None。
