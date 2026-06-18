@@ -156,12 +156,26 @@ pub(crate) async fn get_chapter_partial(
     if matches!(format, BookFormat::Txt | BookFormat::Md | BookFormat::Epub) {
         let provider = get_or_create_provider(&validated_path, chapter_index, &format).await?;
         let content_len = provider.content_length();
-        // max_chars 是字符数，但 read_text_range 用字节偏移。
-        // UTF-8 CJK 最多 3 字节/字符，预读 limit*3 字节再取 limit 个字符。
-        let read_end = (max_chars * 3).min(content_len);
-        let content = provider.read_text_range(0, read_end)?;
-        Ok(content.chars().take(max_chars as usize).collect())
+        if matches!(format, BookFormat::Txt | BookFormat::Md) {
+            // provider's `content_length` and `read_text_range` operate on the
+            // full file, so for chapter_index > 0 we must read from the
+            // chapter's start offset, not from byte 0.
+            let (cs, _ce) = get_chapter_bounds(&validated_path, chapter_index).await?;
+            let chapter_start = cs.max(0) as u64;
+            // max_chars 是字符数，但 read_text_range 用字节偏移。
+            // UTF-8 CJK 最多 3 字节/字符，预读 limit*3 字节再取 limit 个字符。
+            let read_end = (chapter_start + max_chars * 3).min(content_len);
+            let content = provider.read_text_range(chapter_start, read_end)?;
+            Ok(content.chars().take(max_chars as usize).collect())
+        } else {
+            // EPUB: provider is already spine-scoped via open_from_bounds.
+            // Read up to limit*3 bytes from start, then truncate to limit chars.
+            let read_end = (max_chars * 3).min(content_len);
+            let content = provider.read_text_range(0, read_end)?;
+            Ok(content.chars().take(max_chars as usize).collect())
+        }
     } else {
+        // PDF and other formats: fall back to extract_chapter_content.
         let text = extract_chapter_content(&validated_path, chapter_index).await?;
         Ok(text.chars().take(max_chars as usize).collect())
     }
@@ -183,13 +197,19 @@ pub(crate) async fn get_chapter(
         let provider = get_or_create_provider(&validated_path, chapter_index, &format).await?;
         let content_len = provider.content_length();
 
-        let (start, end) = {
+        let text = if format == BookFormat::Epub {
+            // EPUB provider is already scoped to the chapter's spine
+            // bounds by `open_from_bounds`; `content_length` is the
+            // total byte length across those spines.  Read from 0 so
+            // we don't accidentally treat spine indices as byte offsets.
+            provider.read_text_range(0, content_len)?
+        } else {
+            // TXT/MD: chapter bounds are byte offsets in the file.
             let (cs, ce) = get_chapter_bounds(&validated_path, chapter_index).await?;
-            (cs.max(0) as u64, (ce.max(0) as u64).min(content_len))
+            let start = cs.max(0) as u64;
+            let end = (ce.max(0) as u64).min(content_len);
+            provider.read_text_range(start, end)?
         };
-
-        let text = provider.read_text_range(start, end)?;
-
         match config {
             Some(cfg) => {
                 let cfg = cfg.validate_and_fix();

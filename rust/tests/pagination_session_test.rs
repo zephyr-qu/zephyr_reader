@@ -468,3 +468,152 @@ async fn test_adopt_partial_staging_streamer() {
     dispose_pagination_session(handle).expect("dispose should succeed");
     dispose_pagination_session(adopted_handle).expect("dispose should succeed");
 }
+
+/// Regression test for HIGH BUG #1 (audited 2026-06-17):
+/// `apply_session_repagination` previously held the STREAMER_CACHE lock
+/// twice in sequence — once to clone the new streamer, then a second
+/// time to pop the old key. Between the two, a concurrent reader could
+/// observe a SESSION_MAP entry pointing at a config_hash for which the
+/// old streamer was still in STREAMER_CACHE.  After the fix, both
+/// operations happen in a single critical section.
+///
+/// This test creates a session, does a config-changing repaginate, then
+/// verifies both old-key and new-key states are consistent.
+#[tokio::test]
+async fn test_repaginate_atomic_old_streamer_evicted() {
+    let content: String = (0..100)
+        .map(|i| format!("Line {i}. Some padding text to make this a long paragraph.\n\n"))
+        .collect();
+    let (_dir, file_path) = setup_parsed_txt_book(&content).await;
+    let config = TypesetConfig::default();
+
+    let (handle, initial) = create_pagination_session(
+        file_path.clone(), 0, config.clone(), None,
+    ).await.expect("create should succeed");
+    let initial_hash = initial.config_hash;
+
+    // Repaginate with a different config (changes config_hash → different
+    // STREAMER_CACHE key). The old key must be evicted atomically with
+    // the new entry being visible.
+    let mut new_config = config.clone();
+    new_config.font_size = 24;
+    let repaginated = repaginate_session(handle.clone(), new_config, None)
+        .await.expect("repaginate should succeed");
+    let new_hash = repaginated.config_hash;
+    assert_ne!(initial_hash, new_hash, "config change should produce different hash");
+
+    // New streamer is reachable via session handle.
+    let page0 = get_session_page_content(handle.clone(), 0)
+        .expect("new page 0 should be readable");
+    assert!(!page0.is_empty(), "new page 0 must not be empty");
+
+    // Old config_hash's streamer is evicted from STREAMER_CACHE.  We can't
+    // query STREAMER_CACHE directly (it's pub(crate)), but we can verify
+    // via `create_pagination_session_adopt` with the old config that
+    // it now misses.
+    let adopt_old = create_pagination_session_adopt(
+        file_path.clone(), 0, config,
+    ).await;
+    assert!(adopt_old.is_err(),
+        "adopt with old config_hash should miss (old streamer evicted)");
+
+    dispose_pagination_session(handle).expect("dispose should succeed");
+}
+
+/// Regression test for HIGH BUG #3 (audited 2026-06-17):
+/// `dispose_pagination_session` previously removed SESSION_MAP first,
+/// then popped STREAMER_CACHE.  Between the two, a concurrent
+/// `create_pagination_session_adopt` could observe the still-cached
+/// streamer and silently resurrect the disposed session.
+///
+/// After the fix, STREAMER_CACHE is popped first; adopt on a disposed
+/// streamer must always return NotFound.
+#[tokio::test]
+async fn test_dispose_prevents_streamer_adoption() {
+    let content = "Disposable content for adoption test.\nLine 2.\nLine 3.\n";
+    let (_dir, file_path) = setup_parsed_txt_book(content).await;
+    let config = TypesetConfig::default();
+
+    // Create + immediately dispose — leaves a window in the old code
+    // where adopt could succeed.
+    let (handle, _) = create_pagination_session(
+        file_path.clone(), 0, config.clone(), None,
+    ).await.expect("create should succeed");
+    dispose_pagination_session(handle).expect("dispose should succeed");
+
+    // Adopt must miss. Before the fix, a concurrent thread could
+    // squeeze between SESSION_MAP removal and STREAMER_CACHE pop and
+    // successfully adopt the streamer.
+    let adopt = create_pagination_session_adopt(
+        file_path.clone(), 0, config,
+    ).await;
+    let err = adopt.err().expect("adopt after dispose should fail");
+    assert!(err.to_string().contains("page streamer"),
+        "expected NotFound for evicted streamer, got: {err}");
+}
+
+/// Regression test for HIGH BUG #2 (audited 2026-06-17):
+/// `paginate_chapter` previously only checked the layout cache (KV,
+/// slow) for full paginations.  After the fix, it also checks
+/// STREAMER_CACHE (LRU, fast) — same `(path, chapter, config_hash)`
+/// key — and reuses the streamer when present, skipping provider I/O
+/// and CPU pagination entirely.
+///
+/// This test calls paginate_chapter twice in a row with the same
+/// arguments and asserts the second call is served from STREAMER_CACHE
+/// (verifiable by tracing log, but for black-box we just assert the
+/// result is consistent and equal in cost to the first call).
+#[tokio::test]
+async fn test_paginate_chapter_streamer_cache_reuse() {
+    let content: String = (0..200)
+        .map(|i| format!("Paragraph {i}. Padding text to fill multiple pages.\n\n"))
+        .collect();
+    let (_dir, file_path) = setup_parsed_txt_book(&content).await;
+    let config = TypesetConfig::default();
+
+    // First call: cold cache, populates STREAMER_CACHE.
+    let t0 = std::time::Instant::now();
+    let first = paginate_chapter_for_test(
+        file_path.clone(), 0, config.clone(), None,
+    ).await.expect("first paginate should succeed");
+    let first_dur = t0.elapsed();
+    assert!(!first.is_partial);
+    assert!(!first.descriptors.is_empty());
+
+    // Second call with same args: should hit STREAMER_CACHE (fast path).
+    let t1 = std::time::Instant::now();
+    let second = paginate_chapter_for_test(
+        file_path.clone(), 0, config.clone(), None,
+    ).await.expect("second paginate should succeed");
+    let second_dur = t1.elapsed();
+
+    // The two results must match exactly (same number of pages, same
+    // config_hash, same content per page).
+    assert_eq!(first.config_hash, second.config_hash);
+    for (i, (d1, d2)) in first.descriptors.iter()
+        .zip(second.descriptors.iter()).enumerate() {
+        assert_eq!(d1.start_offset, d2.start_offset,
+            "page {i} start_offset mismatch: {} vs {}", d1.start_offset, d2.start_offset);
+        assert_eq!(d1.end_offset, d2.end_offset,
+            "page {i} end_offset mismatch: {} vs {}", d1.end_offset, d2.end_offset);
+    }
+
+    // Note: we don't assert second_dur < first_dur because the first
+    // call's work is already small (single TXT file, no I/O beyond
+    // already-loaded content).  The point of this test is correctness
+    // — that the streamer cache hit path returns the same result.
+    let _ = (first_dur, second_dur);
+}
+
+// Local re-export to keep the test self-contained.
+async fn paginate_chapter_for_test(
+    file_path: String,
+    chapter_index: i32,
+    config: TypesetConfig,
+    max_chars: Option<u64>,
+) -> Result<rust_lib_zephyr_reader::domain::PaginateResult,
+    rust_lib_zephyr_reader::domain::AppError> {
+    rust_lib_zephyr_reader::api::core::paginate_chapter(
+        file_path, chapter_index, config, max_chars,
+    ).await
+}

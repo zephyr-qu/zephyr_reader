@@ -78,18 +78,42 @@ pub(crate) async fn apply_session_repagination(
         entry.chapter_index,
         result.config_hash,
     );
-    let streamer = STREAMER_CACHE
-        .lock()
-        .get(&new_key)
-        .cloned()
-        .ok_or_else(|| AppError::NotFound {
-            entity: format!("page streamer for session {session_id}"),
+    // H1 fix: merge the two STREAMER_CACHE lock acquisitions (get for new
+    // streamer, then conditionally pop old key) into a single critical
+    // section. The previous code held the lock, cloned the streamer,
+    // released, then re-acquired to pop the old key — between the two,
+    // a concurrent `get_page_content(path, new_key)` could observe the
+    // freshly inserted SESSION_MAP entry pointing at a config_hash for
+    // which the old streamer was still in STREAMER_CACHE.
+    // H1 fix: merge the two STREAMER_CACHE lock acquisitions (get for new
+    // streamer, then conditionally pop old key) into a single critical
+    // section. The previous code held the lock, cloned the streamer,
+    // released, then re-acquired to pop the old key — between the two,
+    // a concurrent `get_page_content(path, new_key)` could observe the
+    // freshly inserted SESSION_MAP entry pointing at a config_hash for
+    // which the old streamer was still in STREAMER_CACHE.
+    let (streamer, evicted_old) = {
+        let mut cache = STREAMER_CACHE.lock();
+        let streamer = cache.get(&new_key).cloned().ok_or_else(|| {
+            AppError::NotFound {
+                entity: format!("page streamer for session {session_id}"),
+            }
         })?;
-
-    if old_key != new_key {
-        STREAMER_CACHE.lock().pop(&old_key);
+        let evicted = if old_key != new_key {
+            cache.pop(&old_key).is_some()
+        } else {
+            false
+        };
+        (streamer, evicted)
+    };
+    if evicted_old {
+        tracing::debug!(
+            "session {session_id}: evicted old streamer key={:?} on repaginate",
+            old_key
+        );
     }
 
+    // Insert the updated entry into SESSION_MAP (with new config + new streamer).
     SESSION_MAP.lock().insert(
         session_id,
         PaginationSessionEntry {
@@ -237,19 +261,43 @@ pub(crate) fn get_session_page_content(
 }
 
 /// Dispose pagination session.
+///
+/// H3 fix: pop STREAMER_CACHE **first**, then remove the SESSION_MAP entry.
+/// The previous order removed SESSION_MAP first, leaving a window where a
+/// concurrent `create_pagination_session_adopt` could see the streamer
+/// still in STREAMER_CACHE and adopt it into a fresh session — silently
+/// resurrecting a session the caller had just disposed. By popping
+/// STREAMER_CACHE first, the adopt misses (returns NotFound as expected)
+/// and the SESSION_MAP entry is the last thing to go.
 pub(crate) fn dispose_pagination_session(
     handle: PaginationSessionHandle,
 ) -> Result<(), AppError> {
+    // Look up the entry (without removing yet) to get the streamer key.
     let entry = SESSION_MAP
         .lock()
-        .remove(&handle.session_id)
+        .get(&handle.session_id)
+        .cloned()
         .ok_or_else(|| AppError::NotFound {
             entity: format!("pagination session {}", handle.session_id),
         })?;
 
-    // Evict the streamer from STREAMER_CACHE — the entry holds its own clone
-    let streamer_key = (entry.file_path, entry.chapter_index, entry.config.config_hash());
+    // Pop the streamer from STREAMER_CACHE first. After this, any
+    // concurrent `create_pagination_session_adopt` for the same key
+    // will miss and return NotFound.
+    let streamer_key = (
+        entry.file_path.clone(),
+        entry.chapter_index,
+        entry.config.config_hash(),
+    );
     STREAMER_CACHE.lock().pop(&streamer_key);
+
+    // Finally remove the SESSION_MAP entry. From here on
+    // `get_session_page_content` will return NotFound.
+    SESSION_MAP.lock().remove(&handle.session_id);
+
+    // Touch entry so the borrow doesn't get flagged as unused
+    // (it was used above to build the streamer_key).
+    let _ = &entry;
 
     Ok(())
 }

@@ -263,7 +263,7 @@ impl PageStreamer {
                 && !paragraph.is_empty()
                 && line_offsets.last().map(|(s, e)| s != e).unwrap_or(false)
             {
-                let spacer_lines = (config.paragraph_spacing * line_spacing).round() as usize;
+                let spacer_lines = config.paragraph_spacing.round() as usize;
                 for _ in 0..spacer_lines {
                     line_offsets.push((global_offset, global_offset));
                     first_of_paragraph.push(false);

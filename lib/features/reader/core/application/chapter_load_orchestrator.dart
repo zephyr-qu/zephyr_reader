@@ -95,6 +95,17 @@ class ChapterLoadOrchestrator {
         '[Timing] gen=$gen intent=$intent preserveContent=$effectivePreserveContent',
       );
 
+      // Scroll/bilingual 模式跳过分页 pipeline，直接加载内容渲染
+      if (!_needsPagination(request.readingMode)) {
+        await _runScrollOrBilingualMode(
+          gen,
+          request,
+          scheduleSearchIndex: scheduleSearchIndex,
+        );
+        return;
+      }
+
+
       await _runStarting(gen, effectivePreserveContent: effectivePreserveContent);
       if (_isStale(gen)) {
         _setPhase(gen, ChapterLoadPhase.cancelled);
@@ -256,6 +267,56 @@ class ChapterLoadOrchestrator {
       });
     }
   }
+
+  /// 滚动/双语模式：跳过所有分页 pipeline，直接加载全文渲染。
+  ///
+  /// 不触发 Rust FFI 分页、校准、首段提取，仅设置章节内容信号。
+  Future<void> _runScrollOrBilingualMode(
+    int gen,
+    ChapterLoadRequest request, {
+    required Future<void> Function(int chapterIndex, String content)?
+        scheduleSearchIndex,
+  }) async {
+    _setPhase(gen, ChapterLoadPhase.starting);
+    _applyIfCurrent(gen, () {
+      _isLoading.value = true;
+    });
+
+    final content = await _contentRepo.loadChapterContent(
+      _chapterVM.bookId.value,
+      request.chapterIndex,
+      readingMode: request.readingMode,
+    );
+    if (_isStale(gen)) {
+      _setPhase(gen, ChapterLoadPhase.cancelled);
+      return;
+    }
+
+    if (scheduleSearchIndex != null) {
+      unawaited(
+        Future.microtask(
+          () => scheduleSearchIndex(request.chapterIndex, content),
+        ),
+      );
+    }
+
+    _applyIfCurrent(gen, () {
+      _chapterVM.chapterContent.value = AsyncState.data(content);
+      _chapterVM.chapterIndex.value = request.chapterIndex;
+      _chapterVM.currentCharOffset.value =
+          request.initialCharOffset.clamp(0, content.length);
+      _totalPages.value = 1;
+      _pageIndex.value = 0;
+      _error.value = null;
+      _isLoading.value = false;
+    });
+
+    _setPhase(gen, ChapterLoadPhase.completed);
+    _applyIfCurrent(gen, () {
+      _loadPhase.value = ChapterLoadPhase.idle;
+    });
+  }
+
 
   Future<({int totalPages, bool isPartial})?> _runFirstSpine(
     int gen,
@@ -560,6 +621,13 @@ class ChapterLoadOrchestrator {
     ++_generation;
     _loadPhase.value = ChapterLoadPhase.idle;
   }
+
+  /// 判断阅读模式是否需要分页 pipeline。
+  ///
+  /// 仅 [ReadingMode.pagination] 和 [ReadingMode.pageTurn] 需要 Rust
+  /// 分页链路；scroll/bilingual 直接渲染全文，跳过所有 FFI 分页调用。
+  static bool _needsPagination(ReadingMode mode) =>
+      mode == ReadingMode.pagination || mode == ReadingMode.pageTurn;
 
   /// 根据当前 session 状态、导航类型与 staging 自动推导分页意图。
   static ChapterPaginationIntent resolveIntent({

@@ -10,7 +10,7 @@ use std::path::PathBuf;
 use std::sync::LazyLock;
 
 use rust_lib_zephyr_reader::api::core::{
-    get_chapter, get_chapter_partial, get_chapter_first_spine_only, paginate_chapter,
+    get_chapter, get_chapter_partial, paginate_chapter,
     paginate_all_content, parse_book, supports_chunked_pagination, ChapterContent,
 };
 use rust_lib_zephyr_reader::api::data::init::init_storage;
@@ -287,4 +287,122 @@ async fn test_get_chapter_partial_epub_uses_char_count() {
         "partial should return ≤100 chars, got {char_count}");
     assert!(char_count > 0,
         "partial should return at least some content");
+}
+
+/// Regression test for CRITICAL BUG #1 (audited 2026-06-17):
+/// `get_chapter` for EPUB must return the FULL chapter content, not just
+/// the first 3 bytes. Before the fix, `get_chapter_bounds` returned spine
+/// indices (e.g. (0, 3)) which were then passed to `read_text_range` as
+/// byte offsets, silently truncating every EPUB chapter read.
+#[tokio::test]
+async fn test_get_chapter_epub_returns_full_chapter_content() {
+    ensure_shared_storage().await;
+    let unique_path = SHARED_DIR.path().join("test_epub_full_chapter.epub");
+    std::fs::copy(
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../test/fixtures/medium.epub"),
+        &unique_path,
+    ).expect("copy fixture");
+    let file_path = unique_path.to_string_lossy().to_string();
+
+    let book_id = parse_book(file_path.clone()).await
+        .expect("parse_book should succeed");
+    let pool = storage_pool().unwrap();
+    let chapters = ChapterRepository::find_by_book(&pool, &book_id).await
+        .expect("find_by_book should succeed");
+    assert!(!chapters.is_empty(), "EPUB fixture should have ≥1 chapter");
+
+    ReadingOrchestrator::global().clear_caches_for_test();
+    let result = get_chapter(file_path.clone(), 0, None).await
+        .expect("get_chapter ch0 should succeed");
+    if let ChapterContent::Raw(text) = &result {
+        // Before the fix, this was ≤3 bytes. After the fix it must be a
+        // full chapter — well over 100 chars.
+        assert!(text.chars().count() > 100,
+            "EPUB get_chapter must return full chapter content, got {} chars",
+            text.chars().count());
+    } else {
+        panic!("expected ChapterContent::Raw, got Pages variant");
+    }
+}
+
+/// Regression test for CRITICAL BUG #2 (audited 2026-06-17):
+/// `paginate_chapter` partial mode for TXT/MD must read from the chapter's
+/// start byte offset, not from byte 0. Before the fix, partial pagination
+/// for chapter_index > 0 returned the first 100 chars of the FILE (i.e.
+/// chapter 0), regardless of the requested chapter.
+#[tokio::test]
+async fn test_paginate_chapter_partial_txt_uses_chapter_bounds() {
+    ensure_shared_storage().await;
+    // 3 chapters with distinct content. Use digit chapter markers so
+    // chapter_index values are 0, 1, 2 (not Roman-numeral collisions).
+    let ch0 = "1. First chapter content alpha alpha alpha.";
+    let ch1 = "2. Second chapter content beta beta beta.";
+    let ch2 = "3. Third chapter content gamma gamma gamma.";
+    let content = format!("{ch0}\n{ch1}\n{ch2}\n");
+    let file_path_buf = SHARED_DIR.path().join("test_partial_chapter_bounds.txt");
+    std::fs::write(&file_path_buf, &content).unwrap();
+    let file_path = file_path_buf.to_string_lossy().to_string();
+
+    let book_id = parse_book(file_path.clone()).await
+        .expect("parse_book should succeed");
+    let pool = storage_pool().unwrap();
+    let chapters = ChapterRepository::find_by_book(&pool, &book_id).await
+        .expect("find_by_book should succeed");
+    assert!(chapters.len() >= 3,
+        "test fixture should produce ≥3 chapters, got {}", chapters.len());
+
+    let last_chapter_idx = chapters.last().unwrap().chapter_index as i32;
+    let first_chapter_idx = chapters.first().unwrap().chapter_index as i32;
+    ReadingOrchestrator::global().clear_caches_for_test();
+
+    let config = TypesetConfig::default();
+
+    // Request partial pagination of the last chapter.
+    let partial = paginate_chapter(
+        file_path.clone(), last_chapter_idx, config.clone(), Some(60),
+    ).await.expect("partial paginate of last chapter should succeed");
+
+    assert!(partial.is_partial, "partial pagination should be marked partial");
+    assert!(!partial.descriptors.is_empty(),
+        "partial paginate of last chapter should produce ≥1 page, got {}",
+        partial.descriptors.len());
+
+    // Bug 2 fix verification: the partial paginate's first page must
+    // contain content from the LAST chapter, not from chapter 0.  We
+    // fetch the first page via get_page_content and assert it does not
+    // leak any earlier-chapter content.
+    use rust_lib_zephyr_reader::api::core::get_page_content;
+    use rust_lib_zephyr_reader::utils::security::validate_file_path;
+    let canonical_path = validate_file_path(&file_path)
+        .expect("validate_file_path should succeed");
+    let first_page_text = get_page_content(
+        canonical_path.clone(), last_chapter_idx, partial.config_hash, 0,
+    );
+    assert!(!first_page_text.is_empty(),
+        "partial last-chapter first page should not be empty: got {first_page_text:?}");
+    assert!(!first_page_text.contains("1. First chapter"),
+        "partial last-chapter leaked ch0 content: {first_page_text:?}");
+    assert!(!first_page_text.contains("2. Second chapter"),
+        "partial last-chapter leaked ch1 content: {first_page_text:?}");
+    assert!(first_page_text.contains("3. Third chapter"),
+        "partial last-chapter should start with ch2: {first_page_text:?}");
+
+    // Also verify get_chapter for the last chapter returns the right
+    // content (the same bug existed there).
+    let full = get_chapter(file_path.clone(), last_chapter_idx, None).await
+        .expect("get_chapter last chapter should succeed");
+    let full_text = match &full {
+        ChapterContent::Raw(s) => s.clone(),
+        ChapterContent::Pages(_) => panic!("expected Raw for last chapter, got Pages"),
+    };
+    assert!(full_text.chars().count() > 30,
+        "get_chapter for last chapter must return content \
+         (>30 chars), got {}", full_text.chars().count());
+    assert!(!full_text.contains("1. First chapter"),
+        "get_chapter last chapter must NOT contain ch0 marker: {full_text:?}");
+    // Sanity check: first and last chapters are distinct (otherwise the
+    // bug-2 check above is meaningless).
+    assert_ne!(first_chapter_idx, last_chapter_idx,
+        "first and last chapter should differ for a multi-chapter file");
 }

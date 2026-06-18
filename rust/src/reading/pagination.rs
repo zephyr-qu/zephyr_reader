@@ -87,16 +87,21 @@ pub(crate) async fn paginate_chapter(
         match effective_max {
             Some(limit) => {
                 if matches!(format, BookFormat::Txt | BookFormat::Md) {
+                    // TXT/MD: chapter bounds are byte offsets in the file.
+                    // The provider operates on the full file, so for
+                    // chapter_index > 0 we must read from the chapter's
+                    let (cs, _ce) = get_chapter_bounds(&validated_path, chapter_index).await?;
+                    let chapter_start = cs.max(0) as u64;
                     // max_chars 是字符数，但 read_text_range 用字节偏移。
                     // UTF-8 CJK 最多 3 字节/字符，预读 limit*3 字节再取 limit 个字符。
-                    let read_end = (limit * 3).min(content_len);
-                    let content = provider.read_text_range(0, read_end)?;
+                    let read_end = (chapter_start + limit * 3).min(content_len);
+                    let content = provider.read_text_range(chapter_start, read_end)?;
                     let partial: String = content.chars().take(limit as usize).collect();
                     (partial, true)
                 } else {
-                    // EPUB: same char-take logic as TXT/MD.
-                    // read_text_range uses byte offsets; pre-read limit*3
-                    // bytes then truncate to limit chars (CJK safety).
+                    // EPUB: provider is already spine-scoped via
+                    // open_from_bounds.  Read up to limit*3 bytes from
+                    // start, then truncate to limit chars (CJK safety).
                     let read_end = (limit * 3).min(content_len);
                     let content = provider.read_text_range(0, read_end)?;
                     let partial: String = content.chars().take(limit as usize).collect();
@@ -117,19 +122,47 @@ pub(crate) async fn paginate_chapter(
                 };
                 (provider.read_text_range(start, end)?, false)
             }
-        }
-    } else {
-        (extract_chapter_content(&validated_path, chapter_index).await?, false)
-    };
+         }
+     } else {
+         (extract_chapter_content(&validated_path, chapter_index).await?, false)
+     };
 
-    // 全章分页 KV 缓存命中路径：跳过 CPU 排版直接复用
+    // 全章分页：先查 STREAMER_CACHE（H2 修复），再查 layout cache。
+    //
+    // 修复前：每次都做 provider I/O + CPU 排版，仅查 layout cache
+    // （cap=16 的 KV，且 key 含 config_hash），命中概率低。
+    // 修复后：同一 `(path, chapter, config_hash)` 的全章分页在
+    // STREAMER_CACHE 中有完整 streamer 时直接复用，跳过 I/O 和排版。
+    // 只复用 `is_partial=false` 的 streamer（partial 复用需要特殊处理，
+    // 保守起见让 partial 走原本的逻辑重新排版）。
     if max_chars.is_none() {
+        // H2 fix: fast path — check STREAMER_CACHE first (LRU, in-memory)
+        // before falling through to layout cache (sled KV) or full re-pagination.
+        let streamer_key = (validated_path.clone(), chapter_index, config_hash);
+        if let Some(streamer) = {
+            let mut cache = STREAMER_CACHE.lock();
+            cache.get(&streamer_key).cloned()
+        } {
+            if !streamer.is_partial {
+                let descriptors = streamer.get_descriptors();
+                tracing::info!(
+                    "[Timing] paginate_chapter streamer_cache=HIT config_hash={:016x} chapter={} elapsed={:?}",
+                    config_hash, chapter_index, start.elapsed()
+                );
+                return Ok(PaginateResult {
+                    descriptors,
+                    config_hash,
+                    is_partial: false,
+                });
+            }
+        }
         if let Some(pages) = try_get_cached(&validated_path, chapter_index, None, config_hash).await {
-            let streamer = PageStreamer::from_pages(pages);
+            let mut streamer = PageStreamer::from_pages(pages);
+            streamer.is_partial = false;
             let descriptors = streamer.get_descriptors();
             STREAMER_CACHE.lock().put((validated_path, chapter_index, config_hash), streamer);
             tracing::info!(
-                "[Timing] paginate_chapter cache=HIT config_hash={:016x} chapter={} elapsed={:?}",
+                "[Timing] paginate_chapter layout_cache=HIT config_hash={:016x} chapter={} elapsed={:?}",
                 config_hash, chapter_index, start.elapsed()
             );
             return Ok(PaginateResult {
@@ -143,7 +176,6 @@ pub(crate) async fn paginate_chapter(
     let mut streamer = PageStreamer::new(content, config);
     streamer.is_partial = is_partial;
     let descriptors = streamer.get_descriptors();
-
     // 提取全页内容用于 KV 缓存保存（在 streamer 移入 STREAMER_CACHE 之前完成）
     let cached_pages = if !is_partial {
         let total = descriptors.len();
