@@ -1,6 +1,6 @@
 //! 元数据模块 (Metadata)
 //!
-//! 包含 EPUB、PDF 等格式的元数据结构，以及书籍解析结果。
+//! 包含 EPUB 等格式的元数据结构，以及书籍解析结果。
 //! 用于存储书籍的标题、作者、目录、章节信息等元数据。
 use crate::storage::models::{Book, Chapter};
 use flutter_rust_bridge::frb;
@@ -36,25 +36,6 @@ pub struct EpubTocItem {
     pub href: String,
     /// 层级深度（从 0 开始）
     pub level: i32,
-}
-
-// ==================== PDF 元数据 ====================
-
-/// PDF 元数据
-/// 包含 PDF 文档的基本信息
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[frb(non_opaque)]
-pub struct PdfMetadata {
-    /// 标题
-    pub title: Option<String>,
-    /// 作者
-    pub author: Option<String>,
-    /// 主题
-    pub subject: Option<String>,
-    /// 创建者（软件名称）
-    pub creator: Option<String>,
-    /// 总页数
-    pub page_count: i32,
 }
 
 // ==================== 解析结果 ====================

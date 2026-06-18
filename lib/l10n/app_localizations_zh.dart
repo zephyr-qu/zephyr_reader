@@ -917,7 +917,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aboutFeature1 => '纯离线使用，无需网络';
 
   @override
-  String get aboutFeature2 => '支持 EPUB、TXT、PDF 格式';
+  String get aboutFeature2 => '支持 EPUB、TXT 格式';
 
   @override
   String get aboutFeature3 => '智能排版引擎';

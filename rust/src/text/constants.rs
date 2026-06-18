@@ -7,10 +7,6 @@ use regex::Regex;
 
 // ==================== 排版常量 ====================
 
-/// PDF 文本估算：每页默认字符数
-/// 用于在无法精确计算时估算 PDF 文本内容量
-pub const PDF_CHARS_PER_PAGE: usize = 500;
-
 /// 排版：最小行宽（字符数）
 /// 防止行宽过小导致文本过度换行
 pub const MIN_CHARS_PER_LINE: usize = 10;

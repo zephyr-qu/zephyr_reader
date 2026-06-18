@@ -10,26 +10,12 @@ pub fn parser_for_format(format: BookFormat) -> Parser {
     match format {
         BookFormat::Txt => Parser::Txt(crate::parser::txt::TxtParser),
         BookFormat::Epub => Parser::Epub(crate::parser::epub::EpubParser),
-        BookFormat::Pdf => Parser::Pdf(crate::parser::pdf::PdfParser),
-        BookFormat::Md => Parser::Md(crate::parser::md::parse::MdParser),
     }
 }
 
 /// 根据文件扩展名返回对应的 BookFormat
-///
-/// 在栈上做 ASCII 小写转换（零堆分配），扩展名最长 8 字节。
-///
-/// # 参数
-///
-/// * `ext` - 文件扩展名（如 "txt", "epub", "pdf", "md"）
-///
-/// # 返回值
-///
-/// * `Ok(BookFormat)` - 匹配的格式
-/// * `Err(AppError)` - 不支持的格式
 pub fn format_from_extension(ext: &str) -> Result<BookFormat, AppError> {
     let bytes = ext.as_bytes();
-    // 栈上做 ASCII tolower，零堆分配；扩展名最长 8 字节 (markdown)
     if bytes.len() <= 8 {
         let mut buf = [0u8; 8];
         for (i, &b) in bytes.iter().enumerate() {
@@ -38,12 +24,14 @@ pub fn format_from_extension(ext: &str) -> Result<BookFormat, AppError> {
         match &buf[..bytes.len()] {
             b"txt" | b"text" => Ok(BookFormat::Txt),
             b"epub" => Ok(BookFormat::Epub),
-            b"md" | b"markdown" | b"mdown" | b"mkdn" => Ok(BookFormat::Md),
-            b"pdf" => Ok(BookFormat::Pdf),
-            _ => Err(AppError::UnsupportedFormat { format: format!("Unknown format: {}", ext).into() }),
+            _ => Err(AppError::UnsupportedFormat {
+                format: format!("Unknown format: {}", ext).into(),
+            }),
         }
     } else {
-        Err(AppError::UnsupportedFormat { format: format!("Unknown format: {}", ext).into() })
+        Err(AppError::UnsupportedFormat {
+            format: format!("Unknown format: {}", ext).into(),
+        })
     }
 }
 
@@ -52,8 +40,8 @@ pub fn parser_for_file(path: &str) -> Result<Parser, AppError> {
     let ext = std::path::Path::new(path)
         .extension()
         .and_then(|ext| ext.to_str())
-        .ok_or_else(|| {
-            AppError::UnsupportedFormat { format: "Cannot identify file extension".to_string().into() }
+        .ok_or_else(|| AppError::UnsupportedFormat {
+            format: "Cannot identify file extension".to_string().into(),
         })?;
     let format = format_from_extension(ext)?;
     Ok(parser_for_format(format))
@@ -70,8 +58,6 @@ mod tests {
             parser_for_format(BookFormat::Epub),
             Parser::Epub(_)
         ));
-        assert!(matches!(parser_for_format(BookFormat::Pdf), Parser::Pdf(_)));
-        assert!(matches!(parser_for_format(BookFormat::Md), Parser::Md(_)));
     }
 
     #[test]
@@ -87,14 +73,8 @@ mod tests {
             format_from_extension("EPUB"),
             Ok(BookFormat::Epub)
         ));
-        assert!(matches!(format_from_extension("pdf"), Ok(BookFormat::Pdf)));
-        assert!(matches!(format_from_extension("md"), Ok(BookFormat::Md)));
-        assert!(matches!(
-            format_from_extension("markdown"),
-            Ok(BookFormat::Md)
-        ));
-        assert!(matches!(format_from_extension("mdown"), Ok(BookFormat::Md)));
-        assert!(matches!(format_from_extension("mkdn"), Ok(BookFormat::Md)));
+        assert!(format_from_extension("pdf").is_err());
+        assert!(format_from_extension("md").is_err());
         assert!(format_from_extension("unknown").is_err());
     }
 
@@ -102,8 +82,8 @@ mod tests {
     fn test_parser_for_file() {
         assert!(matches!(parser_for_file("book.txt"), Ok(Parser::Txt(_))));
         assert!(matches!(parser_for_file("book.epub"), Ok(Parser::Epub(_))));
-        assert!(matches!(parser_for_file("book.pdf"), Ok(Parser::Pdf(_))));
-        assert!(matches!(parser_for_file("book.md"), Ok(Parser::Md(_))));
+        assert!(parser_for_file("book.pdf").is_err());
+        assert!(parser_for_file("book.md").is_err());
         assert!(parser_for_file("book.unknown").is_err());
         assert!(parser_for_file("").is_err());
     }
@@ -114,17 +94,11 @@ mod tests {
         assert_eq!(parser.name(), "TXT Parser");
         let parser = parser_for_format(BookFormat::Epub);
         assert_eq!(parser.name(), "EPUB Parser");
-        let parser = parser_for_format(BookFormat::Pdf);
-        assert_eq!(parser.name(), "PDF Parser");
-        let parser = parser_for_format(BookFormat::Md);
-        assert_eq!(parser.name(), "MD Parser");
     }
 
     #[test]
     fn test_supported_formats() {
         let parser = parser_for_format(BookFormat::Txt);
         assert!(parser.supported_formats().contains(&"txt"));
-        let parser = parser_for_format(BookFormat::Md);
-        assert!(parser.supported_formats().contains(&"md"));
     }
 }

@@ -32,9 +32,6 @@ pub enum AppError {
     #[error("EPUB parse error: {reason}")]
     EpubParseError { reason: String },
 
-    #[error("PDF parse error: {reason}")]
-    PdfParseError { reason: String },
-
     #[error("Chapter {index} extract error: {reason}")]
     ChapterExtractError { index: i32, reason: String },
     #[error("Chapter too large ({size_bytes} bytes, max 2MB). Consider re-importing: {details}")]

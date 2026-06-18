@@ -85,8 +85,8 @@ mod tests {
     }
 
     #[test]
-    fn test_supports_pdf() {
-        assert!(supports_cover_extraction("test.pdf".to_string()));
+    fn test_does_not_support_pdf() {
+        assert!(!supports_cover_extraction("test.pdf".to_string()));
     }
 
     #[test]

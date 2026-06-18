@@ -45,9 +45,9 @@ async fn ensure_shared_storage() {
 fn test_format_from_file_path() {
     assert_eq!(format_from_file_path("book.txt"), Ok(BookFormat::Txt));
     assert_eq!(format_from_file_path("book.epub"), Ok(BookFormat::Epub));
-    assert_eq!(format_from_file_path("book.md"), Ok(BookFormat::Md));
-    assert_eq!(format_from_file_path("book.pdf"), Ok(BookFormat::Pdf));
-    assert_eq!(format_from_file_path("book.markdown"), Ok(BookFormat::Md));
+    assert!(format_from_file_path("book.md").is_err());
+    assert!(format_from_file_path("book.pdf").is_err());
+    assert!(format_from_file_path("book.markdown").is_err());
     assert_eq!(
         format_from_file_path("book.mobi"),
         Err(AppError::UnsupportedFormat { format: "Unknown format: mobi".into() })
@@ -62,8 +62,8 @@ fn test_format_from_file_path() {
 fn test_supports_chunked_pagination() {
     assert!(supports_chunked_pagination("book.txt".to_string()));
     assert!(supports_chunked_pagination("book.epub".to_string()));
-    assert!(supports_chunked_pagination("book.md".to_string()));
     assert!(!supports_chunked_pagination("book.pdf".to_string()));
+    assert!(!supports_chunked_pagination("book.md".to_string()));
 }
 
 #[tokio::test]

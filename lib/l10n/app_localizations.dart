@@ -1853,7 +1853,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutFeature2.
   ///
   /// In zh, this message translates to:
-  /// **'支持 EPUB、TXT、PDF 格式'**
+  /// **'支持 EPUB、TXT 格式'**
   String get aboutFeature2;
 
   /// No description provided for @aboutFeature3.

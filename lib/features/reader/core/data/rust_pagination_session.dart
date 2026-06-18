@@ -6,6 +6,7 @@ import 'package:zephyr_reader/features/reader/core/domain/pagination_session.dar
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
+import 'package:zephyr_reader/src/rust/reading/types.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
@@ -16,7 +17,7 @@ class RustPaginationSession implements PaginationSession {
   int? _sessionConfigHash;
   int? _sessionChapterIndex;
   bool _sessionIsPartial = false;
-  core_api.PaginationSessionHandle? _handle;
+  PaginationSessionHandle? _handle;
   final _contentCache = PageContentCache();
 
   String? _cachedBookId;

@@ -922,7 +922,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aboutFeature1 => 'Offline-first, no network required';
 
   @override
-  String get aboutFeature2 => 'Supports EPUB, TXT, PDF';
+  String get aboutFeature2 => 'Supports EPUB and TXT';
 
   @override
   String get aboutFeature3 => 'Smart typesetting engine';

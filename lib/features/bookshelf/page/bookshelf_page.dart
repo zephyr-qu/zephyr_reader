@@ -361,7 +361,7 @@ class BookshelfPage extends HookWidget {
     final importService = getIt<BookImportService>();
     final result = await FilePicker.pickFile(
       type: FileType.custom,
-      allowedExtensions: ['txt', 'epub', 'pdf'],
+      allowedExtensions: ['txt', 'epub'],
     );
     if (result == null || !context.mounted) return;
     final filePath = result.path;

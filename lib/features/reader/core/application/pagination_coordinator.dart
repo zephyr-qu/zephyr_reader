@@ -3,7 +3,6 @@ import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
-import 'package:zephyr_reader/features/reader/domain/model/page_info.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
@@ -87,18 +86,6 @@ class PaginationCoordinator {
         autoSpaceRatio: p.autoSpaceRatio,
       ),
     ).toInt();
-  }
-
-  /// 首屏近似分页（毫秒级）。
-  List<PageInfo> paginateApproximate(String firstText) {
-    return _repo.paginateApproximate(
-      firstText,
-      fontSize: _config.fontSize.value,
-      lineHeight: _config.lineHeight.value,
-      width: pageWidth,
-      height: pageHeight,
-      padding: _config.padding.value,
-    );
   }
 
   /// 首屏分页（统一入口，maxChars=2000）。

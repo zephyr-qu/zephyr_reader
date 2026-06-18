@@ -37,7 +37,7 @@ sealed class Book with _$Book {
 /// 书籍文件格式
 ///
 /// 数据库中存储为小写文本。`FromStr` 额外兼容 markdown 别名。
-enum BookFormat { txt, epub, pdf, md }
+enum BookFormat { txt, epub }
 
 /// 书籍阅读状态
 enum BookStatus { reading, completed, dropped, planned }
