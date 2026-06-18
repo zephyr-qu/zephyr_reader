@@ -243,6 +243,17 @@ class ReaderViewModel {
     if (mode == ReadingMode.bilingual) {
       translation.onEnterBilingualMode();
     }
+    if (mode == ReadingMode.scroll) {
+      final content = chapterManager.chapterContent.value.value;
+      if (content != null && content.isNotEmpty) {
+        chapterManager.resetScrollDocument(
+          content,
+          chapterManager.chapterIndex.value,
+          richParagraphs: _repo.currentRichParagraphs,
+          richRootSpan: _repo.currentRichContent,
+        );
+      }
+    }
   }
 
   // ==================== 重置 ====================

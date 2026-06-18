@@ -95,6 +95,7 @@ class ReaderContentArea extends HookWidget {
     final Set<String> vocabWordSet = useSignalValue(vocabWords);
     final List<ScrollChapterSegment> scrollSegments =
         useSignalValue(vm.chapterManager.scrollSegments);
+    final paginationBoundaryTriggered = useRef(false);
     final fontFamily = fontRepo.currentFontFamily;
     void cycleBrightness() {
       final current = vm.config.brightnessOverlay.value;
@@ -225,8 +226,18 @@ class ReaderContentArea extends HookWidget {
                   readingMode: bCurrentreadingmode,
                   hasNextChapter: bChapterindex < bNumchapters - 1,
                   hasPreviousChapter: bChapterindex > 0,
-                  onReachEnd: () => unawaited(vm.chapterManager.nextChapter()),
-                  onReachStart: () => unawaited(vm.chapterManager.previousChapter()),
+                  onPageChanged: vm.loadPage,
+                  onPositionChanged: vm.chapterManager.updateCurrentCharOffset,
+                  onReachEnd: () {
+                    if (paginationBoundaryTriggered.value) return;
+                    paginationBoundaryTriggered.value = true;
+                    unawaited(vm.chapterManager.nextChapter());
+                  },
+                  onReachStart: () {
+                    if (paginationBoundaryTriggered.value) return;
+                    paginationBoundaryTriggered.value = true;
+                    unawaited(vm.chapterManager.previousChapter());
+                  },
                   onHighlightTap: onHighlightTap,
                   onSelectionChanged: vm.annotations.updateSelection,
                   onSelectionGlobalPosition: (pos) =>
@@ -250,6 +261,9 @@ class ReaderContentArea extends HookWidget {
                 onReachStart: () =>
                     unawaited(vm.chapterManager.previousChapter()),
                 scrollSegments: scrollSegments,
+                onPaginationBoundaryReset: () {
+                  paginationBoundaryTriggered.value = false;
+                },
                 onScrollAppendNext: () =>
                     vm.chapterManager.scrollAppendNext(bCurrentreadingmode),
                 onScrollPrependPrev: () =>

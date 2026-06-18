@@ -13,7 +13,7 @@ pub mod vocab_marker;
 
 // 导出各模块的结构体
 pub use bilingual::{AlignedSegment, BilingualAlignment};
-pub use core::{ChapterContent, PaginationSessionHandle, parse_book};
+pub use core::{ChapterContent, parse_book};
 pub use epub::{EpubImageInfo, ImageFormat};
 
 pub use crate::dictionary::{DictEntry, DictSearchResult};

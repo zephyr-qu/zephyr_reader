@@ -46,6 +46,7 @@ class ReaderContent extends HookWidget {
   final List<ScrollChapterSegment> scrollSegments;
   final Future<void> Function()? onScrollAppendNext;
   final Future<int> Function()? onScrollPrependPrev;
+  final VoidCallback? onPaginationBoundaryReset;
   final Widget Function(BuildContext context, ScrollController scrollController)
       scrollBuilder;
   final Widget Function(
@@ -91,6 +92,7 @@ class ReaderContent extends HookWidget {
     this.scrollSegments = const [],
     this.onScrollAppendNext,
     this.onScrollPrependPrev,
+    this.onPaginationBoundaryReset,
   });
 
   @override
@@ -105,20 +107,24 @@ class ReaderContent extends HookWidget {
     final scrollController = useScrollController();
     final bilingualPairs = useState<List<BilingualHighlightPair>>([]);
     final disableAnim = MediaQuery.disableAnimationsOf(context);
+    final viewportHeight = MediaQuery.sizeOf(context).height;
 
-    // 跨章时跳转目标页；adjacent promote 用 jumpToPage 避免循环翻页
+    // 跨章时跳转目标页；adjacent promote 同步 pageIndex
     useEffect(() {
       if (readingMode != ReadingMode.pagination) return null;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!pageController.hasClients) return;
-        if (showChapterTransition) {
-          pageController.jumpToPage(0);
-        } else {
-          pageController.jumpToPage(pageIndex);
+        final target = pageIndex.clamp(
+          0,
+          totalPages > 0 ? totalPages - 1 : 0,
+        );
+        final current = pageController.page?.round();
+        if (current != null && current != target) {
+          pageController.jumpToPage(target);
         }
       });
       return null;
-    }, [chapterId, showChapterTransition, readingMode]);
+    }, [chapterId, pageIndex, showChapterTransition, readingMode, totalPages]);
     // 章内翻页动画同步（仅手动翻页，跨章 promote 已在上方 jumpToPage）
     useEffect(() {
       if (readingMode != ReadingMode.pagination || !showChapterTransition) {
@@ -162,6 +168,7 @@ class ReaderContent extends HookWidget {
       reachEndTriggered.value = false;
       reachStartTriggered.value = false;
       hasScrolledBelowTop.value = false;
+      onPaginationBoundaryReset?.call();
       return null;
     }, [chapterId, scrollSegments.length]);
 
@@ -219,13 +226,15 @@ class ReaderContent extends HookWidget {
         onPositionChanged?.call(offset);
 
         final threshold = renderConfig.textRowHeight * 1.5;
+        final preloadLead = viewportHeight * 1.5;
         if (scrollController.offset > threshold) {
           hasScrolledBelowTop.value = true;
         }
 
         if (useScrollSegments && !isLoading) {
-          if (hasNextChapter &&
-              scrollController.offset >= maxExtent - threshold) {
+          final nearBottom =
+              maxExtent - scrollController.offset <= preloadLead;
+          if (hasNextChapter && nearBottom) {
             if (!reachEndTriggered.value) {
               reachEndTriggered.value = true;
               onScrollAppendNext?.call().whenComplete(() {
@@ -290,6 +299,7 @@ class ReaderContent extends HookWidget {
       hasPreviousChapter,
       onScrollAppendNext,
       onScrollPrependPrev,
+      viewportHeight,
     ]);
 
     useEffect(() {

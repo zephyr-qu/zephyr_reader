@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'highlight_painter.dart';
@@ -177,41 +176,87 @@ class PaginatedModeRenderer extends StatelessWidget {
 
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(
-          horizontal: config.pageMargin,
-          vertical: 20,
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: paragraphs.map((para) {
-            final painted = HighlightPainter.paintPlain(
-              para,
-              textStyle,
-              highlights,
-              onHighlightTap: onHighlightTap,
-              vocabularyWords: config.effectiveVocabWords,
-              contentStart: startOffset,
-            );
-            return Padding(
-              padding: EdgeInsets.only(left: paragraphs.length > 1 ? 8 : 0),
-              child: SizedBox(
-                width: charWidth,
-                child: SelectableText.rich(
-                  painted,
-                  style: textStyle,
-                  strutStyle: strutStyle,
-                  textAlign: TextAlign.start,
-                  onSelectionChanged: (sel, cause) =>
-                      _onSelection(sel, para, startOffset, context),
-                  contextMenuBuilder: (_, _) => const SizedBox.shrink(),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final vPad = ReaderRenderConfig.pageContentVerticalPadding;
+          return Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: config.pageMargin,
+              vertical: vPad,
+            ),
+            child: SizedBox(
+              height: (constraints.maxHeight - 2 * vPad)
+                  .clamp(0.0, constraints.maxHeight),
+              child: ClipRect(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: paragraphs.map((para) {
+                      final painted = HighlightPainter.paintPlain(
+                        para,
+                        textStyle,
+                        highlights,
+                        onHighlightTap: onHighlightTap,
+                        vocabularyWords: config.effectiveVocabWords,
+                        contentStart: startOffset,
+                      );
+                      return Padding(
+                        padding: EdgeInsets.only(
+                          left: paragraphs.length > 1 ? 8 : 0,
+                        ),
+                        child: SizedBox(
+                          width: charWidth,
+                          child: SelectableText.rich(
+                            painted,
+                            style: textStyle,
+                            strutStyle: strutStyle,
+                            textAlign: TextAlign.start,
+                            onSelectionChanged: (sel, cause) =>
+                                _onSelection(sel, para, startOffset, context),
+                            contextMenuBuilder: (_, _) =>
+                                const SizedBox.shrink(),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
                 ),
               ),
-            );
-          }).toList(),
-        ),
+            ),
+          );
+        },
       ),
+    );
+  }
+
+  Widget _constrainedHorizontalPage(
+    BuildContext context,
+    Widget child,
+  ) {
+    final vPad = ReaderRenderConfig.pageContentVerticalPadding;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bodyHeight =
+            (constraints.maxHeight - 2 * vPad).clamp(0.0, constraints.maxHeight);
+        return Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: config.pageMargin,
+            vertical: vPad,
+          ),
+          child: SizedBox(
+            height: bodyHeight,
+            width: constraints.maxWidth,
+            child: ClipRect(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: child,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -234,25 +279,16 @@ class PaginatedModeRenderer extends StatelessWidget {
         startOffset,
       );
     }
-    final vPad = ReaderRenderConfig.pageContentVerticalPadding;
     return RepaintBoundary(
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: config.pageMargin,
-          vertical: vPad,
-        ),
-        child: ClipRect(
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: SelectableText.rich(
-              paintedSpan,
-              strutStyle: strutStyle,
-              textAlign: config.textAlign,
-              onSelectionChanged: (sel, cause) =>
-                  _onSelection(sel, pageContent, startOffset, context),
-              contextMenuBuilder: (_, _) => const SizedBox.shrink(),
-            ),
-          ),
+      child: _constrainedHorizontalPage(
+        context,
+        SelectableText.rich(
+          paintedSpan,
+          strutStyle: strutStyle,
+          textAlign: config.textAlign,
+          onSelectionChanged: (sel, cause) =>
+              _onSelection(sel, pageContent, startOffset, context),
+          contextMenuBuilder: (_, _) => const SizedBox.shrink(),
         ),
       ),
     );
@@ -262,14 +298,41 @@ class PaginatedModeRenderer extends StatelessWidget {
     final staging = dataSource.nextChapterStaging;
     if (staging != null && staging.chapterIndex == chapterId + 1) {
       Logging.debug('[Renderer] _buildCrossChapterPage HIT: chapter=${staging.chapterIndex} virtualIndex=$virtualIndex');
-      dataSource.warmPageCache(virtualIndex, staging.firstPageContent);
+      const stagingPageIndex = 0;
+      dataSource.warmPageCache(stagingPageIndex, staging.firstPageContent);
       final startOffset = staging.descriptors.isNotEmpty
           ? staging.descriptors[0].startOffset
           : 0;
-      return _buildPageContent(context, virtualIndex, startOffset);
+      return _buildStagingPageContent(context, staging.firstPageContent, startOffset);
     }
     Logging.debug('[Renderer] _buildCrossChapterPage MISS: virtualIndex=$virtualIndex');
-    return Container(color: config.backgroundColor);
+    return const Center(child: CircularProgressIndicator());
+  }
+
+  /// 跨章 staging 页：直接渲染预加载文本，不走当前章 session 页索引。
+  Widget _buildStagingPageContent(
+    BuildContext context,
+    String pageContent,
+    int startOffset,
+  ) {
+    final textStyle = config.buildTextStyle();
+    final strutStyle = config.buildStrutStyle();
+    final paintedSpan = HighlightPainter.paintPlain(
+      pageContent,
+      textStyle,
+      highlights,
+      onHighlightTap: onHighlightTap,
+      vocabularyWords: config.effectiveVocabWords,
+      contentStart: startOffset,
+    );
+    return _renderPageContent(
+      context,
+      pageContent,
+      paintedSpan,
+      textStyle,
+      strutStyle,
+      startOffset,
+    );
   }
 
   Widget _buildPreviousChapterPage(BuildContext context) {
@@ -319,7 +382,7 @@ class PaginatedModeRenderer extends StatelessWidget {
         builder: (context, _) {
           return PageView.builder(
             controller: pageController,
-            physics: adaptiveScrollPhysics(context),
+            physics: const PageScrollPhysics(),
             itemCount: _extendedPageCount(descriptors),
             onPageChanged: (index) => _handlePageChanged(descriptors, index),
             itemBuilder: (context, index) {
@@ -490,30 +553,42 @@ Widget buildSinglePageContent({
   }
 
   return RepaintBoundary(
-    child: Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: config.pageMargin,
-        vertical: ReaderRenderConfig.pageContentVerticalPadding,
-      ),
-      child: ClipRect(
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: SelectableText.rich(
-            paintedSpan,
-            strutStyle: strutStyle,
-            textAlign: config.textAlign,
-            onSelectionChanged: (sel, cause) => _handlePageContentSelection(
-              sel,
-              pageContent,
-              startOffset,
-              context,
-              onSelectionChanged,
-              onSelectionGlobalPosition,
-            ),
-            contextMenuBuilder: (_, _) => const SizedBox.shrink(),
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        final vPad = ReaderRenderConfig.pageContentVerticalPadding;
+        final bodyHeight =
+            (constraints.maxHeight - 2 * vPad).clamp(0.0, constraints.maxHeight);
+        return Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: config.pageMargin,
+            vertical: vPad,
           ),
-        ),
-      ),
+          child: SizedBox(
+            height: bodyHeight,
+            width: constraints.maxWidth,
+            child: ClipRect(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: SelectableText.rich(
+                  paintedSpan,
+                  strutStyle: strutStyle,
+                  textAlign: config.textAlign,
+                  onSelectionChanged: (sel, cause) =>
+                      _handlePageContentSelection(
+                    sel,
+                    pageContent,
+                    startOffset,
+                    context,
+                    onSelectionChanged,
+                    onSelectionGlobalPosition,
+                  ),
+                  contextMenuBuilder: (_, _) => const SizedBox.shrink(),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     ),
   );
 }
