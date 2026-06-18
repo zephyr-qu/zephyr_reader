@@ -12,6 +12,7 @@ import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle
 import 'package:zephyr_reader/features/reader/domain/service/custom_font_service.dart';
 import 'package:zephyr_reader/features/reader/domain/model/font_info.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
@@ -59,18 +60,17 @@ class TypographySettingsPage extends HookWidget {
 
   /// 仅重置排版页面管理的设置项，不触及主题、自动滚动、点击区域等其他页面管理的配置。
   Future<void> _reset(ReaderConfig config, FontRepository fontRepo) async {
-    config.fontSize.value = 16.0;
-    config.lineHeight.value = 1.6;
-    config.paragraphSpacing.value = 16.0;
-    config.padding.value = 16.0;
-    config.letterSpacing.value = 0.0;
+    config.fontSize.value = ReaderTypographyDefaults.fontSize;
+    config.lineHeight.value = ReaderTypographyDefaults.lineHeight;
+    config.paragraphSpacing.value = ReaderTypographyDefaults.paragraphSpacing;
+    config.padding.value = ReaderTypographyDefaults.padding;
+    config.letterSpacing.value = ReaderTypographyDefaults.letterSpacing;
     config.punctuationSqueeze.value = true;
     config.textAlign.reset();
     config.baselineAlign.value = true;
     config.firstLineIndent.value = true;
     config.language.reset();
     config.autoSpaceRatio.reset();
-    config.writingDirection.value = WritingDirection.horizontal;
     await fontRepo.setCurrentFont('system');
   }
 
@@ -381,10 +381,6 @@ class TypographySettingsPage extends HookWidget {
     ReaderConfig config,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    final WritingDirection writingDirection = useSignalValue(
-      config.writingDirection,
-    );
-    final isVertical = writingDirection == WritingDirection.vertical;
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -454,16 +450,6 @@ class TypographySettingsPage extends HookWidget {
                   onChanged: (v) => config.firstLineIndent.value = v,
                 ),
                 _buildLanguageTile(context, config),
-                SettingsToggleTile(
-                  icon: PhosphorIconsRegular.arrowDown,
-                  semantic: MenuItemSemantic.typography,
-                  title: l10n.verticalMode,
-                  subtitle: l10n.verticalModeDesc,
-                  value: isVertical,
-                  onChanged: (v) => config.writingDirection.value = v
-                      ? WritingDirection.vertical
-                      : WritingDirection.horizontal,
-                ),
               ],
             ),
           ],

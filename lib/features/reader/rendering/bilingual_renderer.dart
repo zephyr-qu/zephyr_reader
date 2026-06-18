@@ -5,7 +5,6 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'reader_render_config.dart';
 import 'find_render_box.dart';
 
@@ -25,7 +24,6 @@ class BilingualModeRenderer extends StatelessWidget {
   final void Function(String text, int start, int end)? onSelectionChanged;
   final VoidCallback? onRetryTranslation;
   final void Function(Offset?)? onSelectionGlobalPosition;
-  final WritingDirection writingDirection;
 
   const BilingualModeRenderer({
     super.key,
@@ -40,7 +38,6 @@ class BilingualModeRenderer extends StatelessWidget {
     this.onHighlightTap,
     this.onSelectionChanged,
     this.onRetryTranslation,
-    this.writingDirection = WritingDirection.horizontal,
     this.onSelectionGlobalPosition,
   });
 
@@ -182,9 +179,7 @@ class BilingualModeRenderer extends StatelessWidget {
         horizontal: config.pageMargin,
         vertical: 20,
       ),
-      scrollDirection: writingDirection == WritingDirection.vertical
-          ? Axis.horizontal
-          : Axis.vertical,
+      scrollDirection: Axis.vertical,
       itemCount: alignment.segments.length,
       itemBuilder: (context, index) {
         final seg = alignment.segments[index];
@@ -257,16 +252,10 @@ class BilingualModeRenderer extends StatelessWidget {
           ),
         );
 
-        if (writingDirection == WritingDirection.vertical) {
-          return SizedBox(width: config.fontSize * 3.0, child: segmentWidget);
-        }
         return segmentWidget;
       },
     );
 
-    if (writingDirection == WritingDirection.vertical) {
-      return Directionality(textDirection: TextDirection.rtl, child: listView);
-    }
     return listView;
   }
 }

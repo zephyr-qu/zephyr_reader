@@ -146,9 +146,9 @@ class RustPaginationSession implements PaginationSession {
         totalPages: result.descriptors.length,
         isPartial: result.isPartial,
       );
-    } catch (e) {
-      Logging.error('beginPaginate error: $e');
-      return (totalPages: 0, isPartial: false);
+    } catch (e, st) {
+      Logging.error('beginPaginate error: $e', exception: e, stackTrace: st);
+      rethrow;
     }
   }
 
@@ -238,9 +238,9 @@ class RustPaginationSession implements PaginationSession {
         totalPages: result.descriptors.length,
         isPartial: result.isPartial,
       );
-    } catch (e) {
-      Logging.error('expandToFullChapter error: $e');
-      return (totalPages: 0, isPartial: false);
+    } catch (e, st) {
+      Logging.error('expandToFullChapter error: $e', exception: e, stackTrace: st);
+      rethrow;
     }
   }
 
@@ -286,9 +286,9 @@ class RustPaginationSession implements PaginationSession {
         totalPages: result.descriptors.length,
         isPartial: result.isPartial,
       );
-    } catch (e) {
-      Logging.error('repaginateInPlace error: $e');
-      return (totalPages: 0, isPartial: false);
+    } catch (e, st) {
+      Logging.error('repaginateInPlace error: $e', exception: e, stackTrace: st);
+      rethrow;
     }
   }
 

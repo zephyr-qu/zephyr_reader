@@ -4,19 +4,11 @@ import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/local/preferences_service.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 
 /// 阅读器翻页点击区域布局（右手/左手习惯）
 enum TapLayout { rightHanded, leftHanded }
-
-/// 书写方向 — 横排或竖排（top-to-bottom, right-to-left）
-enum WritingDirection {
-  /// 横排
-  horizontal,
-
-  /// 竖排 (top-to-bottom, right-to-left)
-  vertical,
-}
 
 /// 阅读模式 — 上下滚动、仿真翻页、左右分页、双语对照
 enum ReadingMode {
@@ -87,31 +79,35 @@ class ReaderConfig {
   late final fontSize = persistedDouble(
     prefs,
     SettingsKeys.readerFontSize,
-    16.0,
+    ReaderTypographyDefaults.fontSize,
   );
 
   /// 行间距
   late final lineHeight = persistedDouble(
     prefs,
     SettingsKeys.readerLineHeight,
-    1.6,
+    ReaderTypographyDefaults.lineHeight,
   );
 
   /// 段落间距
   late final paragraphSpacing = persistedDouble(
     prefs,
     SettingsKeys.readerParagraphSpacing,
-    16.0,
+    ReaderTypographyDefaults.paragraphSpacing,
   );
 
   /// 页边距
-  late final padding = persistedDouble(prefs, SettingsKeys.readerPadding, 16.0);
+  late final padding = persistedDouble(
+    prefs,
+    SettingsKeys.readerPadding,
+    ReaderTypographyDefaults.padding,
+  );
 
   /// 阅读背景色预设索引
   late final readerBgColorIndex = persistedInt(
     prefs,
     SettingsKeys.readerBgColorIndex,
-    0,
+    ReaderTypographyDefaults.readerBgColorIndex,
   );
 
   /// 是否自动翻页
@@ -213,11 +209,6 @@ class ReaderConfig {
 
   // ==================== 非持久化信号 ====================
 
-  /// 书写方向（横排/竖排，不持久化）
-  final writingDirection = signal<WritingDirection>(
-    WritingDirection.horizontal,
-  );
-
   /// 亮度遮罩（0.0–1.0，瞬态不持久化）
   final brightnessOverlay = signal<double>(0.0);
 
@@ -259,7 +250,6 @@ class ReaderConfig {
     tapLayout.dispose();
     followSystemFontScale.dispose();
     textAlign.dispose();
-    writingDirection.dispose();
     brightnessOverlay.dispose();
   }
 }

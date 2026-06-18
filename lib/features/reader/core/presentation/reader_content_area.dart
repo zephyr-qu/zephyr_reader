@@ -79,9 +79,6 @@ class ReaderContentArea extends HookWidget {
       vm.config.paragraphSpacing.signal,
     );
     final double bPagemargin = useSignalValue(vm.config.padding.signal);
-    final WritingDirection bWritingdirection = useSignalValue(
-      vm.config.writingDirection,
-    );
     final int? bPendingjumpcharoffset = useSignalValue(
       vm.chapterManager.pendingJumpCharOffset,
     );
@@ -185,7 +182,6 @@ class ReaderContentArea extends HookWidget {
                   onSelectionChanged: vm.annotations.updateSelection,
                   onSelectionGlobalPosition: (pos) =>
                       selectionGlobalPos.value = pos,
-                  writingDirection: bWritingdirection,
                   showSentenceSplit: true,
                 ),
                 bilingualBuilder: (_, sc, pairs) => BilingualModeRenderer(
@@ -212,7 +208,6 @@ class ReaderContentArea extends HookWidget {
                   onSelectionChanged: vm.annotations.updateSelection,
                   onSelectionGlobalPosition: (pos) =>
                       selectionGlobalPos.value = pos,
-                  writingDirection: bWritingdirection,
                 ),
                 paginatedBuilder: (_, pc) => PaginatedModeRenderer(
                   config: renderConfig,
@@ -253,7 +248,6 @@ class ReaderContentArea extends HookWidget {
                 onSelectionChanged: vm.annotations.updateSelection,
                 onSelectionGlobalPosition: (pos) =>
                     selectionGlobalPos.value = pos,
-                writingDirection: bWritingdirection,
                 jumpToCharOffset: bPendingjumpcharoffset,
                 onPositionChanged: vm.chapterManager.updateCurrentCharOffset,
                 onJumpHandled: vm.chapterManager.consumePendingJumpOffset,
@@ -268,6 +262,8 @@ class ReaderContentArea extends HookWidget {
                     vm.chapterManager.scrollAppendNext(bCurrentreadingmode),
                 onScrollPrependPrev: () =>
                     vm.chapterManager.scrollPrependPrev(bCurrentreadingmode),
+                onScrollSegmentPosition: (offset, paraHeight) =>
+                    vm.chapterManager.reportScrollPosition(offset, paraHeight),
               );
             },
           ),

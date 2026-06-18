@@ -1,0 +1,174 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:zephyr_reader/features/reader/core/application/scroll_boundary_coordinator.dart';
+import 'package:zephyr_reader/features/reader/core/domain/reader_notice.dart';
+import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
+import 'package:zephyr_reader/features/reader/core/data/scroll_segment_factory.dart';
+import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+
+class _MockRepo extends Mock implements ReaderRepositoryInterface {}
+
+ScrollChapterSegment _seg(int chapter, String marker) {
+  return ScrollSegmentFactory.fromPayload(
+    chapter,
+    (content: '$marker\n\nPara2', richParagraphs: null, richRootSpan: null, epubRichSkipped: false),
+  );
+}
+
+void main() {
+  late _MockRepo repo;
+  late ScrollBoundaryCoordinator coord;
+  late List<ScrollChapterSegment> emitted;
+  int? lastChapter;
+  int? lastOffset;
+
+  setUpAll(() {
+    registerFallbackValue(ReadingMode.scroll);
+  });
+
+  setUp(() {
+    repo = _MockRepo();
+    when(() => repo.preloadChapter(any(), any())).thenAnswer((_) async {});
+    emitted = [];
+    lastChapter = null;
+    lastOffset = null;
+    coord = ScrollBoundaryCoordinator(
+      repo: repo,
+      onPositionChanged: (chapter, offset) {
+        lastChapter = chapter;
+        lastOffset = offset;
+      },
+      onChapterChanged: (chapter) {
+        lastChapter = chapter;
+      },
+      onSegmentsChanged: (segments) {
+        emitted = List.from(segments);
+      },
+    );
+    coord.init(0, 'Ch0\n\nPara2');
+  });
+
+  group('ScrollBoundaryCoordinator', () {
+    test('appendNext 基于 segments.last 而非 stale center', () async {
+      coord.composer!.appendNext(_seg(1, 'Ch1'));
+      // center 仍为 0，但 segments 已有章 1
+      when(
+        () => repo.loadScrollSegment(
+          any(),
+          2,
+          readingMode: any(named: 'readingMode'),
+        ),
+      ).thenAnswer(
+        (_) async => (
+          content: 'Ch2\n\nPara2',
+          richParagraphs: null,
+          richRootSpan: null,
+          epubRichSkipped: false,
+        ),
+      );
+
+      await coord.appendNext(
+        bookId: 'book',
+        readingMode: ReadingMode.scroll,
+      );
+
+      verify(
+        () => repo.loadScrollSegment(
+          'book',
+          2,
+          readingMode: ReadingMode.scroll,
+        ),
+      ).called(1);
+      expect(emitted.last.chapterIndex, 2);
+    });
+
+    test('prependPrev 基于 segments.first 而非 stale center', () async {
+      final local = ScrollBoundaryCoordinator(
+        repo: repo,
+        onPositionChanged: (_, _) {},
+        onChapterChanged: (_) {},
+        onSegmentsChanged: (segments) {
+          emitted = List.from(segments);
+        },
+      );
+      local.init(1, 'Ch1\n\nPara2');
+      when(
+        () => repo.loadScrollSegment(
+          any(),
+          0,
+          readingMode: any(named: 'readingMode'),
+        ),
+      ).thenAnswer(
+        (_) async => (
+          content: 'Ch0prev\n\nPara2',
+          richParagraphs: null,
+          richRootSpan: null,
+          epubRichSkipped: false,
+        ),
+      );
+
+      await local.prependPrev(
+        bookId: 'book',
+        readingMode: ReadingMode.scroll,
+      );
+
+      verify(
+        () => repo.loadScrollSegment(
+          'book',
+          0,
+          readingMode: ReadingMode.scroll,
+        ),
+      ).called(1);
+      expect(emitted.first.chapterIndex, 0);
+    });
+
+    test('reportScrollPosition 跨章时触发 onSegmentChanged', () {
+      coord.composer!.appendNext(_seg(1, 'Ch1'));
+      // 2 段 × 2 段 ≈ 4 段，每段高 100px；offset 250 → 第 3 段（章 1）
+      coord.reportScrollPosition(250, 100);
+      expect(lastChapter, 1);
+      expect(lastOffset, isNotNull);
+      expect(coord.composer!.centerChapterIndex, 1);
+    });
+
+    test('appendNext 大 EPUB 降级时触发 onReaderNotice', () async {
+      when(
+        () => repo.loadScrollSegment(
+          any(),
+          1,
+          readingMode: any(named: 'readingMode'),
+        ),
+      ).thenAnswer(
+        (_) async => (
+          content: 'Ch1\n\nPara2',
+          richParagraphs: null,
+          richRootSpan: null,
+          epubRichSkipped: true,
+        ),
+      );
+      ReaderNotice? noticed;
+      final local = ScrollBoundaryCoordinator(
+        repo: repo,
+        onPositionChanged: (_, _) {},
+        onChapterChanged: (_) {},
+        onSegmentsChanged: (_) {},
+        onReaderNotice: (n) => noticed = n,
+      );
+      local.init(0, 'Ch0\n\nPara2');
+
+      await local.appendNext(
+        bookId: 'book',
+        readingMode: ReadingMode.scroll,
+      );
+
+      expect(noticed, ReaderNotice.epubRichSkipped);
+    });
+
+    test('reportScrollPosition 同章内只更新 offset', () {
+      coord.reportScrollPosition(50, 100);
+      expect(lastChapter, 0);
+      expect(coord.composer!.centerChapterIndex, 0);
+    });
+  });
+}

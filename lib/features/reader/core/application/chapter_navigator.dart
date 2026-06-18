@@ -30,6 +30,9 @@ class ChapterNavigator {
     this._totalPages,
     this._pageIndex,
   );
+  /// 后退到上一章时，用超大 offset 让 finalize 解析到末页。
+  static const int preferLastPageCharOffset = 0x7FFFFFFF;
+
   Future<void> previousChapter() async {
     if (_loader.isLoading.value) return;
     if (_chapterVM.chapterIndex.value > 0) {
@@ -38,14 +41,10 @@ class ChapterNavigator {
       await _loader.loadChapter(
         newChapterIndex,
         preserveContent: true,
+        readingMode: _chapterVM.activeReadingMode,
         navigationKind: ChapterNavigationKind.adjacentCrossChapter,
+        initialCharOffset: preferLastPageCharOffset,
       );
-      _pageIndex.value = (_totalPages.value - 1).clamp(0, 0x7FFFFFFF);
-      final descriptors = _repo.descriptors;
-      if (descriptors != null && _pageIndex.value < descriptors.length) {
-        _chapterVM.currentCharOffset.value =
-            descriptors[_pageIndex.value].endOffset;
-      }
     }
   }
 
@@ -58,6 +57,7 @@ class ChapterNavigator {
       await _loader.loadChapter(
         newChapterIndex,
         preserveContent: true,
+        readingMode: _chapterVM.activeReadingMode,
         navigationKind: ChapterNavigationKind.adjacentCrossChapter,
       );
     }
@@ -67,12 +67,19 @@ class ChapterNavigator {
 
   Future<void> jumpToChapter(int chapterIndex) async {
     _chapterVM.showChapterTransition.value = true;
-    await _loader.loadChapter(chapterIndex);
+    await _loader.loadChapter(
+      chapterIndex,
+      readingMode: _chapterVM.activeReadingMode,
+    );
   }
 
   Future<void> jumpToPosition(int chapterIndex, int charOffset) async {
     _chapterVM.showChapterTransition.value = true;
-    await _loader.loadChapter(chapterIndex, initialCharOffset: charOffset);
+    await _loader.loadChapter(
+      chapterIndex,
+      initialCharOffset: charOffset,
+      readingMode: _chapterVM.activeReadingMode,
+    );
   }
 
 
@@ -93,7 +100,7 @@ class ChapterNavigator {
   }
 
   void loadPage(int pageIndex) {
-    if (pageIndex < 0 || pageIndex > _totalPages.value) return;
+    if (pageIndex < 0 || pageIndex >= _totalPages.value) return;
     _pageIndex.value = pageIndex;
 
     final descriptors = _repo.descriptors;

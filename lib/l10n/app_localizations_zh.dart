@@ -160,12 +160,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get bilingualMode => '对照';
 
   @override
-  String get horizontal => '横排';
-
-  @override
-  String get vertical => '竖排';
-
-  @override
   String get fontSize => '字体大小';
 
   @override
@@ -792,6 +786,9 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get epubRichTextSkipped => '本章内容较大，已以纯文本显示（图片与样式暂不可用）';
+
+  @override
   String get contentEmpty => '内容为空';
 
   @override
@@ -799,9 +796,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get readingModeSection => '阅读模式';
-
-  @override
-  String get layoutSection => '版面布局';
 
   @override
   String get typographySection => '文字排版';
@@ -1701,12 +1695,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get autoScrollSpeed => '翻页间隔';
-
-  @override
-  String get verticalMode => '竖排模式';
-
-  @override
-  String get verticalModeDesc => '从右向左阅读，适合古籍排版';
 
   @override
   String get ttsPreviewStop => '停止试听';

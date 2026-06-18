@@ -191,11 +191,6 @@ class _MockConfig implements ReaderConfig {
   );
 
   @override
-  final writingDirection = signal<WritingDirection>(
-    WritingDirection.horizontal,
-  );
-
-  @override
   final brightnessOverlay = signal<double>(0.0);
   @override
   late final followSystemFontScale = persistedBool(
@@ -388,6 +383,19 @@ void main() {
     when(() => repo.preloadChapter(any(), any())).thenAnswer((_) async {});
     when(() => repo.clearNextChapterStaging()).thenReturn(null);
     when(() => repo.ensurePageWindow(any())).thenReturn(null);
+    when(() => repo.currentRichContent).thenReturn(null);
+    when(() => repo.currentRichParagraphs).thenReturn(null);
+    when(
+      () => repo.loadScrollSegment(
+        any(),
+        any(),
+        readingMode: any(named: 'readingMode'),
+      ),
+    ).thenAnswer((invocation) async {
+      final chapterId = invocation.positionalArguments[1] as int;
+      final content = 'Chapter$chapterId ${'X' * 80}';
+      return (content: content, richParagraphs: null, richRootSpan: null, epubRichSkipped: false);
+    });
     when(
       () => repo.calculatePages(
         bookId: any(named: 'bookId'),
@@ -493,6 +501,17 @@ void main() {
         await manager.loadChapter(0, initialCharOffset: 9999);
 
         expect(manager.currentCharOffset.value, lessThan(101));
+      });
+
+      test('scroll 模式加载时初始化 scrollSegments', () async {
+        manager.bookId.value = 'book1';
+        await manager.loadChapter(1, readingMode: ReadingMode.scroll);
+
+        expect(manager.chapterIndex.value, 1);
+        expect(manager.scrollSegments.value.length, 1);
+        expect(manager.scrollSegments.value.first.chapterIndex, 1);
+        expect(manager.hasScrollSegments, isTrue);
+        expect(manager.totalPages.value, 1);
       });
 
       test('加载失败设置 error 信号', () async {

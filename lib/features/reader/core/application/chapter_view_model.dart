@@ -15,6 +15,7 @@ import 'package:zephyr_reader/features/reader/core/domain/reader_repository_inte
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
+import 'package:zephyr_reader/features/reader/core/domain/reader_notice.dart';
 
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 
@@ -39,6 +40,12 @@ class ChapterViewModel {
   /// 滚动模式多章拼接段（plain text 跨章滚动）。
   final scrollSegments = signal<List<ScrollChapterSegment>>([]);
 
+  /// 当前生效的阅读模式（由 [ReaderViewModel] 同步，供导航器加载章节时使用）。
+  ReadingMode activeReadingMode = ReadingMode.pagination;
+
+  /// 待 UI 层展示的用户通知（如 EPUB 富文本降级）。
+  final readerNotice = signal<ReaderNotice?>(null);
+
   late final ScrollBoundaryCoordinator _scrollBoundary;
   late final PaginationCoordinator _pagination;
   late final ChapterLoader _loader;
@@ -61,6 +68,9 @@ class ChapterViewModel {
       },
       onSegmentsChanged: (segments) {
         scrollSegments.value = segments;
+      },
+      onReaderNotice: (notice) {
+        readerNotice.value = notice;
       },
     );
     _pagination = PaginationCoordinator(repo, config, this);
@@ -93,13 +103,22 @@ class ChapterViewModel {
   // ==================== 布局参数（委托 PaginationCoordinator）====================
 
   double get pageWidth => _pagination.pageWidth;
-  set pageWidth(double value) => _pagination.pageWidth = value;
+  set pageWidth(double value) {
+    _pagination.pageWidth = value;
+    _pagination.syncChapterTypesetLayoutToRepo();
+  }
 
   double get pageHeight => _pagination.pageHeight;
-  set pageHeight(double value) => _pagination.pageHeight = value;
+  set pageHeight(double value) {
+    _pagination.pageHeight = value;
+    _pagination.syncChapterTypesetLayoutToRepo();
+  }
 
   double get devicePixelRatio => _pagination.devicePixelRatio;
-  set devicePixelRatio(double value) => _pagination.devicePixelRatio = value;
+  set devicePixelRatio(double value) {
+    _pagination.devicePixelRatio = value;
+    _pagination.syncChapterTypesetLayoutToRepo();
+  }
   late final ReadonlySignal<String> progressText = computed(() {
     final totalChapters = chapters.value.value?.length ?? 0;
     if (totalChapters == 0) return '0%';
@@ -117,7 +136,10 @@ class ChapterViewModel {
 
   // ==================== 字体与校准 ====================
 
-  void updateFont(String fontFamily) => _loader.updateFont(fontFamily);
+  void updateFont(String fontFamily) {
+    _loader.updateFont(fontFamily);
+    _pagination.syncChapterTypesetLayoutToRepo();
+  }
 
   // ==================== 章节加载（委托 ChapterLoader）====================
 
@@ -174,14 +196,17 @@ class ChapterViewModel {
   }
 
   /// 滚动模式：滚近底时追加下一章。
-  Future<void> scrollAppendNext(ReadingMode readingMode) =>
-      _scrollBoundary.appendNext(
-        bookId: bookId.value,
-        readingMode: readingMode,
-      );
+  Future<void> scrollAppendNext(ReadingMode readingMode) {
+    _pagination.syncChapterTypesetLayoutToRepo();
+    return _scrollBoundary.appendNext(
+      bookId: bookId.value,
+      readingMode: readingMode,
+    );
+  }
 
   /// 滚动模式：滚近顶时前置上一章。返回新增段落数（用于补偿 scroll offset）。
   Future<int> scrollPrependPrev(ReadingMode readingMode) async {
+    _pagination.syncChapterTypesetLayoutToRepo();
     final before = _scrollBoundary.segments.fold<int>(
       0,
       (sum, s) => sum + s.paragraphCount,
@@ -199,6 +224,11 @@ class ChapterViewModel {
 
   /// 滚动模式是否已启用多章拼接（plain text）。
   bool get hasScrollSegments => scrollSegments.value.isNotEmpty;
+
+  /// 滚动模式：根据 scrollOffset 更新 (chapterIndex, charOffset)。
+  void reportScrollPosition(double scrollOffset, double paragraphExtent) {
+    _scrollBoundary.reportScrollPosition(scrollOffset, paragraphExtent);
+  }
 
   // ==================== 自动滚动（委托 AutoScrollController）====================
 

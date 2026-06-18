@@ -1,4 +1,5 @@
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 
 /// 分页排版参数聚合体。
@@ -31,7 +32,7 @@ class PaginationParams {
     this.calibration,
     this.fontFamily = 'Noto Sans SC',
     this.letterSpacing = 0,
-    this.paragraphSpacing = 16,
+    this.paragraphSpacing = ReaderTypographyDefaults.paragraphSpacing,
     this.punctuationSqueeze = true,
     this.firstLineIndent = true,
     this.language = LanguageType.auto,

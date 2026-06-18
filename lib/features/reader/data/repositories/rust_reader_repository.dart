@@ -163,6 +163,14 @@ class ReaderRepository
       _chapterContent.preload(bookId, chapterId);
 
   @override
+  void syncChapterTypesetLayout(PaginationParams params) =>
+      _chapterContent.syncChapterTypesetLayout(params);
+
+  @override
+  bool consumeEpubRichSkippedNotice() =>
+      _chapterContent.consumeEpubRichSkippedNotice();
+
+  @override
   Future<void> preloadNextChapterStaging(
     String bookId,
     int chapterIndex, {

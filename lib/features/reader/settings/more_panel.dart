@@ -24,17 +24,6 @@ class MorePanel extends StatelessWidget {
           mutedColor: readerTheme.mutedColor,
         ),
         tapLayoutToggle(readerTheme: readerTheme, l10n: l10n, config: config),
-        const SizedBox(height: 12),
-        sectionHeader(
-          icon: PhosphorIconsRegular.paragraph,
-          title: l10n.layoutSection,
-          mutedColor: readerTheme.mutedColor,
-        ),
-        writingDirectionSelector(
-          readerTheme: readerTheme,
-          l10n: l10n,
-          config: config,
-        ),
       ],
     );
   }

@@ -60,6 +60,11 @@ class PaginationCoordinator {
     );
   }
 
+  /// 将当前排版参数推送到章节内容仓库（滚动 EPUB 富文本 / staging 共用）。
+  void syncChapterTypesetLayoutToRepo() {
+    _repo.syncChapterTypesetLayout(buildPaginationParams());
+  }
+
   /// 计算当前排版配置的哈希值，用于检测配置变更。
   /// 与 Rust 侧 `TypesetConfig::config_hash()` 算法一致。
   int computeConfigHash() {

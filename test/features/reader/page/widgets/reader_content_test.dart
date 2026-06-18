@@ -19,6 +19,12 @@ import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 
 class _MockDataSource extends Mock implements ReaderRenderDataSource {}
 
+void _stubReaderDataSource(_MockDataSource dataSource) {
+  when(() => dataSource.preloadGeneration).thenReturn(ValueNotifier<int>(0));
+  when(() => dataSource.prevChapterStaging).thenReturn(null);
+  when(() => dataSource.nextChapterStaging).thenReturn(null);
+}
+
 Widget _wrapApp(Widget child) {
   return MaterialApp(
     localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -35,6 +41,7 @@ void main() {
       tester,
     ) async {
       final dataSource = _MockDataSource();
+      _stubReaderDataSource(dataSource);
       when(
         () => dataSource.preloadGeneration,
       ).thenReturn(ValueNotifier<int>(0));
@@ -88,6 +95,7 @@ void main() {
 
     testWidgets('首屏 pageTurn 且 loading 时不渲染 PageCurlWidget', (tester) async {
       final dataSource = _MockDataSource();
+      _stubReaderDataSource(dataSource);
       when(
         () => dataSource.preloadGeneration,
       ).thenReturn(ValueNotifier<int>(0));
@@ -130,6 +138,7 @@ void main() {
 
     testWidgets('pageTurn 跨章虚拟页使用预加载 staging 内容', (tester) async {
       final dataSource = _MockDataSource();
+      _stubReaderDataSource(dataSource);
       when(() => dataSource.preloadGeneration)
           .thenReturn(ValueNotifier<int>(0));
       when(() => dataSource.descriptors).thenReturn([
@@ -142,6 +151,7 @@ void main() {
           lastParagraphIndex: 0,
         ),
       ]);
+      when(() => dataSource.pageContent(0)).thenReturn('Page content text.');
       when(() => dataSource.nextChapterStaging).thenReturn(
         const NextChapterStaging(
           chapterIndex: 1,
@@ -163,46 +173,123 @@ void main() {
 
       await tester.pumpWidget(
         _wrapApp(
-          ReaderContent(
-            dataSource: dataSource,
-            bookId: 'test_book',
-            chapterId: 0,
-            pageIndex: 1,
-            totalPages: 1,
-            renderConfig: const ReaderRenderConfig(
-              textColor: Colors.black87,
-              backgroundColor: Color(0xFFFAFAFA),
-              fontSize: 16,
-              lineHeight: 1.5,
-              fontFamily: '',
-              letterSpacing: 0,
-              paragraphSpacing: 12,
-              pageMargin: 16,
-              showVocabularyMark: false,
-              vocabularyWords: {},
+          SizedBox(
+            height: 600,
+            child: ReaderContent(
+              dataSource: dataSource,
+              bookId: 'test_book',
+              chapterId: 0,
+              pageIndex: 0,
+              totalPages: 1,
+              renderConfig: const ReaderRenderConfig(
+                textColor: Colors.black87,
+                backgroundColor: Color(0xFFFAFAFA),
+                fontSize: 16,
+                lineHeight: 1.5,
+                fontFamily: '',
+                letterSpacing: 0,
+                paragraphSpacing: 12,
+                pageMargin: 16,
+                showVocabularyMark: false,
+                vocabularyWords: {},
+              ),
+              readingMode: ReadingMode.pageTurn,
+              content: 'Page content text.',
+              isLoading: false,
+              hasNextChapter: true,
+              highlights: const [],
+              scrollBuilder: (_, _) => const SizedBox(),
+              bilingualBuilder: (_, _, _) => const SizedBox(),
+              paginatedBuilder: (_, _) => const SizedBox(),
             ),
-            readingMode: ReadingMode.pageTurn,
-            content: 'Page content text.',
-            isLoading: false,
-            hasNextChapter: true,
-            highlights: const [],
-            scrollBuilder: (_, _) => const SizedBox(),
-            bilingualBuilder: (_, _, _) => const SizedBox(),
-            paginatedBuilder: (_, _) => const SizedBox(),
           ),
         ),
       );
 
-      // PageCurlWidget 渲染
       expect(find.byType(PageCurlWidget), findsOneWidget);
-      // 虚拟页 branch 应触发 pageContent(1) 渲染
-      verify(() => dataSource.pageContent(1)).called(1);
+      expect(find.text('Page content text.'), findsOneWidget);
+      verifyNever(() => dataSource.warmPageCache(any(), any()));
+    });
+
+    testWidgets('pageTurn 虚拟上一章页使用 prevChapterStaging', (tester) async {
+      final dataSource = _MockDataSource();
+      _stubReaderDataSource(dataSource);
+      when(() => dataSource.preloadGeneration)
+          .thenReturn(ValueNotifier<int>(0));
+      when(() => dataSource.descriptors).thenReturn([
+        const PageDescriptor(
+          pageIndex: 0,
+          startOffset: 0,
+          endOffset: 100,
+          isLastPage: false,
+          firstParagraphIndex: 0,
+          lastParagraphIndex: 0,
+        ),
+      ]);
+      when(() => dataSource.pageContent(0)).thenReturn('Current chapter page.');
+      when(() => dataSource.prevChapterStaging).thenReturn(
+        const NextChapterStaging(
+          chapterIndex: 0,
+          configHash: 0x1234,
+          descriptors: [
+            PageDescriptor(
+              pageIndex: 1,
+              startOffset: 500,
+              endOffset: 600,
+              isLastPage: true,
+              firstParagraphIndex: 0,
+              lastParagraphIndex: 0,
+            ),
+          ],
+          firstPageContent: 'Previous chapter last page.',
+          isPartial: false,
+        ),
+      );
+
+      await tester.pumpWidget(
+        _wrapApp(
+          SizedBox(
+            height: 600,
+            child: ReaderContent(
+              dataSource: dataSource,
+              bookId: 'test_book',
+              chapterId: 1,
+              pageIndex: 0,
+              totalPages: 2,
+              renderConfig: const ReaderRenderConfig(
+                textColor: Colors.black87,
+                backgroundColor: Color(0xFFFAFAFA),
+                fontSize: 16,
+                lineHeight: 1.5,
+                fontFamily: '',
+                letterSpacing: 0,
+                paragraphSpacing: 12,
+                pageMargin: 16,
+                showVocabularyMark: false,
+                vocabularyWords: {},
+              ),
+              readingMode: ReadingMode.pageTurn,
+              content: 'Current chapter page.',
+              isLoading: false,
+              hasPreviousChapter: true,
+              highlights: const [],
+              scrollBuilder: (_, _) => const SizedBox(),
+              bilingualBuilder: (_, _, _) => const SizedBox(),
+              paginatedBuilder: (_, _) => const SizedBox(),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(PageCurlWidget), findsOneWidget);
+      expect(find.text('Current chapter page.'), findsOneWidget);
     });
   });
 
   group('ReaderContent — scroll/pagination/bilingual', () {
     testWidgets('scroll 模式不渲染 PageCurlWidget', (tester) async {
       final dataSource = _MockDataSource();
+      _stubReaderDataSource(dataSource);
       when(
         () => dataSource.preloadGeneration,
       ).thenReturn(ValueNotifier<int>(0));
@@ -246,6 +333,7 @@ void main() {
       tester,
     ) async {
       final dataSource = _MockDataSource();
+      _stubReaderDataSource(dataSource);
 
       when(
         () => dataSource.preloadGeneration,
@@ -288,6 +376,7 @@ void main() {
 
     testWidgets('阅读模式切换时不抛异常', (tester) async {
       final dataSource = _MockDataSource();
+      _stubReaderDataSource(dataSource);
 
       when(
         () => dataSource.preloadGeneration,

@@ -6,4 +6,18 @@ typedef ScrollChapterPayload = ({
   String content,
   List<RichParagraph>? richParagraphs,
   TextSpan? richRootSpan,
+  bool epubRichSkipped,
 });
+
+/// 纯文本章节 payload。
+ScrollChapterPayload scrollPlainPayload(
+  String content, {
+  bool epubRichSkipped = false,
+}) =>
+    (
+      content: content,
+      richParagraphs: null,
+      richRootSpan: null,
+      epubRichSkipped: epubRichSkipped,
+    );
+

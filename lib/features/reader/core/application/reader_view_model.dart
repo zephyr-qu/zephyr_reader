@@ -105,6 +105,8 @@ class ReaderViewModel {
         );
       }
 
+      chapterManager.activeReadingMode = readingMode.value;
+
       await bookmarks.loadBookmarks();
       sessionManager.startReading();
       sessionManager.startAutoSave();
@@ -240,6 +242,7 @@ class ReaderViewModel {
 
   void setReadingMode(ReadingMode mode) {
     readingMode.value = mode;
+    chapterManager.activeReadingMode = mode;
     if (mode == ReadingMode.bilingual) {
       translation.onEnterBilingualMode();
     }

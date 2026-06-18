@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.dart';
+import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
@@ -71,4 +72,10 @@ abstract class ChapterContentRepository {
 
   /// 清除相邻双向 staging。
   void clearAdjacentStaging();
+
+  /// 同步当前 UI 排版参数，供 EPUB 富文本加载与分页 staging 共用。
+  void syncChapterTypesetLayout(PaginationParams params);
+
+  /// 取出并清除「EPUB 富文本已降级」标记（每次加载最多消费一次）。
+  bool consumeEpubRichSkippedNotice();
 }

@@ -160,12 +160,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bilingualMode => 'Bilingual';
 
   @override
-  String get horizontal => 'Horizontal';
-
-  @override
-  String get vertical => 'Vertical';
-
-  @override
   String get fontSize => 'Font Size';
 
   @override
@@ -795,6 +789,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get epubRichTextSkipped =>
+      'This chapter is large; showing plain text only (images and styling unavailable)';
+
+  @override
   String get contentEmpty => 'No content';
 
   @override
@@ -802,9 +800,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get readingModeSection => 'Reading Mode';
-
-  @override
-  String get layoutSection => 'Layout';
 
   @override
   String get typographySection => 'Typography';
@@ -1720,13 +1715,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get autoScrollSpeed => 'Scroll Interval';
-
-  @override
-  String get verticalMode => 'Vertical Mode';
-
-  @override
-  String get verticalModeDesc =>
-      'Right-to-left reading, ideal for classical texts';
 
   @override
   String get ttsPreviewStop => 'Stop';

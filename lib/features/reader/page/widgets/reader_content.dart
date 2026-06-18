@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/features/reader/data/pagination_viewport_index.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/features/reader/rendering/page_curl_widget.dart';
 import 'package:zephyr_reader/features/reader/rendering/paginated_renderer.dart';
@@ -11,6 +12,7 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 import '../../core/data/reader_render_data_source.dart';
 import '../../core/data/scroll_chapter_segment.dart';
+import '../../core/data/scroll_position_mapper.dart';
 
 /// 阅读内容容器组件。
 ///
@@ -34,7 +36,6 @@ class ReaderContent extends HookWidget {
   final void Function(String text, int start, int end)? onSelectionChanged;
   final void Function(Note)? onHighlightTap;
   final ValueChanged<Offset?>? onSelectionGlobalPosition;
-  final WritingDirection writingDirection;
   final int? jumpToCharOffset;
   final ValueChanged<int>? onPositionChanged;
   final VoidCallback? onReachEnd;
@@ -46,6 +47,8 @@ class ReaderContent extends HookWidget {
   final List<ScrollChapterSegment> scrollSegments;
   final Future<void> Function()? onScrollAppendNext;
   final Future<int> Function()? onScrollPrependPrev;
+  final void Function(double scrollOffset, double paragraphExtent)?
+      onScrollSegmentPosition;
   final VoidCallback? onPaginationBoundaryReset;
   final Widget Function(BuildContext context, ScrollController scrollController)
       scrollBuilder;
@@ -80,7 +83,6 @@ class ReaderContent extends HookWidget {
     this.onSelectionChanged,
     this.onHighlightTap,
     this.onSelectionGlobalPosition,
-    this.writingDirection = WritingDirection.horizontal,
     this.jumpToCharOffset,
     this.onPositionChanged,
     this.onJumpHandled,
@@ -92,6 +94,7 @@ class ReaderContent extends HookWidget {
     this.scrollSegments = const [],
     this.onScrollAppendNext,
     this.onScrollPrependPrev,
+    this.onScrollSegmentPosition,
     this.onPaginationBoundaryReset,
   });
 
@@ -108,23 +111,46 @@ class ReaderContent extends HookWidget {
     final bilingualPairs = useState<List<BilingualHighlightPair>>([]);
     final disableAnim = MediaQuery.disableAnimationsOf(context);
     final viewportHeight = MediaQuery.sizeOf(context).height;
+    final nextStaging = dataSource.nextChapterStaging;
+    final nextStagingReady = hasNextChapter &&
+        nextStaging != null &&
+        nextStaging.chapterIndex == chapterId + 1;
+    final maxPhysicalPageIndex = () {
+      if (totalPages <= 0) return 0;
+      return paginationMaxPhysicalPageIndex(
+        logicalPageCount: totalPages,
+        hasPreviousChapter: hasPreviousChapter,
+        hasNextStagingPage: nextStagingReady,
+      );
+    }();
+    int physicalPage(int logicalPage) => paginationPhysicalPageIndex(
+          logicalPageIndex: logicalPage,
+          hasPreviousChapter: hasPreviousChapter,
+        );
 
     // 跨章时跳转目标页；adjacent promote 同步 pageIndex
     useEffect(() {
       if (readingMode != ReadingMode.pagination) return null;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!pageController.hasClients) return;
-        final target = pageIndex.clamp(
-          0,
-          totalPages > 0 ? totalPages - 1 : 0,
-        );
+        final target = physicalPage(
+          pageIndex.clamp(0, totalPages > 0 ? totalPages - 1 : 0),
+        ).clamp(0, maxPhysicalPageIndex);
         final current = pageController.page?.round();
         if (current != null && current != target) {
           pageController.jumpToPage(target);
         }
       });
       return null;
-    }, [chapterId, pageIndex, showChapterTransition, readingMode, totalPages]);
+    }, [
+      chapterId,
+      pageIndex,
+      showChapterTransition,
+      readingMode,
+      totalPages,
+      hasPreviousChapter,
+      nextStagingReady,
+    ]);
     // 章内翻页动画同步（仅手动翻页，跨章 promote 已在上方 jumpToPage）
     useEffect(() {
       if (readingMode != ReadingMode.pagination || !showChapterTransition) {
@@ -132,10 +158,11 @@ class ReaderContent extends HookWidget {
       }
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (pageController.hasClients) {
+          final target = physicalPage(pageIndex);
           final currentPage = pageController.page?.round();
-          if (currentPage != null && currentPage != pageIndex) {
+          if (currentPage != null && currentPage != target) {
             pageController.animateToPage(
-              pageIndex,
+              target,
               duration: disableAnim ? Duration.zero : AnimTokens.medium,
               curve: Curves.easeInOut,
             );
@@ -143,7 +170,13 @@ class ReaderContent extends HookWidget {
         }
       });
       return null;
-    }, [pageIndex, readingMode, disableAnim, showChapterTransition]);
+    }, [
+      pageIndex,
+      readingMode,
+      disableAnim,
+      showChapterTransition,
+      hasPreviousChapter,
+    ]);
 
     useEffect(() {
       if (readingMode != ReadingMode.bilingual) {
@@ -195,7 +228,7 @@ class ReaderContent extends HookWidget {
         final nextPage = pageIndex + 1;
         if (nextPage < totalPages) {
           pageController.animateToPage(
-            nextPage,
+            physicalPage(nextPage),
             duration: AnimTokens.slow,
             curve: Curves.easeInOut,
           );
@@ -216,15 +249,6 @@ class ReaderContent extends HookWidget {
           return;
         }
         final maxExtent = scrollController.position.maxScrollExtent;
-        final ratio = maxExtent <= 0
-            ? 0.0
-            : (scrollController.offset / maxExtent);
-        final offset = (ratio * content.length).round().clamp(
-          0,
-          content.length,
-        );
-        onPositionChanged?.call(offset);
-
         final threshold = renderConfig.textRowHeight * 1.5;
         final preloadLead = viewportHeight * 1.5;
         if (scrollController.offset > threshold) {
@@ -232,6 +256,13 @@ class ReaderContent extends HookWidget {
         }
 
         if (useScrollSegments && !isLoading) {
+          final paraHeight =
+              renderConfig.textRowHeight + renderConfig.paragraphSpacing;
+          onScrollSegmentPosition?.call(
+            scrollController.offset,
+            paraHeight,
+          );
+
           final nearBottom =
               maxExtent - scrollController.offset <= preloadLead;
           if (hasNextChapter && nearBottom) {
@@ -247,23 +278,35 @@ class ReaderContent extends HookWidget {
               scrollController.offset <= threshold) {
             if (!reachStartTriggered.value) {
               reachStartTriggered.value = true;
+              final beforeMax = scrollController.position.maxScrollExtent;
+              final beforeOffset = scrollController.offset;
               onScrollPrependPrev?.call().then((added) {
-                if (added <= 0 || !scrollController.hasClients) return;
-                final estHeight = renderConfig.textRowHeight +
-                    renderConfig.paragraphSpacing;
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (scrollController.hasClients) {
-                    scrollController.jumpTo(
-                      scrollController.offset + added * estHeight,
-                    );
-                  }
+                if (added <= 0 || !scrollController.hasClients) {
                   reachStartTriggered.value = false;
-                });
+                  return;
+                }
+                _compensateScrollAfterPrepend(
+                  scrollController,
+                  beforeMaxExtent: beforeMax,
+                  beforeOffset: beforeOffset,
+                  onDone: () => reachStartTriggered.value = false,
+                );
+              }).catchError((_) {
+                reachStartTriggered.value = false;
               });
             }
           }
           return;
         }
+
+        final ratio = maxExtent <= 0
+            ? 0.0
+            : (scrollController.offset / maxExtent);
+        final offset = (ratio * content.length).round().clamp(
+          0,
+          content.length,
+        );
+        onPositionChanged?.call(offset);
 
         if (onReachEnd != null && !isLoading) {
           if (scrollController.offset >= maxExtent - threshold) {
@@ -299,6 +342,7 @@ class ReaderContent extends HookWidget {
       hasPreviousChapter,
       onScrollAppendNext,
       onScrollPrependPrev,
+      onScrollSegmentPosition,
       viewportHeight,
     ]);
 
@@ -317,19 +361,28 @@ class ReaderContent extends HookWidget {
               (d) => d.endOffset,
             );
             if (pageController.hasClients) {
-              pageController.jumpToPage(targetIndex);
+              pageController.jumpToPage(physicalPage(targetIndex));
             }
             onPageChanged?.call(targetIndex);
             onPositionChanged?.call(descriptors[targetIndex].startOffset);
           }
         } else if (scrollController.hasClients) {
+          final paraHeight =
+              renderConfig.textRowHeight + renderConfig.paragraphSpacing;
+          final target = useScrollSegments && scrollSegments.isNotEmpty
+              ? ScrollPositionMapper.scrollOffsetForChar(
+                  scrollSegments,
+                  chapterId,
+                  jumpToCharOffset!,
+                  paraHeight,
+                )
+              : (content.isEmpty
+                  ? 0.0
+                  : (scrollController.position.maxScrollExtent *
+                      (jumpToCharOffset! / content.length)));
           final maxExtent = scrollController.position.maxScrollExtent;
-          final ratio = content.isEmpty
-              ? 0.0
-              : (jumpToCharOffset! / content.length);
-          final target = (maxExtent * ratio).clamp(0.0, maxExtent);
           scrollController.animateTo(
-            target,
+            target.clamp(0.0, maxExtent),
             duration: AnimTokens.normal,
             curve: Curves.easeInOut,
           );
@@ -338,7 +391,7 @@ class ReaderContent extends HookWidget {
         onJumpHandled?.call();
       });
       return null;
-    }, [jumpToCharOffset, readingMode, bookId, chapterId, content]);
+    }, [jumpToCharOffset, readingMode, bookId, chapterId, content, scrollSegments]);
     // 跨章节 slide 方向追踪（在 pageTurn/pagination 条件返回前声明）
     final prevChapterId = useRef<int?>(null);
     final isForward =
@@ -356,46 +409,74 @@ class ReaderContent extends HookWidget {
       final descriptors = dataSource.descriptors;
       // ignore: unused_local_variable
       final preloadGen = useListenable(dataSource.preloadGeneration);
-      final staging = dataSource.nextChapterStaging;
-      final stagingReady = hasNextChapter &&
-          staging != null &&
-          staging.chapterIndex == chapterId + 1;
-      final extendedTotal = totalPages + (stagingReady ? 1 : 0);
-      Widget pageBuilder(int idx) {
-        // 虚拟跨章页：使用预加载 staging 内容
-        if (idx >= totalPages) {
-          final staging = dataSource.nextChapterStaging;
-          // 校验 staging 属于下一章（防御性，正常流程由 _stagingGen 防护）
-          if (staging != null && staging.chapterIndex == chapterId + 1) {
-            dataSource.warmPageCache(totalPages, staging.firstPageContent);
-            final startOffset = staging.descriptors.isNotEmpty
-                ? staging.descriptors[0].startOffset
+      final nextStaging = dataSource.nextChapterStaging;
+      final prevStaging = dataSource.prevChapterStaging;
+      final nextStagingReady = hasNextChapter &&
+          nextStaging != null &&
+          nextStaging.chapterIndex == chapterId + 1;
+      final prevStagingReady = hasPreviousChapter &&
+          prevStaging != null &&
+          prevStaging.chapterIndex == chapterId - 1;
+      final virtualPrev = paginationVirtualPrevOffset(hasPreviousChapter);
+      final extendedTotal = totalPages +
+          virtualPrev +
+          (nextStagingReady ? 1 : 0);
+      final physicalPageIndex = paginationPhysicalPageIndex(
+        logicalPageIndex: pageIndex,
+        hasPreviousChapter: hasPreviousChapter,
+      );
+
+      Widget pageBuilder(int physicalIdx) {
+        if (hasPreviousChapter && physicalIdx == 0) {
+          if (prevStagingReady) {
+            final lastIdx = prevStaging.descriptors.length - 1;
+            final startOffset = lastIdx >= 0
+                ? prevStaging.descriptors[lastIdx].startOffset
                 : 0;
-            return buildSinglePageContent(
+            return buildStagingPageContent(
               context: context,
-              pageIndex: totalPages,
+              pageContent: prevStaging.firstPageContent,
               startOffset: startOffset,
-              dataSource: dataSource,
               config: renderConfig,
               highlights: highlights,
-              writingDirection: writingDirection,
               onHighlightTap: onHighlightTap,
               onSelectionChanged: onSelectionChanged,
               onSelectionGlobalPosition: onSelectionGlobalPosition,
             );
           }
+          return const Center(child: CircularProgressIndicator());
         }
-        final startOffset = (descriptors != null && idx < descriptors.length)
-            ? descriptors[idx].startOffset
+
+        final logicalIdx = physicalIdx - virtualPrev;
+        if (logicalIdx >= totalPages) {
+          if (nextStagingReady) {
+            final startOffset = nextStaging.descriptors.isNotEmpty
+                ? nextStaging.descriptors[0].startOffset
+                : 0;
+            return buildStagingPageContent(
+              context: context,
+              pageContent: nextStaging.firstPageContent,
+              startOffset: startOffset,
+              config: renderConfig,
+              highlights: highlights,
+              onHighlightTap: onHighlightTap,
+              onSelectionChanged: onSelectionChanged,
+              onSelectionGlobalPosition: onSelectionGlobalPosition,
+            );
+          }
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final startOffset = (descriptors != null && logicalIdx < descriptors.length)
+            ? descriptors[logicalIdx].startOffset
             : 0;
         return buildSinglePageContent(
           context: context,
-          pageIndex: idx,
+          pageIndex: logicalIdx,
           startOffset: startOffset,
           dataSource: dataSource,
           config: renderConfig,
           highlights: highlights,
-          writingDirection: writingDirection,
           onHighlightTap: onHighlightTap,
           onSelectionChanged: onSelectionChanged,
           onSelectionGlobalPosition: onSelectionGlobalPosition,
@@ -403,19 +484,25 @@ class ReaderContent extends HookWidget {
       }
 
       return PageCurlWidget(
-        pageIndex: pageIndex,
+        pageIndex: physicalPageIndex,
         totalPages: extendedTotal,
         hasPreviousChapter: hasPreviousChapter,
         onReachStart: onReachStart,
         pageBuilder: pageBuilder,
-        onPageChanged: (index) {
-          // 跨章节翻页 → 异步加载下一章（仍更新 pageIndex 防止 PageCurl 回弹）
-          if (index >= totalPages) {
+        onPageChanged: (physicalIdx) {
+          if (hasPreviousChapter && physicalIdx == 0) {
+            onReachStart?.call();
+            return;
+          }
+          final logicalIdx = physicalIdx - virtualPrev;
+          if (logicalIdx >= totalPages) {
             onReachEnd?.call();
           }
-          onPageChanged?.call(index);
-          if (descriptors != null && index < descriptors.length) {
-            onPositionChanged?.call(descriptors[index].startOffset);
+          onPageChanged?.call(logicalIdx);
+          if (descriptors != null &&
+              logicalIdx >= 0 &&
+              logicalIdx < descriptors.length) {
+            onPositionChanged?.call(descriptors[logicalIdx].startOffset);
           }
         },
       );
@@ -548,5 +635,39 @@ class ReaderContent extends HookWidget {
         final presets = ReaderBgColors.presets;
         return presets[bgIndex.clamp(0, presets.length - 1)];
     }
+  }
+
+  /// prepend 后按 maxScrollExtent 增量补偿，避免视口跳动。
+  static void _compensateScrollAfterPrepend(
+    ScrollController controller, {
+    required double beforeMaxExtent,
+    required double beforeOffset,
+    required VoidCallback onDone,
+    int pass = 0,
+  }) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!controller.hasClients) {
+        onDone();
+        return;
+      }
+      final afterMax = controller.position.maxScrollExtent;
+      final delta = afterMax - beforeMaxExtent;
+      if (delta <= 0 && pass < 2) {
+        _compensateScrollAfterPrepend(
+          controller,
+          beforeMaxExtent: beforeMaxExtent,
+          beforeOffset: beforeOffset,
+          onDone: onDone,
+          pass: pass + 1,
+        );
+        return;
+      }
+      if (delta > 0) {
+        controller.jumpTo(
+          (beforeOffset + delta).clamp(0.0, afterMax),
+        );
+      }
+      onDone();
+    });
   }
 }
