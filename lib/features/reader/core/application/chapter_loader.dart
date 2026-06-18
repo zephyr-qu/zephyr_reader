@@ -108,6 +108,7 @@ class ChapterLoader {
     bool? preserveContent,
     ChapterNavigationKind navigationKind = ChapterNavigationKind.manualJump,
   }) {
+    _pagination.syncChapterTypesetLayoutToRepo();
     return _orchestrator.run(
       ChapterLoadRequest(
         chapterIndex: chapterIndex,

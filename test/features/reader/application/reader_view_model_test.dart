@@ -141,10 +141,6 @@ class _TestConfig implements ReaderConfig {
     debounce: Duration.zero,
   );
   @override
-  final writingDirection = signal<WritingDirection>(
-    WritingDirection.horizontal,
-  );
-  @override
   final brightnessOverlay = signal<double>(0.0);
   @override
   late final followSystemFontScale = persistedBool(

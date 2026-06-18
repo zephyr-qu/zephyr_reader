@@ -392,18 +392,6 @@ abstract class AppLocalizations {
   /// **'对照'**
   String get bilingualMode;
 
-  /// No description provided for @horizontal.
-  ///
-  /// In zh, this message translates to:
-  /// **'横排'**
-  String get horizontal;
-
-  /// No description provided for @vertical.
-  ///
-  /// In zh, this message translates to:
-  /// **'竖排'**
-  String get vertical;
-
   /// No description provided for @fontSize.
   ///
   /// In zh, this message translates to:
@@ -1604,6 +1592,12 @@ abstract class AppLocalizations {
   /// **'章节加载失败：{error}'**
   String chapterLoadFailed(Object error);
 
+  /// No description provided for @epubRichTextSkipped.
+  ///
+  /// In zh, this message translates to:
+  /// **'本章内容较大，已以纯文本显示（图片与样式暂不可用）'**
+  String get epubRichTextSkipped;
+
   /// No description provided for @contentEmpty.
   ///
   /// In zh, this message translates to:
@@ -1621,12 +1615,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'阅读模式'**
   String get readingModeSection;
-
-  /// No description provided for @layoutSection.
-  ///
-  /// In zh, this message translates to:
-  /// **'版面布局'**
-  String get layoutSection;
 
   /// No description provided for @typographySection.
   ///
@@ -3301,18 +3289,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'翻页间隔'**
   String get autoScrollSpeed;
-
-  /// No description provided for @verticalMode.
-  ///
-  /// In zh, this message translates to:
-  /// **'竖排模式'**
-  String get verticalMode;
-
-  /// No description provided for @verticalModeDesc.
-  ///
-  /// In zh, this message translates to:
-  /// **'从右向左阅读，适合古籍排版'**
-  String get verticalModeDesc;
 
   /// No description provided for @ttsPreviewStop.
   ///

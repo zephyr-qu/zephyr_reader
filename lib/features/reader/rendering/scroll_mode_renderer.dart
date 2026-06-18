@@ -7,7 +7,6 @@ import 'highlight_painter.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'reader_render_config.dart';
 import 'find_render_box.dart';
@@ -29,7 +28,6 @@ class ScrollModeRenderer extends HookWidget {
   final void Function(Note)? onHighlightTap;
   final void Function(String text, int start, int end)? onSelectionChanged;
   final void Function(Offset?)? onSelectionGlobalPosition;
-  final WritingDirection writingDirection;
   final bool showSentenceSplit;
 
   const ScrollModeRenderer({
@@ -46,7 +44,6 @@ class ScrollModeRenderer extends HookWidget {
     this.onHighlightTap,
     this.onSelectionChanged,
     this.onSelectionGlobalPosition,
-    required this.writingDirection,
     this.showSentenceSplit = false,
   });
 
@@ -83,34 +80,10 @@ class ScrollModeRenderer extends HookWidget {
     final segmentsHaveRich = hasSegments && segments.any((s) => s.isRich);
 
     if (hasSegments) {
-      if (writingDirection == WritingDirection.vertical) {
-        if (segmentsHaveRich) {
-          return _buildMultiSegmentVerticalRichList(
-            context,
-            textStyle,
-            strutStyle,
-          );
-        }
-        return _buildMultiSegmentVerticalPlainList(
-          context,
-          textStyle,
-          strutStyle,
-        );
-      }
       if (segmentsHaveRich) {
         return _buildMultiSegmentRichList(context, textStyle, strutStyle);
       }
       return _buildMultiSegmentPlainList(context, textStyle, strutStyle);
-    }
-
-    if (writingDirection == WritingDirection.vertical) {
-      return _buildVerticalScrollMode(
-        context,
-        textStyle,
-        strutStyle,
-        paragraphList,
-        richTextParagraphs,
-      );
     }
 
     if (richParagraphs != null && richParagraphs.any((p) => p.isImage)) {
@@ -274,175 +247,6 @@ class ScrollModeRenderer extends HookWidget {
     );
   }
 
-  Widget _buildMultiSegmentVerticalPlainList(
-    BuildContext context,
-    TextStyle textStyle,
-    StrutStyle strutStyle,
-  ) {
-    final globalParagraphs = _flattenPlainParagraphs(segments);
-    final chapterIds = segments.map((s) => s.chapterIndex).toSet();
-    final segHighlights =
-        highlights.where((h) => chapterIds.contains(h.chapterIndex.toInt())).toList();
-    final charWidth = config.fontSize * 1.2;
-
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        controller: scrollController,
-        physics: adaptiveScrollPhysics(context),
-        padding: EdgeInsets.symmetric(
-          horizontal: config.pageMargin,
-          vertical: 20,
-        ),
-        itemCount: globalParagraphs.length,
-        itemBuilder: (context, index) {
-          final gp = globalParagraphs[index];
-          final seg = segments[gp.segIdx];
-          final paraHighlights = _highlightsForParagraph(
-            segHighlights,
-            seg.chapterIndex,
-            gp.startOffset,
-            gp.text.length,
-          );
-          final painted = HighlightPainter.paintPlain(
-            gp.text,
-            textStyle,
-            paraHighlights,
-            onHighlightTap: onHighlightTap,
-            vocabularyWords: config.effectiveVocabWords,
-          );
-          return Padding(
-            padding: EdgeInsets.only(
-              left: index < globalParagraphs.length - 1
-                  ? config.paragraphSpacing
-                  : 0,
-            ),
-            child: SizedBox(
-              width: charWidth,
-              child: SelectableText.rich(
-                painted,
-                strutStyle: strutStyle,
-                textAlign: TextAlign.start,
-                onSelectionChanged: (sel, cause) => _onPlainSelectionChanged(
-                  sel,
-                  gp.text,
-                  gp.startOffset,
-                  context,
-                ),
-                contextMenuBuilder: (_, _) => const SizedBox.shrink(),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildMultiSegmentVerticalRichList(
-    BuildContext context,
-    TextStyle textStyle,
-    StrutStyle strutStyle,
-  ) {
-    final items = _flattenSegmentItems(segments);
-    final chapterIds = segments.map((s) => s.chapterIndex).toSet();
-    final segHighlights =
-        highlights.where((h) => chapterIds.contains(h.chapterIndex.toInt())).toList();
-    final charWidth = config.fontSize * 1.2;
-
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        controller: scrollController,
-        physics: adaptiveScrollPhysics(context),
-        padding: EdgeInsets.symmetric(
-          horizontal: config.pageMargin,
-          vertical: 20,
-        ),
-        itemCount: items.length,
-        itemBuilder: (context, index) {
-          final item = items[index];
-          Widget child;
-          if (item.imageParagraph != null) {
-            child = SizedBox(
-              width: charWidth * 4,
-              child: _buildSegmentImageItem(
-                item.imageParagraph!,
-                charWidth * 4,
-                context,
-              ),
-            );
-          } else if (item.richSpan != null) {
-            final painted = HighlightPainter.paintRich(
-              item.richSpan!,
-              item.charOffset,
-              _highlightsForParagraph(
-                segHighlights,
-                item.chapterIndex,
-                item.charOffset,
-                _spanTextLength(item.richSpan!),
-              ),
-              onHighlightTap: onHighlightTap,
-              vocabularyWords: config.effectiveVocabWords,
-            );
-            child = SizedBox(
-              width: charWidth,
-              child: SelectableText.rich(
-                painted,
-                style: textStyle,
-                strutStyle: strutStyle,
-                textAlign: TextAlign.start,
-                onSelectionChanged: (sel, cause) => _onRichSelectionChanged(
-                  sel,
-                  item.richSpan!,
-                  item.charOffset,
-                  context,
-                ),
-                contextMenuBuilder: (_, _) => const SizedBox.shrink(),
-              ),
-            );
-          } else {
-            final text = item.plainText ?? '';
-            final painted = HighlightPainter.paintPlain(
-              text,
-              textStyle,
-              _highlightsForParagraph(
-                segHighlights,
-                item.chapterIndex,
-                item.charOffset,
-                text.length,
-              ),
-              onHighlightTap: onHighlightTap,
-              vocabularyWords: config.effectiveVocabWords,
-            );
-            child = SizedBox(
-              width: charWidth,
-              child: SelectableText.rich(
-                painted,
-                strutStyle: strutStyle,
-                textAlign: TextAlign.start,
-                onSelectionChanged: (sel, cause) => _onPlainSelectionChanged(
-                  sel,
-                  text,
-                  item.charOffset,
-                  context,
-                ),
-                contextMenuBuilder: (_, _) => const SizedBox.shrink(),
-              ),
-            );
-          }
-          return Padding(
-            padding: EdgeInsets.only(
-              left: index < items.length - 1 ? config.paragraphSpacing : 0,
-            ),
-            child: child,
-          );
-        },
-      ),
-    );
-  }
-
   List<_GlobalPara> _flattenPlainParagraphs(List<ScrollChapterSegment> segments) {
     final globalParagraphs = <_GlobalPara>[];
     for (var si = 0; si < segments.length; si++) {
@@ -522,10 +326,12 @@ class ScrollModeRenderer extends HookWidget {
     for (var li = 0; li < seg.richParagraphs!.length; li++) {
       final rp = seg.richParagraphs![li];
       if (rp.isImage) {
+        final imgOffset =
+            textIdx < paraOffsets.length ? paraOffsets[textIdx] : accOffset;
         items.add(_GlobalScrollItem(
           segIdx: segIdx,
           chapterIndex: seg.chapterIndex,
-          charOffset: 0,
+          charOffset: imgOffset,
           imageParagraph: rp,
           isSegmentBoundary: isBoundary && li == 0,
         ));
@@ -550,12 +356,13 @@ class ScrollModeRenderer extends HookWidget {
     int startOffset,
     int length,
   ) {
+    final endOffset = startOffset + length;
     return segHighlights
         .where(
           (h) =>
               h.chapterIndex.toInt() == chapterIndex &&
-              h.charOffset.toInt() >= startOffset &&
-              h.charOffset.toInt() + h.length.toInt() <= startOffset + length,
+              h.charOffset.toInt() < endOffset &&
+              h.charOffset.toInt() + h.length.toInt() > startOffset,
         )
         .toList();
   }
@@ -732,109 +539,6 @@ class ScrollModeRenderer extends HookWidget {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildVerticalScrollMode(
-    BuildContext context,
-    TextStyle textStyle,
-    StrutStyle strutStyle,
-    List<String> paragraphList,
-    List<TextSpan>? richTextParagraphs,
-  ) {
-    final charWidth = config.fontSize * 1.2;
-
-    if (richTextParagraphs != null && richTextParagraphs.isNotEmpty) {
-      return Directionality(
-        textDirection: TextDirection.rtl,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          physics: adaptiveScrollPhysics(context),
-          padding: EdgeInsets.symmetric(
-            horizontal: config.pageMargin,
-            vertical: 20,
-          ),
-          itemCount: richTextParagraphs.length,
-          itemBuilder: (context, index) {
-            final span = richTextParagraphs[index];
-            final painted = HighlightPainter.paintRich(
-              span,
-              0,
-              highlights,
-              onHighlightTap: onHighlightTap,
-              vocabularyWords: config.effectiveVocabWords,
-            );
-            return Padding(
-              padding: EdgeInsets.only(
-                left: index < richTextParagraphs.length - 1
-                    ? config.paragraphSpacing
-                    : 0,
-              ),
-              child: SizedBox(
-                width: charWidth,
-                child: SelectableText.rich(
-                  painted,
-                  style: textStyle,
-                  strutStyle: strutStyle,
-                  textAlign: TextAlign.start,
-                  onSelectionChanged: (sel, cause) =>
-                      _onRichSelectionChanged(sel, span, 0, context),
-                  contextMenuBuilder: (_, _) => const SizedBox.shrink(),
-                ),
-              ),
-            );
-          },
-        ),
-      );
-    }
-
-    // Fallback: plain text vertical mode
-    if (paragraphList.isEmpty) {
-      return const Center(child: Text('内容为空'));
-    }
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        controller: scrollController,
-        physics: adaptiveScrollPhysics(context),
-        padding: EdgeInsets.symmetric(
-          horizontal: config.pageMargin,
-          vertical: 20,
-        ),
-        itemCount: paragraphList.length,
-        itemBuilder: (context, index) {
-          final painted = HighlightPainter.paintPlain(
-            paragraphList[index],
-            textStyle,
-            highlights,
-            onHighlightTap: onHighlightTap,
-            vocabularyWords: config.effectiveVocabWords,
-          );
-          return Padding(
-            padding: EdgeInsets.only(
-              left: index < paragraphList.length - 1
-                  ? config.paragraphSpacing
-                  : 0,
-            ),
-            child: SizedBox(
-              width: charWidth,
-              child: SelectableText.rich(
-                painted,
-                strutStyle: strutStyle,
-                textAlign: TextAlign.start,
-                onSelectionChanged: (sel, cause) => _onPlainSelectionChanged(
-                  sel,
-                  paragraphList[index],
-                  0,
-                  context,
-                ),
-                contextMenuBuilder: (_, _) => const SizedBox.shrink(),
-              ),
-            ),
-          );
-        },
-      ),
     );
   }
 

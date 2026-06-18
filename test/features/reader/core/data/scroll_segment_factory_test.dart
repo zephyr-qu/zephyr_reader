@@ -12,6 +12,7 @@ void main() {
         content: 'Para one.\n\nPara two.',
         richParagraphs: null as List<RichParagraph>?,
         richRootSpan: null as TextSpan?,
+        epubRichSkipped: false,
       );
       final seg = ScrollSegmentFactory.fromPayload(0, payload);
       expect(seg.isRich, isFalse);
@@ -52,6 +53,7 @@ void main() {
         content: 'Title\n\nBody',
         richParagraphs: richParagraphs,
         richRootSpan: const TextSpan(text: 'Title\n\nBody'),
+        epubRichSkipped: false,
       );
       final seg = ScrollSegmentFactory.fromPayload(1, payload);
       expect(seg.isRich, isTrue);
@@ -73,6 +75,7 @@ void main() {
           ),
         ],
         richRootSpan: null as TextSpan?,
+        epubRichSkipped: false,
       );
       final seg = ScrollSegmentFactory.fromPayload(0, payload);
       expect(seg.hasImages, isTrue);

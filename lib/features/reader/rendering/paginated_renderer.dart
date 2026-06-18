@@ -23,7 +23,6 @@ class PaginatedModeRenderer extends StatelessWidget {
   final ReadingMode readingMode;
   final void Function(Note)? onHighlightTap;
   final void Function(String text, int start, int end)? onSelectionChanged;
-  final WritingDirection writingDirection;
   final void Function(Offset?)? onSelectionGlobalPosition;
   final ValueChanged<int>? onPageChanged;
   final ValueChanged<int>? onPositionChanged;
@@ -51,7 +50,6 @@ class PaginatedModeRenderer extends StatelessWidget {
     this.hasPreviousChapter = false,
     this.onReachEnd,
     this.onReachStart,
-    this.writingDirection = WritingDirection.horizontal,
   });
 
   void _reportSelectionPosition(BuildContext context, TextSelection sel) {
@@ -160,77 +158,6 @@ class PaginatedModeRenderer extends StatelessWidget {
     );
   }
 
-  Widget _buildPageContentVertical(
-    BuildContext context,
-    String pageContent,
-    TextSpan paintedSpan,
-    TextStyle textStyle,
-    StrutStyle strutStyle,
-    int startOffset,
-  ) {
-    final charWidth = config.fontSize * 1.2;
-    final paragraphs = pageContent
-        .split('\n')
-        .where((p) => p.trim().isNotEmpty)
-        .toList();
-
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final vPad = ReaderRenderConfig.pageContentVerticalPadding;
-          return Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: config.pageMargin,
-              vertical: vPad,
-            ),
-            child: SizedBox(
-              height: (constraints.maxHeight - 2 * vPad)
-                  .clamp(0.0, constraints.maxHeight),
-              child: ClipRect(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  physics: const NeverScrollableScrollPhysics(),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: paragraphs.map((para) {
-                      final painted = HighlightPainter.paintPlain(
-                        para,
-                        textStyle,
-                        highlights,
-                        onHighlightTap: onHighlightTap,
-                        vocabularyWords: config.effectiveVocabWords,
-                        contentStart: startOffset,
-                      );
-                      return Padding(
-                        padding: EdgeInsets.only(
-                          left: paragraphs.length > 1 ? 8 : 0,
-                        ),
-                        child: SizedBox(
-                          width: charWidth,
-                          child: SelectableText.rich(
-                            painted,
-                            style: textStyle,
-                            strutStyle: strutStyle,
-                            textAlign: TextAlign.start,
-                            onSelectionChanged: (sel, cause) =>
-                                _onSelection(sel, para, startOffset, context),
-                            contextMenuBuilder: (_, _) =>
-                                const SizedBox.shrink(),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
   Widget _constrainedHorizontalPage(
     BuildContext context,
     Widget child,
@@ -260,7 +187,6 @@ class PaginatedModeRenderer extends StatelessWidget {
     );
   }
 
-  /// 根据书写方向渲染页面内容（水平或竖排）
   Widget _renderPageContent(
     BuildContext context,
     String pageContent,
@@ -269,16 +195,6 @@ class PaginatedModeRenderer extends StatelessWidget {
     StrutStyle strutStyle,
     int startOffset,
   ) {
-    if (writingDirection == WritingDirection.vertical) {
-      return _buildPageContentVertical(
-        context,
-        pageContent,
-        paintedSpan,
-        textStyle,
-        strutStyle,
-        startOffset,
-      );
-    }
     return RepaintBoundary(
       child: _constrainedHorizontalPage(
         context,
@@ -298,8 +214,6 @@ class PaginatedModeRenderer extends StatelessWidget {
     final staging = dataSource.nextChapterStaging;
     if (staging != null && staging.chapterIndex == chapterId + 1) {
       Logging.debug('[Renderer] _buildCrossChapterPage HIT: chapter=${staging.chapterIndex} virtualIndex=$virtualIndex');
-      const stagingPageIndex = 0;
-      dataSource.warmPageCache(stagingPageIndex, staging.firstPageContent);
       final startOffset = staging.descriptors.isNotEmpty
           ? staging.descriptors[0].startOffset
           : 0;
@@ -315,29 +229,32 @@ class PaginatedModeRenderer extends StatelessWidget {
     String pageContent,
     int startOffset,
   ) {
-    final textStyle = config.buildTextStyle();
-    final strutStyle = config.buildStrutStyle();
-    final paintedSpan = HighlightPainter.paintPlain(
-      pageContent,
-      textStyle,
-      highlights,
+    return buildStagingPageContent(
+      context: context,
+      pageContent: pageContent,
+      startOffset: startOffset,
+      config: config,
+      highlights: highlights,
       onHighlightTap: onHighlightTap,
-      vocabularyWords: config.effectiveVocabWords,
-      contentStart: startOffset,
-    );
-    return _renderPageContent(
-      context,
-      pageContent,
-      paintedSpan,
-      textStyle,
-      strutStyle,
-      startOffset,
+      onSelectionChanged: onSelectionChanged,
+      onSelectionGlobalPosition: onSelectionGlobalPosition,
     );
   }
 
   Widget _buildPreviousChapterPage(BuildContext context) {
-    // Phase 3 增加 prevChapterStaging 渲染
-    return Container(color: config.backgroundColor);
+    final staging = dataSource.prevChapterStaging;
+    if (staging != null && staging.chapterIndex == chapterId - 1) {
+      final lastIdx = staging.descriptors.length - 1;
+      final startOffset = lastIdx >= 0
+          ? staging.descriptors[lastIdx].startOffset
+          : 0;
+      return _buildStagingPageContent(
+        context,
+        staging.firstPageContent,
+        startOffset,
+      );
+    }
+    return const Center(child: CircularProgressIndicator());
   }
 
   void _handlePageChanged(List<PageDescriptor> descriptors, int index) {
@@ -439,66 +356,66 @@ void _handlePageContentSelection(
   _reportSelectionPositionStandalone(context, onSelectionGlobalPosition);
 }
 
-Widget _buildPageContentVerticalStandalone(
-  BuildContext context,
-  String pageContent,
-  TextStyle textStyle,
-  StrutStyle strutStyle,
-  int startOffset,
-  ReaderRenderConfig config,
-  List<Note> highlights,
-  void Function(Note)? onHighlightTap,
-  void Function(String text, int start, int end)? onSelectionChanged,
-  void Function(Offset?)? onSelectionGlobalPosition,
-) {
-  final charWidth = config.fontSize * 1.2;
-  final paragraphs = pageContent
-      .split('\n')
-      .where((p) => p.trim().isNotEmpty)
-      .toList();
+/// 跨章 staging 页：直接渲染预加载文本，不走 session 页索引。
+/// 供 [PaginatedModeRenderer] 与 [PageCurlWidget] 共用。
+Widget buildStagingPageContent({
+  required BuildContext context,
+  required String pageContent,
+  required int startOffset,
+  required ReaderRenderConfig config,
+  required List<Note> highlights,
+  required void Function(Note)? onHighlightTap,
+  required void Function(String text, int start, int end)? onSelectionChanged,
+  required void Function(Offset?)? onSelectionGlobalPosition,
+}) {
+  final textStyle = config.buildTextStyle();
+  final strutStyle = config.buildStrutStyle();
+  final paintedSpan = HighlightPainter.paintPlain(
+    pageContent,
+    textStyle,
+    highlights,
+    onHighlightTap: onHighlightTap,
+    vocabularyWords: config.effectiveVocabWords,
+    contentStart: startOffset,
+  );
 
-  return Directionality(
-    textDirection: TextDirection.rtl,
-    child: SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: EdgeInsets.symmetric(
-        horizontal: config.pageMargin,
-        vertical: 20,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: paragraphs.map((para) {
-          final painted = HighlightPainter.paintPlain(
-            para,
-            textStyle,
-            highlights,
-            onHighlightTap: onHighlightTap,
-            vocabularyWords: config.effectiveVocabWords,
-            contentStart: startOffset,
-          );
-          return Padding(
-            padding: EdgeInsets.only(left: paragraphs.length > 1 ? 8 : 0),
-            child: SizedBox(
-              width: charWidth,
-              child: SelectableText.rich(
-                painted,
-                style: textStyle,
-                strutStyle: strutStyle,
-                textAlign: TextAlign.start,
-                onSelectionChanged: (sel, cause) => _handlePageContentSelection(
-                  sel,
-                  para,
-                  startOffset,
-                  context,
-                  onSelectionChanged,
-                  onSelectionGlobalPosition,
+  return RepaintBoundary(
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        final vPad = ReaderRenderConfig.pageContentVerticalPadding;
+        final bodyHeight =
+            (constraints.maxHeight - 2 * vPad).clamp(0.0, constraints.maxHeight);
+        return Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: config.pageMargin,
+            vertical: vPad,
+          ),
+          child: SizedBox(
+            height: bodyHeight,
+            width: constraints.maxWidth,
+            child: ClipRect(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: SelectableText.rich(
+                  paintedSpan,
+                  strutStyle: strutStyle,
+                  textAlign: config.textAlign,
+                  onSelectionChanged: (sel, cause) =>
+                      _handlePageContentSelection(
+                    sel,
+                    pageContent,
+                    startOffset,
+                    context,
+                    onSelectionChanged,
+                    onSelectionGlobalPosition,
+                  ),
+                  contextMenuBuilder: (_, _) => const SizedBox.shrink(),
                 ),
-                contextMenuBuilder: (_, _) => const SizedBox.shrink(),
               ),
             ),
-          );
-        }).toList(),
-      ),
+          ),
+        );
+      },
     ),
   );
 }
@@ -512,7 +429,6 @@ Widget buildSinglePageContent({
   required ReaderRenderDataSource dataSource,
   required ReaderRenderConfig config,
   required List<Note> highlights,
-  required WritingDirection writingDirection,
   required void Function(Note)? onHighlightTap,
   required void Function(String text, int start, int end)? onSelectionChanged,
   required void Function(Offset?)? onSelectionGlobalPosition,
@@ -536,21 +452,6 @@ Widget buildSinglePageContent({
     vocabularyWords: config.effectiveVocabWords,
     contentStart: startOffset,
   );
-
-  if (writingDirection == WritingDirection.vertical) {
-    return _buildPageContentVerticalStandalone(
-      context,
-      pageContent,
-      textStyle,
-      strutStyle,
-      startOffset,
-      config,
-      highlights,
-      onHighlightTap,
-      onSelectionChanged,
-      onSelectionGlobalPosition,
-    );
-  }
 
   return RepaintBoundary(
     child: LayoutBuilder(

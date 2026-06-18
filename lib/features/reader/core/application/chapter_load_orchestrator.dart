@@ -11,6 +11,7 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_load_requ
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
+import 'package:zephyr_reader/features/reader/core/domain/reader_notice.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:signals_flutter/signals_flutter.dart';
@@ -309,6 +310,17 @@ class ChapterLoadOrchestrator {
       _pageIndex.value = 0;
       _error.value = null;
       _isLoading.value = false;
+      if (request.readingMode == ReadingMode.scroll) {
+        _chapterVM.resetScrollDocument(
+          content,
+          request.chapterIndex,
+          richParagraphs: _contentRepo.currentRichParagraphs,
+          richRootSpan: _contentRepo.currentRichContent,
+        );
+      }
+      if (_contentRepo.consumeEpubRichSkippedNotice()) {
+        _chapterVM.readerNotice.value = ReaderNotice.epubRichSkipped;
+      }
     });
 
     _setPhase(gen, ChapterLoadPhase.completed);
@@ -346,19 +358,23 @@ class ChapterLoadOrchestrator {
 
     final descriptors = _contentRepo.descriptors;
     if (descriptors != null && descriptors.isNotEmpty) {
-      final charOffset = request.initialCharOffset.clamp(0, firstText.length);
-      final resolvedPage = PaginationEngine.resolvePageIndexForOffset(
-        descriptors,
-        charOffset,
-      );
+      final fullOffset = request.initialCharOffset;
+      final offsetBeyondPartial = fullOffset > firstText.length;
+      final charOffsetForPartial = fullOffset.clamp(0, firstText.length);
+      final resolvedPage = offsetBeyondPartial
+          ? 0
+          : PaginationEngine.resolvePageIndexForOffset(
+              descriptors,
+              charOffsetForPartial,
+            );
 
       _applyIfCurrent(gen, () {
         _chapterVM.chapterContent.value = AsyncState.data(firstText);
         _totalPages.value = quickResult.totalPages;
         _chapterVM.chapterIndex.value = request.chapterIndex;
-        _chapterVM.currentCharOffset.value = charOffset;
+        _chapterVM.currentCharOffset.value = charOffsetForPartial;
         _pageIndex.value = resolvedPage;
-        _chapterVM.pendingJumpCharOffset.value = charOffset;
+        _chapterVM.pendingJumpCharOffset.value = fullOffset;
         _error.value = null;
         _isLoading.value = false;
       });
@@ -393,21 +409,28 @@ class ChapterLoadOrchestrator {
     // 按 request.initialCharOffset + 新 descriptors 重算 pageIndex
     // （request 是统一入口，currentCharOffset 可能是 stale 值）
     final descriptors = _contentRepo.descriptors;
-    final charOffset = request.initialCharOffset;
+    final fullOffset = request.initialCharOffset;
+    final partialEnd = descriptors?.isNotEmpty == true
+        ? descriptors!.last.endOffset
+        : 0;
+    final offsetBeyondPartial =
+        quickResult.isPartial && fullOffset > partialEnd;
     int resolvedPage = _pageIndex.value;
-    if (descriptors != null && descriptors.isNotEmpty) {
+    if (!offsetBeyondPartial && descriptors != null && descriptors.isNotEmpty) {
       final newResolved = PaginationEngine.resolvePageIndexForOffset(
         descriptors,
-        charOffset,
+        fullOffset,
       );
       if (newResolved >= 0) resolvedPage = newResolved;
+    } else if (offsetBeyondPartial) {
+      resolvedPage = 0;
     }
 
     _applyIfCurrent(gen, () {
       _totalPages.value = quickResult.totalPages;
       _chapterVM.chapterIndex.value = request.chapterIndex;
       _pageIndex.value = resolvedPage;
-      _chapterVM.pendingJumpCharOffset.value = charOffset;
+      _chapterVM.pendingJumpCharOffset.value = fullOffset;
       _error.value = null;
       _isLoading.value = false;
     });
@@ -564,6 +587,9 @@ class ChapterLoadOrchestrator {
       _chapterVM.pendingJumpCharOffset.value =
           _chapterVM.currentCharOffset.value;
       _error.value = null;
+      if (_contentRepo.consumeEpubRichSkippedNotice()) {
+        _chapterVM.readerNotice.value = ReaderNotice.epubRichSkipped;
+      }
     });
   }
 

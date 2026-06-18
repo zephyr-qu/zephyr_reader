@@ -60,6 +60,12 @@ abstract class ReaderRepositoryInterface {
   /// 预加载章节内容到缓存。
   Future<void> preloadChapter(String bookId, int chapterId);
 
+  /// 同步 UI 排版参数到章节内容仓库（EPUB 富文本 / staging 共用）。
+  void syncChapterTypesetLayout(PaginationParams params);
+
+  /// 取出并清除「EPUB 富文本已降级」标记。
+  bool consumeEpubRichSkippedNotice();
+
   // ==================== 分页排版 ====================
 
   /// Dart 估算分页（毫秒级，无需 TextPainter）。

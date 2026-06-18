@@ -21,6 +21,8 @@ class _MockDataSource extends Mock implements ReaderRenderDataSource {}
 
 void _stubDataSource(_MockDataSource dataSource) {
   when(() => dataSource.preloadGeneration).thenReturn(ValueNotifier<int>(0));
+  when(() => dataSource.prevChapterStaging).thenReturn(null);
+  when(() => dataSource.nextChapterStaging).thenReturn(null);
 }
 
 ReaderRenderConfig _config({
@@ -57,7 +59,7 @@ void main() {
   // ========================
 
   group('buildSinglePageContent', () {
-    testWidgets('dataSource 返回 null 时渲染 Container 占位', (tester) async {
+    testWidgets('dataSource 返回 null 时渲染加载指示器', (tester) async {
       final dataSource = _MockDataSource();
       when(() => dataSource.pageContent(any())).thenReturn(null);
 
@@ -71,7 +73,6 @@ void main() {
               dataSource: dataSource,
               config: _config(),
               highlights: const [],
-              writingDirection: WritingDirection.horizontal,
               onHighlightTap: null,
               onSelectionChanged: null,
               onSelectionGlobalPosition: null,
@@ -80,7 +81,7 @@ void main() {
         ),
       );
 
-      expect(find.byType(Container), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
 
     testWidgets('正常页面内容渲染 SelectableText.rich', (tester) async {
@@ -97,7 +98,6 @@ void main() {
               dataSource: dataSource,
               config: _config(),
               highlights: const [],
-              writingDirection: WritingDirection.horizontal,
               onHighlightTap: null,
               onSelectionChanged: null,
               onSelectionGlobalPosition: null,
@@ -107,35 +107,6 @@ void main() {
       );
 
       expect(find.byType(SelectableText), findsOneWidget);
-    });
-
-    testWidgets('竖排书写方向走 Directionality.rtl 分支', (tester) async {
-      final dataSource = _MockDataSource();
-      when(() => dataSource.pageContent(0)).thenReturn('竖排\n测试');
-
-      await tester.pumpWidget(
-        _buildInApp(
-          Builder(
-            builder: (context) => buildSinglePageContent(
-              context: context,
-              pageIndex: 0,
-              startOffset: 0,
-              dataSource: dataSource,
-              config: _config(),
-              highlights: const [],
-              writingDirection: WritingDirection.vertical,
-              onHighlightTap: null,
-              onSelectionChanged: null,
-              onSelectionGlobalPosition: null,
-            ),
-          ),
-        ),
-      );
-
-      final directionalities = tester.widgetList<Directionality>(
-        find.byType(Directionality),
-      );
-      expect(directionalities.last.textDirection, TextDirection.rtl);
     });
 
     testWidgets('空内容不崩溃', (tester) async {
@@ -152,7 +123,6 @@ void main() {
               dataSource: dataSource,
               config: _config(),
               highlights: const [],
-              writingDirection: WritingDirection.horizontal,
               onHighlightTap: null,
               onSelectionChanged: null,
               onSelectionGlobalPosition: null,
@@ -243,6 +213,7 @@ void main() {
 
     testWidgets('无 descriptors 走 fallback 分页', (tester) async {
       final dataSource = _MockDataSource();
+      _stubDataSource(dataSource);
       when(() => dataSource.descriptors).thenReturn(null);
 
       await tester.pumpWidget(
@@ -261,8 +232,8 @@ void main() {
         ),
       );
 
-      expect(find.byType(PageView), findsOneWidget);
-      expect(find.byType(SelectableText), findsOneWidget);
+      expect(find.byType(PageView), findsNothing);
+      expect(find.text('分页数据加载失败'), findsOneWidget);
     });
   });
 }

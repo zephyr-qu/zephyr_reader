@@ -20,7 +20,6 @@ Golden Test (截图对比)    → 未引入，ROI 不高暂不纳入
 |------|--------|------|
 | `repo.getPageContent` 返回 null | 返回 `SizedBox` 占位（width:inf, height:600） | ✅ |
 | 正常页面内容 | 渲染 `SelectableText.rich` | ✅ |
-| `writingDirection == WritingDirection.vertical` | 走竖排分支（`Directionality.rtl`） | ✅ |
 | 空内容 | 不崩溃，渲染 `SelectableText.rich` | ✅ |
 
 ### 1.2 PageCurlWidget + ReaderContent 集成 ✅ 已实现

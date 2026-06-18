@@ -116,7 +116,7 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i1020.TtsService>(() => _i1020.TtsService());
     gh.lazySingleton<_i1.SearchViewModel>(() => _i1.SearchViewModel());
     gh.factory<_i291.ChapterContentRepository>(
-      () => _i109.RustChapterContentRepository(),
+      () => _i109.RustChapterContentRepository(gh<_i402.ReaderConfig>()),
     );
     gh.factory<_i768.ProgressRepository>(() => _i433.RustProgressRepository());
     gh.factoryParam<

@@ -19,6 +19,8 @@ abstract class ReaderRenderDataSource {
 
   NextChapterStaging? get nextChapterStaging;
 
+  NextChapterStaging? get prevChapterStaging;
+
   /// Ensure the window around [centerPage] is cached and trigger widget rebuild.
   void ensureWindow(int centerPage);
 }
