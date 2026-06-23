@@ -1,10 +1,13 @@
 //! EPUB 解析模块
 //! 负责 EPUB 文件的解压、结构解析、文本提取、按需内容提供
 
+pub mod content_ir;
 pub mod parse;
 pub mod provider;
 pub mod toc;
 pub mod unzip;
+
+pub use content_ir::{get_chapter_content_ir, html_to_chapter_ir};
 
 use std::path::Path;
 
