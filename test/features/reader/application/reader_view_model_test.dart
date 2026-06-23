@@ -21,6 +21,7 @@ import 'package:zephyr_reader/features/reader/core/application/reading_session_m
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/features/reader/translation/application/translation_config.dart';
 import 'package:zephyr_reader/features/reader/translation/application/translation_view_model.dart';
 import 'package:zephyr_reader/features/reader/translation/domain/translation_service.dart';
@@ -162,13 +163,6 @@ class _TestConfig implements ReaderConfig {
     debounce: Duration.zero,
   );
   @override
-  late final enableHyphenation = persistedBool(
-    prefs,
-    '',
-    false,
-    debounce: Duration.zero,
-  );
-  @override
   late final language = persistedEnum<LanguageType>(
     prefs,
     '',
@@ -194,6 +188,17 @@ class _TestConfig implements ReaderConfig {
     (name) => TextAlign.values.firstWhere(
       (e) => e.name == name,
       orElse: () => TextAlign.start,
+    ),
+    debounce: Duration.zero,
+  );
+  @override
+  late final paginationSkin = persistedEnum<PaginationSkin>(
+    prefs,
+    '',
+    PaginationSkin.slide,
+    (name) => PaginationSkin.values.firstWhere(
+      (e) => e.name == name,
+      orElse: () => PaginationSkin.slide,
     ),
     debounce: Duration.zero,
   );
@@ -280,8 +285,10 @@ void main() {
       vm.setReadingMode(ReadingMode.scroll);
       expect(vm.readingMode.value, equals(ReadingMode.scroll));
 
-      vm.setReadingMode(ReadingMode.pageTurn);
-      expect(vm.readingMode.value, equals(ReadingMode.pageTurn));
+      vm.setReadingMode(ReadingMode.pagination);
+      vm.config.paginationSkin.value = PaginationSkin.curl;
+      expect(vm.readingMode.value, equals(ReadingMode.pagination));
+      expect(vm.config.paginationSkin.value, equals(PaginationSkin.curl));
     });
   });
 }

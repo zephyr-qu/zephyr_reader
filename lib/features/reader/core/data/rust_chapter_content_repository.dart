@@ -64,19 +64,6 @@ class RustChapterContentRepository implements ChapterContentRepository {
   }
 
   @override
-  Future<String> loadFirstSpine(String bookId, int chapterId) async {
-    final book = await _getBook(bookId);
-    if (book.filePath.isEmpty) {
-      throw Exception('Book not found: $bookId');
-    }
-    final result = await core_api.getChapterFirstSpineOnly(
-      filePath: book.filePath,
-      chapterIndex: chapterId,
-    );
-    return result.text;
-  }
-
-  @override
   Future<String> loadContent(
     String bookId,
     int chapterId, {

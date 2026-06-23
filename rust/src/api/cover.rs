@@ -1,6 +1,6 @@
 //! 封面提取 API
 //!
-//! 提供统一的封面提取入口，支持 EPUB、PDF 等多种格式。
+//! 提供统一的封面提取入口（当前主链：EPUB、TXT）。
 
 use crate::domain::AppError;
 use crate::parser::get_cover_registry;

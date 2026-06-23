@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/rendering/page_curl_widget.dart';
@@ -64,7 +65,8 @@ Widget Function(BuildContext, PageController) _pageTurnPaginatedBuilder({
     pageIndex: pageIndex,
     content: content,
     highlights: const [],
-    readingMode: ReadingMode.pageTurn,
+    readingMode: ReadingMode.pagination,
+    paginationSkin: PaginationSkin.curl,
     hasNextChapter: hasNextChapter,
     hasPreviousChapter: hasPreviousChapter,
   );
@@ -73,8 +75,8 @@ Widget Function(BuildContext, PageController) _pageTurnPaginatedBuilder({
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('ReaderContent — readingMode == pageTurn', () {
-    testWidgets('pageTurn 模式渲染 PageCurlWidget 而非 AnimatedSwitcher', (
+  group('ReaderContent — pagination curl skin', () {
+    testWidgets('curl 皮肤渲染 PageCurlWidget 而非 AnimatedSwitcher', (
       tester,
     ) async {
       final dataSource = _MockDataSource();
@@ -103,7 +105,8 @@ void main() {
             pageIndex: 0,
             totalPages: 1,
             renderConfig: _testRenderConfig,
-            readingMode: ReadingMode.pageTurn,
+            readingMode: ReadingMode.pagination,
+    paginationSkin: PaginationSkin.curl,
             content: 'Page content text.',
             isLoading: false,
             highlights: const [],
@@ -151,7 +154,8 @@ void main() {
               showVocabularyMark: false,
               vocabularyWords: {},
             ),
-            readingMode: ReadingMode.pageTurn,
+            readingMode: ReadingMode.pagination,
+    paginationSkin: PaginationSkin.curl,
             content: '',
             isLoading: true,
             highlights: const [],
@@ -213,7 +217,8 @@ void main() {
               pageIndex: 0,
               totalPages: 1,
               renderConfig: _testRenderConfig,
-              readingMode: ReadingMode.pageTurn,
+              readingMode: ReadingMode.pagination,
+    paginationSkin: PaginationSkin.curl,
               content: 'Page content text.',
               isLoading: false,
               hasNextChapter: true,
@@ -283,7 +288,8 @@ void main() {
               pageIndex: 0,
               totalPages: 2,
               renderConfig: _testRenderConfig,
-              readingMode: ReadingMode.pageTurn,
+              readingMode: ReadingMode.pagination,
+    paginationSkin: PaginationSkin.curl,
               content: 'Current chapter page.',
               isLoading: false,
               hasPreviousChapter: true,
@@ -456,7 +462,8 @@ void main() {
             pageIndex: 0,
             totalPages: 1,
             renderConfig: _testRenderConfig,
-            readingMode: ReadingMode.pageTurn,
+            readingMode: ReadingMode.pagination,
+    paginationSkin: PaginationSkin.curl,
             content: 'Content.',
             isLoading: false,
             highlights: const [],

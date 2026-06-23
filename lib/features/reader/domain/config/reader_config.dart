@@ -5,20 +5,19 @@ import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_typography_defaults.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 
 /// 阅读器翻页点击区域布局（右手/左手习惯）
 enum TapLayout { rightHanded, leftHanded }
 
-/// 阅读模式 — 上下滚动、仿真翻页、左右分页、双语对照
+/// 阅读模式 — 上下滚动、左右分页、双语对照。
+/// 卷曲翻页见 [PaginationSkin]（ADR-002，非独立模式）。
 enum ReadingMode {
   /// 上下滚动
   scroll,
 
-  /// 仿真翻页
-  pageTurn,
-
-  /// 左右分页
+  /// 左右分页（配合 [PaginationSkin]）
   pagination,
 
   /// 双语对照
@@ -187,6 +186,18 @@ class ReaderConfig {
     debounce: Duration.zero,
   );
 
+  /// pagination 翻页动画：滑动 / 卷曲（ADR-002）
+  late final paginationSkin = persistedEnum(
+    prefs,
+    SettingsKeys.readerPaginationSkin,
+    PaginationSkin.slide,
+    (name) => PaginationSkin.values.firstWhere(
+      (e) => e.name == name,
+      orElse: () => PaginationSkin.slide,
+    ),
+    debounce: Duration.zero,
+  );
+
   /// 翻页点击区域布局
   late final tapLayout = persistedEnum(
     prefs,
@@ -250,6 +261,7 @@ class ReaderConfig {
     tapLayout.dispose();
     followSystemFontScale.dispose();
     textAlign.dispose();
+    paginationSkin.dispose();
     brightnessOverlay.dispose();
   }
 }

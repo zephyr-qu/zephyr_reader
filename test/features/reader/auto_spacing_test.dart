@@ -28,7 +28,6 @@ TypesetConfig _makeConfig({
     firstLineIndent: 2,
     punctuationSqueeze: true,
     language: LanguageType.mixed,
-    enableHyphenation: false,
     autoSpaceRatio: 0.5,
     fontFamily: 'Noto Sans SC',
     calibration: null,

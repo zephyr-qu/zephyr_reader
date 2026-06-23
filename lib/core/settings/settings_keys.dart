@@ -87,6 +87,9 @@ abstract final class SettingsKeys {
   /// 文字对齐方式
   static const readerTextAlign = 'reader_text_align';
 
+  /// pagination 翻页皮肤（slide / curl）
+  static const readerPaginationSkin = 'reader_pagination_skin';
+
   // ==================== 书架 ====================
 
   /// 显示阅读进度

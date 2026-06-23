@@ -16,6 +16,7 @@ import 'package:zephyr_reader/features/reader/core/domain/reader_notice.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:signals_flutter/signals_flutter.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 章节加载显式状态机：分阶段执行 [ChapterLoadRequest] 并防止竞态写信号。
@@ -114,7 +115,7 @@ class ChapterLoadOrchestrator {
         return;
       }
 
-      final contentFuture = _contentRepo.loadChapterContent(
+      final chapterPlainFuture = _contentRepo.loadChapterContent(
         _chapterVM.bookId.value,
         request.chapterIndex,
         readingMode: request.readingMode,
@@ -144,7 +145,7 @@ class ChapterLoadOrchestrator {
       );
 
       _setPhase(gen, ChapterLoadPhase.awaitingConcurrent);
-      final results = await Future.wait([contentFuture, calibFuture]);
+      final results = await Future.wait([chapterPlainFuture, calibFuture]);
       if (_isStale(gen)) {
         _setPhase(gen, ChapterLoadPhase.cancelled);
         return;
@@ -609,8 +610,6 @@ class ChapterLoadOrchestrator {
 
   /// 判断阅读模式是否需要分页 pipeline。
   ///
-  /// 仅 [ReadingMode.pagination] 和 [ReadingMode.pageTurn] 需要 Rust
-  /// 分页链路；scroll/bilingual 直接渲染全文，跳过所有 FFI 分页调用。
-  static bool _needsPagination(ReadingMode mode) =>
-      mode == ReadingMode.pagination || mode == ReadingMode.pageTurn;
+  /// 仅 [ReadingMode.pagination] 需要 Rust 分页链路。
+  static bool _needsPagination(ReadingMode mode) => needsRustPagination(mode);
 }

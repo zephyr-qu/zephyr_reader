@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'highlight_painter.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -23,6 +24,7 @@ class PaginatedModeRenderer extends StatelessWidget {
   final String content;
   final List<Note> highlights;
   final ReadingMode readingMode;
+  final PaginationSkin paginationSkin;
   final void Function(Note)? onHighlightTap;
   final void Function(String text, int start, int end)? onSelectionChanged;
   final void Function(Offset?)? onSelectionGlobalPosition;
@@ -43,6 +45,7 @@ class PaginatedModeRenderer extends StatelessWidget {
     required this.content,
     required this.highlights,
     required this.readingMode,
+    this.paginationSkin = PaginationSkin.slide,
     this.onHighlightTap,
     this.onSelectionChanged,
     this.onSelectionGlobalPosition,
@@ -53,34 +56,6 @@ class PaginatedModeRenderer extends StatelessWidget {
     this.onReachEnd,
     this.onReachStart,
   });
-
-  void _reportSelectionPosition(BuildContext context, TextSelection sel) {
-    if (!sel.isValid || sel.isCollapsed) {
-      onSelectionGlobalPosition?.call(null);
-      return;
-    }
-    final box = findRenderBox(context);
-    if (box == null || !box.hasSize || !box.attached) return;
-    onSelectionGlobalPosition?.call(box.localToGlobal(Offset.zero));
-  }
-
-  void _onSelection(
-    TextSelection sel,
-    String paragraphText,
-    int offset,
-    BuildContext context,
-  ) {
-    if (!sel.isValid || sel.isCollapsed) {
-      onSelectionChanged?.call('', 0, 0);
-      return;
-    }
-    final start = sel.start;
-    final end = sel.end;
-    final text = paragraphText.substring(start, end);
-    onSelectionChanged?.call(text, offset + start, offset + end);
-    _reportSelectionPosition(context, sel);
-  }
-
 
   /// Fallback: 无分页数据时显示错误提示，而非静默近似分页。
   Widget _buildFallbackPagination(BuildContext context) {
@@ -168,83 +143,16 @@ class PaginatedModeRenderer extends StatelessWidget {
     int pageIndex,
     int startOffset,
   ) {
-    final pageContent = dataSource.pageContent(pageIndex);
-    if (pageContent == null) {
-      Logging.info('[Renderer] _buildPageContent MISS page=$pageIndex → spinner + ensureWindow');
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        dataSource.ensureWindow(pageIndex);
-      });
-      return const Center(child: CircularProgressIndicator());
-    }
-    final textStyle = config.buildTextStyle();
-    final strutStyle = config.buildStrutStyle();
-    final paintedSpan = HighlightPainter.paintPlain(
-      pageContent,
-      textStyle,
-      highlights,
+    return buildSinglePageContent(
+      context: context,
+      pageIndex: pageIndex,
+      startOffset: startOffset,
+      dataSource: dataSource,
+      config: config,
+      highlights: highlights,
       onHighlightTap: onHighlightTap,
-      vocabularyWords: config.effectiveVocabWords,
-      contentStart: startOffset,
-    );
-    return _renderPageContent(
-      context,
-      pageContent,
-      paintedSpan,
-      textStyle,
-      strutStyle,
-      startOffset,
-    );
-  }
-
-  Widget _constrainedHorizontalPage(
-    BuildContext context,
-    Widget child,
-  ) {
-    final vPad = ReaderRenderConfig.pageContentVerticalPadding;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final bodyHeight =
-            (constraints.maxHeight - 2 * vPad).clamp(0.0, constraints.maxHeight);
-        return Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: config.pageMargin,
-            vertical: vPad,
-          ),
-          child: SizedBox(
-            height: bodyHeight,
-            width: constraints.maxWidth,
-            child: ClipRect(
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: child,
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _renderPageContent(
-    BuildContext context,
-    String pageContent,
-    TextSpan paintedSpan,
-    TextStyle textStyle,
-    StrutStyle strutStyle,
-    int startOffset,
-  ) {
-    return RepaintBoundary(
-      child: _constrainedHorizontalPage(
-        context,
-        SelectableText.rich(
-          paintedSpan,
-          strutStyle: strutStyle,
-          textAlign: config.textAlign,
-          onSelectionChanged: (sel, cause) =>
-              _onSelection(sel, pageContent, startOffset, context),
-          contextMenuBuilder: (_, _) => const SizedBox.shrink(),
-        ),
-      ),
+      onSelectionChanged: onSelectionChanged,
+      onSelectionGlobalPosition: onSelectionGlobalPosition,
     );
   }
 
@@ -327,7 +235,7 @@ class PaginatedModeRenderer extends StatelessWidget {
   }
   @override
   Widget build(BuildContext context) {
-    if (readingMode == ReadingMode.pageTurn) {
+    if (usesPageCurlSkin(mode: readingMode, skin: paginationSkin)) {
       return _buildPageTurnShell(context);
     }
     final descriptors = dataSource.descriptors;

@@ -3,6 +3,7 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/features/reader/domain/service/custom_font_service.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/features/reader/settings/settings_widgets.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
@@ -87,9 +88,14 @@ class TypesettingPanel extends StatelessWidget {
   }
 
   String _readingModeLabel(AppLocalizations l10n) {
+    if (usesPageCurlSkin(
+      mode: readingMode,
+      skin: config.paginationSkin.value,
+    )) {
+      return l10n.pageTurnMode;
+    }
     return switch (readingMode) {
       ReadingMode.scroll => l10n.scrollMode,
-      ReadingMode.pageTurn => l10n.pageTurnMode,
       ReadingMode.pagination => l10n.paginationMode,
       ReadingMode.bilingual => l10n.bilingualMode,
     };
@@ -230,18 +236,10 @@ class TypesettingPanel extends StatelessWidget {
   ) {
     final accentColor = readerTheme.accentColor;
     final modes = [
-      (ReadingMode.scroll, l10n.scrollMode, PhosphorIconsRegular.arrowsDownUp),
-      (ReadingMode.pageTurn, l10n.pageTurnMode, PhosphorIconsRegular.book),
-      (
-        ReadingMode.pagination,
-        l10n.paginationMode,
-        PhosphorIconsFill.bookOpenText,
-      ),
-      (
-        ReadingMode.bilingual,
-        l10n.bilingualMode,
-        PhosphorIconsRegular.translate,
-      ),
+      (ReadingMode.scroll, PaginationSkin.slide, l10n.scrollMode, PhosphorIconsRegular.arrowsDownUp),
+      (ReadingMode.pagination, PaginationSkin.curl, l10n.pageTurnMode, PhosphorIconsRegular.book),
+      (ReadingMode.pagination, PaginationSkin.slide, l10n.paginationMode, PhosphorIconsFill.bookOpenText),
+      (ReadingMode.bilingual, PaginationSkin.slide, l10n.bilingualMode, PhosphorIconsRegular.translate),
     ];
 
     showModalBottomSheet<void>(
@@ -265,17 +263,20 @@ class TypesettingPanel extends StatelessWidget {
               child: ListView(
                 shrinkWrap: true,
                 children: modes.map((m) {
-                  final isSelected = readingMode == m.$1;
+                  final isSelected = readingMode == m.$1 &&
+                      (m.$1 != ReadingMode.pagination ||
+                          config.paginationSkin.value == m.$2);
                   return ListTile(
-                    leading: Icon(m.$3, color: readerTheme.textColor),
+                    leading: Icon(m.$4, color: readerTheme.textColor),
                     title: Text(
-                      m.$2,
+                      m.$3,
                       style: TextStyle(color: readerTheme.textColor),
                     ),
                     trailing: isSelected
                         ? Icon(Icons.check, color: accentColor)
                         : null,
                     onTap: () {
+                      config.paginationSkin.value = m.$2;
                       onReadingModeChanged(m.$1);
                       Navigator.pop(context);
                     },

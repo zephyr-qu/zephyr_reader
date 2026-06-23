@@ -10,6 +10,7 @@ import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_phase.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
@@ -152,14 +153,6 @@ class _MockConfig implements ReaderConfig {
   );
 
   @override
-  late final enableHyphenation = persistedBool(
-    prefs,
-    '',
-    false,
-    debounce: Duration.zero,
-  );
-
-  @override
   late final language = persistedEnum<LanguageType>(
     prefs,
     '',
@@ -213,6 +206,18 @@ class _MockConfig implements ReaderConfig {
   );
 
   @override
+  late final paginationSkin = persistedEnum<PaginationSkin>(
+    prefs,
+    '',
+    PaginationSkin.slide,
+    (name) => PaginationSkin.values.firstWhere(
+      (e) => e.name == name,
+      orElse: () => PaginationSkin.slide,
+    ),
+    debounce: Duration.zero,
+  );
+
+  @override
   Future<void> resetToDefault() async {
     theme.value = ReaderTheme.light;
     fontSize.value = 16.0;
@@ -227,7 +232,6 @@ class _MockConfig implements ReaderConfig {
 
     baselineAlign.value = true;
     firstLineIndent.value = true;
-    enableHyphenation.value = false;
     autoSpaceRatio.value = 0.25;
     language.reset();
     tapLayout.value = TapLayout.rightHanded;
@@ -348,9 +352,6 @@ void main() {
     _setupPaginateChapter(repo);
     _setupBeginPaginate(repo);
     when(() => repo.loadReadingProgress(any())).thenAnswer((_) async => null);
-    when(
-      () => repo.loadChapterFirstSpine(any(), any()),
-    ).thenAnswer((_) async => 'A' * 100);
     when(() => repo.warmPageCache(any(), any())).thenReturn(null);
     when(
       () => repo.preloadNextChapterStaging(
@@ -385,6 +386,9 @@ void main() {
     when(() => repo.ensurePageWindow(any())).thenReturn(null);
     when(() => repo.currentRichContent).thenReturn(null);
     when(() => repo.currentRichParagraphs).thenReturn(null);
+    when(() => repo.consumeEpubRichSkippedNotice()).thenReturn(false);
+    when(() => repo.sessionIsPartial).thenReturn(false);
+    when(() => repo.syncChapterTypesetLayout(any())).thenReturn(null);
     when(
       () => repo.loadScrollSegment(
         any(),
@@ -396,26 +400,6 @@ void main() {
       final content = 'Chapter$chapterId ${'X' * 80}';
       return (content: content, richParagraphs: null, richRootSpan: null, epubRichSkipped: false);
     });
-    when(
-      () => repo.calculatePages(
-        bookId: any(named: 'bookId'),
-        chapterId: any(named: 'chapterId'),
-        fontSize: any(named: 'fontSize'),
-        lineHeight: any(named: 'lineHeight'),
-        width: any(named: 'width'),
-        height: any(named: 'height'),
-        padding: any(named: 'padding'),
-      ),
-    ).thenAnswer(
-      (_) async => [
-        const PageInfo(
-          pageIndex: 0,
-          content: 'fallback',
-          startOffset: 0,
-          endOffset: 10,
-        ),
-      ],
-    );
 
     manager = createManager(repo: repo, config: config);
   });
@@ -529,23 +513,13 @@ void main() {
         expect(manager.isLoading.value, false);
       });
 
-      test('isFallback 时退化到 calculatePages', () async {
-        // Override paginateChapter to return 0 (failure)
+      test('分页失败时设置 error 信号', () async {
         _setupPaginateChapter(repo, isFallback: true);
 
         await manager.loadChapter(0);
 
-        verify(
-          () => repo.calculatePages(
-            bookId: any(named: 'bookId'),
-            chapterId: any(named: 'chapterId'),
-            fontSize: any(named: 'fontSize'),
-            lineHeight: any(named: 'lineHeight'),
-            width: any(named: 'width'),
-            height: any(named: 'height'),
-            padding: any(named: 'padding'),
-          ),
-        ).called(1);
+        expect(manager.error.value, isNotNull);
+        expect(manager.isLoading.value, false);
       });
 
       test('onChapterLoaded 回调在分页完成后触发', () async {
@@ -577,12 +551,9 @@ void main() {
         );
       });
 
-      test(
-        'loadChapter without intent triggers beginPaginate (firstSpine)',
-        () async {
+      test('loadChapter 走 beginPaginate 首屏路径', () async {
           await manager.loadChapter(0);
 
-          verifyNever(() => repo.loadChapterFirstSpine(any(), any()));
           verify(
             () => repo.beginPaginate(
               bookId: any(named: 'bookId'),
@@ -599,10 +570,15 @@ void main() {
       test('快速连续换章最终以最后一章为准', () async {
         var callbackCount = 0;
 
-        when(() => repo.loadChapterFirstSpine(any(), any())).thenAnswer((
-          invocation,
-        ) async {
+        when(
+          () => repo.loadChapterContent(
+            any(),
+            any(),
+            readingMode: any(named: 'readingMode'),
+          ),
+        ).thenAnswer((invocation) async {
           final chapterIndex = invocation.positionalArguments[1] as int;
+          await Future<void>.delayed(const Duration(milliseconds: 50));
           return 'C' * (chapterIndex + 1) * 10;
         });
 
