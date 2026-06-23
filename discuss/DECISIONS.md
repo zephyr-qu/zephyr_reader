@@ -11,6 +11,7 @@
 | [005](./adr/005-bilingual-optional.md) | 双语 = 设置项，非主加载链 | **已接受** | 2026-06-18 |
 | [006](./adr/006-rust-flutter-division.md) | Rust IR+分页；Flutter 渲染+staging | **已接受** | 2026-06-18 |
 | [007](./adr/007-plaintext-segmentation-stability.md) | plainText 分段冻结；charOffset 稳定 | **已接受** | 2026-06-18 |
+| [008](./adr/008-ir-image-plain-placeholder.md) | IR 图片在 plain 中用 `\uFFFC` 占位 | **已接受** | 2026-06-18 |
 
 ## 问卷归档
 

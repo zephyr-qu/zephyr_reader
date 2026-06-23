@@ -23,7 +23,7 @@
 
 ## 与 G1-b（块分页）的关系
 
-块分页落地后，plainText 仍保留（搜索/TTS）；每页渲染用 **ContentBlock 引用**，charOffset 仍映射到 plain 坐标。IR 是渲染输入，不是进度真理。
+块分页落地后，plainText 仍保留（搜索/TTS）；每页渲染用 **ContentBlock 引用**，charOffset 仍映射到 plain 坐标。IR 是渲染输入，不是进度真理。图片块在 plain 中占 **一个 `\uFFFC`**（[ADR-008](./008-ir-image-plain-placeholder.md)）。
 
 ## 后果
 
