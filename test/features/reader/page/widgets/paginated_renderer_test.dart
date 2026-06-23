@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'package:zephyr_reader/features/reader/rendering/page_curl_widget.dart';
 import 'package:zephyr_reader/features/reader/rendering/paginated_renderer.dart';
@@ -141,7 +142,7 @@ void main() {
   // ========================
 
   group('PaginatedModeRenderer', () {
-    testWidgets('pageTurn 模式+descriptors 渲染 PageCurlWidget', (tester) async {
+    testWidgets('curl 皮肤+descriptors 渲染 PageCurlWidget', (tester) async {
       final dataSource = _MockDataSource();
       _stubDataSource(dataSource);
       when(() => dataSource.descriptors).thenReturn([
@@ -167,7 +168,8 @@ void main() {
             pageIndex: 0,
             content: 'Page content.',
             highlights: const [],
-            readingMode: ReadingMode.pageTurn,
+            readingMode: ReadingMode.pagination,
+            paginationSkin: PaginationSkin.curl,
           ),
         ),
       );
@@ -177,7 +179,7 @@ void main() {
       expect(find.byType(SelectableText), findsOneWidget);
     });
 
-    testWidgets('非 pageTurn 模式+descriptors 渲染 PageView.builder', (
+    testWidgets('slide 皮肤+descriptors 渲染 PageView.builder', (
       tester,
     ) async {
       final dataSource = _MockDataSource();

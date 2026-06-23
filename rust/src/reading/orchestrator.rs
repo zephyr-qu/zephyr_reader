@@ -32,7 +32,7 @@ impl ReadingOrchestrator {
         &INSTANCE
     }
 
-    /// 从 DB 获取章节边界信息（TXT/MD 的文件字节偏移，EPUB/PDF 的 spine/页索引）。
+    /// 从 DB 获取章节边界信息（TXT 的文件字节偏移，EPUB 的 spine 索引）。
     #[allow(dead_code)] // Phase 2+ 接入
     pub async fn get_chapter_bounds(
         &self,

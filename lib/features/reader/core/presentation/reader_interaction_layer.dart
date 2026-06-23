@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/presentation/reader_ui_state.dart';
@@ -110,12 +111,16 @@ class ReaderTapZoneLayer extends HookWidget {
     );
     final int bNumchapters = (chaptersState.value as List?)?.length ?? 0;
     final ReadingMode bCurrentreadingmode = useSignalValue(vm.readingMode);
+    final PaginationSkin bPaginationSkin =
+        useSignalValue(vm.config.paginationSkin.signal);
 
     final showSelection = bSelectedtext.isNotEmpty;
+    final hideTapZones = usesPageCurlSkin(
+      mode: bCurrentreadingmode,
+      skin: bPaginationSkin,
+    );
 
-    if (showToolbar ||
-        showSelection ||
-        bCurrentreadingmode == ReadingMode.pageTurn) {
+    if (showToolbar || showSelection || hideTapZones) {
       return const SizedBox.shrink();
     }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_viewport_index.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
@@ -24,6 +25,7 @@ class ReaderContent extends HookWidget {
   final ReaderRenderDataSource dataSource;
   final ReaderRenderConfig renderConfig;
   final ReadingMode readingMode;
+  final PaginationSkin paginationSkin;
   final String content;
   final bool isLoading;
   final String? error;
@@ -68,6 +70,7 @@ class ReaderContent extends HookWidget {
     required this.totalPages,
     required this.renderConfig,
     required this.readingMode,
+    this.paginationSkin = PaginationSkin.slide,
     required this.content,
     required this.isLoading,
     required this.scrollBuilder,
@@ -126,9 +129,12 @@ class ReaderContent extends HookWidget {
           hasPreviousChapter: hasPreviousChapter,
         );
 
-    // 跨章时跳转目标页；adjacent promote 同步 pageIndex
+    final usePaginationSlide = readingMode == ReadingMode.pagination &&
+        paginationSkin == PaginationSkin.slide;
+
+    // 跨章时跳转目标页；adjacent promote 同步 pageIndex（slide 皮肤）
     useEffect(() {
-      if (readingMode != ReadingMode.pagination) return null;
+      if (!usePaginationSlide) return null;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!pageController.hasClients) return;
         final target = physicalPage(
@@ -151,7 +157,7 @@ class ReaderContent extends HookWidget {
     ]);
     // 章内翻页动画同步（仅手动翻页，跨章 promote 已在上方 jumpToPage）
     useEffect(() {
-      if (readingMode != ReadingMode.pagination || !showChapterTransition) {
+      if (!usePaginationSlide || !showChapterTransition) {
         return null;
       }
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -221,7 +227,7 @@ class ReaderContent extends HookWidget {
           reachEndTriggered.value = true;
           onReachEnd?.call();
         }
-      } else if (readingMode == ReadingMode.pagination &&
+      } else if (usePaginationSlide &&
           pageController.hasClients) {
         final nextPage = pageIndex + 1;
         if (nextPage < totalPages) {
@@ -239,7 +245,7 @@ class ReaderContent extends HookWidget {
     final useScrollSegments = scrollSegments.isNotEmpty;
 
     useEffect(() {
-      if (readingMode == ReadingMode.pagination) {
+      if (usePaginationSlide) {
         return null;
       }
       void handleScroll() {
@@ -349,7 +355,7 @@ class ReaderContent extends HookWidget {
         return null;
       }
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (readingMode == ReadingMode.pagination) {
+        if (usePaginationSlide) {
           final descriptors = dataSource.descriptors;
           if (descriptors != null && descriptors.isNotEmpty) {
             final targetIndex = _indexForCharOffset(
@@ -407,7 +413,7 @@ class ReaderContent extends HookWidget {
       bilingualPairs.value,
     );
 
-    if (readingMode == ReadingMode.pagination) {
+    if (usePaginationSlide) {
       if (showChapterTransition) {
         final slideX = isForward ? 1.0 : -1.0;
         return AnimatedSwitcher(
@@ -483,7 +489,6 @@ class ReaderContent extends HookWidget {
           child: bilingualBuilder(context, scrollController, bilingualPairs),
         );
       case ReadingMode.pagination:
-      case ReadingMode.pageTurn:
         return RepaintBoundary(
           child: paginatedBuilder(context, pageController),
         );

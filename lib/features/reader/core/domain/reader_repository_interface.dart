@@ -53,9 +53,6 @@ abstract class ReaderRepositoryInterface {
     BigInt? maxChars,
   });
 
-  /// 快速获取章节首段文本。
-  Future<String> loadChapterFirstSpine(String bookId, int chapterId);
-
   /// 预加载章节内容到缓存。
   Future<void> preloadChapter(String bookId, int chapterId);
 

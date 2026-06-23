@@ -153,10 +153,6 @@ class ReaderRepository
   );
 
   @override
-  Future<String> loadChapterFirstSpine(String bookId, int chapterId) =>
-      _chapterContent.loadFirstSpine(bookId, chapterId);
-
-  @override
   Future<void> preloadChapter(String bookId, int chapterId) =>
       _chapterContent.preload(bookId, chapterId);
 

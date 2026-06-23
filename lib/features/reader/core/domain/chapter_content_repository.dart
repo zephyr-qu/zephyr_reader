@@ -23,8 +23,6 @@ abstract class ChapterContentRepository {
     ReadingMode? readingMode,
   });
 
-  Future<String> loadFirstSpine(String bookId, int chapterId);
-
   Future<void> preload(String bookId, int chapterId);
 
   /// 当前章节的富文本内容（EPUB/MD）。

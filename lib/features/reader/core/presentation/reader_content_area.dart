@@ -5,6 +5,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/features/reader/domain/service/custom_font_service.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'package:zephyr_reader/features/reader/annotations/presentation/reader_annotation_dialog.dart';
@@ -52,6 +53,8 @@ class ReaderContentArea extends HookWidget {
     final int bPageindex = useSignalValue(vm.chapterManager.pageIndex);
     final int bTotalpages = useSignalValue(vm.chapterManager.totalPages);
     final ReadingMode bCurrentreadingmode = useSignalValue(vm.readingMode);
+    final PaginationSkin bPaginationSkin =
+        useSignalValue(vm.config.paginationSkin.signal);
     final double bFontsize = useSignalValue(vm.config.fontSize.signal);
     final double bLineheight = useSignalValue(vm.config.lineHeight.signal);
     final AsyncState<String> chContent = useSignalValue(
@@ -163,6 +166,7 @@ class ReaderContentArea extends HookWidget {
                 totalPages: bTotalpages,
                 renderConfig: renderConfig,
                 readingMode: bCurrentreadingmode,
+                paginationSkin: bPaginationSkin,
                 content: bContent,
                 isLoading: bIsloading,
                 error: bError,
@@ -219,6 +223,7 @@ class ReaderContentArea extends HookWidget {
                   content: bContent,
                   highlights: bHighlights,
                   readingMode: bCurrentreadingmode,
+                  paginationSkin: bPaginationSkin,
                   hasNextChapter: bChapterindex < bNumchapters - 1,
                   hasPreviousChapter: bChapterindex > 0,
                   onPageChanged: vm.loadPage,
