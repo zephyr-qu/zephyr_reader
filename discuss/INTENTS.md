@@ -47,10 +47,10 @@ flowchart TD
 
 ## 与各模式关系
 
-| ReadingMode | 走 intent 链？ |
+| 模式 / 皮肤 | 走 intent 链？ |
 |-------------|----------------|
-| `pagination` | 是 |
-| `pageTurn` | 是（与 pagination **相同** orchestrator 路径，R4-4） |
+| `pagination`（`PaginationSkin.slide`） | 是 |
+| `PaginationSkin.curl` | 是（与 slide **相同** orchestrator 路径，R4-4） |
 | `scroll` / `bilingual` | 否（直读 plain + 可选 rich） |
 
 ---
@@ -66,5 +66,5 @@ flowchart TD
 ## 相关
 
 - [ADR-004](./adr/004-cross-chapter-staging.md) — staging
-- [ADR-002](./adr/002-pageturn-is-pagination-skin.md) — pageTurn 共用本链
+- [ADR-002](./adr/002-pageturn-is-pagination-skin.md) — `PaginationSkin.curl` 共用本链
 - [PHASE1_EXIT.md](./PHASE1_EXIT.md) — 验收
