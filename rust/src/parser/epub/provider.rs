@@ -140,9 +140,39 @@ impl EpubContentProvider {
         self.epub.lock().read_resource_bytes(href)
     }
 
-    /// 本章第一个 spine manifest id（相对路径解析基准）。
+    /// 本章第一个 spine manifest idref（OPF `idref`，非包内路径）。
     pub fn primary_spine_href(&self) -> &str {
         self.spine_hrefs.first().map(String::as_str).unwrap_or("")
+    }
+
+    pub fn spine_count(&self) -> usize {
+        self.spine_hrefs.len()
+    }
+
+    /// 读取单个 spine 的原始 HTML（不含 spine 间拼接 `\n`）。
+    pub fn read_spine_html(&self, index: usize) -> Result<String, AppError> {
+        if index >= self.spine_hrefs.len() {
+            return Err(AppError::ChapterExtractError {
+                index: index as i32,
+                reason: format!("spine index {index} out of range").into(),
+            });
+        }
+        self.ensure_spine_text(index)?;
+        self.spine_htmls[index]
+            .get()
+            .cloned()
+            .ok_or_else(|| AppError::EpubParseError {
+                reason: format!("spine HTML not cached at index {index}").into(),
+            })
+    }
+
+    /// spine manifest idref → OPF 包内路径（相对路径解析基准）。
+    pub fn spine_internal_path(&self, index: usize) -> Option<String> {
+        let idref = self.spine_hrefs.get(index)?;
+        let epub = self.epub.lock();
+        epub.resources().get(idref).map(|item| {
+            item.path.to_string_lossy().replace('\\', "/")
+        })
     }
 
     /// 构建本书 manifest asset 注册表。

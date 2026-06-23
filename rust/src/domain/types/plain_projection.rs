@@ -160,6 +160,16 @@ impl BlockJoinedPlainBuilder {
     }
 }
 
+/// 将已有章 IR 的块追加进 builder（multi-spine 合并用）。
+pub fn append_chapter_ir_to_builder(builder: &mut BlockJoinedPlainBuilder, ir: ChapterContentIr) {
+    for block in ir.blocks {
+        match block {
+            ContentBlock::Text(t) => builder.push_text(t.text, t.style),
+            ContentBlock::Image(img) => builder.push_image(img.asset_id, img.alt),
+        }
+    }
+}
+
 /// 校验章 IR 的 plain 投影（ADR-008 + ADR-001）。
 pub fn validate_chapter_plain(
     ir: &ChapterContentIr,
@@ -359,5 +369,16 @@ mod tests {
     #[test]
     fn project_block_joined_empty() {
         assert!(project_block_joined(&[]).is_empty());
+    }
+
+    #[test]
+    fn frb_sample_blocks_match_block_joined() {
+        let mut b = BlockJoinedPlainBuilder::new();
+        b.push_text("sample".into(), TextBlockStyle::default());
+        b.push_image("sample_asset".into(), None);
+        let ir = b.finish();
+        assert_eq!(ir.plain_text, format!("sample\n{IMAGE_PLAIN_PLACEHOLDER}"));
+        assert_eq!(ir.blocks[1].plain_start(), 7);
+        ir.validate_plain(PlainProjectionStyle::BlockJoined).unwrap();
     }
 }

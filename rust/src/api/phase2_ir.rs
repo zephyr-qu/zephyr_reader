@@ -24,14 +24,14 @@ pub fn phase2_ir_sample_blocks() -> Vec<ContentBlock> {
             "sample".into(),
             TextBlockStyle::default(),
         )),
-        ContentBlock::Image(ImageBlock::new(6, "sample_asset".into(), None)),
+        ContentBlock::Image(ImageBlock::new(7, "sample_asset".into(), None)),
     ]
 }
 
 /// 样例页描述符（覆盖 `ImageBlockLayout`）。
 #[frb(sync)]
 pub fn phase2_ir_sample_page_descriptor() -> BlockPageDescriptor {
-    BlockPageDescriptor::new(0, 0, 2, BlockPlainRange::new(0, 7), false).with_image_layouts(
+    BlockPageDescriptor::new(0, 0, 2, BlockPlainRange::new(0, 8), false).with_image_layouts(
         vec![PageImageLayout {
             block_index: 1,
             layout: ImageBlockLayout::InlineContain,
