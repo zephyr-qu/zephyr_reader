@@ -5,8 +5,8 @@
 use flutter_rust_bridge::frb;
 
 use crate::domain::{
-    BlockPageDescriptor, BlockPaginateResult, BlockPlainRange, ChapterContentIr, ContentBlock,
-    ImageBlock, ImageBlockLayout, PageImageLayout, TextBlock, TextBlockStyle,
+    AppError, BlockPageDescriptor, BlockPaginateResult, BlockPlainRange, ChapterContentIr,
+    ContentBlock, ImageBlock, ImageBlockLayout, PageImageLayout, TextBlock, TextBlockStyle,
 };
 
 /// 空块分页结果（占位）。
@@ -43,4 +43,10 @@ pub fn phase2_ir_sample_page_descriptor() -> BlockPageDescriptor {
 #[frb(sync)]
 pub fn phase2_ir_empty_chapter() -> ChapterContentIr {
     ChapterContentIr::new(vec![], String::new())
+}
+
+/// HTML 片段 → 章 IR（M1.1 测试锚点；生产路径见 `get_chapter_content_ir`）。
+#[frb(sync)]
+pub fn phase2_ir_html_to_chapter(html: String) -> Result<ChapterContentIr, AppError> {
+    crate::parser::epub::html_to_chapter_ir(&html)
 }
