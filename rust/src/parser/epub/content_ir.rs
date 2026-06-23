@@ -1,11 +1,11 @@
 //! EPUB HTML → Phase 2 章节 IR（M1.1）
 //!
 //! 复用 `parse_html_to_rich_text` 保持 DOM 顺序与 scroll 路径一致；
-//! plain 投影遵循 ADR-008（每 Image 块一个 `\uFFFC`）。
+//! plain 投影见 `domain::BlockJoinedPlainBuilder`（ADR-008）。
 
+use super::asset_registry::{canonicalize_chapter_image_assets, normalize_asset_id};
 use crate::domain::{
-    AppError, ChapterContentIr, ContentBlock, ImageBlock, RichParagraph, TextBlock,
-    TextBlockStyle, IMAGE_PLAIN_PLACEHOLDER,
+    AppError, BlockJoinedPlainBuilder, ChapterContentIr, RichParagraph, TextBlockStyle,
 };
 use crate::text::rich_text;
 
@@ -15,11 +15,6 @@ use crate::parser::provider::ChapterContentProvider;
 /// 与 `get_chapter_content_rich` 相同：单章 HTML 超过此值则跳过 html5ever。
 const MAX_HTML_SIZE: usize = 100 * 1024;
 
-/// 规范化 EPUB 内资源 id（manifest href / img src）。
-fn normalize_asset_id(src: &str) -> String {
-    src.trim().replace('\\', "/")
-}
-
 fn rich_paragraph_style(p: &RichParagraph) -> TextBlockStyle {
     TextBlockStyle {
         is_heading: p.is_heading,
@@ -27,24 +22,12 @@ fn rich_paragraph_style(p: &RichParagraph) -> TextBlockStyle {
     }
 }
 
-/// 在写入下一块前插入块级 `\n`（ADR-007 单换行）。
-fn append_block_separator(plain: &mut String, plain_cursor: &mut u32) {
-    if plain.is_empty() || plain.ends_with('\n') {
-        return;
-    }
-    plain.push('\n');
-    *plain_cursor += 1;
-}
-
 /// 将富文本段落流转为章 IR + plain 投影。
 pub fn chapter_ir_from_rich_paragraphs(paragraphs: &[RichParagraph]) -> ChapterContentIr {
-    let mut blocks = Vec::new();
-    let mut plain = String::new();
-    let mut plain_cursor = 0u32;
+    let mut builder = BlockJoinedPlainBuilder::new();
 
     for p in paragraphs {
         if p.is_image {
-            append_block_separator(&mut plain, &mut plain_cursor);
             let src = p
                 .image_src
                 .as_deref()
@@ -56,10 +39,7 @@ pub fn chapter_ir_from_rich_paragraphs(paragraphs: &[RichParagraph]) -> ChapterC
                 .map(|s| s.trim())
                 .filter(|s| !s.is_empty())
                 .map(str::to_string);
-            let block = ImageBlock::new(plain_cursor, src, alt);
-            plain.push(IMAGE_PLAIN_PLACEHOLDER);
-            plain_cursor += 1;
-            blocks.push(ContentBlock::Image(block));
+            builder.push_image(src, alt);
             continue;
         }
 
@@ -67,16 +47,10 @@ pub fn chapter_ir_from_rich_paragraphs(paragraphs: &[RichParagraph]) -> ChapterC
         if text.trim().is_empty() {
             continue;
         }
-
-        append_block_separator(&mut plain, &mut plain_cursor);
-        let start = plain_cursor;
-        let block = TextBlock::new(start, text.clone(), rich_paragraph_style(p));
-        plain.push_str(&text);
-        plain_cursor += text.chars().count() as u32;
-        blocks.push(ContentBlock::Text(block));
+        builder.push_text(text, rich_paragraph_style(p));
     }
 
-    ChapterContentIr::new(blocks, plain)
+    builder.finish()
 }
 
 /// HTML 片段 → 章 IR（单元测试 / 无 EPUB 文件场景）。
@@ -113,43 +87,21 @@ pub fn get_chapter_content_ir(
         return Ok(ChapterContentIr::new(vec![], String::new()));
     }
 
-    html_to_chapter_ir(&html_content)
+    let registry = provider.asset_registry();
+    let chapter_href = provider.primary_spine_href();
+    let mut ir = html_to_chapter_ir(&html_content)?;
+    canonicalize_chapter_image_assets(&mut ir, &registry, chapter_href);
+    Ok(ir)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::IMAGE_PLAIN_CHAR_LEN;
+    use crate::domain::{ContentBlock, PlainProjectionStyle, IMAGE_PLAIN_PLACEHOLDER};
 
     fn assert_ir_invariants(ir: &ChapterContentIr) {
-        assert_eq!(
-            ir.image_block_count(),
-            ir.image_placeholder_count(),
-            "ADR-008: FFFC count must match Image blocks"
-        );
-
-        let mut expected_plain = String::new();
-        let mut expected_cursor = 0u32;
-        for block in &ir.blocks {
-            match block {
-                ContentBlock::Text(t) => {
-                    append_block_separator(&mut expected_plain, &mut expected_cursor);
-                    assert_eq!(t.plain.plain_start, expected_cursor);
-                    assert_eq!(t.plain.plain_len, t.text.chars().count() as u32);
-                    expected_plain.push_str(&t.text);
-                    expected_cursor += t.plain.plain_len;
-                }
-                ContentBlock::Image(img) => {
-                    append_block_separator(&mut expected_plain, &mut expected_cursor);
-                    assert_eq!(img.plain.plain_start, expected_cursor);
-                    assert_eq!(img.plain.plain_len, IMAGE_PLAIN_CHAR_LEN);
-                    assert!(img.validate_plain());
-                    expected_plain.push(IMAGE_PLAIN_PLACEHOLDER);
-                    expected_cursor += 1;
-                }
-            }
-        }
-        assert_eq!(ir.plain_text, expected_plain);
+        ir.validate_plain(PlainProjectionStyle::BlockJoined)
+            .expect("EPUB IR must satisfy BlockJoined plain projection");
     }
 
     #[test]
@@ -180,6 +132,8 @@ mod tests {
         assert_eq!(image.asset_id, "images/pic.jpg");
         assert_eq!(image.alt.as_deref(), Some("cover"));
         assert_eq!(image.plain.plain_start, 7);
+        assert!(ir.is_image_placeholder_offset(7));
+        assert_eq!(ir.tts_alt_at_offset(7), Some("cover"));
         assert_ir_invariants(&ir);
     }
 

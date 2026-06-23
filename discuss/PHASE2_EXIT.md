@@ -48,9 +48,9 @@ Flutter 按页拉块 → Text + Image（asset 本地路径）
 | # | 任务 | 层 | 状态 | 验收 |
 |---|------|-----|------|------|
 | 1.1 | EPUB HTML → IR | Rust | ✅ | `parser/epub/content_ir.rs`；`img` → `asset_id`；DOM 顺序 + ADR-008 plain |
-| 1.2 | TXT → IR | Rust | ⬜ | 按现有章界 → `Text` 块 |
-| 1.3 | IR → `plainText` 投影 | Rust | ⬜ | 搜索/TTS/进度与 ADR-001 一致 |
-| 1.4 | 图片 asset 注册表 | Rust | ⬜ | `asset_id` → EPUB 内路径 |
+| 1.2 | TXT → IR | Rust | ✅ | `parser/txt/content_ir.rs`；空行分段 → `Text` 块；plain = 章内原文 |
+| 1.3 | IR → `plainText` 投影 | Rust | ✅ | `domain/types/plain_projection.rs`；校验 + charOffset/TTS/搜索辅助 |
+| 1.4 | 图片 asset 注册表 | Rust | ✅ | `parser/epub/asset_registry.rs`；`asset_id` → manifest id + 包内路径 |
 | 1.5 | 单元测试 | Rust | ✅ | `content_ir` 5 项：文+图、heading、offset 单调、ADR-008 不变量 |
 
 ### M2 — BlockPaginator MVP（~2–3 周）
