@@ -5,12 +5,12 @@
 
 use super::asset_registry::{canonicalize_chapter_image_assets, normalize_asset_id};
 use crate::domain::{
-    AppError, BlockJoinedPlainBuilder, ChapterContentIr, RichParagraph, TextBlockStyle,
+    append_chapter_ir_to_builder, AppError, BlockJoinedPlainBuilder, ChapterContentIr,
+    PlainProjectionStyle, RichParagraph, TextBlockStyle,
 };
 use crate::text::rich_text;
 
 use super::provider::EpubContentProvider;
-use crate::parser::provider::ChapterContentProvider;
 
 /// 与 `get_chapter_content_rich` 相同：单章 HTML 超过此值则跳过 html5ever。
 const MAX_HTML_SIZE: usize = 100 * 1024;
@@ -73,24 +73,34 @@ pub fn get_chapter_content_ir(
     );
 
     let provider = EpubContentProvider::open_from_bounds(file_path, start_index, end_index)?;
-    let html_content = provider
-        .read_html_range(0, u64::MAX)
-        .ok_or_else(|| AppError::EpubParseError {
-            reason: "IR HTML extraction not supported".into(),
-        })??;
+    let registry = provider.asset_registry();
+    let mut builder = BlockJoinedPlainBuilder::new();
+    let mut total_html_bytes = 0usize;
 
-    if html_content.len() > MAX_HTML_SIZE {
-        tracing::warn!(
-            "[get_chapter_content_ir] HTML too large ({} bytes), returning empty IR",
-            html_content.len(),
-        );
-        return Ok(ChapterContentIr::new(vec![], String::new()));
+    for i in 0..provider.spine_count() {
+        let html = provider.read_spine_html(i)?;
+        total_html_bytes += html.len();
+        if total_html_bytes > MAX_HTML_SIZE {
+            tracing::warn!(
+                "[get_chapter_content_ir] HTML too large ({} bytes), returning empty IR",
+                total_html_bytes,
+            );
+            return Ok(ChapterContentIr::new(vec![], String::new()));
+        }
+
+        let base = provider
+            .spine_internal_path(i)
+            .unwrap_or_default();
+        let mut ir = html_to_chapter_ir(&html)?;
+        canonicalize_chapter_image_assets(&mut ir, &registry, &base);
+        append_chapter_ir_to_builder(&mut builder, ir);
     }
 
-    let registry = provider.asset_registry();
-    let chapter_href = provider.primary_spine_href();
-    let mut ir = html_to_chapter_ir(&html_content)?;
-    canonicalize_chapter_image_assets(&mut ir, &registry, chapter_href);
+    let ir = builder.finish();
+    ir.validate_plain(PlainProjectionStyle::BlockJoined)
+        .map_err(|e| AppError::EpubParseError {
+            reason: format!("IR plain validation failed: {e}").into(),
+        })?;
     Ok(ir)
 }
 
@@ -98,10 +108,44 @@ pub fn get_chapter_content_ir(
 mod tests {
     use super::*;
     use crate::domain::{ContentBlock, PlainProjectionStyle, IMAGE_PLAIN_PLACEHOLDER};
+    use crate::parser::epub::asset_registry::EpubAssetRegistry;
+    use std::collections::HashMap;
+    use std::path::PathBuf;
+
+    use epub::doc::ResourceItem;
 
     fn assert_ir_invariants(ir: &ChapterContentIr) {
         ir.validate_plain(PlainProjectionStyle::BlockJoined)
             .expect("EPUB IR must satisfy BlockJoined plain projection");
+    }
+
+    fn sample_registry() -> EpubAssetRegistry {
+        let mut resources = HashMap::new();
+        resources.insert(
+            "spine_a".into(),
+            ResourceItem {
+                path: PathBuf::from("OEBPS/Text/part1.xhtml"),
+                mime: "application/xhtml+xml".into(),
+                properties: None,
+            },
+        );
+        resources.insert(
+            "spine_b".into(),
+            ResourceItem {
+                path: PathBuf::from("OEBPS/Text/part2.xhtml"),
+                mime: "application/xhtml+xml".into(),
+                properties: None,
+            },
+        );
+        resources.insert(
+            "img_spine_b".into(),
+            ResourceItem {
+                path: PathBuf::from("OEBPS/Images/from_b.jpg"),
+                mime: "image/jpeg".into(),
+                properties: None,
+            },
+        );
+        EpubAssetRegistry::from_manifest(&resources)
     }
 
     #[test]
@@ -135,6 +179,28 @@ mod tests {
         assert!(ir.is_image_placeholder_offset(7));
         assert_eq!(ir.tts_alt_at_offset(7), Some("cover"));
         assert_ir_invariants(&ir);
+    }
+
+    #[test]
+    fn multi_spine_merge_resolves_image_per_spine_base() {
+        let registry = sample_registry();
+        let mut builder = BlockJoinedPlainBuilder::new();
+
+        let mut ir1 = html_to_chapter_ir("<p>part one</p>").unwrap();
+        canonicalize_chapter_image_assets(&mut ir1, &registry, "OEBPS/Text/part1.xhtml");
+        append_chapter_ir_to_builder(&mut builder, ir1);
+
+        let mut ir2 = html_to_chapter_ir("<img src=\"../Images/from_b.jpg\" alt=\"b\"/>").unwrap();
+        canonicalize_chapter_image_assets(&mut ir2, &registry, "OEBPS/Text/part2.xhtml");
+        append_chapter_ir_to_builder(&mut builder, ir2);
+
+        let ir = builder.finish();
+        assert_ir_invariants(&ir);
+        assert_eq!(ir.block_count(), 2);
+        let ContentBlock::Image(img) = &ir.blocks[1] else {
+            panic!("expected image in second spine");
+        };
+        assert_eq!(img.asset_id, "img_spine_b");
     }
 
     #[test]

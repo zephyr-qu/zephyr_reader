@@ -161,6 +161,12 @@ pub fn canonicalize_chapter_image_assets(
         let raw = img.asset_id.clone();
         if let Some(entry) = registry.resolve(chapter_href, &raw) {
             img.asset_id = entry.asset_id.clone();
+        } else {
+            tracing::warn!(
+                raw_src = %raw,
+                chapter_href = %chapter_href,
+                "failed to resolve image asset_id to manifest entry"
+            );
         }
     }
 }
