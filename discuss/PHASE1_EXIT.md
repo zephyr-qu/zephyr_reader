@@ -62,12 +62,12 @@
 
 ## Phase 1 完成后
 
-进入 [Phase 2](./ROADMAP.md)（IR + `BlockPaginator`）；**不**在 Phase 1 引入半套 IR。
+已进入 [Phase 2](./ROADMAP.md)（IR + `BlockPaginator`）；见 [PHASE2_EXIT.md](./PHASE2_EXIT.md)。
 
-**合流提醒**：`feat/simplify` 自 `fix` @ `7648036` 分叉，尚未合入 `fix` / `master`（见分支图）。
+**合流**：Phase 1 @ `2eebb52` 已合入 `fix` 与 `master`（2026-06）。
 
 ---
 
-## 建议实现顺序（剩余）
+## 状态
 
-**Phase 1 可关闭** → 合入 `fix` → 进入 [Phase 2](./ROADMAP.md)（IR + `BlockPaginator`）。
+**Phase 1 已关闭** → 在 `feat/phase2-ir` 实施 Phase 2。
