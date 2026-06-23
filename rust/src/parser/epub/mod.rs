@@ -1,12 +1,17 @@
 //! EPUB 解析模块
 //! 负责 EPUB 文件的解压、结构解析、文本提取、按需内容提供
 
+pub mod asset_registry;
 pub mod content_ir;
 pub mod parse;
 pub mod provider;
 pub mod toc;
 pub mod unzip;
 
+pub use asset_registry::{
+    canonicalize_chapter_image_assets, EpubAssetEntry, EpubAssetRegistry, normalize_asset_id,
+    resolve_relative_href,
+};
 pub use content_ir::{get_chapter_content_ir, html_to_chapter_ir};
 
 use std::path::Path;

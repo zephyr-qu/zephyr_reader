@@ -256,6 +256,11 @@ impl EpubFile {
         }
     }
 
+    /// manifest 资源表（M1.4 asset 注册表输入）。
+    pub fn resources(&self) -> &HashMap<String, ResourceItem> {
+        &self.doc.resources
+    }
+
     /// 获取原始 metadata（用于外部提取扩展字段）
     pub fn raw_metadata(&self) -> &[epub::doc::MetadataItem] {
         &self.doc.metadata

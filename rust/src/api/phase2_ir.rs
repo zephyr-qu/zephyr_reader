@@ -50,3 +50,9 @@ pub fn phase2_ir_empty_chapter() -> ChapterContentIr {
 pub fn phase2_ir_html_to_chapter(html: String) -> Result<ChapterContentIr, AppError> {
     crate::parser::epub::html_to_chapter_ir(&html)
 }
+
+/// TXT 章内文本 → IR（M1.2 测试锚点）。
+#[frb(sync)]
+pub fn phase2_ir_txt_to_chapter(text: String) -> ChapterContentIr {
+    crate::parser::txt::txt_to_chapter_ir(&text)
+}

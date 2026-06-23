@@ -8,6 +8,7 @@ use once_cell::sync::OnceCell as OnceLock;
 
 use parking_lot::Mutex;
 
+use super::asset_registry::EpubAssetRegistry;
 use super::unzip::EpubFile;
 use crate::domain::AppError;
 use crate::parser::provider::ChapterContentProvider;
@@ -137,6 +138,16 @@ impl EpubContentProvider {
     /// 读取 EPUB 资源文件的原始字节（用于图片加载）
     pub fn read_resource_bytes(&self, href: &str) -> Option<Vec<u8>> {
         self.epub.lock().read_resource_bytes(href)
+    }
+
+    /// 本章第一个 spine manifest id（相对路径解析基准）。
+    pub fn primary_spine_href(&self) -> &str {
+        self.spine_hrefs.first().map(String::as_str).unwrap_or("")
+    }
+
+    /// 构建本书 manifest asset 注册表。
+    pub fn asset_registry(&self) -> EpubAssetRegistry {
+        EpubAssetRegistry::from_epub(&self.epub.lock())
     }
 }
 impl ChapterContentProvider for EpubContentProvider {

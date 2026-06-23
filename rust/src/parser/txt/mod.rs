@@ -1,6 +1,7 @@
 //! TXT 解析模块
 //! 负责 TXT 文件的编码检测、解码、章节提取、按需内容提供
 
+pub mod content_ir;
 pub mod decode;
 pub mod parse;
 pub mod provider;
@@ -11,6 +12,7 @@ use crate::domain::{AppError, ParseResult};
 use crate::parser::book_parser::BookMetadata;
 use crate::text::chapter_detect::extract_chapters;
 
+pub use content_ir::{get_chapter_content_ir, txt_to_chapter_ir};
 pub use parse::parse_txt;
 pub use provider::TxtContentProvider;
 

@@ -12,6 +12,7 @@ pub mod block_pagination;
 pub mod content_ir;
 pub mod metadata;
 pub mod pagination;
+pub mod plain_projection;
 pub mod rich_text;
 pub mod typeset;
 
@@ -20,5 +21,6 @@ pub use block_pagination::*;
 pub use content_ir::*;
 pub use metadata::*;
 pub use pagination::*;
+pub use plain_projection::*;
 pub use rich_text::*;
 pub use typeset::*;
