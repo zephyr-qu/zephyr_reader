@@ -4,5 +4,6 @@ import 'package:zephyr_reader/features/reader/core/domain/pagination_session.dar
 
 @injectable
 class PaginationSessionFactory {
-  PaginationSession create() => RustPaginationSession();
+  PaginationSession create({void Function()? onCacheUpdated}) =>
+      RustPaginationSession(onCacheUpdated: onCacheUpdated);
 }

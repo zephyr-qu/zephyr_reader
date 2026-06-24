@@ -189,8 +189,6 @@ class PaginatedModeRenderer extends StatelessWidget {
       }
       return LayoutBuilder(
         builder: (context, constraints) {
-          final maxWidth = (constraints.maxWidth - 2 * config.pageMargin)
-              .clamp(1.0, constraints.maxWidth);
           return buildBlockPageContent(
             context: context,
             blocks: blocks,
@@ -201,7 +199,7 @@ class PaginatedModeRenderer extends StatelessWidget {
             onHighlightTap: onHighlightTap,
             onSelectionChanged: onSelectionChanged,
             onSelectionGlobalPosition: onSelectionGlobalPosition,
-            maxContentWidth: maxWidth,
+            maxContentWidth: constraints.maxWidth,
           );
         },
       );
@@ -441,8 +439,6 @@ Widget buildSinglePageContent({
     }
     return LayoutBuilder(
       builder: (context, constraints) {
-        final maxWidth = (constraints.maxWidth - 2 * config.pageMargin)
-            .clamp(1.0, constraints.maxWidth);
         return buildBlockPageContent(
           context: context,
           blocks: blocks,
@@ -453,7 +449,7 @@ Widget buildSinglePageContent({
           onHighlightTap: onHighlightTap,
           onSelectionChanged: onSelectionChanged,
           onSelectionGlobalPosition: onSelectionGlobalPosition,
-          maxContentWidth: maxWidth,
+          maxContentWidth: constraints.maxWidth,
         );
       },
     );

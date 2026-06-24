@@ -15,6 +15,11 @@ import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 class RustPaginationSession implements PaginationSession {
+  RustPaginationSession({void Function()? onCacheUpdated})
+      : _onCacheUpdated = onCacheUpdated;
+
+  final void Function()? _onCacheUpdated;
+
   List<PageDescriptor>? _descriptors;
   int? _sessionConfigHash;
   int? _sessionChapterIndex;
@@ -101,6 +106,30 @@ class RustPaginationSession implements PaginationSession {
     }
   }
 
+  Future<BigInt?> _effectiveMaxChars({
+    required String filePath,
+    required int chapterIndex,
+    BigInt? maxChars,
+  }) async {
+    if (maxChars == null) return null;
+    try {
+      final hasImages = await core_api.chapterHasImageBlocks(
+        filePath: filePath,
+        chapterIndex: chapterIndex,
+      );
+      if (hasImages) return null;
+    } catch (e) {
+      Logging.warning(
+        '[Session] chapterHasImageBlocks failed ch=$chapterIndex: $e',
+      );
+    }
+    return maxChars;
+  }
+
+  void _notifyCacheUpdated() {
+    _onCacheUpdated?.call();
+  }
+
   Future<PaginateResult> _createSession({
     required String bookId,
     required int chapterIndex,
@@ -112,6 +141,11 @@ class RustPaginationSession implements PaginationSession {
       throw Exception('_createSession: book not found for bookId=$bookId');
     }
     final validated_path = book.filePath;
+    final effectiveMaxChars = await _effectiveMaxChars(
+      filePath: validated_path,
+      chapterIndex: chapterIndex,
+      maxChars: maxChars,
+    );
 
     _releaseHandle();
     _contentCache.clear();
@@ -122,11 +156,11 @@ class RustPaginationSession implements PaginationSession {
       filePath: validated_path,
       chapterIndex: chapterIndex,
       config: config,
-      maxChars: maxChars,
+      maxChars: effectiveMaxChars,
     );
     Logging.info(
       '[Timing] createPaginationSession: ${sw.elapsedMilliseconds}ms '
-      '(maxChars=${maxChars ?? "full"}, isPartial=${result.isPartial}, pages=${result.descriptors.length})',
+      '(maxChars=${effectiveMaxChars ?? "full"}, isPartial=${result.isPartial}, pages=${result.descriptors.length}, mode=${result.mode})',
     );
 
     _handle = handle;
@@ -140,7 +174,11 @@ class RustPaginationSession implements PaginationSession {
     final limit = count.clamp(0, total);
     for (int i = 0; i < limit; i++) {
       await _fetchAndCachePage(i);
+      if (_sessionMode == ChapterPaginationMode.contentBlocks) {
+        await _fetchAndCacheBlocks(i);
+      }
     }
+    _notifyCacheUpdated();
   }
 
   @override
@@ -201,6 +239,7 @@ class RustPaginationSession implements PaginationSession {
       _handle = handle;
       _sessionFilePath = book.filePath;
       _applyPaginateResult(result, chapterIndex: chapterIndex);
+      await _preloadPageRange(5);
       return (
         totalPages: result.descriptors.length,
         isPartial: result.isPartial,
@@ -345,6 +384,7 @@ class RustPaginationSession implements PaginationSession {
       );
       _blocksCache.put(pageIndex, blocks);
       Logging.info('[Session] fetch blocks page=$pageIndex count=${blocks.length}');
+      _notifyCacheUpdated();
       return blocks;
     } catch (e) {
       Logging.error('_fetchAndCacheBlocks error for page $pageIndex: $e');
@@ -369,6 +409,9 @@ class RustPaginationSession implements PaginationSession {
         _contentCache.put(pageIndex, content);
       }
       Logging.info('[Session] fetch page=$pageIndex done (${content.length} chars)');
+      if (content.isNotEmpty) {
+        _notifyCacheUpdated();
+      }
       return content.isEmpty ? null : content;
     } catch (e) {
       Logging.error('_fetchAndCachePage error for page $pageIndex: $e');

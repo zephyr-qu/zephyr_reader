@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
@@ -15,7 +17,7 @@ import 'package:zephyr_reader/features/reader/settings/reader_panel_type.dart';
 import 'package:zephyr_reader/features/reader/settings/reader_settings_overlay.dart';
 import 'package:zephyr_reader/features/reader/page/toolbar/animated_toolbar_panel.dart';
 import 'package:zephyr_reader/features/reader/page/toolbar/reader_toolbar.dart';
-
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 /// Top toolbar positioned outside [SafeArea].
 class ReaderTopChrome extends HookWidget {
   const ReaderTopChrome({
@@ -40,6 +42,20 @@ class ReaderTopChrome extends HookWidget {
       vm.chapterManager.currentChapterTitle,
     );
     final String bProgresstext = useSignalValue(vm.chapterManager.progressText);
+    final chapterIdx = useSignalValue(vm.chapterManager.chapterIndex);
+    final charOff = useSignalValue(vm.chapterManager.currentCharOffset);
+    final bookmarkMap = useSignalValue(vm.bookmarks.bookmarkIndex);
+    final hasBookmarkAtCurrent = bookmarkMap['$chapterIdx:$charOff'] != null;
+
+    Future<void> toggleBookmark() async {
+      final l10n = AppLocalizations.of(context)!;
+      final wasBookmarked = hasBookmarkAtCurrent;
+      final ok = await vm.toggleBookmarkAtCurrentPosition();
+      if (!context.mounted) return;
+      vm.toastMessage.value = ok
+          ? (wasBookmarked ? l10n.bookmarkDeleted : l10n.bookmarkAdded)
+          : l10n.failed;
+    }
 
     return Positioned(
       top: 0,
@@ -66,8 +82,10 @@ class ReaderTopChrome extends HookWidget {
               queryParameters: {'bookId': bCurrentbookid},
             );
           },
-          onToggleBookmarks: () =>
-              withTimer(vm.toggleBookmarkAtCurrentPosition),
+          onToggleBookmarks: () => withTimer(() {
+            unawaited(toggleBookmark());
+          }),
+          isBookmarked: hasBookmarkAtCurrent,
           onToggleMore: () => withTimer(() {
             uiState.activePanel.value = activePanel == ReaderPanelType.more
                 ? null
