@@ -155,6 +155,13 @@ impl BlockJoinedPlainBuilder {
             .push(ContentBlock::Image(ImageBlock::new(start, asset_id, alt)));
     }
 
+    pub fn image_block_count(&self) -> usize {
+        self.blocks
+            .iter()
+            .filter(|b| matches!(b, ContentBlock::Image(_)))
+            .count()
+    }
+
     pub fn finish(self) -> ChapterContentIr {
         ChapterContentIr::new(self.blocks, self.plain)
     }

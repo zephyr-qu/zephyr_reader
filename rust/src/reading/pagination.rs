@@ -11,7 +11,7 @@ use crate::storage::models::BookFormat;
 use crate::text::{paginate_all, paginate_chapter_ir, PageStreamer};
 use crate::utils::security::validate_file_path;
 
-use super::block_cache::{pop_block_state, put_block_state, BLOCK_CACHE};
+use super::block_cache::{has_block_state, pop_block_state, put_block_state, BLOCK_CACHE};
 use super::block_state::BlockPaginationState;
 use super::chapter_access::{format_from_file_path, get_chapter_bounds};
 use super::chapter_ir::load_chapter_content_ir;
@@ -140,8 +140,18 @@ pub(crate) async fn paginate_chapter(
     let config_hash = config.config_hash();
     let start = Instant::now();
 
-    // 全章：streamer / layout 缓存命中后再探测块路径（避免每章都加载 IR）。
+    // 全章：含图章必须优先 block 路径，避免 stale plain streamer/layout 缓存抢先返回。
     if max_chars.is_none() {
+        if let Some(result) =
+            try_paginate_chapter_blocks(&validated_path, chapter_index, &config, None).await?
+        {
+            tracing::info!(
+                "[Timing] paginate_chapter block_path config_hash={:016x} chapter={} elapsed={:?}",
+                config_hash, chapter_index, start.elapsed()
+            );
+            return Ok(result);
+        }
+
         let streamer_key = (validated_path.clone(), chapter_index, config_hash);
         let streamer = {
             let mut cache = STREAMER_CACHE.lock();
@@ -179,12 +189,6 @@ pub(crate) async fn paginate_chapter(
                 is_partial: false,
                 mode: ChapterPaginationMode::PlainText,
             });
-        }
-
-        if let Some(result) =
-            try_paginate_chapter_blocks(&validated_path, chapter_index, &config, None).await?
-        {
-            return Ok(result);
         }
     }
 
@@ -338,8 +342,12 @@ pub(crate) fn get_page_content(
     config_hash: u64,
     page_index: i32,
 ) -> String {
-    let key = (file_path.clone(), chapter_index, config_hash);
     let path = file_path.as_str();
+    if has_block_state(path, chapter_index, config_hash) {
+        return get_block_page_content(path, chapter_index, config_hash, page_index);
+    }
+
+    let key = (file_path.clone(), chapter_index, config_hash);
     let mut cache = STREAMER_CACHE.lock();
     if let Some(streamer) = cache.get(&key) {
         if let Some(page) = streamer.get_page(page_index as usize, chapter_index) {
