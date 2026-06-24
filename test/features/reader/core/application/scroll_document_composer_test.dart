@@ -1,6 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
 import 'package:zephyr_reader/features/reader/core/application/scroll_document_composer.dart';
+import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 
 ScrollChapterSegment makeSeg(int chapter, int pageIdx) {
   final paragraphs = <String>[];
@@ -148,6 +151,47 @@ void main() {
       expect(c.hasChapter(0), isTrue);
       expect(c.hasChapter(1), isTrue);
       expect(c.hasChapter(2), isFalse);
+    });
+
+    test('charOffsetAtOffset 含图片 rich 段不越界', () {
+      final paragraphs = List.generate(10, (i) => 'para$i');
+      final offsets = List.generate(10, (i) => i * 8);
+      final rich = <RichParagraph>[
+        for (var i = 0; i < 10; i++)
+          RichParagraph(
+            spans: const [],
+            indent: 0,
+            isHeading: false,
+            headingLevel: 0,
+            isImage: false,
+            imageData: Uint8List(0),
+          ),
+        RichParagraph(
+          spans: const [],
+          indent: 0,
+          isHeading: false,
+          headingLevel: 0,
+          isImage: true,
+          imageData: Uint8List.fromList([1, 2, 3]),
+        ),
+      ];
+      final seg = ScrollChapterSegment(
+        chapterIndex: 0,
+        paragraphs: paragraphs,
+        paragraphCharOffsets: offsets,
+        richParagraphs: rich,
+      );
+      expect(seg.paragraphCount, 11);
+      expect(seg.paragraphs.length, 10);
+
+      final c = ScrollDocumentComposer(centerChapterIndex: 0);
+      c.reset(seg);
+      expect(
+        () => c.charOffsetAtOffset(1050, (_) => 100),
+        returnsNormally,
+      );
+      final result = c.charOffsetAtOffset(1050, (_) => 100);
+      expect(result.chapterIndex, 0);
     });
   });
 }

@@ -103,10 +103,18 @@ class ScrollDocumentComposer {
       if (remaining <= ext) {
         final resolved = resolveGlobalIndex(gi)!;
         final seg = _segments[resolved.segIdx];
-        final localPara = seg.paragraphs[resolved.localIdx];
-        final ratio = (remaining / ext).clamp(0.0, 1.0);
-        final charOffset = seg.paragraphCharOffsets[resolved.localIdx] +
-            (localPara.length * ratio).round();
+        final metrics = seg.listMetrics;
+        final localIdx = resolved.localIdx;
+        if (localIdx < 0 || localIdx >= metrics.itemCount) {
+          return (
+            chapterIndex: seg.chapterIndex,
+            charOffset: seg.totalCharLength,
+          );
+        }
+        final ratio = ext <= 0 ? 0.0 : (remaining / ext).clamp(0.0, 1.0);
+        final charLen = metrics.charLengthAt(localIdx);
+        final charOffset = metrics.charOffsetAt(localIdx) +
+            (charLen * ratio).round();
         return (chapterIndex: seg.chapterIndex, charOffset: charOffset);
       }
       remaining -= ext;

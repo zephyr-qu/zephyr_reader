@@ -1,7 +1,7 @@
 # 阅读核心路线图（与边界 v1.1 绑定）
 
-> **当前阶段 = Phase 2**（ADR-003，见 [PHASE2_EXIT.md](./PHASE2_EXIT.md)）  
-> **实施分支**：`feat/phase2-ir` @ `master` `2eebb52`
+> **当前阶段 = Phase 3**（体验与缓存，见 [PHASE2_EXIT.md](./PHASE2_EXIT.md) Phase 3 backlog）  
+> **Phase 2** 已合入 `master`（2026-06-24）
 
 ---
 
@@ -35,26 +35,26 @@
 
 ---
 
-## Phase 2 — IR + 块分页 MVP（进行中，~4–8 周，ADR-003）
+## Phase 2 — IR + 块分页 MVP ✅ 已完成（ADR-003）
 
 EPUB 分页内联图 + 大图独占页；`BlockPaginator`；charOffset 兼容 ADR-001。
 
 | 里程碑 | 内容 | 状态 |
 |--------|------|------|
-| M0 | `ContentBlock` 契约 + FRB | ⬜ |
-| M1 | EPUB/TXT → IR + plain 投影 | ⬜ |
-| M2 | `BlockPaginator` MVP | ⬜ |
-| M3 | 接入 `PaginationSession` | ⬜ |
-| M4 | Flutter 块渲染 + 图片管道 | ⬜ |
-| M5 | staging 回归 + S2/S3 | ⬜ |
+| M0 | `ContentBlock` 契约 + FRB | ✅ |
+| M1 | EPUB/TXT → IR + plain 投影 | ✅ |
+| M2 | `BlockPaginator` MVP | ✅ |
+| M3 | 接入 `PaginationSession` | ✅（M3.3 → Phase 3） |
+| M4 | Flutter 块渲染 + 图片管道 | ✅ |
+| M5 | staging 回归 + S2/S3 | ✅ |
 
-**退出标准**：[PHASE2_EXIT.md](./PHASE2_EXIT.md) 全绿 — S2 插图 EPUB pagination 可见图；S3 书签恢复。
+**退出标准**：[PHASE2_EXIT.md](./PHASE2_EXIT.md) 全绿 ✅
 
 ---
 
-## Phase 3 — 体验与缓存（有余力）
+## Phase 3 — 体验与缓存（当前）
 
-预取强化、图片管道、sled 分页索引、大章 chunked IR。
+预取强化、图片管道、sled 分页索引、大章 chunked IR。详见 [PHASE2_EXIT.md](./PHASE2_EXIT.md) **Phase 3 backlog**。
 
 ---
 

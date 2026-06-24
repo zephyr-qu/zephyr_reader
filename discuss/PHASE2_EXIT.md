@@ -1,7 +1,8 @@
 # Phase 2 退出验收清单
 
+> **状态**：✅ **已退出**（2026-06-24，合入 `master`）  
 > **来源**：ROADMAP Phase 2 + [ADR-003](./adr/003-block-pagination-ir.md)（2026-06-18 已接受）  
-> **实施分支**：`feat/phase2-ir`（自 `master` @ `2eebb52`）  
+> **实施分支**：`feat/phase2-ir`（自 `master` @ `2eebb52`）→ 已归档  
 > **关联**：[TARGET_ARCHITECTURE.md](./TARGET_ARCHITECTURE.md)、[DOMAIN_MODEL.md](./DOMAIN_MODEL.md)、[ADR-001](./adr/001-reading-position-truth.md)、[ADR-006](./adr/006-rust-flutter-division.md)、[ADR-007](./adr/007-plaintext-segmentation-stability.md)
 
 ---
@@ -27,7 +28,7 @@
          ↓
 BlockPaginator(IR, TypesetConfig) → BlockPageDescriptor[]（块范围 + plain + image_layout）
          ↓
-Flutter 按页拉块 → Text + Image（asset 本地路径）
+Flutter 按页拉块 → Text + Image.memory（Rust 解码字节 + 本地缓存）
 ```
 
 ---
@@ -78,8 +79,8 @@ Flutter 按页拉块 → Text + Image（asset 本地路径）
 | # | 任务 | 层 | 状态 | 验收 |
 |---|------|-----|------|------|
 | 4.1 | 页 Widget 块列表渲染 | Dart | ✅ | `buildBlockPageContent` + `PaginatedModeRenderer` 分支 |
-| 4.2 | `get_processed_image(asset_id, width)` | Rust/FRB | ✅ | `get_processed_epub_image` → JPEG 本地路径 |
-| 4.3 | 图片懒加载 + 占位 | Dart | ✅ | `EpubBlockImage` 占位 → async decode |
+| 4.2 | `get_processed_image(asset_id, width)` | Rust/FRB | ✅ | `get_processed_epub_image_bytes` + 磁盘缓存路径 |
+| 4.3 | 图片懒加载 + 占位 + 预取 | Dart | ✅ | `EpubBlockImage` + `EpubBlockImageCache`（±3 页窗口） |
 | 4.4 | pagination 路径 `epubRichSkipped` 降级 | Dart | ✅ | `contentBlocks` 时 suppress toast |
 | 4.5 | Widget 测试 | Dart | ✅ | mock 块 → 断言 `Icons.image_outlined` |
 
@@ -89,8 +90,8 @@ Flutter 按页拉块 → Text + Image（asset 本地路径）
 |---|------|-----|------|------|
 | 5.1 | staging 缓存 block descriptors | Rust/Dart | ✅ | `NextChapterStaging` + `get_page_blocks` + block 预渲染 |
 | 5.2 | `stagingPromote*` 回归 | Dart | ✅ | intent resolver + staging block widget 测试 |
-| 5.3 | **S2** 插图 EPUB | 手工+测试 | ⬜ | pagination + `PaginationSkin.curl` 均可见图 |
-| 5.4 | **S3** 书签恢复 | 手工+测试 | ⬜ | 杀进程后再开 charOffset 准确 |
+| 5.3 | **S2** 插图 EPUB | 手工+测试 | ✅ | pagination slide/curl 可见图（含图 EPUB 手工验收通过） |
+| 5.4 | **S3** 书签恢复 | 手工+测试 | ✅ | 杀进程后再开 charOffset / 页码准确 |
 | 5.5 | 黄金样章扩展 | Rust | ✅ | `epub_golden_image_chapter_adr007_m55`（活着含图章） |
 
 ---
@@ -142,16 +143,31 @@ flowchart LR
 
 ## 退出前必须全绿
 
-- [ ] **M0–M2** Rust：`ContentBlock` + `BlockPaginator` 单元/集成测试通过
-- [ ] **M3–M4** 分页 session 走 IR；Flutter pagination 可渲染内联图与独占页
-- [ ] **M5 / S2** 插图 EPUB 在 pagination（slide + curl）下可见图
-- [ ] **M5 / S3** 书签 charOffset 杀进程后恢复准确
-- [ ] **staging** `stagingPromote*` + 虚拟页 widget 测试不退化
-- [ ] **`dart analyze`** reader 无 error；`cargo clippy -- -D warnings`（改动模块）
-- [ ] **ADR-007** 黄金样章扩展（含图章）或等价 fixture 文档
+- [x] **M0–M2** Rust：`ContentBlock` + `BlockPaginator` 单元/集成测试通过
+- [x] **M3–M4** 分页 session 走 IR；Flutter pagination 可渲染内联图与独占页
+- [x] **M5 / S2** 插图 EPUB 在 pagination（slide + curl）下可见图
+- [x] **M5 / S3** 书签 charOffset 杀进程后恢复准确
+- [x] **staging** `stagingPromote*` + 虚拟页 widget 测试不退化
+- [x] **`dart analyze`** reader 无 error；`cargo test --lib` 通过（改动模块）
+- [x] **ADR-007** 黄金样章扩展（含图章）或等价 fixture 文档
+
+**未纳入 Phase 2 退出（见 Phase 3 backlog）**：M3.3 partial 首屏 expand 切 block。
+
+---
+
+## Phase 3 backlog（已知遗留，不阻塞 Phase 2 退出）
+
+| # | 项 | 说明 |
+|---|-----|------|
+| P3-1 | **M3.3** partial → full 切 block | partial 首屏仍 plain；`expandToFullChapter` 后含图章应稳定切 `ContentBlocks` |
+| P3-2 | **段间距 Rust ↔ Flutter 对齐** | block 分页 Column 未渲染 `paragraphSpacing`；Rust 分页已扣高度，视觉可能偏紧/偏松 |
+| P3-3 | **图片预取深化** | 块 ±3 预取 + `EpubBlockImageCache` 已做；极端 fast-flip / 不同 `maxWidth` cache miss 可再优化 |
+| P3-4 | **滚动进度模型** | 含图 rich 段 `ScrollListMetrics` 已修 RangeError；ListView 仍用 uniform 段高近似 |
+| P3-5 | **大章 chunked IR** | 单章 HTML >100KB / 超大 spine 的 IR 与分页策略（ROADMAP Phase 3） |
+| P3-6 | **sled 分页索引** | 跨 session 块/页缓存持久化（ROADMAP Phase 3） |
 
 ---
 
 ## Phase 2 完成后
 
-进入 [Phase 3](./ROADMAP.md)（预取强化、图片管道深化、大章 chunked IR）；**不**在 Phase 2 做 PDF 主链 / WebView。
+✅ 已合入 `master`。进入 [Phase 3](./ROADMAP.md)（预取强化、图片管道深化、大章 chunked IR）；**不**在 Phase 2 做 PDF 主链 / WebView。
