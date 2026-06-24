@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
+import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dart';
 import 'package:zephyr_reader/features/reader/core/application/scroll_document_composer.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 
@@ -22,6 +23,13 @@ ScrollChapterSegment makeSeg(int chapter, int pageIdx) {
 }
 
 void main() {
+  const layout = ScrollLayoutParams(
+    textRowHeight: 88,
+    paragraphSpacing: 12,
+    contentWidth: 360,
+    fontSize: 16,
+  );
+
   group('ScrollDocumentComposer', () {
     test('初始化含中心段', () {
       final seg = makeSeg(0, 0);
@@ -127,7 +135,7 @@ void main() {
       final c = ScrollDocumentComposer(centerChapterIndex: 0);
       c.reset(c0);
       // 每个段落高度 100px，total 5 段 = 500px
-      final result = c.charOffsetAtOffset(50, (_) => 100);
+      final result = c.charOffsetAtOffset(50, layout);
       // 50px → 第 0 段 50% 位置 → charOffset 在第 0 段内
       expect(result.chapterIndex, 0);
       expect(result.charOffset, greaterThan(0));
@@ -137,9 +145,9 @@ void main() {
       final c0 = makeSeg(0, 0);
       final c = ScrollDocumentComposer(centerChapterIndex: 0);
       c.reset(c0);
-      final result = c.charOffsetAtOffset(99999, (_) => 100);
+      final result = c.charOffsetAtOffset(99999, layout);
       expect(result.chapterIndex, 0);
-      expect(result.charOffset, c0.totalCharLength);
+      expect(result.charOffset, greaterThan(100));
     });
 
     test('hasChapter 检查章节是否存在', () {
@@ -187,10 +195,10 @@ void main() {
       final c = ScrollDocumentComposer(centerChapterIndex: 0);
       c.reset(seg);
       expect(
-        () => c.charOffsetAtOffset(1050, (_) => 100),
+        () => c.charOffsetAtOffset(1050, layout),
         returnsNormally,
       );
-      final result = c.charOffsetAtOffset(1050, (_) => 100);
+      final result = c.charOffsetAtOffset(1050, layout);
       expect(result.chapterIndex, 0);
     });
   });

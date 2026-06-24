@@ -76,6 +76,7 @@ impl BlockPaginationState {
                         slices.push(PageBlockSlice::Text(PageTextBlockSlice {
                             block_index: bi,
                             text,
+                            is_block_end: slice_end == block_end,
                         }));
                     }
                 }
@@ -145,6 +146,70 @@ mod tests {
                     if asset_id == "img1"
             ))
         );
+    }
+
+    #[test]
+    fn page_blocks_marks_block_end_on_complete_text_slice() {
+        let ir = sample_ir_with_image();
+        let config = TypesetConfig::default();
+        let result = paginate_chapter_ir(&ir, config);
+        let state = BlockPaginationState::new(ir, result, false);
+
+        let blocks = state.page_blocks(0).expect("page 0 blocks");
+        let text_slices: Vec<_> = blocks
+            .iter()
+            .filter_map(|s| match s {
+                PageBlockSlice::Text(t) => Some(t),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(text_slices.len(), 2);
+        assert!(text_slices[0].is_block_end);
+        assert!(text_slices[1].is_block_end);
+    }
+
+    #[test]
+    fn page_blocks_continuation_slice_not_block_end() {
+        let mut b = BlockJoinedPlainBuilder::new();
+        b.push_text("你好".repeat(200), TextBlockStyle::default());
+        let ir = b.finish();
+        let config = TypesetConfig {
+            page_width: 400,
+            page_height: 200,
+            font_size: 16,
+            line_spacing: 1.5,
+            first_line_indent: 0,
+            paragraph_spacing: 0.0,
+            ..TypesetConfig::default()
+        };
+        let result = paginate_chapter_ir(&ir, config);
+        let page_count = result.page_count();
+        assert!(
+            page_count > 1,
+            "expected multi-page split, got {page_count}"
+        );
+        let state = BlockPaginationState::new(ir, result, false);
+
+        let page0 = state.page_blocks(0).expect("page 0");
+        let first = page0
+            .iter()
+            .find_map(|s| match s {
+                PageBlockSlice::Text(t) => Some(t),
+                _ => None,
+            })
+            .expect("page 0 text slice");
+        assert!(!first.is_block_end, "continuation slice must not be block end");
+
+        let last_page = state.page_blocks(page_count - 1).expect("last page");
+        let last_text = last_page
+            .iter()
+            .filter_map(|s| match s {
+                PageBlockSlice::Text(t) => Some(t),
+                _ => None,
+            })
+            .last()
+            .expect("last page text slice");
+        assert!(last_text.is_block_end);
     }
 
     #[test]

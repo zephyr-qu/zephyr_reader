@@ -166,11 +166,13 @@ class RustPaginationSession implements PaginationSession {
   Future<void> _preloadPageRange(int count) async {
     final total = _descriptors?.length ?? 0;
     final limit = count.clamp(0, total);
-    for (int i = 0; i < limit; i++) {
-      await _fetchAndCachePage(i);
-      if (_sessionMode == ChapterPaginationMode.contentBlocks) {
-        await _fetchAndCacheBlocks(i);
-      }
+    if (limit == 0) return;
+
+    await _prefetchPageBundle(0);
+    if (limit > 1) {
+      await Future.wait([
+        for (int i = 1; i < limit; i++) _prefetchPageBundle(i),
+      ]);
     }
     _notifyCacheUpdated();
   }
@@ -406,7 +408,11 @@ class RustPaginationSession implements PaginationSession {
 
   Future<List<PageBlockSlice>?> _fetchAndCacheBlocks(int pageIndex) async {
     if (_blocksCache.containsKey(pageIndex)) {
-      return _blocksCache.get(pageIndex);
+      final cached = _blocksCache.get(pageIndex);
+      if (cached != null) {
+        _prefetchBlockImages(cached);
+      }
+      return cached;
     }
     final handle = _handle;
     if (handle == null || _descriptors == null) return null;
@@ -476,16 +482,25 @@ class RustPaginationSession implements PaginationSession {
     Logging.debug('[Session] prefetch surrounding pages=$start..$end (center=$center total=$total)');
 
     Future.microtask(() async {
-      for (int i = start; i <= end; i++) {
-        await _fetchAndCachePage(i);
-        if (_sessionMode == ChapterPaginationMode.contentBlocks) {
-          await _fetchAndCacheBlocks(i);
-        }
+      await _prefetchPageBundle(center);
+      final others = <int>[
+        for (int i = start; i <= end; i++)
+          if (i != center) i,
+      ];
+      if (others.isNotEmpty) {
+        await Future.wait(others.map(_prefetchPageBundle));
       }
     });
 
     _contentCache.trimAround(center);
     _blocksCache.trimAround(center);
+  }
+
+  Future<void> _prefetchPageBundle(int pageIndex) async {
+    await _fetchAndCachePage(pageIndex);
+    if (_sessionMode == ChapterPaginationMode.contentBlocks) {
+      await _fetchAndCacheBlocks(pageIndex);
+    }
   }
 
   @override

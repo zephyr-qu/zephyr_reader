@@ -10,6 +10,7 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_navigator
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
 import 'package:zephyr_reader/features/reader/core/application/scroll_boundary_coordinator.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
+import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dart';
 import 'package:zephyr_reader/features/reader/core/application/search_index_lifecycle.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -226,8 +227,8 @@ class ChapterViewModel {
   bool get hasScrollSegments => scrollSegments.value.isNotEmpty;
 
   /// 滚动模式：根据 scrollOffset 更新 (chapterIndex, charOffset)。
-  void reportScrollPosition(double scrollOffset, double paragraphExtent) {
-    _scrollBoundary.reportScrollPosition(scrollOffset, paragraphExtent);
+  void reportScrollPosition(double scrollOffset, ScrollLayoutParams layout) {
+    _scrollBoundary.reportScrollPosition(scrollOffset, layout);
   }
 
   // ==================== 自动滚动（委托 AutoScrollController）====================

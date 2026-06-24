@@ -54,23 +54,35 @@ Widget buildBlockPageContent({
                   vocabularyWords: config.effectiveVocabWords,
                   contentStart: runningOffset,
                 );
-                children.add(
-                  SelectableText.rich(
-                    paintedSpan,
-                    strutStyle: strutStyle,
-                    textAlign: config.textAlign,
-                    textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
-                    onSelectionChanged: (sel, cause) => _handleBlockTextSelection(
-                      sel,
-                      slice.text,
-                      runningOffset,
-                      context,
-                      onSelectionChanged,
-                      onSelectionGlobalPosition,
-                    ),
-                    contextMenuBuilder: (_, _) => const SizedBox.shrink(),
+                final textWidget = SelectableText.rich(
+                  paintedSpan,
+                  strutStyle: strutStyle,
+                  textAlign: config.textAlign,
+                  textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
+                  onSelectionChanged: (sel, cause) => _handleBlockTextSelection(
+                    sel,
+                    slice.text,
+                    runningOffset,
+                    context,
+                    onSelectionChanged,
+                    onSelectionGlobalPosition,
                   ),
+                  contextMenuBuilder: (_, _) => const SizedBox.shrink(),
                 );
+                if (slice.isBlockEnd && config.paragraphSpacing > 0) {
+                  children.add(
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        textWidget,
+                        SizedBox(height: config.paragraphSpacing),
+                      ],
+                    ),
+                  );
+                } else {
+                  children.add(textWidget);
+                }
                 runningOffset += slice.text.runes.length;
               },
               image: (slice) {
