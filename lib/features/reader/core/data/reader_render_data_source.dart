@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
@@ -7,7 +8,13 @@ import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 abstract class ReaderRenderDataSource {
   List<PageDescriptor>? get descriptors;
 
+  ChapterPaginationMode get sessionMode;
+
+  String? get sessionFilePath;
+
   String? pageContent(int pageIndex);
+
+  List<PageBlockSlice>? pageBlocks(int pageIndex);
 
   void warmPageCache(int pageIndex, String content);
 

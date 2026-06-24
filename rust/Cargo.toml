@@ -96,6 +96,8 @@ itertools = "0.14"
 bincode = "2.0"
 # Fast deterministic hashing for cache keys
 xxhash-rust = { version = "0.8", features = ["xxh3"] }
+# EPUB 图片 decode + resize（M4.2）
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp"] }
 tempfile = "3.27.0"
 
 [dev-dependencies]

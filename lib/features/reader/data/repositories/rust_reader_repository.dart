@@ -10,6 +10,7 @@ import 'package:zephyr_reader/features/reader/core/domain/chapter_content_reposi
 import 'package:zephyr_reader/features/reader/core/domain/pagination_session.dart';
 import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
+import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -38,10 +39,24 @@ class ReaderRepository
   List<PageDescriptor>? get descriptors => _session.descriptors;
 
   @override
+  ChapterPaginationMode get sessionMode => _session.sessionMode;
+
+  @override
+  String? get sessionFilePath => _session.sessionFilePath;
+
+  @override
   String? pageContent(int pageIndex) {
     final cached = _session.pageContent(pageIndex);
     if (cached != null) return cached;
     Logging.debug('[Repo] pageContent MISS page=$pageIndex');
+    return null;
+  }
+
+  @override
+  List<PageBlockSlice>? pageBlocks(int pageIndex) {
+    final cached = _session.pageBlocks(pageIndex);
+    if (cached != null) return cached;
+    Logging.debug('[Repo] pageBlocks MISS page=$pageIndex');
     return null;
   }
 

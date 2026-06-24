@@ -4,6 +4,7 @@
 pub mod asset_registry;
 pub mod content_ir;
 pub mod parse;
+pub mod processed_image;
 pub mod provider;
 pub mod toc;
 pub mod unzip;

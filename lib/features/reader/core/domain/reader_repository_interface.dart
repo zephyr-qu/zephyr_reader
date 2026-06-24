@@ -44,6 +44,12 @@ abstract class ReaderRepositoryInterface {
   /// 当前分页结果是否为部分分页。
   bool get sessionIsPartial;
 
+  /// 分页引擎模式。
+  ChapterPaginationMode get sessionMode;
+
+  /// 分页 session 文件路径（EPUB 图片用）。
+  String? get sessionFilePath;
+
   /// In-place repaginate：复用现有 session handle，更新 config。
   /// handle 不存在时退化到 [beginPaginate]（用真实 bookId/chapterIndex）。
   Future<({int totalPages, bool isPartial})> repaginateInPlace({

@@ -114,6 +114,27 @@ pub fn get_page_content(
     ReadingOrchestrator::global()
         .get_page_content(file_path, chapter_index, config_hash, page_index)
 }
+/// M5.1：从 BLOCK_CACHE 取单页块（staging 预渲染）。
+#[frb(sync)]
+pub fn get_page_blocks(
+    file_path: String,
+    chapter_index: i32,
+    config_hash: u64,
+    page_index: i32,
+) -> Vec<PageBlockSlice> {
+    ReadingOrchestrator::global()
+        .get_page_blocks(file_path, chapter_index, config_hash, page_index)
+}
+/// M5.1：章是否含 Image 块（决定 staging 全章 vs partial 分页）。
+#[frb]
+pub async fn chapter_has_image_blocks(
+    file_path: String,
+    chapter_index: i32,
+) -> Result<bool, AppError> {
+    ReadingOrchestrator::global()
+        .chapter_has_image_blocks(file_path, chapter_index)
+        .await
+}
 /// Create pagination session with initial pagination.
 #[frb]
 pub async fn create_pagination_session(

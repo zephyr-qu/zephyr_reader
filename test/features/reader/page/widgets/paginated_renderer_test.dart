@@ -12,11 +12,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
+import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'package:zephyr_reader/features/reader/rendering/page_curl_widget.dart';
 import 'package:zephyr_reader/features/reader/rendering/paginated_renderer.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
+import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 
 class _MockDataSource extends Mock implements ReaderRenderDataSource {}
@@ -25,6 +27,15 @@ void _stubDataSource(_MockDataSource dataSource) {
   when(() => dataSource.preloadGeneration).thenReturn(ValueNotifier<int>(0));
   when(() => dataSource.prevChapterStaging).thenReturn(null);
   when(() => dataSource.nextChapterStaging).thenReturn(null);
+  when(() => dataSource.sessionMode).thenReturn(ChapterPaginationMode.plainText);
+  when(() => dataSource.sessionFilePath).thenReturn(null);
+  when(() => dataSource.pageBlocks(any())).thenReturn(null);
+}
+
+_MockDataSource _mockDataSource() {
+  final dataSource = _MockDataSource();
+  _stubDataSource(dataSource);
+  return dataSource;
 }
 
 ReaderRenderConfig _config({
@@ -62,7 +73,7 @@ void main() {
 
   group('buildSinglePageContent', () {
     testWidgets('dataSource 返回 null 时渲染加载指示器', (tester) async {
-      final dataSource = _MockDataSource();
+      final dataSource = _mockDataSource();
       when(() => dataSource.pageContent(any())).thenReturn(null);
 
       await tester.pumpWidget(
@@ -87,7 +98,7 @@ void main() {
     });
 
     testWidgets('正常页面内容渲染 SelectableText.rich', (tester) async {
-      final dataSource = _MockDataSource();
+      final dataSource = _mockDataSource();
       when(() => dataSource.pageContent(0)).thenReturn('Hello world.');
 
       await tester.pumpWidget(
@@ -111,8 +122,45 @@ void main() {
       expect(find.byType(SelectableText), findsOneWidget);
     });
 
+    testWidgets('contentBlocks 模式渲染 Image 占位', (tester) async {
+      final dataSource = _mockDataSource();
+      when(() => dataSource.sessionMode)
+          .thenReturn(ChapterPaginationMode.contentBlocks);
+      when(() => dataSource.sessionFilePath).thenReturn('/books/test.epub');
+      when(() => dataSource.pageBlocks(0)).thenReturn([
+        const PageBlockSlice.image(
+          PageImageBlockSlice(
+            blockIndex: 1,
+            assetId: 'img_cover',
+            layout: ImageBlockLayout.inlineContain,
+            alt: 'cover',
+          ),
+        ),
+      ]);
+
+      await tester.pumpWidget(
+        _buildInApp(
+          LayoutBuilder(
+            builder: (context, constraints) => buildSinglePageContent(
+              context: context,
+              pageIndex: 0,
+              startOffset: 0,
+              dataSource: dataSource,
+              config: _config(),
+              highlights: const [],
+              onHighlightTap: null,
+              onSelectionChanged: null,
+              onSelectionGlobalPosition: null,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byIcon(Icons.image_outlined), findsOneWidget);
+    });
+
     testWidgets('空内容不崩溃', (tester) async {
-      final dataSource = _MockDataSource();
+      final dataSource = _mockDataSource();
       when(() => dataSource.pageContent(0)).thenReturn('');
 
       await tester.pumpWidget(
@@ -213,6 +261,77 @@ void main() {
       );
 
       expect(find.byType(PageView), findsOneWidget);
+    });
+
+    testWidgets('contentBlocks staging 渲染 Image 占位', (tester) async {
+      final dataSource = _mockDataSource();
+      when(() => dataSource.nextChapterStaging).thenReturn(
+        NextChapterStaging(
+          chapterIndex: 1,
+          configHash: 0x1234,
+          descriptors: const [
+            PageDescriptor(
+              pageIndex: 0,
+              startOffset: 0,
+              endOffset: 80,
+              isLastPage: false,
+              firstParagraphIndex: 0,
+              lastParagraphIndex: 0,
+            ),
+          ],
+          firstPageContent: '',
+          isPartial: false,
+          paginationMode: ChapterPaginationMode.contentBlocks,
+          filePath: '/books/test.epub',
+          anchorPageBlocks: const [
+            PageBlockSlice.image(
+              PageImageBlockSlice(
+                blockIndex: 1,
+                assetId: 'img_staging',
+                layout: ImageBlockLayout.inlineContain,
+                alt: 'staging',
+              ),
+            ),
+          ],
+        ),
+      );
+      when(() => dataSource.descriptors).thenReturn([
+        const PageDescriptor(
+          pageIndex: 0,
+          startOffset: 0,
+          endOffset: 100,
+          isLastPage: true,
+          firstParagraphIndex: 0,
+          lastParagraphIndex: 0,
+        ),
+      ]);
+      when(() => dataSource.pageContent(0)).thenReturn('Current page.');
+
+      await tester.pumpWidget(
+        _buildInApp(
+          PaginatedModeRenderer(
+            config: _config(),
+            pageController: PageController(initialPage: 1),
+            dataSource: dataSource,
+            bookId: 'test_book',
+            chapterId: 0,
+            pageIndex: 0,
+            content: 'Current page.',
+            highlights: const [],
+            readingMode: ReadingMode.pagination,
+            hasNextChapter: true,
+          ),
+        ),
+      );
+
+      await tester.pump();
+      final stagingImageIcon = find.byWidgetPredicate(
+        (w) =>
+            w is Icon &&
+            (w.icon == Icons.image_outlined ||
+                w.icon == Icons.broken_image_outlined),
+      );
+      expect(stagingImageIcon, findsOneWidget);
     });
 
     testWidgets('无 descriptors 走 fallback 分页', (tester) async {
