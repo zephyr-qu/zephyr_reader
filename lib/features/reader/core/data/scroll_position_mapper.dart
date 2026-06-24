@@ -20,22 +20,17 @@ class ScrollPositionMapper {
         continue;
       }
 
-      final localPara = seg.paragraphIndexForCharOffset(charOffset);
-      if (localPara < 0) {
-        return globalParagraph * paragraphExtent;
-      }
+      final metrics = seg.listMetrics;
+      final localItem = metrics.itemIndexForCharOffset(charOffset);
 
       var offset = globalParagraph * paragraphExtent;
-      offset += localPara * paragraphExtent;
+      offset += localItem * paragraphExtent;
 
-      if (localPara < seg.paragraphs.length) {
-        final paraStart = seg.paragraphCharOffsets[localPara];
-        final paraText = seg.paragraphs[localPara];
-        if (paraText.isNotEmpty && charOffset > paraStart) {
-          final ratio =
-              ((charOffset - paraStart) / paraText.length).clamp(0.0, 1.0);
-          offset += ratio * paragraphExtent;
-        }
+      final charLen = metrics.charLengthAt(localItem);
+      final itemStart = metrics.charOffsetAt(localItem);
+      if (charLen > 0 && charOffset > itemStart) {
+        final ratio = ((charOffset - itemStart) / charLen).clamp(0.0, 1.0);
+        offset += ratio * paragraphExtent;
       }
       return offset;
     }

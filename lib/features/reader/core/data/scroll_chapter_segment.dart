@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/features/reader/core/data/scroll_list_metrics.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 
 /// 滚动模式下单章分段数据。
@@ -12,22 +13,29 @@ class ScrollChapterSegment {
   final List<int> paragraphCharOffsets;
   final List<RichParagraph>? richParagraphs;
   final TextSpan? richRootSpan;
+  final ScrollListMetrics listMetrics;
 
-  const ScrollChapterSegment({
+  ScrollChapterSegment({
     required this.chapterIndex,
     required this.paragraphs,
     required this.paragraphCharOffsets,
     this.richParagraphs,
     this.richRootSpan,
-  });
+    ScrollListMetrics? listMetrics,
+  }) : listMetrics = listMetrics ??
+            computeScrollListMetrics(
+              paragraphs: paragraphs,
+              paragraphCharOffsets: paragraphCharOffsets,
+              richParagraphs: richParagraphs,
+              richRootSpan: richRootSpan,
+            );
 
   bool get isRich => richParagraphs != null && richParagraphs!.isNotEmpty;
 
   bool get hasImages => richParagraphs?.any((p) => p.isImage) ?? false;
 
-  /// ListView item 数：富文本按 RichParagraph（含图片），纯文本按段落。
-  int get paragraphCount =>
-      isRich ? richParagraphs!.length : paragraphs.length;
+  /// ListView 项数（与渲染扁平化一致；含图片时可能 > [paragraphs].length）。
+  int get paragraphCount => listMetrics.itemCount;
 
   int get totalCharLength =>
       paragraphCharOffsets.isNotEmpty
