@@ -57,21 +57,21 @@ Flutter 按页拉块 → Text + Image（asset 本地路径）
 
 | # | 任务 | 层 | 状态 | 验收 |
 |---|------|-----|------|------|
-| 2.1 | `BlockPaginator` 状态机 | Rust | ⬜ | `remaining_height` 逐块消费 |
-| 2.2 | Text 块断行 | Rust | ⬜ | 复用 `TypesetConfig` 测量 |
-| 2.3 | Image 块布局 | Rust | ⬜ | 够高 → contain；否则独占页 |
-| 2.4 | 产出 descriptors | Rust | ⬜ | 块范围 + plain char 范围 |
-| 2.5 | 单元测试 | Rust | ⬜ | 纯文 / 小图 inline / 大图 full-page |
+| 2.1 | `BlockPaginator` 状态机 | Rust | ✅ | `text/block_paginator.rs`；`remaining_height` 逐块消费 |
+| 2.2 | Text 块断行 | Rust | ✅ | 复用 `compute_line_breaks_from_indices` + `TypesetConfig` |
+| 2.3 | Image 块布局 | Rust | ✅ | 够高 → contain；否则独占页 |
+| 2.4 | 产出 descriptors | Rust | ✅ | 块范围 + plain char 范围 + `image_layouts` |
+| 2.5 | 单元测试 | Rust | ✅ | 纯文 / 小图 inline / 大图 full-page |
 
 ### M3 — 接入分页 Session（~1–2 周）
 
 | # | 任务 | 层 | 状态 | 验收 |
 |---|------|-----|------|------|
-| 3.1 | Session 双路径（`PageStreamer` vs `BlockPaginator`） | Rust | ⬜ | feature flag 或按内容探测 |
-| 3.2 | `get_page_blocks`（或扩展 `get_page_content`） | Rust/FRB | ⬜ | 块列表 + 文本切片；图返 `asset_id` |
-| 3.3 | partial 首屏 + `expandToFullChapter` | Rust | ⬜ | 5 intent 语义不变 |
-| 3.4 | `charOffset` → `pageIndex` | Rust/Dart | ⬜ | descriptor plain 范围 + 现有 resolver |
-| 3.5 | 集成测试 | Rust | ⬜ | 扩展 `epub_reading_chain_test` |
+| 3.1 | Session 双路径（`PageStreamer` vs `BlockPaginator`） | Rust | ✅ | `ir.image_block_count() > 0` 全章走 block |
+| 3.2 | `get_page_blocks`（或扩展 `get_page_content`） | Rust/FRB | ✅ | `get_session_page_blocks` |
+| 3.3 | partial 首屏 + `expandToFullChapter` | Rust | ⬜ | partial 仍 plain；expand 全章可切 block |
+| 3.4 | `charOffset` → `pageIndex` | Rust/Dart | ✅ | `session_char_offset_to_page_index` |
+| 3.5 | 集成测试 | Rust | ✅ | `epub_block_session_with_image` |
 
 ### M4 — Flutter 渲染 + 图片管道（~1–2 周）
 

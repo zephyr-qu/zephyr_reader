@@ -1,4 +1,4 @@
-pub(crate) use crate::domain::{AppError, TypesetConfig};
+pub(crate) use crate::domain::{AppError, PageBlockSlice, TypesetConfig};
 use crate::domain::{PageContent, PaginateResult};
 use crate::parser::registry::parser_for_file;
 use crate::reading::chapter_access::format_from_file_path;
@@ -166,6 +166,24 @@ pub fn get_session_page_content(
 ) -> Result<String, AppError> {
     ReadingOrchestrator::global()
         .get_session_page_content(handle, page_index)
+}
+/// M3.2：页内块列表（`ContentBlocks` 模式有效）。
+#[frb(sync)]
+pub fn get_session_page_blocks(
+    handle: PaginationSessionHandle,
+    page_index: i32,
+) -> Result<Vec<PageBlockSlice>, AppError> {
+    ReadingOrchestrator::global()
+        .get_session_page_blocks(handle, page_index)
+}
+/// M3.4：章级 charOffset → pageIndex。
+#[frb(sync)]
+pub fn session_char_offset_to_page_index(
+    handle: PaginationSessionHandle,
+    char_offset: i32,
+) -> Result<i32, AppError> {
+    ReadingOrchestrator::global()
+        .session_char_offset_to_page_index(handle, char_offset)
 }
 /// Dispose pagination session.
 pub fn dispose_pagination_session(

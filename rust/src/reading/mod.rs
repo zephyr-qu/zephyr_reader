@@ -15,7 +15,10 @@
 //! - `types` — FRB-exposed types（`PaginationSessionHandle`）
 
 pub mod book_id_cache;
+pub mod block_cache;
+pub mod block_state;
 pub mod chapter_access;
+pub mod chapter_ir;
 pub(crate) mod layout_cache;
 pub mod orchestrator;
 pub(crate) mod pagination;
