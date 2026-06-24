@@ -4,12 +4,15 @@
 
 use std::time::Instant;
 
-use crate::domain::{AppError, PageContent, PaginateResult, TypesetConfig};
+use crate::domain::{AppError, ChapterPaginationMode, PageContent, PaginateResult, TypesetConfig};
 use crate::storage::models::BookFormat;
-use crate::text::{paginate_all, PageStreamer};
+use crate::text::{paginate_all, paginate_chapter_ir, PageStreamer};
 use crate::utils::security::validate_file_path;
 
+use super::block_cache::{pop_block_state, put_block_state, BLOCK_CACHE};
+use super::block_state::BlockPaginationState;
 use super::chapter_access::{format_from_file_path, get_chapter_bounds};
+use super::chapter_ir::load_chapter_content_ir;
 use super::layout_cache::{try_get_cached, try_save_cached};
 use super::provider_cache::get_or_create_provider;
 use super::streamer_cache::STREAMER_CACHE;
@@ -59,12 +62,71 @@ pub(crate) async fn paginate_all_content(
     Ok(pages)
 }
 
+/// 全章 + 含 Image 块时走 BlockPaginator；否则沿用 Phase 1 `PageStreamer`。
+async fn try_paginate_chapter_blocks(
+    validated_path: &str,
+    chapter_index: i32,
+    config: &TypesetConfig,
+    max_chars: Option<u64>,
+) -> Result<Option<PaginateResult>, AppError> {
+    if max_chars.is_some() {
+        return Ok(None);
+    }
+
+    let format = format_from_file_path(validated_path)?;
+    if !matches!(format, BookFormat::Txt | BookFormat::Epub) {
+        return Ok(None);
+    }
+
+    let config_hash = config.config_hash();
+    let cache_key = (validated_path.to_string(), chapter_index, config_hash);
+
+    let cached = {
+        let mut cache = BLOCK_CACHE.lock();
+        cache.pop(&cache_key)
+    };
+    if let Some(state) = cached {
+        if !state.is_partial {
+            let result = state.to_paginate_result(config_hash);
+            BLOCK_CACHE.lock().put(cache_key, state);
+            return Ok(Some(result));
+        }
+        BLOCK_CACHE.lock().put(cache_key, state);
+    }
+
+    let ir = load_chapter_content_ir(validated_path, chapter_index).await?;
+    if ir.image_block_count() == 0 {
+        return Ok(None);
+    }
+
+    let config = config.clone();
+    let ir_for_paginate = ir.clone();
+    let block_result =
+        tokio::task::spawn_blocking(move || paginate_chapter_ir(&ir_for_paginate, config))
+        .await
+        .map_err(|e| AppError::TaskPanic {
+            task_name: "block_paginate".into(),
+            details: e.to_string().into(),
+        })?;
+
+    let state = BlockPaginationState::new(ir, block_result, false);
+    let result = state.to_paginate_result(config_hash);
+    put_block_state(validated_path, chapter_index, config_hash, state);
+
+    tracing::info!(
+        "[Timing] paginate_chapter block_path config_hash={:016x} chapter={} pages={}",
+        config_hash,
+        chapter_index,
+        result.descriptors.len()
+    );
+
+    Ok(Some(result))
+}
+
 /// 轻量级分页排版（只获取页面描述符，文本按需加载）。
 ///
-/// 创建 `PageStreamer` 并缓存到 LRU 缓存中，Dart 侧通过 `get_page_content` 按需获取页面内容。
-/// 如果指定 `max_chars`，只读取前 N 字符进行分页（惰性转换，只转换必要的 spine），
-/// 用于初始快速分页。不指定则读取全文。
-/// 与 `paginate_all_content` 相比，显著减少 FFI 数据量（只传偏移量，不传文本）。
+/// 创建 `PageStreamer` 或 `BlockPaginationState` 并缓存；Dart 侧按需取页。
+/// 如果指定 `max_chars`，只读取前 N 字符进行分页（惰性转换）。
 pub(crate) async fn paginate_chapter(
     file_path: String,
     chapter_index: i32,
@@ -75,6 +137,54 @@ pub(crate) async fn paginate_chapter(
     let config = config.validate_and_fix();
     let config_hash = config.config_hash();
     let start = Instant::now();
+
+    // 全章：streamer / layout 缓存命中后再探测块路径（避免每章都加载 IR）。
+    if max_chars.is_none() {
+        let streamer_key = (validated_path.clone(), chapter_index, config_hash);
+        let streamer = {
+            let mut cache = STREAMER_CACHE.lock();
+            cache.pop(&streamer_key)
+        };
+        if let Some(streamer) = streamer {
+            if !streamer.is_partial {
+                let descriptors = streamer.get_descriptors();
+                STREAMER_CACHE.lock().put(streamer_key, streamer);
+                tracing::info!(
+                    "[Timing] paginate_chapter streamer_cache=HIT config_hash={:016x} chapter={} elapsed={:?}",
+                    config_hash, chapter_index, start.elapsed()
+                );
+                return Ok(PaginateResult {
+                    descriptors,
+                    config_hash,
+                    is_partial: false,
+                    mode: ChapterPaginationMode::PlainText,
+                });
+            }
+            STREAMER_CACHE.lock().put(streamer_key, streamer);
+        }
+        if let Some(pages) = try_get_cached(&validated_path, chapter_index, None, config_hash).await {
+            let mut streamer = PageStreamer::from_pages(pages);
+            streamer.is_partial = false;
+            let descriptors = streamer.get_descriptors();
+            STREAMER_CACHE.lock().put((validated_path.clone(), chapter_index, config_hash), streamer);
+            tracing::info!(
+                "[Timing] paginate_chapter layout_cache=HIT config_hash={:016x} chapter={} elapsed={:?}",
+                config_hash, chapter_index, start.elapsed()
+            );
+            return Ok(PaginateResult {
+                descriptors,
+                config_hash,
+                is_partial: false,
+                mode: ChapterPaginationMode::PlainText,
+            });
+        }
+
+        if let Some(result) =
+            try_paginate_chapter_blocks(&validated_path, chapter_index, &config, None).await?
+        {
+            return Ok(result);
+        }
+    }
 
     // 提取章节文本（只读取必要的 spine，惰性转换）
     let format = format_from_file_path(&validated_path)?;
@@ -131,72 +241,6 @@ pub(crate) async fn paginate_chapter(
          });
      };
 
-    // 全章分页：先查 STREAMER_CACHE（H2 修复），再查 layout cache。
-    //
-    // 修复前：每次都做 provider I/O + CPU 排版，仅查 layout cache
-    // （cap=16 的 KV，且 key 含 config_hash），命中概率低。
-    // 修复后：同一 `(path, chapter, config_hash)` 的全章分页在
-    // STREAMER_CACHE 中有完整 streamer 时直接复用，跳过 I/O 和排版。
-    // 只复用 `is_partial=false` 的 streamer（partial 复用需要特殊处理，
-    // 保守起见让 partial 走原本的逻辑重新排版）。
-    if max_chars.is_none() {
-        // H2 fix: fast path — check STREAMER_CACHE first (LRU, in-memory)
-        // before falling through to layout cache (sled KV) or full re-pagination.
-        let streamer_key = (validated_path.clone(), chapter_index, config_hash);
-        // M6 fix: use `pop` to transfer ownership out of LRU before
-        // reading descriptors, then `put` back. Avoids deep-cloning
-        // the entire `PageStreamer.content` (could be 100s of KB)
-        // while holding the cache lock, which blocks concurrent
-        // readers for the duration of the clone.
-        //
-        // Safety: the pop→put window is racy only if another thread
-        // concurrently calls paginate_chapter for the same key. In
-        // that case both threads will write the same content (they
-        // share the same `paginate_chapter` body), so last-writer-wins
-        // is semantically fine. Slight memory waste (extra allocation)
-        // is preferable to blocking.
-        let streamer = {
-            let mut cache = STREAMER_CACHE.lock();
-            cache.pop(&streamer_key)
-        };
-        if let Some(streamer) = streamer {
-            if !streamer.is_partial {
-                let descriptors = streamer.get_descriptors();
-                // Put the streamer back so future adopt / get_page_content
-                // calls can find it. Use a fresh lock to avoid nested locks.
-                STREAMER_CACHE.lock().put(streamer_key, streamer);
-                tracing::info!(
-                    "[Timing] paginate_chapter streamer_cache=HIT config_hash={:016x} chapter={} elapsed={:?}",
-                    config_hash, chapter_index, start.elapsed()
-                );
-                return Ok(PaginateResult {
-                    descriptors,
-                    config_hash,
-                    is_partial: false,
-                });
-            } else {
-                // Partial — put back and let the rest of the function
-                // re-paginate as a non-partial.
-                STREAMER_CACHE.lock().put(streamer_key, streamer);
-            }
-        }
-        if let Some(pages) = try_get_cached(&validated_path, chapter_index, None, config_hash).await {
-            let mut streamer = PageStreamer::from_pages(pages);
-            streamer.is_partial = false;
-            let descriptors = streamer.get_descriptors();
-            STREAMER_CACHE.lock().put((validated_path, chapter_index, config_hash), streamer);
-            tracing::info!(
-                "[Timing] paginate_chapter layout_cache=HIT config_hash={:016x} chapter={} elapsed={:?}",
-                config_hash, chapter_index, start.elapsed()
-            );
-            return Ok(PaginateResult {
-                descriptors,
-                config_hash,
-                is_partial: false,
-            });
-        }
-    }
-
     let mut streamer = PageStreamer::new(content, config);
     streamer.is_partial = is_partial;
     let descriptors = streamer.get_descriptors();
@@ -231,7 +275,26 @@ pub(crate) async fn paginate_chapter(
         descriptors,
         config_hash,
         is_partial,
+        mode: ChapterPaginationMode::PlainText,
     })
+}
+
+/// 块路径单页 plain 文本（含 `\uFFFC`）。
+pub(crate) fn get_block_page_content(
+    file_path: &str,
+    chapter_index: i32,
+    config_hash: u64,
+    page_index: i32,
+) -> String {
+    if let Some(state) = pop_block_state(file_path, chapter_index, config_hash) {
+        let text = state
+            .page_plain_text(page_index as usize)
+            .unwrap_or_default();
+        put_block_state(file_path, chapter_index, config_hash, state);
+        text
+    } else {
+        String::new()
+    }
 }
 
 /// 按需获取单页内容（同步，纯内存操作）。
@@ -244,12 +307,14 @@ pub(crate) fn get_page_content(
     config_hash: u64,
     page_index: i32,
 ) -> String {
-    let key = (file_path, chapter_index, config_hash);
+    let key = (file_path.clone(), chapter_index, config_hash);
+    let path = file_path.as_str();
     let mut cache = STREAMER_CACHE.lock();
     if let Some(streamer) = cache.get(&key) {
         if let Some(page) = streamer.get_page(page_index as usize, chapter_index) {
             return page.content;
         }
     }
-    String::new()
+    drop(cache);
+    get_block_page_content(path, chapter_index, config_hash, page_index)
 }

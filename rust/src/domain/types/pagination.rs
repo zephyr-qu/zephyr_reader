@@ -52,6 +52,17 @@ pub struct PageDescriptor {
     pub is_last_page: bool,
 }
 
+/// 章节分页引擎模式（Phase 2 M3）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[frb]
+pub enum ChapterPaginationMode {
+    /// Phase 1 plain 文本流 + `PageStreamer`。
+    #[default]
+    PlainText,
+    /// Phase 2 块 IR + `BlockPaginator`（含 Image 块时启用）。
+    ContentBlocks,
+}
+
 /// 分页结果（包含页面描述符列表和配置哈希）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[frb(non_opaque)]
@@ -62,6 +73,8 @@ pub struct PaginateResult {
     pub config_hash: u64,
     /// 是否为部分分页（true=仅前 N 字符，需后续补全）
     pub is_partial: bool,
+    /// 分页引擎模式；`ContentBlocks` 时须用 `get_session_page_blocks` 取块。
+    pub mode: ChapterPaginationMode,
 }
 
 /// 搜索结果

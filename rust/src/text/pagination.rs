@@ -13,7 +13,7 @@ use flutter_rust_bridge::frb;
 const SAFETY_MARGIN_PX: f32 = 2.0;
 
 /// 使用预计算的 char_indices 计算行分割
-fn compute_line_breaks_from_indices(
+pub(crate) fn compute_line_breaks_from_indices(
     para_char_indices: &[(usize, char)],
     para_start: usize,
     para_end: usize,

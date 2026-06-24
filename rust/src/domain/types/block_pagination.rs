@@ -119,6 +119,58 @@ impl BlockPaginateResult {
     pub fn page_count(&self) -> usize {
         self.descriptors.len()
     }
+
+    /// `charOffset`（章级 plain Unicode 索引）→ 页码；末页上界外返回最后一页。
+    pub fn page_index_at_char_offset(&self, char_offset: u32) -> Option<i32> {
+        for desc in &self.descriptors {
+            if char_offset >= desc.plain.plain_start && char_offset < desc.plain_end_exclusive() {
+                return Some(desc.page_index);
+            }
+        }
+        self.descriptors
+            .last()
+            .filter(|d| d.is_last_page && char_offset == d.plain_end_exclusive())
+            .map(|d| d.page_index)
+    }
+
+    pub fn to_legacy_paginate_result(&self, mode: super::pagination::ChapterPaginationMode) -> super::pagination::PaginateResult {
+        super::pagination::PaginateResult {
+            descriptors: self
+                .descriptors
+                .iter()
+                .map(|d| d.to_legacy_page_descriptor())
+                .collect(),
+            config_hash: self.config_hash,
+            is_partial: self.is_partial,
+            mode,
+        }
+    }
+}
+
+/// 页内 Text 块切片（相对页 plain 范围裁剪后的 UTF-8 文本）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[frb(non_opaque)]
+pub struct PageTextBlockSlice {
+    pub block_index: u32,
+    pub text: String,
+}
+
+/// 页内 Image 块切片。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[frb(non_opaque)]
+pub struct PageImageBlockSlice {
+    pub block_index: u32,
+    pub asset_id: String,
+    pub layout: ImageBlockLayout,
+    pub alt: Option<String>,
+}
+
+/// 单页块列表项（M3.2 `get_page_blocks` 输出）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[frb]
+pub enum PageBlockSlice {
+    Text(PageTextBlockSlice),
+    Image(PageImageBlockSlice),
 }
 
 #[cfg(test)]
@@ -172,5 +224,16 @@ mod tests {
         assert_eq!(legacy.end_offset, 150);
         assert_eq!(legacy.first_paragraph_index, 2);
         assert_eq!(legacy.last_paragraph_index, 4);
+    }
+
+    #[test]
+    fn page_index_at_char_offset_finds_page() {
+        let d0 = BlockPageDescriptor::new(0, 0, 1, BlockPlainRange::new(0, 10), false);
+        let d1 = BlockPageDescriptor::new(1, 1, 2, BlockPlainRange::new(10, 5), true);
+        let result = BlockPaginateResult::new(vec![d0, d1], 0, false);
+        assert_eq!(result.page_index_at_char_offset(0), Some(0));
+        assert_eq!(result.page_index_at_char_offset(9), Some(0));
+        assert_eq!(result.page_index_at_char_offset(10), Some(1));
+        assert_eq!(result.page_index_at_char_offset(15), Some(1));
     }
 }

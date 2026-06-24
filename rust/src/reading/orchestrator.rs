@@ -9,7 +9,7 @@
 
 use std::sync::LazyLock;
 
-use crate::domain::{AppError, PageContent, PaginateResult, TypesetConfig};
+use crate::domain::{AppError, PageBlockSlice, PageContent, PaginateResult, TypesetConfig};
 use crate::reading::types::PaginationSessionHandle;
 use crate::api::core::{ChapterContent, FirstSpineResult};
 
@@ -126,6 +126,24 @@ impl ReadingOrchestrator {
         page_index: i32,
     ) -> Result<String, AppError> {
         super::session::get_session_page_content(handle, page_index)
+    }
+
+    /// M3.2：页内块列表（block 模式）。
+    pub fn get_session_page_blocks(
+        &self,
+        handle: PaginationSessionHandle,
+        page_index: i32,
+    ) -> Result<Vec<PageBlockSlice>, AppError> {
+        super::session::get_session_page_blocks(handle, page_index)
+    }
+
+    /// M3.4：章级 charOffset → pageIndex。
+    pub fn session_char_offset_to_page_index(
+        &self,
+        handle: PaginationSessionHandle,
+        char_offset: i32,
+    ) -> Result<i32, AppError> {
+        super::session::session_char_offset_to_page_index(handle, char_offset)
     }
 
     /// Dispose pagination session.

@@ -11,10 +11,11 @@ mod common;
 
 use rust_lib_zephyr_reader::api::core::{
     create_pagination_session, paginate_session_full, repaginate_session,
-    get_session_page_content, dispose_pagination_session, get_chapter_first_spine_only,
+    get_session_page_content, get_session_page_blocks, session_char_offset_to_page_index,
+    dispose_pagination_session, get_chapter_first_spine_only,
     paginate_chapter, get_chapter, ChapterContent,
 };
-use rust_lib_zephyr_reader::domain::{AppError, TypesetConfig};
+use rust_lib_zephyr_reader::domain::{AppError, ChapterPaginationMode, PageBlockSlice, TypesetConfig};
 use rust_lib_zephyr_reader::storage::{storage_pool, repos::ChapterRepository};
 
 use common::epub_local::require_fixture;
@@ -292,6 +293,146 @@ async fn epub_golden_plain_chapter0_adr007() {
         !text.contains("\n\n\n"),
         "plain must not have triple newlines"
     );
+}
+
+// =========================================================================
+// M3 — Block pagination session (image EPUB)
+// =========================================================================
+
+#[tokio::test]
+async fn epub_block_session_with_image() {
+    use std::io::{Read, Write};
+    use std::path::PathBuf;
+    use zip::write::SimpleFileOptions;
+    use zip::ZipWriter;
+
+    let src_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../test/fixtures/medium.epub");
+    if !src_path.exists() {
+        eprintln!(
+            "SKIP: missing fixture medium.epub at {}",
+            src_path.display()
+        );
+        return;
+    }
+
+    let src_bytes = std::fs::read(&src_path).expect("read fixture");
+    let src_zip = std::io::Cursor::new(src_bytes);
+    let mut src_archive = zip::ZipArchive::new(src_zip).expect("open zip");
+
+    let dir = tempfile::TempDir::new().expect("temp dir");
+    let out_path = dir.path().join("with_image.epub");
+    let out_file = std::fs::File::create(&out_path).expect("create out file");
+    let mut out_zip = ZipWriter::new(out_file);
+
+    let image_html = r#"<html xmlns="http://www.w3.org/1999/xhtml"><body>
+<p>Before the picture.</p>
+<img src="images/sample.jpg" alt="sample"/>
+<p>After the picture.</p>
+</body></html>"#;
+
+    let mut names: Vec<String> = (0..src_archive.len())
+        .map(|i| src_archive.by_index(i).unwrap().name().to_string())
+        .collect();
+    names.sort_by(|a, b| {
+        if a == "mimetype" {
+            std::cmp::Ordering::Less
+        } else if b == "mimetype" {
+            std::cmp::Ordering::Greater
+        } else {
+            a.cmp(b)
+        }
+    });
+
+    for name in &names {
+        let mut entry = src_archive.by_name(name).expect("entry in archive");
+        let opts = if name == "mimetype" {
+            SimpleFileOptions::default()
+                .compression_method(zip::CompressionMethod::Stored)
+                .unix_permissions(0o644)
+        } else {
+            SimpleFileOptions::default()
+                .compression_method(zip::CompressionMethod::Deflated)
+                .unix_permissions(0o644)
+        };
+
+        let is_chapter_spine =
+            name.starts_with("OEBPS/chapter") && name.ends_with(".xhtml");
+
+        if is_chapter_spine {
+            out_zip
+                .start_file(name, opts)
+                .expect("start image spine entry");
+            out_zip
+                .write_all(image_html.as_bytes())
+                .expect("write image spine");
+        } else {
+            let mut buf = Vec::new();
+            entry.read_to_end(&mut buf).expect("read entry");
+            out_zip.start_file(name, opts).expect("start entry");
+            out_zip.write_all(&buf).expect("write entry");
+        }
+    }
+    out_zip.finish().expect("finish zip");
+
+    let data_dir = dir.path().join("storage");
+    std::fs::create_dir_all(&data_dir).expect("create storage dir");
+    rust_lib_zephyr_reader::api::data::init::init_storage(
+        data_dir.to_string_lossy().to_string(),
+    )
+    .await
+    .expect("init storage");
+
+    let file_path = out_path.to_string_lossy().to_string();
+    let book_id = rust_lib_zephyr_reader::api::core::parse_book(file_path.clone())
+        .await
+        .expect("parse_book should succeed");
+
+    let pool = storage_pool().expect("storage_pool");
+    let chapters = ChapterRepository::find_by_book(&pool, &book_id)
+        .await
+        .expect("chapters");
+    let ch0 = &chapters[0];
+    let ir = rust_lib_zephyr_reader::parser::epub::get_chapter_content_ir(
+        &file_path,
+        ch0.start_index as i32,
+        ch0.end_index as i32,
+    )
+    .expect("chapter IR should load");
+    assert!(
+        ir.image_block_count() > 0,
+        "fixture spine must produce Image blocks (count={})",
+        ir.image_block_count()
+    );
+
+    let config = test_typeset_config();
+    let (handle, result) = create_pagination_session(file_path, 0, config, None)
+        .await
+        .expect("create_pagination_session should succeed");
+
+    assert_eq!(
+        result.mode,
+        ChapterPaginationMode::ContentBlocks,
+        "chapters with images must use block pagination"
+    );
+    assert!(!result.descriptors.is_empty());
+
+    let page_idx = session_char_offset_to_page_index(handle.clone(), 7)
+        .expect("char offset on image placeholder should resolve");
+    assert!(page_idx >= 0);
+
+    let blocks = get_session_page_blocks(handle.clone(), page_idx)
+        .expect("get_session_page_blocks should succeed");
+    assert!(
+        blocks.iter().any(|b| matches!(b, PageBlockSlice::Image(_))),
+        "page with image should return Image block slice"
+    );
+
+    let plain = get_session_page_content(handle.clone(), page_idx)
+        .expect("get_session_page_content should succeed");
+    assert!(!plain.is_empty());
+
+    dispose_pagination_session(handle).expect("dispose should succeed");
 }
 
 // =========================================================================

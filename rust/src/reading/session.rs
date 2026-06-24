@@ -1,6 +1,7 @@
 //! `PaginationSession` 生命周期：entry storage + 原子 repaginate + dispose。
 //!
 //! Phase 3 实施：迁自 `api/core.rs` 的 session 相关 FFI 与内部 helper。
+//! M3：双路径 — `PageStreamer`（纯文）与 `BlockPaginationState`（含 Image IR）。
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -8,12 +9,23 @@ use std::sync::LazyLock;
 
 use parking_lot::Mutex;
 
-use crate::domain::{AppError, PaginateResult, TypesetConfig};
+use crate::domain::{
+    AppError, ChapterPaginationMode, PageBlockSlice, PaginateResult, TypesetConfig,
+};
+use crate::reading::block_cache::{put_block_state, BLOCK_CACHE};
+use crate::reading::block_state::BlockPaginationState;
 use crate::reading::pagination::paginate_chapter;
 use crate::reading::streamer_cache::STREAMER_CACHE;
 use crate::reading::types::PaginationSessionHandle;
 use crate::text::PageStreamer;
 use crate::utils::security::validate_file_path;
+
+/// Session 绑定的分页引擎（plain 或 block）。
+#[derive(Clone)]
+pub(crate) enum PaginationEngine {
+    Plain(PageStreamer),
+    Block(BlockPaginationState),
+}
 
 /// Server-side pagination session entry (file/chapter/config binding).
 #[derive(Clone)]
@@ -21,7 +33,21 @@ pub(crate) struct PaginationSessionEntry {
     pub(crate) file_path: String,
     pub(crate) chapter_index: i32,
     pub(crate) config: TypesetConfig,
-    pub(crate) streamer: PageStreamer,
+    pub(crate) engine: PaginationEngine,
+}
+
+impl PaginationSessionEntry {
+    fn config_hash(&self) -> u64 {
+        self.config.config_hash()
+    }
+
+    fn cache_key(&self) -> (String, i32, u64) {
+        (self.file_path.clone(), self.chapter_index, self.config_hash())
+    }
+
+    fn is_block_mode(&self) -> bool {
+        matches!(self.engine, PaginationEngine::Block(_))
+    }
 }
 
 static NEXT_SESSION_ID: AtomicU64 = AtomicU64::new(1);
@@ -45,11 +71,63 @@ pub(crate) fn lookup_pagination_session(
         })
 }
 
-/// Internal helper: re-paginate a session and atomically update config + streamer.
-///
-/// `config` should already be validated. The old streamer cache entry is
-/// evicted when the (path, chapter, hash) key changes, mirroring the dispose
-/// strategy so orphans cannot accumulate.
+fn engine_from_paginate_result(
+    validated_path: &str,
+    chapter_index: i32,
+    result: &PaginateResult,
+    old_key: Option<(String, i32, u64)>,
+) -> Result<PaginationEngine, AppError> {
+    let new_key = (
+        validated_path.to_string(),
+        chapter_index,
+        result.config_hash,
+    );
+
+    match result.mode {
+        ChapterPaginationMode::ContentBlocks => {
+            let state = {
+                let mut cache = BLOCK_CACHE.lock();
+                let state = cache.pop(&new_key).ok_or_else(|| AppError::NotFound {
+                    entity: format!(
+                        "block pagination state (config_hash={:016x})",
+                        result.config_hash
+                    ),
+                })?;
+                if let Some(old) = old_key {
+                    if old != new_key {
+                        cache.pop(&old);
+                        STREAMER_CACHE.lock().pop(&old);
+                    }
+                }
+                state
+            };
+            put_block_state(validated_path, chapter_index, result.config_hash, state.clone());
+            Ok(PaginationEngine::Block(state))
+        }
+        ChapterPaginationMode::PlainText => {
+            let streamer = {
+                let mut cache = STREAMER_CACHE.lock();
+                let streamer = cache.pop(&new_key).ok_or_else(|| AppError::NotFound {
+                    entity: format!(
+                        "page streamer (config_hash={:016x})",
+                        result.config_hash
+                    ),
+                })?;
+                if let Some(old) = old_key {
+                    if old != new_key {
+                        cache.pop(&old);
+                        BLOCK_CACHE.lock().pop(&old);
+                    }
+                }
+                streamer
+            };
+            STREAMER_CACHE.lock().put(new_key, streamer.clone());
+            Ok(PaginationEngine::Plain(streamer))
+        }
+    }
+}
+
+/// Internal helper: re-paginate a session and atomically update config + engine.
 pub(crate) async fn apply_session_repagination(
     session_id: u64,
     entry: PaginationSessionEntry,
@@ -59,11 +137,7 @@ pub(crate) async fn apply_session_repagination(
     let config = config
         .map(|c| c.validate_and_fix())
         .unwrap_or_else(|| entry.config.clone());
-    let old_key = (
-        entry.file_path.clone(),
-        entry.chapter_index,
-        entry.config.config_hash(),
-    );
+    let old_key = entry.cache_key();
 
     let result = paginate_chapter(
         entry.file_path.clone(),
@@ -73,53 +147,20 @@ pub(crate) async fn apply_session_repagination(
     )
     .await?;
 
-    let new_key = (
-        entry.file_path.clone(),
+    let engine = engine_from_paginate_result(
+        &entry.file_path,
         entry.chapter_index,
-        result.config_hash,
-    );
-    // H1 fix: merge the two STREAMER_CACHE lock acquisitions (get for new
-    // streamer, then conditionally pop old key) into a single critical
-    // section. The previous code held the lock, cloned the streamer,
-    // released, then re-acquired to pop the old key — between the two,
-    // a concurrent `get_page_content(path, new_key)` could observe the
-    // freshly inserted SESSION_MAP entry pointing at a config_hash for
-    // which the old streamer was still in STREAMER_CACHE.
-    //
-    // M6 fix: use `pop` (transfer ownership) instead of `get().cloned()`
-    // (deep clone inside lock). The streamer was just `put` by the
-    // `paginate_chapter` call above (same thread, no concurrent writer
-    // expected), so pop is safe. For the old key pop, we only need
-    // the boolean "was present" — no clone.
-    // H1 + M6 fix: pop the new streamer to transfer ownership (avoids
-    // deep clone inside the lock per M6), then pop the old key in the
-    // same critical section (per H1). After this section, put the new
-    // streamer back into STREAMER_CACHE so future paginate_chapter
-    // fast-path hits and create_pagination_session_adopt work as
-    // before. The SESSION_MAP clone happens outside the cache lock.
-    let streamer = {
-        let mut cache = STREAMER_CACHE.lock();
-        let streamer = cache.pop(&new_key).ok_or_else(|| {
-            AppError::NotFound {
-                entity: format!("page streamer for session {session_id}"),
-            }
-        })?;
-        if old_key != new_key {
-            cache.pop(&old_key);  // discard — old key no longer needed
-        }
-        streamer
-    };
-    // Put the new streamer back so adopt / get_page_content see it.
-    STREAMER_CACHE.lock().put(new_key.clone(), streamer.clone());
+        &result,
+        Some(old_key),
+    )?;
 
-    // Insert the updated entry into SESSION_MAP (with new config + new streamer).
     SESSION_MAP.lock().insert(
         session_id,
         PaginationSessionEntry {
             file_path: entry.file_path,
             chapter_index: entry.chapter_index,
             config,
-            streamer,
+            engine,
         },
     );
 
@@ -127,9 +168,6 @@ pub(crate) async fn apply_session_repagination(
 }
 
 /// Create a pagination session and run initial pagination for the chapter.
-///
-/// Stores `(file_path, chapter_index, config_hash)` server-side so Dart can
-/// fetch page text via [get_session_page_content] without repeating path/config args.
 pub(crate) async fn create_pagination_session(
     file_path: String,
     chapter_index: i32,
@@ -147,14 +185,12 @@ pub(crate) async fn create_pagination_session(
     .await?;
 
     let session_id = allocate_session_id();
-    let streamer_key = (validated_path.clone(), chapter_index, result.config_hash);
-    let streamer = STREAMER_CACHE
-        .lock()
-        .get(&streamer_key)
-        .cloned()
-        .ok_or_else(|| AppError::NotFound {
-            entity: format!("page streamer for session {session_id}"),
-        })?;
+    let engine = engine_from_paginate_result(
+        &validated_path,
+        chapter_index,
+        &result,
+        None,
+    )?;
 
     SESSION_MAP.lock().insert(
         session_id,
@@ -162,20 +198,14 @@ pub(crate) async fn create_pagination_session(
             file_path: validated_path,
             chapter_index,
             config,
-            streamer,
+            engine,
         },
     );
 
     Ok((PaginationSessionHandle { session_id }, result))
 }
 
-/// Create a pagination session by adopting an existing streamer from cache.
-///
-/// 1. Look up `STREAMER_CACHE[(path, chapter_index, config_hash)]`
-/// 2. **Hit**: allocate a new session id + bind the cached `PageStreamer`,
-///    return its descriptors (**no** `paginate_chapter` call).
-/// 3. **Miss**: return `AppError::NotFound` — the caller should fall back to
-///    `create_pagination_session` + normal load.
+/// Create a pagination session by adopting an existing engine from cache.
 pub(crate) async fn create_pagination_session_adopt(
     file_path: String,
     chapter_index: i32,
@@ -186,42 +216,53 @@ pub(crate) async fn create_pagination_session_adopt(
     let config_hash = config.config_hash();
     let key = (validated_path.clone(), chapter_index, config_hash);
 
-    let streamer = STREAMER_CACHE
-        .lock()
-        .get(&key)
-        .cloned()
-        .ok_or_else(|| AppError::NotFound {
-            entity: format!(
-                "page streamer for chapter {chapter_index} (config_hash={config_hash:016x})"
-            ),
-        })?;
+    if let Some(streamer) = STREAMER_CACHE.lock().get(&key).cloned() {
+        let descriptors = streamer.get_descriptors();
+        let is_partial = streamer.is_partial;
+        let session_id = allocate_session_id();
+        SESSION_MAP.lock().insert(
+            session_id,
+            PaginationSessionEntry {
+                file_path: validated_path,
+                chapter_index,
+                config,
+                engine: PaginationEngine::Plain(streamer),
+            },
+        );
+        return Ok((
+            PaginationSessionHandle { session_id },
+            PaginateResult {
+                descriptors,
+                config_hash,
+                is_partial,
+                mode: ChapterPaginationMode::PlainText,
+            },
+        ));
+    }
 
-    let descriptors = streamer.get_descriptors();
-    let is_partial = streamer.is_partial;
+    if let Some(state) = BLOCK_CACHE.lock().get(&key).cloned() {
+        let result = state.to_paginate_result(config_hash);
+        let session_id = allocate_session_id();
+        SESSION_MAP.lock().insert(
+            session_id,
+            PaginationSessionEntry {
+                file_path: validated_path,
+                chapter_index,
+                config,
+                engine: PaginationEngine::Block(state),
+            },
+        );
+        return Ok((PaginationSessionHandle { session_id }, result));
+    }
 
-    let session_id = allocate_session_id();
-    SESSION_MAP.lock().insert(
-        session_id,
-        PaginationSessionEntry {
-            file_path: validated_path,
-            chapter_index,
-            config,
-            streamer,
-        },
-    );
-
-    Ok((
-        PaginationSessionHandle { session_id },
-        PaginateResult {
-            descriptors,
-            config_hash,
-            is_partial,
-        },
-    ))
+    Err(AppError::NotFound {
+        entity: format!(
+            "page streamer for chapter {chapter_index} (config_hash={config_hash:016x})"
+        ),
+    })
 }
 
 /// Re-paginate an existing session with a new config in-place.
-/// `max_chars` is `None` to expand to full chapter.
 pub(crate) async fn repaginate_session(
     handle: PaginationSessionHandle,
     config: TypesetConfig,
@@ -232,8 +273,6 @@ pub(crate) async fn repaginate_session(
 }
 
 /// Expand session to full chapter.
-/// `config = None` reuses the entry's stored config; `Some(c)` swaps in new
-/// config first (delegates to [repaginate_session]).
 pub(crate) async fn paginate_session_full(
     handle: PaginationSessionHandle,
     config: Option<TypesetConfig>,
@@ -246,32 +285,76 @@ pub(crate) async fn paginate_session_full(
 }
 
 /// Get page content by session handle (sync).
-/// Throws `AppError` if session not found.
 pub(crate) fn get_session_page_content(
     handle: PaginationSessionHandle,
     page_index: i32,
 ) -> Result<String, AppError> {
     let entry = lookup_pagination_session(handle.session_id)?;
-    Ok(entry
-        .streamer
-        .get_page(page_index as usize, entry.chapter_index)
-        .map(|p| p.content)
-        .unwrap_or_default())
+    match &entry.engine {
+        PaginationEngine::Plain(streamer) => Ok(streamer
+            .get_page(page_index as usize, entry.chapter_index)
+            .map(|p| p.content)
+            .unwrap_or_default()),
+        PaginationEngine::Block(state) => Ok(state
+            .page_plain_text(page_index as usize)
+            .unwrap_or_default()),
+    }
+}
+
+/// M3.2：按 session 获取页内块列表（block 模式）；plain 模式返回空 vec。
+pub(crate) fn get_session_page_blocks(
+    handle: PaginationSessionHandle,
+    page_index: i32,
+) -> Result<Vec<PageBlockSlice>, AppError> {
+    let entry = lookup_pagination_session(handle.session_id)?;
+    match &entry.engine {
+        PaginationEngine::Block(state) => Ok(state
+            .page_blocks(page_index as usize)
+            .unwrap_or_default()),
+        PaginationEngine::Plain(_) => Ok(Vec::new()),
+    }
+}
+
+/// M3.4：`charOffset` → `pageIndex`（block 模式精确；plain 模式用 descriptor 字节 offset 近似）。
+pub(crate) fn session_char_offset_to_page_index(
+    handle: PaginationSessionHandle,
+    char_offset: i32,
+) -> Result<i32, AppError> {
+    if char_offset < 0 {
+        return Err(AppError::InvalidInput {
+            reason: "char_offset must be non-negative".into(),
+        });
+    }
+    let offset = char_offset as u32;
+    let entry = lookup_pagination_session(handle.session_id)?;
+    match &entry.engine {
+        PaginationEngine::Block(state) => state
+            .char_offset_to_page_index(offset)
+            .ok_or_else(|| AppError::NotFound {
+                entity: format!("page for char_offset {char_offset}"),
+            }),
+        PaginationEngine::Plain(streamer) => {
+            for desc in streamer.get_descriptors() {
+                if offset >= desc.start_offset as u32 && offset < desc.end_offset as u32 {
+                    return Ok(desc.page_index);
+                }
+            }
+            streamer
+                .get_descriptors()
+                .last()
+                .filter(|d| d.is_last_page && offset == d.end_offset as u32)
+                .map(|d| d.page_index)
+                .ok_or_else(|| AppError::NotFound {
+                    entity: format!("page for char_offset {char_offset}"),
+                })
+        }
+    }
 }
 
 /// Dispose pagination session.
-///
-/// H3 fix: pop STREAMER_CACHE **first**, then remove the SESSION_MAP entry.
-/// The previous order removed SESSION_MAP first, leaving a window where a
-/// concurrent `create_pagination_session_adopt` could see the streamer
-/// still in STREAMER_CACHE and adopt it into a fresh session — silently
-/// resurrecting a session the caller had just disposed. By popping
-/// STREAMER_CACHE first, the adopt misses (returns NotFound as expected)
-/// and the SESSION_MAP entry is the last thing to go.
 pub(crate) fn dispose_pagination_session(
     handle: PaginationSessionHandle,
 ) -> Result<(), AppError> {
-    // Look up the entry (without removing yet) to get the streamer key.
     let entry = SESSION_MAP
         .lock()
         .get(&handle.session_id)
@@ -280,23 +363,14 @@ pub(crate) fn dispose_pagination_session(
             entity: format!("pagination session {}", handle.session_id),
         })?;
 
-    // Pop the streamer from STREAMER_CACHE first. After this, any
-    // concurrent `create_pagination_session_adopt` for the same key
-    // will miss and return NotFound.
-    let streamer_key = (
-        entry.file_path.clone(),
-        entry.chapter_index,
-        entry.config.config_hash(),
-    );
-    STREAMER_CACHE.lock().pop(&streamer_key);
+    let cache_key = entry.cache_key();
+    if entry.is_block_mode() {
+        BLOCK_CACHE.lock().pop(&cache_key);
+    } else {
+        STREAMER_CACHE.lock().pop(&cache_key);
+    }
 
-    // Finally remove the SESSION_MAP entry. From here on
-    // `get_session_page_content` will return NotFound.
     SESSION_MAP.lock().remove(&handle.session_id);
-
-    // Touch entry so the borrow doesn't get flagged as unused
-    // (it was used above to build the streamer_key).
     let _ = &entry;
-
     Ok(())
 }
