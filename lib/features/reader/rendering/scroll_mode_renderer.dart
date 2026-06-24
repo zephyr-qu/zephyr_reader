@@ -210,7 +210,7 @@ class ScrollModeRenderer extends HookWidget {
     final chapterIds = segments.map((s) => s.chapterIndex).toSet();
     final segHighlights =
         highlights.where((h) => chapterIds.contains(h.chapterIndex.toInt())).toList();
-    final maxWidth = MediaQuery.sizeOf(context).width - 32;
+    final maxWidth = _scrollImageMaxWidth(context);
 
     return ListView.builder(
       controller: scrollController,
@@ -338,7 +338,18 @@ class ScrollModeRenderer extends HookWidget {
           isSegmentBoundary: isBoundary && li == 0,
         ));
       } else {
-        if (textIdx >= textParagraphs.length) continue;
+        if (textIdx >= textParagraphs.length) {
+          if (textIdx >= seg.paragraphs.length) continue;
+          items.add(_GlobalScrollItem(
+            segIdx: segIdx,
+            chapterIndex: seg.chapterIndex,
+            charOffset: seg.paragraphCharOffsets[textIdx],
+            plainText: seg.paragraphs[textIdx],
+            isSegmentBoundary: isBoundary && li == 0,
+          ));
+          textIdx++;
+          continue;
+        }
         items.add(_GlobalScrollItem(
           segIdx: segIdx,
           chapterIndex: seg.chapterIndex,
@@ -574,7 +585,7 @@ class ScrollModeRenderer extends HookWidget {
       }
     }
 
-    final maxWidth = MediaQuery.sizeOf(context).width - 32;
+    final maxWidth = _scrollImageMaxWidth(context);
 
     return ListView.builder(
       controller: scrollController,
@@ -650,6 +661,11 @@ class ScrollModeRenderer extends HookWidget {
         }
       },
     );
+  }
+
+  double _scrollImageMaxWidth(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    return (width - 2 * config.pageMargin).clamp(1.0, width);
   }
 
   List<TextSpan> _extractParagraphSpans(TextSpan rootSpan) {

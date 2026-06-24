@@ -118,5 +118,41 @@ void main() {
       expect(dims?.$1, 320);
       expect(dims?.$2, 240);
     });
+
+    test('空 imageData 不计默认图片高度', () {
+      final metrics = computeScrollListMetrics(
+        paragraphs: const ['before', 'after'],
+        paragraphCharOffsets: const [0, 10],
+        richParagraphs: [
+          RichParagraph(
+            spans: const [],
+            indent: 0,
+            isHeading: false,
+            headingLevel: 0,
+            isImage: false,
+            imageData: Uint8List(0),
+          ),
+          RichParagraph(
+            spans: const [],
+            indent: 0,
+            isHeading: false,
+            headingLevel: 0,
+            isImage: true,
+            imageData: Uint8List(0),
+          ),
+          RichParagraph(
+            spans: const [],
+            indent: 0,
+            isHeading: false,
+            headingLevel: 0,
+            isImage: false,
+            imageData: Uint8List(0),
+          ),
+        ],
+        layout: layout,
+      );
+      expect(metrics.itemExtents[1], layout.paragraphSpacing);
+      expect(metrics.itemExtents.last, greaterThan(0));
+    });
   });
 }
