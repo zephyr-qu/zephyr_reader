@@ -259,6 +259,9 @@ double _imageItemExtent(
   ScrollLayoutParams layout, {
   required bool includeBottomSpacing,
 }) {
+  if (data.isEmpty) {
+    return includeBottomSpacing ? layout.paragraphSpacing : 0;
+  }
   const imageVerticalPadding = 16.0;
   const defaultHeightRatio = 0.55;
   final dims = readImageDimensions(data);
