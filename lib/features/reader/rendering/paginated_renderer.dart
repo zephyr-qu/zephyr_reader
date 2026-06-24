@@ -7,6 +7,7 @@ import 'package:zephyr_reader/features/reader/rendering/block_page_content.dart'
 import 'package:zephyr_reader/features/reader/rendering/highlight_painter.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
+import 'package:zephyr_reader/features/reader/rendering/paginated_page_viewport.dart';
 import 'reader_render_config.dart';
 import 'find_render_box.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_viewport_index.dart';
@@ -378,29 +379,24 @@ Widget buildStagingPageContent({
             horizontal: config.pageMargin,
             vertical: vPad,
           ),
-          child: SizedBox(
-            height: bodyHeight,
-            width: constraints.maxWidth,
-            child: ClipRect(
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: SelectableText.rich(
-                  paintedSpan,
-                  strutStyle: strutStyle,
-                  textAlign: config.textAlign,
-                  textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
-                  onSelectionChanged: (sel, cause) =>
-                      _handlePageContentSelection(
-                    sel,
-                    pageContent,
-                    startOffset,
-                    context,
-                    onSelectionChanged,
-                    onSelectionGlobalPosition,
-                  ),
-                  contextMenuBuilder: (_, _) => const SizedBox.shrink(),
-                ),
+          child: PaginatedPageViewport(
+            maxHeight: bodyHeight,
+            maxWidth: constraints.maxWidth,
+            child: SelectableText.rich(
+              paintedSpan,
+              strutStyle: strutStyle,
+              textAlign: config.textAlign,
+              textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
+              onSelectionChanged: (sel, cause) =>
+                  _handlePageContentSelection(
+                sel,
+                pageContent,
+                startOffset,
+                context,
+                onSelectionChanged,
+                onSelectionGlobalPosition,
               ),
+              contextMenuBuilder: (_, _) => const SizedBox.shrink(),
             ),
           ),
         );
@@ -486,29 +482,24 @@ Widget buildSinglePageContent({
             horizontal: config.pageMargin,
             vertical: vPad,
           ),
-          child: SizedBox(
-            height: bodyHeight,
-            width: constraints.maxWidth,
-            child: ClipRect(
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: SelectableText.rich(
-                  paintedSpan,
-                  strutStyle: strutStyle,
-                  textAlign: config.textAlign,
-                  textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
-                  onSelectionChanged: (sel, cause) =>
-                      _handlePageContentSelection(
-                    sel,
-                    pageContent,
-                    startOffset,
-                    context,
-                    onSelectionChanged,
-                    onSelectionGlobalPosition,
-                  ),
-                  contextMenuBuilder: (_, _) => const SizedBox.shrink(),
-                ),
+          child: PaginatedPageViewport(
+            maxHeight: bodyHeight,
+            maxWidth: constraints.maxWidth,
+            child: SelectableText.rich(
+              paintedSpan,
+              strutStyle: strutStyle,
+              textAlign: config.textAlign,
+              textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
+              onSelectionChanged: (sel, cause) =>
+                  _handlePageContentSelection(
+                sel,
+                pageContent,
+                startOffset,
+                context,
+                onSelectionChanged,
+                onSelectionGlobalPosition,
               ),
+              contextMenuBuilder: (_, _) => const SizedBox.shrink(),
             ),
           ),
         );

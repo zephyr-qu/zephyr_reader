@@ -134,6 +134,19 @@ pub(crate) async fn paginate_chapter(
     let store = PaginationStore::global();
     let engine_key = PaginationKey::new(&validated_path, chapter_index, config_hash);
 
+    // 含图章：即便 max_chars 有限制也优先走 block 全章路径（避免 plain partial 丢图）。
+    if max_chars.is_some() {
+        if let Some(result) =
+            try_paginate_chapter_blocks(&validated_path, chapter_index, &config, None).await?
+        {
+            tracing::info!(
+                "[Timing] paginate_chapter block_path (image override partial) config_hash={:016x} chapter={} elapsed={:?}",
+                config_hash, chapter_index, start.elapsed()
+            );
+            return Ok(result);
+        }
+    }
+
     // 全章：含图章必须优先 block 路径，避免 stale plain streamer/layout 缓存抢先返回。
     if max_chars.is_none() {
         if let Some(result) =

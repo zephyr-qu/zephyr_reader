@@ -68,6 +68,8 @@ QuickPageResolveResult resolveQuickPageForPartial({
   required int initialCharOffset,
   required bool isPartial,
   required int fallbackPageIndex,
+  int Function(int charOffset, List<PageDescriptor> descriptors)?
+      resolvePageIndex,
 }) {
   final partialEnd = descriptors.last.endOffset;
   final offsetBeyondPartial = isPartial && initialCharOffset > partialEnd;
@@ -79,10 +81,12 @@ QuickPageResolveResult resolveQuickPageForPartial({
   }
 
   final charOffsetForPartial = initialCharOffset.clamp(0, partialEnd);
-  final resolved = PaginationEngine.resolvePageIndexForOffset(
-    descriptors,
-    charOffsetForPartial,
-  );
+  final resolved = resolvePageIndex != null
+      ? resolvePageIndex(charOffsetForPartial, descriptors)
+      : PaginationEngine.resolvePageIndexForOffset(
+          descriptors,
+          charOffsetForPartial,
+        );
   final pageIndex = resolved >= 0 ? resolved : fallbackPageIndex;
   return QuickPageResolveResult(
     pageIndex: pageIndex,

@@ -381,6 +381,7 @@ class ChapterLoadOrchestrator {
         initialCharOffset: request.initialCharOffset,
         isPartial: quickResult.isPartial,
         fallbackPageIndex: fallbackPageIndex,
+        resolvePageIndex: _pagination.resolvePageForCharOffset,
       );
 
       _applyIfCurrent(gen, () {

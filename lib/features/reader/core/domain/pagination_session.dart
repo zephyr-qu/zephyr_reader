@@ -66,5 +66,8 @@ abstract class PaginationSession {
 
   void warmPageCache(int pageIndex, String content);
 
+  /// 章级 charOffset → pageIndex（session 可用时走 Rust 精确解析）。
+  int? resolvePageIndexForCharOffset(int charOffset);
+
   void dispose();
 }

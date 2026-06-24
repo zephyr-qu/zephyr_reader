@@ -88,6 +88,9 @@ abstract class ReaderRepositoryInterface {
   /// 确保指定页面及其周围页面的内容已缓存。
   void ensurePageWindow(int centerPage);
 
+  /// 章级 charOffset → pageIndex（session 可用时走 Rust 精确解析）。
+  int? resolvePageIndexForCharOffset(int charOffset);
+
   /// 释放 Rust 分页会话并清空本地页缓存。
   void disposePagination();
 

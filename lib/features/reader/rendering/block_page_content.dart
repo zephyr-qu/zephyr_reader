@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/rendering/highlight_painter.dart';
+import 'package:zephyr_reader/features/reader/rendering/paginated_page_viewport.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/api/epub.dart' as epub_api;
 import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
@@ -99,18 +100,13 @@ Widget buildBlockPageContent({
         builder: (context, constraints) {
           final bodyHeight =
               (constraints.maxHeight - 2 * vPad).clamp(0.0, constraints.maxHeight);
-          return SizedBox(
-            height: bodyHeight,
-            width: constraints.maxWidth,
-            child: ClipRect(
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisSize: MainAxisSize.min,
-                  children: children,
-                ),
-              ),
+          return PaginatedPageViewport(
+            maxHeight: bodyHeight,
+            maxWidth: constraints.maxWidth,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: children,
             ),
           );
         },
