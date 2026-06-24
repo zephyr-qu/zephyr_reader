@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/features/reader/core/data/epub_block_image_cache.dart';
 import 'package:zephyr_reader/features/reader/core/data/page_blocks_cache.dart';
 import 'package:zephyr_reader/features/reader/core/data/page_content_cache.dart';
 import 'package:zephyr_reader/features/reader/core/domain/pagination_session.dart';
@@ -26,6 +27,7 @@ class RustPaginationSession implements PaginationSession {
   bool _sessionIsPartial = false;
   ChapterPaginationMode _sessionMode = ChapterPaginationMode.plainText;
   String? _sessionFilePath;
+  int _imageMaxWidthPx = 800;
   PaginationSessionHandle? _handle;
   final _contentCache = PageContentCache();
   final _blocksCache = PageBlocksCache();
@@ -80,6 +82,21 @@ class RustPaginationSession implements PaginationSession {
     autoSpaceRatio: p.autoSpaceRatio,
   );
 
+  void _syncImageMaxWidth(PaginationParams params) {
+    _imageMaxWidthPx =
+        (params.width - 2 * params.padding).round().clamp(1, 4096);
+  }
+
+  void _prefetchBlockImages(List<PageBlockSlice> blocks) {
+    final path = _sessionFilePath;
+    if (path == null || path.isEmpty) return;
+    epubBlockImageCache.prefetchBlocks(
+      filePath: path,
+      blocks: blocks,
+      maxWidthPx: _imageMaxWidthPx,
+    );
+  }
+
   void _releaseHandle() {
     final handle = _handle;
     if (handle == null) return;
@@ -103,6 +120,7 @@ class RustPaginationSession implements PaginationSession {
     if (descriptorsChanged) {
       _contentCache.clear();
       _blocksCache.clear();
+      epubBlockImageCache.clear();
     }
   }
 
@@ -145,6 +163,7 @@ class RustPaginationSession implements PaginationSession {
     _releaseHandle();
     _contentCache.clear();
     _blocksCache.clear();
+    epubBlockImageCache.clear();
 
     final sw = Stopwatch()..start();
     final (handle, result) = await core_api.createPaginationSession(
@@ -184,6 +203,7 @@ class RustPaginationSession implements PaginationSession {
     BigInt? maxChars,
   }) async {
     try {
+      _syncImageMaxWidth(params);
       final result = await _createSession(
         bookId: bookId,
         chapterIndex: chapterIndex,
@@ -214,11 +234,13 @@ class RustPaginationSession implements PaginationSession {
       if (book.filePath.isEmpty) {
         throw Exception('beginPaginateFromCache: book not found for bookId=$bookId');
       }
+      _syncImageMaxWidth(params);
       final config = _buildConfig(params);
 
       _releaseHandle();
       _contentCache.clear();
       _blocksCache.clear();
+      epubBlockImageCache.clear();
 
       final sw = Stopwatch()..start();
       final (handle, result) = await core_api.createPaginationSessionAdopt(
@@ -294,6 +316,7 @@ class RustPaginationSession implements PaginationSession {
     required PaginationParams params,
   }) async {
     try {
+      _syncImageMaxWidth(params);
       final newConfig = _buildConfig(params);
       late final PaginateResult result;
 
@@ -355,6 +378,7 @@ class RustPaginationSession implements PaginationSession {
       );
     }
     try {
+      _syncImageMaxWidth(params);
       final newConfig = _buildConfig(params);
       final sw = Stopwatch()..start();
       final result = await core_api.repaginateSession(
@@ -414,6 +438,7 @@ class RustPaginationSession implements PaginationSession {
       );
       _blocksCache.put(pageIndex, blocks);
       Logging.info('[Session] fetch blocks page=$pageIndex count=${blocks.length}');
+      _prefetchBlockImages(blocks);
       _notifyCacheUpdated();
       return blocks;
     } catch (e) {
@@ -514,6 +539,7 @@ class RustPaginationSession implements PaginationSession {
     _sessionFilePath = null;
     _contentCache.clear();
     _blocksCache.clear();
+    epubBlockImageCache.clear();
     _cachedBook = null;
     _cachedBookId = null;
   }

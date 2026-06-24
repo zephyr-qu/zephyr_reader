@@ -3,10 +3,10 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/features/reader/core/data/epub_block_image_cache.dart';
 import 'package:zephyr_reader/features/reader/rendering/highlight_painter.dart';
 import 'package:zephyr_reader/features/reader/rendering/paginated_page_viewport.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/src/rust/api/epub.dart' as epub_api;
 import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
@@ -133,7 +133,7 @@ void _handleBlockTextSelection(
   }
 }
 
-/// 懒加载 EPUB 块图片：占位 → Rust 解码字节 → [Image.memory]。
+/// 懒加载 EPUB 块图片：占位 → 缓存/Rust 解码字节 → [Image.memory]。
 class EpubBlockImage extends StatefulWidget {
   const EpubBlockImage({
     super.key,
@@ -180,17 +180,12 @@ class _EpubBlockImageState extends State<EpubBlockImage> {
 
   Future<void> _load() async {
     try {
-      final bytes = await Future.microtask(
-        () => epub_api.getProcessedEpubImageBytes(
-          filePath: widget.filePath,
-          assetId: widget.assetId,
-          maxWidthPx: widget.maxWidthPx,
-        ),
+      final bytes = await epubBlockImageCache.load(
+        filePath: widget.filePath,
+        assetId: widget.assetId,
+        maxWidthPx: widget.maxWidthPx,
       );
       if (!mounted) return;
-      if (bytes.isEmpty) {
-        throw StateError('empty image bytes for asset ${widget.assetId}');
-      }
       setState(() => _imageBytes = bytes);
     } catch (e) {
       Logging.warning('[EpubBlockImage] load failed asset=${widget.assetId}: $e');
