@@ -6,9 +6,12 @@ use std::path::Path;
 
 use crate::domain::AppError;
 
-use super::models::{LAYOUT_CACHE_VERSION, LayoutCache, LayoutCacheKey};
+use super::models::{
+    BlockLayoutCache, LAYOUT_CACHE_VERSION, LayoutCache, LayoutCacheKey,
+};
 
 const LAYOUT_TREE_NAME: &str = "layout_cache";
+const BLOCK_LAYOUT_TREE_NAME: &str = "block_layout_cache";
 
 /// KV 存储封装
 pub struct KvStore {
@@ -18,6 +21,7 @@ pub struct KvStore {
     #[allow(dead_code)]
     db: sled::Db,
     layout_cache: sled::Tree,
+    block_layout_cache: sled::Tree,
 }
 
 impl KvStore {
@@ -28,7 +32,14 @@ impl KvStore {
         let layout_cache = db
             .open_tree(LAYOUT_TREE_NAME)
             .map_err(|e| AppError::DatabaseError { reason: format!("Failed to open layout tree: {e}").into() })?;
-        Ok(Self { db, layout_cache })
+        let block_layout_cache = db
+            .open_tree(BLOCK_LAYOUT_TREE_NAME)
+            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to open block layout tree: {e}").into() })?;
+        Ok(Self {
+            db,
+            layout_cache,
+            block_layout_cache,
+        })
     }
 
     /// 刷盘
@@ -84,20 +95,67 @@ impl KvStore {
         }
     }
 
+    /// 存储块分页索引缓存（IR + BlockPaginateResult）。
+    pub fn save_block_layout_cache(
+        &self,
+        key: &LayoutCacheKey,
+        value: &BlockLayoutCache,
+    ) -> Result<(), AppError> {
+        debug_assert!(
+            value.is_valid(key.config_hash),
+            "BlockLayoutCache version/config_hash mismatch on save"
+        );
+        let bytes = bincode::encode_to_vec(value, bincode::config::standard())
+            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to serialize block cache: {e}").into() })?;
+        self.block_layout_cache
+            .insert(key.to_string(), bytes)
+            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to insert block cache: {e}").into() })?;
+        Ok(())
+    }
+
+    /// 获取块分页索引缓存；版本/config_hash 不匹配视为 miss。
+    pub fn get_block_layout_cache(
+        &self,
+        key: &LayoutCacheKey,
+    ) -> Result<Option<BlockLayoutCache>, AppError> {
+        match self
+            .block_layout_cache
+            .get(key.to_string())
+            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to read block cache: {e}").into() })?
+        {
+            Some(bytes) => match bincode::decode_from_slice::<BlockLayoutCache, _>(
+                &bytes,
+                bincode::config::standard(),
+            ) {
+                Ok((cache, _)) if cache.is_valid(key.config_hash) => Ok(Some(cache)),
+                Ok(_) => Ok(None),
+                Err(e) => {
+                    tracing::warn!("BlockLayoutCache deserialize failed (corrupted?): {}", e);
+                    Ok(None)
+                }
+            },
+            None => Ok(None),
+        }
+    }
+
+    fn delete_tree_entries_with_book_prefix(
+        tree: &sled::Tree,
+        prefix: &str,
+    ) -> Result<(), AppError> {
+        for key in tree.scan_prefix(prefix.as_bytes()).keys() {
+            let key = key
+                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to read key: {e}").into() })?;
+            tree.remove(key)
+                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to remove cache: {e}").into() })?;
+        }
+        Ok(())
+    }
+
     /// 删除书籍的所有排版缓存
     pub fn delete_book_layout_cache(&self, book_id: &str) -> Result<(), AppError> {
         let prefix = format!("v{}:{}:", LAYOUT_CACHE_VERSION, book_id);
-        for key in self
-            .layout_cache
-            .scan_prefix(prefix.as_bytes())
-            .keys()
-        {
-            let key = key
-                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to read key: {e}").into() })?;
-            self.layout_cache
-                .remove(key)
-                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to remove cache: {e}").into() })?;
-        }
+        Self::delete_tree_entries_with_book_prefix(&self.layout_cache, &prefix)?;
+        Self::delete_tree_entries_with_book_prefix(&self.block_layout_cache, &prefix)?;
         Ok(())
     }
 
@@ -334,6 +392,47 @@ mod tests {
         assert!(loaded.is_some());
         let loaded = loaded.unwrap();
         assert_eq!(loaded.pages.len(), pages.len());
+        assert_eq!(loaded.config_hash, config_hash);
+    }
+
+    #[test]
+    fn test_block_layout_cache_roundtrip() {
+        use crate::domain::{
+            BlockJoinedPlainBuilder, BlockPaginateResult, BlockPageDescriptor, BlockPlainRange,
+            TextBlockStyle,
+        };
+
+        let dir = TempDir::new().unwrap();
+        let store = KvStore::new(dir.path()).unwrap();
+        let config_hash = 0xABCD_EF01_u64;
+        let key = LayoutCacheKey {
+            book_id: "block_book".into(),
+            chapter_index: 0,
+            chunk_index: None,
+            config_hash,
+        };
+
+        let mut builder = BlockJoinedPlainBuilder::new();
+        builder.push_text("Hello".into(), TextBlockStyle::default());
+        builder.push_image("img1".into(), None);
+        let ir = builder.finish();
+        let result = BlockPaginateResult::new(
+            vec![BlockPageDescriptor::new(
+                0,
+                0,
+                2,
+                BlockPlainRange::new(0, 8),
+                true,
+            )],
+            config_hash,
+            false,
+        );
+        let cache = BlockLayoutCache::new(config_hash, ir.clone(), result.clone());
+        store.save_block_layout_cache(&key, &cache).unwrap();
+
+        let loaded = store.get_block_layout_cache(&key).unwrap().expect("block cache hit");
+        assert_eq!(loaded.ir.plain_text, ir.plain_text);
+        assert_eq!(loaded.result.descriptors.len(), 1);
         assert_eq!(loaded.config_hash, config_hash);
     }
 }

@@ -16,6 +16,7 @@ use rust_lib_zephyr_reader::api::core::{
     paginate_chapter, get_chapter, get_page_blocks, ChapterContent,
 };
 use rust_lib_zephyr_reader::domain::{AppError, ChapterPaginationMode, PageBlockSlice, TypesetConfig};
+use rust_lib_zephyr_reader::reading::orchestrator::ReadingOrchestrator;
 use rust_lib_zephyr_reader::storage::{storage_pool, repos::ChapterRepository};
 
 use common::epub_local::require_fixture;
@@ -212,6 +213,54 @@ async fn epub_layout_cache_roundtrip() {
     assert_eq!(
         r1.descriptors, r2.descriptors,
         "layout cache roundtrip should produce identical descriptors",
+    );
+    assert_eq!(r1.config_hash, r2.config_hash);
+}
+
+#[tokio::test]
+async fn epub_block_layout_cache_roundtrip() {
+    use rust_lib_zephyr_reader::parser::epub::get_chapter_content_ir;
+
+    let Some(path) = require_fixture("活着.epub") else { return; };
+    let (_dir, file_path, _book_id) = setup_parsed_epub(&path).await;
+    let config = test_typeset_config();
+
+    let pool = storage_pool().expect("storage_pool");
+    let chapters = ChapterRepository::find_by_book(&pool, &_book_id)
+        .await
+        .expect("chapters");
+    let mut image_chapter: Option<i32> = None;
+    for ch in &chapters {
+        let ir = get_chapter_content_ir(
+            &file_path,
+            ch.start_index as i32,
+            ch.end_index as i32,
+        )
+        .expect("chapter IR");
+        if ir.image_block_count() > 0 {
+            image_chapter = Some(ch.chapter_index as i32);
+            break;
+        }
+    }
+    let Some(chapter_index) = image_chapter else {
+        eprintln!("SKIP: 活着.epub has no image chapter for block layout cache test");
+        return;
+    };
+
+    let r1 = paginate_chapter(file_path.clone(), chapter_index, config.clone(), None)
+        .await
+        .expect("first block paginate");
+    assert_eq!(r1.mode, ChapterPaginationMode::ContentBlocks);
+
+    ReadingOrchestrator::global().clear_caches_for_test();
+
+    let r2 = paginate_chapter(file_path.clone(), chapter_index, config, None)
+        .await
+        .expect("second block paginate from sled");
+    assert_eq!(r2.mode, ChapterPaginationMode::ContentBlocks);
+    assert_eq!(
+        r1.descriptors, r2.descriptors,
+        "block layout sled cache should produce identical descriptors"
     );
     assert_eq!(r1.config_hash, r2.config_hash);
 }

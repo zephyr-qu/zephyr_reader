@@ -83,6 +83,11 @@ impl PaginationStore {
         PAGINATION_ENGINE_CACHE.lock().pop(key);
     }
 
+    /// 清空内存 LRU（测试用：验证 sled 跨 session 命中）。
+    pub fn clear_lru_for_test(&self) {
+        PAGINATION_ENGINE_CACHE.lock().clear();
+    }
+
     /// config 变更时驱逐旧 key（repaginate）。
     pub(crate) fn evict_if_replaced(&self, prior: Option<&PaginationKey>, new_key: &PaginationKey) {
         if let Some(old) = prior {

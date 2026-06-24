@@ -14,7 +14,9 @@ use crate::utils::security::validate_file_path;
 use super::block_state::BlockPaginationState;
 use super::chapter_access::{format_from_file_path, get_chapter_bounds};
 use super::chapter_ir::load_chapter_content_ir;
-use super::layout_cache::{try_get_cached, try_save_cached};
+use super::layout_cache::{
+    try_get_block_cached, try_get_cached, try_save_block_cached, try_save_cached,
+};
 use super::pagination_engine::PaginationEngine;
 use super::pagination_store::{PaginationKey, PaginationStore};
 use super::provider_cache::get_or_create_provider;
@@ -88,6 +90,21 @@ async fn try_paginate_chapter_blocks(
         return Ok(Some(result));
     }
 
+    if let Some((ir, block_result)) =
+        try_get_block_cached(validated_path, chapter_index, config_hash).await
+    {
+        let state = BlockPaginationState::new(ir, block_result, false);
+        let result = state.to_paginate_result(config_hash);
+        store.put(key, PaginationEngine::Block(state));
+        tracing::info!(
+            "[Timing] paginate_chapter block_path layout_cache=HIT config_hash={:016x} chapter={} pages={}",
+            config_hash,
+            chapter_index,
+            result.descriptors.len()
+        );
+        return Ok(Some(result));
+    }
+
     let ir = load_chapter_content_ir(validated_path, chapter_index).await?;
     if ir.image_block_count() == 0 {
         return Ok(None);
@@ -103,9 +120,18 @@ async fn try_paginate_chapter_blocks(
             details: e.to_string().into(),
         })?;
 
-    let state = BlockPaginationState::new(ir, block_result, false);
+    let state = BlockPaginationState::new(ir.clone(), block_result.clone(), false);
     let result = state.to_paginate_result(config_hash);
     store.put(key, PaginationEngine::Block(state));
+
+    try_save_block_cached(
+        validated_path,
+        chapter_index,
+        config_hash,
+        ir,
+        block_result,
+    )
+    .await;
 
     tracing::info!(
         "[Timing] paginate_chapter block_path config_hash={:016x} chapter={} pages={}",

@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use super::content_ir::BlockPlainRange;
 
 /// 页内 Image 块的排版方式（ADR-003）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 #[frb]
 pub enum ImageBlockLayout {
     /// 剩余页高足够：缩放 contain，与文本同页。
@@ -18,7 +18,7 @@ pub enum ImageBlockLayout {
 }
 
 /// 某一 Image 块在本页的 layout 元数据。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 #[frb(non_opaque)]
 pub struct PageImageLayout {
     /// 对应 `ChapterContentIr.blocks` 的下标。
@@ -30,7 +30,7 @@ pub struct PageImageLayout {
 ///
 /// - 块范围：`[first_block_index, last_block_index)` 半开区间。
 /// - plain 范围：章级 Unicode 字符索引（与 ADR-001 / ADR-008 一致）。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 #[frb(non_opaque)]
 pub struct BlockPageDescriptor {
     pub page_index: i32,
@@ -95,7 +95,7 @@ impl BlockPageDescriptor {
 }
 
 /// 块分页结果（对标 [`super::pagination::PaginateResult`]）。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 #[frb(non_opaque)]
 pub struct BlockPaginateResult {
     pub descriptors: Vec<BlockPageDescriptor>,
