@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
-import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
@@ -352,7 +352,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
     String bookId,
     int chapterIndex, {
     double fontSize = 16,
-    double lineHeight = 1.6,
+    double lineHeight = ReaderTypographyDefaults.lineHeight,
     double width = 400,
     double height = 600,
     double padding = 20,
@@ -434,7 +434,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
     String bookId,
     int chapterIndex, {
     double fontSize = 16,
-    double lineHeight = 1.6,
+    double lineHeight = ReaderTypographyDefaults.lineHeight,
     double width = 400,
     double height = 600,
     double padding = 20,

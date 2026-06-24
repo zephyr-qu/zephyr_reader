@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/core/local/shared_preferences_service.dart';
 
@@ -50,11 +51,17 @@ void main() {
     test('默认值初始化', () {
       final config = ReaderConfig(SharedPreferencesService(prefs));
       expect(config.theme.value, equals(ReaderTheme.light));
-      expect(config.fontSize.value, equals(16.0));
-      expect(config.lineHeight.value, equals(1.6));
-      expect(config.paragraphSpacing.value, equals(16.0));
-      expect(config.padding.value, equals(16.0));
-      expect(config.readerBgColorIndex.value, equals(0));
+      expect(config.fontSize.value, equals(ReaderTypographyDefaults.fontSize));
+      expect(config.lineHeight.value, equals(ReaderTypographyDefaults.lineHeight));
+      expect(
+        config.paragraphSpacing.value,
+        equals(ReaderTypographyDefaults.paragraphSpacing),
+      );
+      expect(config.padding.value, equals(ReaderTypographyDefaults.padding));
+      expect(
+        config.readerBgColorIndex.value,
+        equals(ReaderTypographyDefaults.readerBgColorIndex),
+      );
       expect(config.autoScroll.value, isFalse);
       expect(config.autoScrollSpeed.value, equals(30));
       expect(config.letterSpacing.value, equals(0.0));
@@ -78,7 +85,10 @@ void main() {
       expect(config.readerBgColorIndex.value, equals(2));
       expect(config.autoScroll.value, isTrue);
       // 未保存的字段使用默认值
-      expect(config.paragraphSpacing.value, equals(16.0));
+      expect(
+        config.paragraphSpacing.value,
+        equals(ReaderTypographyDefaults.paragraphSpacing),
+      );
       expect(config.letterSpacing.value, equals(0.0));
     });
 
@@ -195,14 +205,14 @@ void main() {
 
       // 验证信号复位
       expect(config.theme.value, equals(ReaderTheme.light));
-      expect(config.fontSize.value, equals(16.0));
+      expect(config.fontSize.value, equals(ReaderTypographyDefaults.fontSize));
       expect(config.autoScroll.value, isFalse);
       expect(config.letterSpacing.value, equals(0.0));
       // 验证 PreferencesService 同步写回
       await config.theme.saveImmediately();
       expect(prefs.getString('reader_theme'), equals('light'));
       await config.fontSize.saveImmediately();
-      expect(prefs.getDouble('reader_font_size'), equals(16.0));
+      expect(prefs.getDouble('reader_font_size'), equals(ReaderTypographyDefaults.fontSize));
       await config.autoScroll.saveImmediately();
       expect(prefs.getBool('reader_auto_scroll'), isFalse);
     });

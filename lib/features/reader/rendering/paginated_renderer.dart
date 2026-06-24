@@ -390,6 +390,7 @@ Widget buildStagingPageContent({
                   paintedSpan,
                   strutStyle: strutStyle,
                   textAlign: config.textAlign,
+                  textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
                   onSelectionChanged: (sel, cause) =>
                       _handlePageContentSelection(
                     sel,
@@ -499,6 +500,7 @@ Widget buildSinglePageContent({
                   paintedSpan,
                   strutStyle: strutStyle,
                   textAlign: config.textAlign,
+                  textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
                   onSelectionChanged: (sel, cause) =>
                       _handlePageContentSelection(
                     sel,

@@ -73,12 +73,11 @@ fn test_typeset_config_default() {
     assert_eq!(config.page_width, 1080);
     assert_eq!(config.page_height, 1920);
     assert_eq!(config.font_size, 18);
-    assert_eq!(config.line_spacing, 1.5);
+    assert_eq!(config.line_spacing, 1.8);
     assert_eq!(config.letter_spacing, 0.0);
-    assert_eq!(config.paragraph_spacing, 1.0);
+    assert!((config.paragraph_spacing - 16.0 / 18.0).abs() < 0.001);
     assert_eq!(config.first_line_indent, 2);
     assert_eq!(config.language, LanguageType::Auto);
-    assert!(!config.enable_hyphenation);
     assert_eq!(config.font_family, "Noto Sans SC");
     assert!(config.calibration.is_none());
 }

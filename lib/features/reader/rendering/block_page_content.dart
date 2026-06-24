@@ -29,6 +29,13 @@ Widget buildBlockPageContent({
   final children = <Widget>[];
   var runningOffset = startOffset;
 
+  void appendBlock(Widget child) {
+    if (children.isNotEmpty) {
+      children.add(SizedBox(height: config.paragraphSpacing));
+    }
+    children.add(child);
+  }
+
   for (final block in blocks) {
     block.when(
       text: (slice) {
@@ -41,11 +48,12 @@ Widget buildBlockPageContent({
           vocabularyWords: config.effectiveVocabWords,
           contentStart: runningOffset,
         );
-        children.add(
+        appendBlock(
           SelectableText.rich(
             paintedSpan,
             strutStyle: strutStyle,
             textAlign: config.textAlign,
+            textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
             onSelectionChanged: (sel, cause) => _handleBlockTextSelection(
               sel,
               slice.text,
@@ -61,7 +69,7 @@ Widget buildBlockPageContent({
       },
       image: (slice) {
         final isFullPage = slice.layout == ImageBlockLayout.fullPage;
-        children.add(
+        appendBlock(
           EpubBlockImage(
             filePath: epubFilePath,
             assetId: slice.assetId,
