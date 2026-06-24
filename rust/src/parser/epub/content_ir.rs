@@ -15,6 +15,19 @@ use super::provider::EpubContentProvider;
 /// 与 `get_chapter_content_rich` 相同：单章 HTML 超过此值则跳过 html5ever。
 const MAX_HTML_SIZE: usize = 100 * 1024;
 
+fn html_contains_img(html: &str) -> bool {
+    html.to_ascii_lowercase().contains("<img")
+}
+
+fn oversized_ir_error(total_html_bytes: usize) -> AppError {
+    AppError::EpubParseError {
+        reason: format!(
+            "chapter HTML exceeds {MAX_HTML_SIZE} bytes for IR conversion ({total_html_bytes} bytes)"
+        )
+        .into(),
+    }
+}
+
 fn rich_paragraph_style(p: &RichParagraph) -> TextBlockStyle {
     TextBlockStyle {
         is_heading: p.is_heading,
@@ -81,11 +94,20 @@ pub fn get_chapter_content_ir(
         let html = provider.read_spine_html(i)?;
         total_html_bytes += html.len();
         if total_html_bytes > MAX_HTML_SIZE {
+            if builder.image_block_count() > 0 || html_contains_img(&html) {
+                return Err(oversized_ir_error(total_html_bytes));
+            }
+            for j in (i + 1)..provider.spine_count() {
+                let tail = provider.read_spine_html(j)?;
+                if html_contains_img(&tail) {
+                    return Err(oversized_ir_error(total_html_bytes + tail.len()));
+                }
+            }
             tracing::warn!(
-                "[get_chapter_content_ir] HTML too large ({} bytes), returning empty IR",
+                "[get_chapter_content_ir] HTML too large ({} bytes), plain-only chapter — skip IR",
                 total_html_bytes,
             );
-            return Ok(ChapterContentIr::new(vec![], String::new()));
+            return Ok(builder.finish());
         }
 
         let base = provider

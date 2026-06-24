@@ -142,8 +142,13 @@ class PaginationCoordinator {
     required int initialCharOffset,
     required String content,
   }) {
-    final charOffset = initialCharOffset.clamp(0, content.length);
     final descriptors = _repo.descriptors!;
+    final maxOffset = PaginationEngine.chapterCharOffsetMax(
+      sessionMode: _repo.sessionMode,
+      descriptors: descriptors,
+      phase1PlainContent: content,
+    );
+    final charOffset = initialCharOffset.clamp(0, maxOffset);
     final resolvedPage = PaginationEngine.resolvePageIndexForOffset(
       descriptors,
       charOffset,

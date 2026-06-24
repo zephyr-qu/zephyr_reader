@@ -540,11 +540,18 @@ class ChapterLoadOrchestrator {
     );
     if (_isStale(gen)) return;
 
+    final descriptors = _contentRepo.descriptors;
+    final maxOffset = PaginationEngine.chapterCharOffsetMax(
+      sessionMode: _contentRepo.sessionMode,
+      descriptors: descriptors,
+      phase1PlainContent: content,
+    );
+
     _applyIfCurrent(gen, () {
       _totalPages.value = applied.totalPages;
       _chapterVM.currentCharOffset.value = request.initialCharOffset.clamp(
         0,
-        content.length,
+        maxOffset,
       );
       _pageIndex.value = applied.pageIndex;
       _chapterVM.pendingJumpCharOffset.value =

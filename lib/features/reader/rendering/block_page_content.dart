@@ -1,6 +1,8 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:flutter/material.dart';
+
+import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/rendering/highlight_painter.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/api/epub.dart' as epub_api;
@@ -55,7 +57,7 @@ Widget buildBlockPageContent({
             contextMenuBuilder: (_, _) => const SizedBox.shrink(),
           ),
         );
-        runningOffset += slice.text.length;
+        runningOffset += slice.text.runes.length;
       },
       image: (slice) {
         final isFullPage = slice.layout == ImageBlockLayout.fullPage;

@@ -27,7 +27,19 @@ pub(crate) fn put_block_state(
     state: BlockPaginationState,
 ) {
     let key = (validated_path.to_string(), chapter_index, config_hash);
-    BLOCK_CACHE.lock().put(key, state);
+    BLOCK_CACHE.lock().put(key.clone(), state);
+    // Block 路径生效时驱逐 stale plain streamer，避免 get_page_content 误读。
+    super::streamer_cache::STREAMER_CACHE.lock().pop(&key);
+}
+
+/// 是否已有块分页状态（`get_page_content` 优先 block 路径）。
+pub(crate) fn has_block_state(
+    validated_path: &str,
+    chapter_index: i32,
+    config_hash: u64,
+) -> bool {
+    let key = (validated_path.to_string(), chapter_index, config_hash);
+    BLOCK_CACHE.lock().peek(&key).is_some()
 }
 
 pub(crate) fn pop_block_state(
