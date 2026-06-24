@@ -175,9 +175,27 @@ pub async fn get_epub_chapter_rich_content(
     Ok(result)
 }
 
+/// M4.2：按 manifest `asset_id` 解码 EPUB 图片，缩放至 [max_width_px]。
+///
+/// 返回 JPEG/PNG 字节，供 Flutter `Image.memory` 使用（与 scroll 富文本路径一致）。
+#[frb(sync)]
+pub fn get_processed_epub_image_bytes(
+    file_path: String,
+    asset_id: String,
+    max_width_px: i32,
+) -> Result<Vec<u8>, AppError> {
+    let validated_path = validate_file_path(&file_path)?;
+    let max_width = max_width_px.max(1) as u32;
+    crate::parser::epub::processed_image::get_processed_epub_image_bytes(
+        &validated_path,
+        &asset_id,
+        max_width,
+    )
+}
+
 /// M4.2：按 manifest `asset_id` 解码 EPUB 图片，缩放至 [max_width_px] 并缓存到本地。
 ///
-/// 返回 JPEG 文件绝对路径，供 Flutter `Image.file` 使用。
+/// 返回 JPEG/PNG 文件绝对路径，供 Flutter `Image.file` 使用。
 #[frb(sync)]
 pub fn get_processed_epub_image(
     file_path: String,

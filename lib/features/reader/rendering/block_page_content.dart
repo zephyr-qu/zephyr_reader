@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
@@ -29,67 +29,6 @@ Widget buildBlockPageContent({
   final imageMaxWidth =
       (maxContentWidth - 2 * config.pageMargin).clamp(1.0, maxContentWidth);
 
-  final children = <Widget>[];
-  var runningOffset = startOffset;
-
-  void appendBlock(Widget child) {
-    if (children.isNotEmpty) {
-      children.add(SizedBox(height: config.paragraphSpacing));
-    }
-    children.add(child);
-  }
-
-  for (final block in blocks) {
-    block.when(
-      text: (slice) {
-        if (slice.text.isEmpty) return;
-        final paintedSpan = HighlightPainter.paintPlain(
-          slice.text,
-          textStyle,
-          highlights,
-          onHighlightTap: onHighlightTap,
-          vocabularyWords: config.effectiveVocabWords,
-          contentStart: runningOffset,
-        );
-        appendBlock(
-          SelectableText.rich(
-            paintedSpan,
-            strutStyle: strutStyle,
-            textAlign: config.textAlign,
-            textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
-            onSelectionChanged: (sel, cause) => _handleBlockTextSelection(
-              sel,
-              slice.text,
-              runningOffset,
-              context,
-              onSelectionChanged,
-              onSelectionGlobalPosition,
-            ),
-            contextMenuBuilder: (_, _) => const SizedBox.shrink(),
-          ),
-        );
-        runningOffset += slice.text.runes.length;
-      },
-      image: (slice) {
-        final isFullPage = slice.layout == ImageBlockLayout.fullPage;
-        appendBlock(
-          EpubBlockImage(
-            filePath: epubFilePath,
-            assetId: slice.assetId,
-            alt: slice.alt,
-            maxWidthPx: imageMaxWidth.round().clamp(1, 4096),
-            fullPage: isFullPage,
-          ),
-        );
-        runningOffset += 1; // ADR-008: \uFFFC
-      },
-    );
-  }
-
-  if (children.isEmpty) {
-    children.add(const SizedBox.shrink());
-  }
-
   return RepaintBoundary(
     child: Padding(
       padding: EdgeInsets.symmetric(
@@ -100,6 +39,61 @@ Widget buildBlockPageContent({
         builder: (context, constraints) {
           final bodyHeight =
               (constraints.maxHeight - 2 * vPad).clamp(0.0, constraints.maxHeight);
+          final children = <Widget>[];
+          var runningOffset = startOffset;
+
+          for (final block in blocks) {
+            block.when(
+              text: (slice) {
+                if (slice.text.isEmpty) return;
+                final paintedSpan = HighlightPainter.paintPlain(
+                  slice.text,
+                  textStyle,
+                  highlights,
+                  onHighlightTap: onHighlightTap,
+                  vocabularyWords: config.effectiveVocabWords,
+                  contentStart: runningOffset,
+                );
+                children.add(
+                  SelectableText.rich(
+                    paintedSpan,
+                    strutStyle: strutStyle,
+                    textAlign: config.textAlign,
+                    textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
+                    onSelectionChanged: (sel, cause) => _handleBlockTextSelection(
+                      sel,
+                      slice.text,
+                      runningOffset,
+                      context,
+                      onSelectionChanged,
+                      onSelectionGlobalPosition,
+                    ),
+                    contextMenuBuilder: (_, _) => const SizedBox.shrink(),
+                  ),
+                );
+                runningOffset += slice.text.runes.length;
+              },
+              image: (slice) {
+                final isFullPage = slice.layout == ImageBlockLayout.fullPage;
+                children.add(
+                  EpubBlockImage(
+                    filePath: epubFilePath,
+                    assetId: slice.assetId,
+                    alt: slice.alt,
+                    maxWidthPx: imageMaxWidth.round().clamp(1, 4096),
+                    maxHeightPx: bodyHeight.round().clamp(1, 4096),
+                    fullPage: isFullPage,
+                  ),
+                );
+                runningOffset += 1; // ADR-008: \uFFFC
+              },
+            );
+          }
+
+          if (children.isEmpty) {
+            children.add(const SizedBox.shrink());
+          }
+
           return PaginatedPageViewport(
             maxHeight: bodyHeight,
             maxWidth: constraints.maxWidth,
@@ -139,13 +133,14 @@ void _handleBlockTextSelection(
   }
 }
 
-/// 懒加载 EPUB 块图片：占位 → Rust 本地路径 → [Image.file]。
+/// 懒加载 EPUB 块图片：占位 → Rust 解码字节 → [Image.memory]。
 class EpubBlockImage extends StatefulWidget {
   const EpubBlockImage({
     super.key,
     required this.filePath,
     required this.assetId,
     required this.maxWidthPx,
+    this.maxHeightPx,
     this.alt,
     this.fullPage = false,
   });
@@ -153,6 +148,7 @@ class EpubBlockImage extends StatefulWidget {
   final String filePath;
   final String assetId;
   final int maxWidthPx;
+  final int? maxHeightPx;
   final String? alt;
   final bool fullPage;
 
@@ -161,7 +157,7 @@ class EpubBlockImage extends StatefulWidget {
 }
 
 class _EpubBlockImageState extends State<EpubBlockImage> {
-  String? _localPath;
+  Uint8List? _imageBytes;
   Object? _error;
 
   @override
@@ -176,7 +172,7 @@ class _EpubBlockImageState extends State<EpubBlockImage> {
     if (oldWidget.assetId != widget.assetId ||
         oldWidget.maxWidthPx != widget.maxWidthPx ||
         oldWidget.filePath != widget.filePath) {
-      _localPath = null;
+      _imageBytes = null;
       _error = null;
       _load();
     }
@@ -184,15 +180,18 @@ class _EpubBlockImageState extends State<EpubBlockImage> {
 
   Future<void> _load() async {
     try {
-      final path = await Future.microtask(
-        () => epub_api.getProcessedEpubImage(
+      final bytes = await Future.microtask(
+        () => epub_api.getProcessedEpubImageBytes(
           filePath: widget.filePath,
           assetId: widget.assetId,
           maxWidthPx: widget.maxWidthPx,
         ),
       );
       if (!mounted) return;
-      setState(() => _localPath = path);
+      if (bytes.isEmpty) {
+        throw StateError('empty image bytes for asset ${widget.assetId}');
+      }
+      setState(() => _imageBytes = bytes);
     } catch (e) {
       Logging.warning('[EpubBlockImage] load failed asset=${widget.assetId}: $e');
       if (!mounted) return;
@@ -203,62 +202,44 @@ class _EpubBlockImageState extends State<EpubBlockImage> {
   @override
   Widget build(BuildContext context) {
     if (_error != null) {
-      return _placeholder(
-        icon: Icons.broken_image_outlined,
-        label: widget.alt ?? widget.assetId,
-      );
+      return _compactPlaceholder(icon: Icons.broken_image_outlined);
     }
-    final path = _localPath;
-    if (path == null || !File(path).existsSync()) {
-      return _placeholder(
-        icon: Icons.image_outlined,
-        label: widget.alt,
-      );
+    final bytes = _imageBytes;
+    if (bytes == null) {
+      return _compactPlaceholder(icon: Icons.image_outlined);
     }
 
     final maxW = widget.maxWidthPx.toDouble();
-    final image = Image.file(
-      File(path),
+    final maxH = widget.maxHeightPx?.toDouble();
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final image = Image.memory(
+      bytes,
       width: maxW,
+      height: maxH,
       fit: BoxFit.contain,
+      cacheWidth: (maxW * dpr).ceil().clamp(1, 8192),
       semanticLabel: widget.alt,
-      errorBuilder: (_, _, _) => _placeholder(
-        icon: Icons.broken_image_outlined,
-        label: widget.alt,
-      ),
+      errorBuilder: (_, _, _) =>
+          _compactPlaceholder(icon: Icons.broken_image_outlined),
     );
 
     if (widget.fullPage) {
       return SizedBox(
         width: maxW,
-        child: AspectRatio(aspectRatio: 3 / 4, child: image),
+        height: maxH,
+        child: image,
       );
     }
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: image,
     );
   }
 
-  Widget _placeholder({required IconData icon, String? label}) {
+  Widget _compactPlaceholder({required IconData icon}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 32, color: Colors.grey),
-          if (label != null && label.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ],
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Icon(icon, size: 28, color: Colors.grey),
     );
   }
 }
