@@ -15,7 +15,7 @@ pub const IMAGE_PLAIN_CHAR_LEN: u32 = 1;
 /// 块级 plain 坐标：Unicode 标量字符索引（与 glossary「charOffset」语义一致）。
 ///
 /// `plain_start` 为章内从 0 起的字符下标；`plain_len` 为该块占用的字符数。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 #[frb(non_opaque)]
 pub struct BlockPlainRange {
     pub plain_start: u32,
@@ -36,7 +36,7 @@ impl BlockPlainRange {
 }
 
 /// 文本块级样式（MVP；行内 span 后续扩展）。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default, bincode::Encode, bincode::Decode)]
 #[frb(non_opaque)]
 pub struct TextBlockStyle {
     pub is_heading: bool,
@@ -44,7 +44,7 @@ pub struct TextBlockStyle {
 }
 
 /// 文本内容块。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 #[frb(non_opaque)]
 pub struct TextBlock {
     pub plain: BlockPlainRange,
@@ -65,7 +65,7 @@ impl TextBlock {
 }
 
 /// 图片内容块（字节懒加载；分页/layout 用 asset_id）。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 #[frb(non_opaque)]
 pub struct ImageBlock {
     pub plain: BlockPlainRange,
@@ -106,7 +106,7 @@ impl ImageBlock {
 }
 
 /// 章节 IR 块（Text | Image）。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 #[frb(non_opaque)]
 pub enum ContentBlock {
     Text(TextBlock),
@@ -135,7 +135,7 @@ impl ContentBlock {
 }
 
 /// 一章的 IR 产物：块流 + 完整 plain 投影。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 #[frb(non_opaque)]
 pub struct ChapterContentIr {
     pub blocks: Vec<ContentBlock>,

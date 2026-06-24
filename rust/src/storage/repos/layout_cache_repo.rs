@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::domain::AppError;
 
 use super::super::kv_store::KvStore;
-use super::super::models::{LayoutCache, LayoutCacheKey};
+use super::super::models::{BlockLayoutCache, LayoutCache, LayoutCacheKey};
 
 /// 排版缓存仓储 — 委托 KvStore 操作
 pub struct LayoutCacheRepository {
@@ -24,6 +24,23 @@ impl LayoutCacheRepository {
     /// 获取排版缓存
     pub fn get_layout_cache(&self, key: &LayoutCacheKey) -> Result<Option<LayoutCache>, AppError> {
         self.kv.get_layout_cache(key)
+    }
+
+    /// 保存块分页索引缓存
+    pub fn save_block_layout_cache(
+        &self,
+        key: &LayoutCacheKey,
+        cache: &BlockLayoutCache,
+    ) -> Result<(), AppError> {
+        self.kv.save_block_layout_cache(key, cache)
+    }
+
+    /// 获取块分页索引缓存
+    pub fn get_block_layout_cache(
+        &self,
+        key: &LayoutCacheKey,
+    ) -> Result<Option<BlockLayoutCache>, AppError> {
+        self.kv.get_block_layout_cache(key)
     }
 
     /// 使指定书籍的所有排版缓存失效

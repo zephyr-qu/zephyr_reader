@@ -203,10 +203,11 @@ impl ReadingOrchestrator {
         super::chapter_access::get_chapter(file_path, chapter_index, config).await
     }
 
-    /// 清理 PROVIDER_CACHE + BOOK_ID_CACHE（测试用）。
+    /// 清理 PROVIDER_CACHE + BOOK_ID_CACHE + 分页内存 LRU（测试用）。
     pub fn clear_caches_for_test(&self) {
         super::provider_cache::clear_for_test();
         super::book_id_cache::clear_for_test();
+        super::pagination_store::PaginationStore::global().clear_lru_for_test();
     }
 }
 

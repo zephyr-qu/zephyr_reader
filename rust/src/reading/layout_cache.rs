@@ -1,7 +1,10 @@
 //! 排版结果持久化缓存（KV store）读写。
 //!
 //! 全章分页结果保存在 sled KV 中，跨进程复用，避免每次分页都重做 CPU 排版。
-//! 缓存键 = `(book_id, chapter_index, chunk_index, config_hash)`，值 = `Vec<PageContent>`。
+//! - plain 路径：`LayoutCache` → `Vec<PageContent>`
+//! - block 路径（P3-6）：`BlockLayoutCache` → IR + `BlockPaginateResult`
+//!
+//! 缓存键 = `(book_id, chapter_index, chunk_index, config_hash)`，值 = 分页索引。
 //!
 //! 行为契约：
 //! - `try_get`：仅查询，不写入。命中返回 `Some(pages)`；未命中 / 错误 / DB 不可用均返回 `None`。
@@ -9,7 +12,8 @@
 //! - 文件路径 → book_id 通过 `BookRepository::find_by_file_path` 反查，每本书一次。
 
 use crate::domain::PageContent;
-use crate::storage::models::{LayoutCache, LayoutCacheKey};
+use crate::domain::{BlockPaginateResult, ChapterContentIr};
+use crate::storage::models::{BlockLayoutCache, LayoutCache, LayoutCacheKey};
 use crate::storage::repos::{BookRepository, LayoutCacheRepository};
 use crate::storage::storage_pool;
 
@@ -97,5 +101,79 @@ pub(crate) async fn try_save_cached(
     let cache_repo = LayoutCacheRepository::new(storage.kv());
     if let Err(e) = cache_repo.save_layout_cache(&cache_key, &cache) {
         tracing::warn!("cache[{chunk_index:?}] save failed: {}", e);
+    }
+}
+
+async fn resolve_book_id(validated_path: &str, chunk_index: Option<u32>) -> Option<String> {
+    let pool = storage_pool().ok()?;
+    match BookRepository::find_by_file_path(&pool, validated_path).await {
+        Ok(Some(b)) => Some(b.book_id),
+        Ok(None) => None,
+        Err(e) => {
+            tracing::warn!("cache[{chunk_index:?}] miss: book lookup failed: {e}");
+            None
+        }
+    }
+}
+
+fn layout_cache_key(
+    book_id: &str,
+    chapter_index: i32,
+    chunk_index: Option<u32>,
+    config_hash: u64,
+) -> LayoutCacheKey {
+    LayoutCacheKey {
+        book_id: book_id.to_string(),
+        chapter_index,
+        chunk_index,
+        config_hash,
+    }
+}
+
+/// 尝试从 sled 加载块分页索引（IR + descriptors）。
+pub(crate) async fn try_get_block_cached(
+    validated_path: &str,
+    chapter_index: i32,
+    config_hash: u64,
+) -> Option<(ChapterContentIr, BlockPaginateResult)> {
+    let book_id = resolve_book_id(validated_path, None).await?;
+    let cache_key = layout_cache_key(&book_id, chapter_index, None, config_hash);
+    let storage = crate::storage::storage()?;
+    let cache_repo = LayoutCacheRepository::new(storage.kv());
+    match cache_repo.get_block_layout_cache(&cache_key) {
+        Ok(Some(cache)) => {
+            tracing::debug!("block_cache HIT: {}", cache_key);
+            Some((cache.ir, cache.result))
+        }
+        Ok(None) => None,
+        Err(e) => {
+            tracing::warn!("block_cache read failed: {}", e);
+            None
+        }
+    }
+}
+
+/// 保存块分页索引到 sled（partial 或写入失败不影响阅读）。
+pub(crate) async fn try_save_block_cached(
+    validated_path: &str,
+    chapter_index: i32,
+    config_hash: u64,
+    ir: ChapterContentIr,
+    result: BlockPaginateResult,
+) {
+    if result.is_partial {
+        return;
+    }
+    let Some(book_id) = resolve_book_id(validated_path, None).await else {
+        return;
+    };
+    let Some(storage) = crate::storage::storage() else {
+        return;
+    };
+    let cache_key = layout_cache_key(&book_id, chapter_index, None, config_hash);
+    let cache = BlockLayoutCache::new(config_hash, ir, result);
+    let cache_repo = LayoutCacheRepository::new(storage.kv());
+    if let Err(e) = cache_repo.save_block_layout_cache(&cache_key, &cache) {
+        tracing::warn!("block_cache save failed: {}", e);
     }
 }
