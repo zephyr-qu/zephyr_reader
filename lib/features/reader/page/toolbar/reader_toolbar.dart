@@ -15,6 +15,7 @@ class ReaderToolbar extends HookWidget {
   final VoidCallback? onToggleMore;
   final VoidCallback? onSearchBook;
   final VoidCallback? onToggleBookmarks;
+  final bool isBookmarked;
 
   const ReaderToolbar({
     super.key,
@@ -26,6 +27,7 @@ class ReaderToolbar extends HookWidget {
     this.onToggleMore,
     this.onSearchBook,
     this.onToggleBookmarks,
+    this.isBookmarked = false,
   });
 
   @override
@@ -104,9 +106,11 @@ class ReaderToolbar extends HookWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(10),
                   child: Icon(
-                    PhosphorIconsLight.bookmarkSimple,
+                    isBookmarked
+                        ? PhosphorIconsFill.bookmarkSimple
+                        : PhosphorIconsLight.bookmarkSimple,
                     size: 20,
-                    color: textColor,
+                    color: isBookmarked ? accentColor : textColor,
                   ),
                 ),
               ),

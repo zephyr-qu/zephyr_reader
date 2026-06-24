@@ -132,9 +132,6 @@ extension GetItInjectableX on _i174.GetIt {
         service: gh<_i877.TranslationService>(),
       ),
     );
-    gh.factory<_i291.ChapterContentRepository>(
-      () => _i109.RustChapterContentRepository(gh<InvalidType>()),
-    );
     gh.factoryParam<
       _i306.ReadingSessionManager,
       _i642.ChapterViewModel,
@@ -182,12 +179,8 @@ extension GetItInjectableX on _i174.GetIt {
     gh.singleton<_i466.TranslationConfig>(
       () => _i466.TranslationConfig(gh<_i985.PreferencesService>()),
     );
-    gh.factory<_i421.ReaderRepositoryInterface>(
-      () => _i1054.ReaderRepository(
-        gh<_i291.ChapterContentRepository>(),
-        gh<_i768.ProgressRepository>(),
-        gh<_i693.PaginationSessionFactory>(),
-      ),
+    gh.factory<_i291.ChapterContentRepository>(
+      () => _i109.RustChapterContentRepository(gh<_i402.ReaderConfig>()),
     );
     gh.factory<_i305.ReaderSessionFactory>(
       () => _i305.ReaderSessionFactory(
@@ -201,6 +194,13 @@ extension GetItInjectableX on _i174.GetIt {
       () => translationModule.translationService(
         gh<_i466.TranslationConfig>(),
         gh<_i361.Dio>(),
+      ),
+    );
+    gh.factory<_i421.ReaderRepositoryInterface>(
+      () => _i1054.ReaderRepository(
+        gh<_i291.ChapterContentRepository>(),
+        gh<_i768.ProgressRepository>(),
+        gh<_i693.PaginationSessionFactory>(),
       ),
     );
     return this;

@@ -25,6 +25,8 @@ Widget buildBlockPageContent({
   final textStyle = config.buildTextStyle();
   final strutStyle = config.buildStrutStyle();
   final vPad = ReaderRenderConfig.pageContentVerticalPadding;
+  final imageMaxWidth =
+      (maxContentWidth - 2 * config.pageMargin).clamp(1.0, maxContentWidth);
 
   final children = <Widget>[];
   var runningOffset = startOffset;
@@ -74,7 +76,7 @@ Widget buildBlockPageContent({
             filePath: epubFilePath,
             assetId: slice.assetId,
             alt: slice.alt,
-            maxWidthPx: maxContentWidth.round().clamp(1, 4096),
+            maxWidthPx: imageMaxWidth.round().clamp(1, 4096),
             fullPage: isFullPage,
           ),
         );
@@ -100,11 +102,14 @@ Widget buildBlockPageContent({
           return SizedBox(
             height: bodyHeight,
             width: constraints.maxWidth,
-            child: SingleChildScrollView(
-              physics: const ClampingScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: children,
+            child: ClipRect(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: children,
+                ),
               ),
             ),
           );
@@ -215,8 +220,10 @@ class _EpubBlockImageState extends State<EpubBlockImage> {
       );
     }
 
+    final maxW = widget.maxWidthPx.toDouble();
     final image = Image.file(
       File(path),
+      width: maxW,
       fit: BoxFit.contain,
       semanticLabel: widget.alt,
       errorBuilder: (_, _, _) => _placeholder(
@@ -226,7 +233,10 @@ class _EpubBlockImageState extends State<EpubBlockImage> {
     );
 
     if (widget.fullPage) {
-      return AspectRatio(aspectRatio: 3 / 4, child: image);
+      return SizedBox(
+        width: maxW,
+        child: AspectRatio(aspectRatio: 3 / 4, child: image),
+      );
     }
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),

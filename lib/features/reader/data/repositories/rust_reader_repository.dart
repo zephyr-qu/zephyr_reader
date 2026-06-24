@@ -27,7 +27,11 @@ class ReaderRepository
     this._chapterContent,
     this._progress,
     PaginationSessionFactory sessionFactory,
-  ) : _session = sessionFactory.create();
+  ) : _session = sessionFactory.create(
+          onCacheUpdated: () {
+            _chapterContent.preloadGeneration.value++;
+          },
+        );
 
   final ChapterContentRepository _chapterContent;
   final ProgressRepository _progress;
@@ -234,8 +238,7 @@ class ReaderRepository
   @override
   void ensurePageWindow(int centerPage) {
     _session.ensureWindow(centerPage);
-    preloadGeneration.value++;
-    Logging.info('[Repo] ensurePageWindow center=$centerPage preloadGen=${preloadGeneration.value}');
+    Logging.info('[Repo] ensurePageWindow center=$centerPage');
   }
 
   @override
