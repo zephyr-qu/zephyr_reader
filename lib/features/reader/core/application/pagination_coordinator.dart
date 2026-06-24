@@ -8,6 +8,7 @@ import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
+import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
 /// 分页排版协调器：构建参数、局部分页、全量分页及 Dart 回退。
@@ -149,10 +150,7 @@ class PaginationCoordinator {
       phase1PlainContent: content,
     );
     final charOffset = initialCharOffset.clamp(0, maxOffset);
-    final resolvedPage = PaginationEngine.resolvePageIndexForOffset(
-      descriptors,
-      charOffset,
-    );
+    final resolvedPage = resolvePageForCharOffset(charOffset, descriptors);
     _repo.ensurePageWindow(resolvedPage);
 
     Logging.debug(
@@ -161,6 +159,21 @@ class PaginationCoordinator {
     );
 
     return (totalPages: total, pageIndex: resolvedPage);
+  }
+
+  /// charOffset → pageIndex：优先 Rust session，回退 descriptor 二分。
+  int resolvePageForCharOffset(
+    int charOffset,
+    List<PageDescriptor> descriptors,
+  ) {
+    final sessionPage = _repo.resolvePageIndexForCharOffset(charOffset);
+    if (sessionPage != null) {
+      return sessionPage.clamp(0, descriptors.length - 1);
+    }
+    return PaginationEngine.resolvePageIndexForOffset(
+      descriptors,
+      charOffset,
+    );
   }
 
   /// 释放 Rust 会话并清空本地缓存。

@@ -356,19 +356,14 @@ class ReaderContent extends HookWidget {
       }
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (usePaginationSlide) {
-          final descriptors = dataSource.descriptors;
-          if (descriptors != null && descriptors.isNotEmpty) {
-            final targetIndex = _indexForCharOffset(
-              descriptors,
-              jumpToCharOffset!,
-              (d) => d.startOffset,
-              (d) => d.endOffset,
-            );
-            if (pageController.hasClients) {
-              pageController.jumpToPage(physicalPage(targetIndex));
-            }
-            onPageChanged?.call(targetIndex);
-            onPositionChanged?.call(descriptors[targetIndex].startOffset);
+          // 页码由 orchestrator 解析；此处只同步 PageController，避免 partial
+          // descriptors 下二次推算导致 loadPage 落到上一页。
+          final targetIndex = pageIndex.clamp(
+            0,
+            totalPages > 0 ? totalPages - 1 : 0,
+          );
+          if (pageController.hasClients) {
+            pageController.jumpToPage(physicalPage(targetIndex));
           }
         } else if (scrollController.hasClients) {
           final paraHeight =
@@ -395,7 +390,16 @@ class ReaderContent extends HookWidget {
         onJumpHandled?.call();
       });
       return null;
-    }, [jumpToCharOffset, readingMode, bookId, chapterId, content, scrollSegments]);
+    }, [
+      jumpToCharOffset,
+      pageIndex,
+      totalPages,
+      readingMode,
+      bookId,
+      chapterId,
+      content,
+      scrollSegments,
+    ]);
     // 跨章节 slide 方向追踪（在 pageTurn/pagination 条件返回前声明）
     final prevChapterId = useRef<int?>(null);
     final isForward =
@@ -493,23 +497,6 @@ class ReaderContent extends HookWidget {
           child: paginatedBuilder(context, pageController),
         );
     }
-  }
-
-  /// 在 [items] 中查找 [charOffset] 所在的区间 [startOffset, endOffset)。
-  /// 返回第一个匹配的索引；无匹配时返回最后一项的索引。
-  static int _indexForCharOffset<T>(
-    List<T> items,
-    int charOffset,
-    int Function(T) startOffset,
-    int Function(T) endOffset,
-  ) {
-    for (int i = 0; i < items.length; i++) {
-      final item = items[i];
-      if (charOffset >= startOffset(item) && charOffset < endOffset(item)) {
-        return i;
-      }
-    }
-    return items.length - 1;
   }
 
   static Color getTextColor(ThemeMode themeMode) {

@@ -242,6 +242,10 @@ class ReaderRepository
   }
 
   @override
+  int? resolvePageIndexForCharOffset(int charOffset) =>
+      _session.resolvePageIndexForCharOffset(charOffset);
+
+  @override
   void ensureWindow(int centerPage) {
     Logging.debug('[Repo] ensureWindow → ensurePageWindow center=$centerPage');
     ensurePageWindow(centerPage);

@@ -112,16 +112,11 @@ class RustPaginationSession implements PaginationSession {
     BigInt? maxChars,
   }) async {
     if (maxChars == null) return null;
-    try {
-      final hasImages = await core_api.chapterHasImageBlocks(
-        filePath: filePath,
-        chapterIndex: chapterIndex,
-      );
-      if (hasImages) return null;
-    } catch (e) {
-      Logging.warning(
-        '[Session] chapterHasImageBlocks failed ch=$chapterIndex: $e',
-      );
+    if (await _chapterNeedsBlockPath(
+      filePath: filePath,
+      chapterIndex: chapterIndex,
+    )) {
+      return null;
     }
     return maxChars;
   }
@@ -233,8 +228,26 @@ class RustPaginationSession implements PaginationSession {
       );
       Logging.info(
         '[Timing] createPaginationSessionAdopt: HIT ${sw.elapsedMilliseconds}ms '
-        '(pages=${result.descriptors.length}, isPartial=${result.isPartial})',
+        '(pages=${result.descriptors.length}, isPartial=${result.isPartial}, mode=${result.mode})',
       );
+
+      final needsBlockPath = await _chapterNeedsBlockPath(
+        filePath: book.filePath,
+        chapterIndex: chapterIndex,
+      );
+      if (needsBlockPath &&
+          result.mode != ChapterPaginationMode.contentBlocks) {
+        Logging.info(
+          '[Session] adopt plain cache for image chapter ch=$chapterIndex → recreate block session',
+        );
+        _releaseHandle();
+        return beginPaginate(
+          bookId: bookId,
+          chapterIndex: chapterIndex,
+          params: params,
+          maxChars: null,
+        );
+      }
 
       _handle = handle;
       _sessionFilePath = book.filePath;
@@ -254,6 +267,23 @@ class RustPaginationSession implements PaginationSession {
         params: params,
         maxChars: maxChars,
       );
+    }
+  }
+
+  Future<bool> _chapterNeedsBlockPath({
+    required String filePath,
+    required int chapterIndex,
+  }) async {
+    try {
+      return await core_api.chapterHasImageBlocks(
+        filePath: filePath,
+        chapterIndex: chapterIndex,
+      );
+    } catch (e) {
+      Logging.warning(
+        '[Session] chapterHasImageBlocks failed ch=$chapterIndex: $e',
+      );
+      return false;
     }
   }
 
@@ -455,6 +485,23 @@ class RustPaginationSession implements PaginationSession {
   @override
   void warmPageCache(int pageIndex, String content) =>
       _contentCache.warm(pageIndex, content);
+
+  @override
+  int? resolvePageIndexForCharOffset(int charOffset) {
+    final handle = _handle;
+    if (handle == null) return null;
+    try {
+      return core_api.sessionCharOffsetToPageIndex(
+        handle: handle,
+        charOffset: charOffset,
+      );
+    } catch (e) {
+      Logging.warning(
+        '[Session] resolvePageIndexForCharOffset off=$charOffset: $e',
+      );
+      return null;
+    }
+  }
 
   @override
   void dispose() {

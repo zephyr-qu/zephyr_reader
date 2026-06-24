@@ -105,7 +105,12 @@ class ChapterNavigator {
 
     final descriptors = _repo.descriptors;
     if (descriptors != null && pageIndex < descriptors.length) {
-      _chapterVM.currentCharOffset.value = descriptors[pageIndex].startOffset;
+      final d = descriptors[pageIndex];
+      final start = d.startOffset;
+      final end = d.endOffset;
+      // 书签/跳转用页内偏移，避免落在页边界导致解析到上一页。
+      final inside = end > start + 1 ? start + 1 : start;
+      _chapterVM.currentCharOffset.value = inside;
     }
 
     _repo.ensurePageWindow(pageIndex);
