@@ -11,13 +11,13 @@ use crate::storage::models::BookFormat;
 use crate::text::{paginate_all, paginate_chapter_ir, PageStreamer};
 use crate::utils::security::validate_file_path;
 
-use super::block_cache::{has_block_state, pop_block_state, put_block_state, BLOCK_CACHE};
 use super::block_state::BlockPaginationState;
 use super::chapter_access::{format_from_file_path, get_chapter_bounds};
 use super::chapter_ir::load_chapter_content_ir;
 use super::layout_cache::{try_get_cached, try_save_cached};
+use super::pagination_engine::PaginationEngine;
+use super::pagination_store::{PaginationKey, PaginationStore};
 use super::provider_cache::get_or_create_provider;
-use super::streamer_cache::STREAMER_CACHE;
 
 /// 分页排版指定文件的所有章节。
 ///
@@ -81,19 +81,11 @@ async fn try_paginate_chapter_blocks(
     }
 
     let config_hash = config.config_hash();
-    let cache_key = (validated_path.to_string(), chapter_index, config_hash);
+    let key = PaginationKey::new(validated_path, chapter_index, config_hash);
+    let store = PaginationStore::global();
 
-    let cached = {
-        let mut cache = BLOCK_CACHE.lock();
-        cache.pop(&cache_key)
-    };
-    if let Some(state) = cached {
-        if !state.is_partial {
-            let result = state.to_paginate_result(config_hash);
-            BLOCK_CACHE.lock().put(cache_key, state);
-            return Ok(Some(result));
-        }
-        BLOCK_CACHE.lock().put(cache_key, state);
+    if let Some(result) = store.try_block_full_hit(&key) {
+        return Ok(Some(result));
     }
 
     let ir = load_chapter_content_ir(validated_path, chapter_index).await?;
@@ -113,7 +105,7 @@ async fn try_paginate_chapter_blocks(
 
     let state = BlockPaginationState::new(ir, block_result, false);
     let result = state.to_paginate_result(config_hash);
-    put_block_state(validated_path, chapter_index, config_hash, state);
+    store.put(key, PaginationEngine::Block(state));
 
     tracing::info!(
         "[Timing] paginate_chapter block_path config_hash={:016x} chapter={} pages={}",
@@ -139,6 +131,8 @@ pub(crate) async fn paginate_chapter(
     let config = config.validate_and_fix();
     let config_hash = config.config_hash();
     let start = Instant::now();
+    let store = PaginationStore::global();
+    let engine_key = PaginationKey::new(&validated_path, chapter_index, config_hash);
 
     // 全章：含图章必须优先 block 路径，避免 stale plain streamer/layout 缓存抢先返回。
     if max_chars.is_none() {
@@ -152,33 +146,21 @@ pub(crate) async fn paginate_chapter(
             return Ok(result);
         }
 
-        let streamer_key = (validated_path.clone(), chapter_index, config_hash);
-        let streamer = {
-            let mut cache = STREAMER_CACHE.lock();
-            cache.pop(&streamer_key)
-        };
-        if let Some(streamer) = streamer {
-            if !streamer.is_partial {
-                let descriptors = streamer.get_descriptors();
-                STREAMER_CACHE.lock().put(streamer_key, streamer);
-                tracing::info!(
-                    "[Timing] paginate_chapter streamer_cache=HIT config_hash={:016x} chapter={} elapsed={:?}",
-                    config_hash, chapter_index, start.elapsed()
-                );
-                return Ok(PaginateResult {
-                    descriptors,
-                    config_hash,
-                    is_partial: false,
-                    mode: ChapterPaginationMode::PlainText,
-                });
-            }
-            STREAMER_CACHE.lock().put(streamer_key, streamer);
+        if let Some(result) = store.try_plain_full_hit(&engine_key) {
+            tracing::info!(
+                "[Timing] paginate_chapter engine_cache=HIT config_hash={:016x} chapter={} elapsed={:?}",
+                config_hash, chapter_index, start.elapsed()
+            );
+            return Ok(result);
         }
         if let Some(pages) = try_get_cached(&validated_path, chapter_index, None, config_hash).await {
             let mut streamer = PageStreamer::from_pages(pages);
             streamer.is_partial = false;
             let descriptors = streamer.get_descriptors();
-            STREAMER_CACHE.lock().put((validated_path.clone(), chapter_index, config_hash), streamer);
+            store.put(
+                engine_key.clone(),
+                PaginationEngine::Plain(streamer),
+            );
             tracing::info!(
                 "[Timing] paginate_chapter layout_cache=HIT config_hash={:016x} chapter={} elapsed={:?}",
                 config_hash, chapter_index, start.elapsed()
@@ -250,7 +232,7 @@ pub(crate) async fn paginate_chapter(
     let mut streamer = PageStreamer::new(content, config);
     streamer.is_partial = is_partial;
     let descriptors = streamer.get_descriptors();
-    // 提取全页内容用于 KV 缓存保存（在 streamer 移入 STREAMER_CACHE 之前完成）
+    // 提取全页内容用于 KV 缓存保存（在 engine 移入 LRU 之前完成）
     let cached_pages = if !is_partial {
         let total = descriptors.len();
         Some(
@@ -262,11 +244,10 @@ pub(crate) async fn paginate_chapter(
         None
     };
 
-    // 缓存 PageStreamer 供后续按需获取页面内容
-    {
-        let mut cache = STREAMER_CACHE.lock();
-        cache.put((validated_path.clone(), chapter_index, config_hash), streamer);
-    }
+    store.put(
+        PaginationKey::new(&validated_path, chapter_index, config_hash),
+        PaginationEngine::Plain(streamer),
+    );
 
     // 全章分页完成后写入持久化 KV 缓存
     if let Some(pages) = cached_pages {
@@ -285,23 +266,43 @@ pub(crate) async fn paginate_chapter(
     })
 }
 
+fn ensure_non_negative_page_index(page_index: i32) -> Result<(), AppError> {
+    if page_index < 0 {
+        return Err(AppError::InvalidInput {
+            reason: format!("page_index must be non-negative, got {page_index}"),
+        });
+    }
+    Ok(())
+}
+
+fn page_content_entity(chapter_index: i32, config_hash: u64, page_index: i32) -> String {
+    format!(
+        "page content for chapter {chapter_index} page {page_index} (config_hash={config_hash:016x})"
+    )
+}
+
 /// 块路径单页块列表（对标 `get_session_page_blocks`）。
 pub(crate) fn get_page_blocks(
     file_path: String,
     chapter_index: i32,
     config_hash: u64,
     page_index: i32,
-) -> Vec<PageBlockSlice> {
-    let path = file_path.as_str();
-    if let Some(state) = pop_block_state(path, chapter_index, config_hash) {
-        let blocks = state
-            .page_blocks(page_index as usize)
-            .unwrap_or_default();
-        put_block_state(path, chapter_index, config_hash, state);
-        blocks
-    } else {
-        Vec::new()
-    }
+) -> Result<Vec<PageBlockSlice>, AppError> {
+    ensure_non_negative_page_index(page_index)?;
+    let validated_path = validate_file_path(&file_path)?;
+    let key = PaginationKey::new(&validated_path, chapter_index, config_hash);
+    PaginationStore::global().with_engine(&key, |engine| {
+        match engine {
+            PaginationEngine::Block(state) => state
+                .page_blocks(page_index as usize)
+                .ok_or_else(|| AppError::NotFound {
+                    entity: page_content_entity(chapter_index, config_hash, page_index),
+                }),
+            PaginationEngine::Plain(_) => Err(AppError::InvalidInput {
+                reason: "plain text pagination has no block slices".into(),
+            }),
+        }
+    })
 }
 
 /// 章 IR 是否含 Image 块（staging 预加载分支用）。
@@ -314,46 +315,32 @@ pub(crate) async fn chapter_has_image_blocks(
     Ok(ir.image_block_count() > 0)
 }
 
-/// 块路径单页 plain 文本（含 `\uFFFC`）。
-pub(crate) fn get_block_page_content(
-    file_path: &str,
-    chapter_index: i32,
-    config_hash: u64,
-    page_index: i32,
-) -> String {
-    if let Some(state) = pop_block_state(file_path, chapter_index, config_hash) {
-        let text = state
-            .page_plain_text(page_index as usize)
-            .unwrap_or_default();
-        put_block_state(file_path, chapter_index, config_hash, state);
-        text
-    } else {
-        String::new()
-    }
-}
-
 /// 按需获取单页内容（同步，纯内存操作）。
 ///
-/// 从 LRU 缓存中查找对应章节的 `PageStreamer`，调用 `get_page` 获取指定页的文本内容。
-/// 如果缓存中不存在（过期或被驱逐），返回空字符串，调用方应回退到 `paginate_all_content`。
+/// 从 `PAGINATION_ENGINE_CACHE` 查找引擎并按模式取页。
+/// 缓存未命中或页码越界时返回 `NotFound`，调用方应回退到 `paginate_chapter`。
 pub(crate) fn get_page_content(
     file_path: String,
     chapter_index: i32,
     config_hash: u64,
     page_index: i32,
-) -> String {
-    let path = file_path.as_str();
-    if has_block_state(path, chapter_index, config_hash) {
-        return get_block_page_content(path, chapter_index, config_hash, page_index);
-    }
-
-    let key = (file_path.clone(), chapter_index, config_hash);
-    let mut cache = STREAMER_CACHE.lock();
-    if let Some(streamer) = cache.get(&key) {
-        if let Some(page) = streamer.get_page(page_index as usize, chapter_index) {
-            return page.content;
+) -> Result<String, AppError> {
+    ensure_non_negative_page_index(page_index)?;
+    let validated_path = validate_file_path(&file_path)?;
+    let key = PaginationKey::new(&validated_path, chapter_index, config_hash);
+    PaginationStore::global().with_engine(&key, |engine| {
+        match engine {
+            PaginationEngine::Plain(streamer) => streamer
+                .get_page(page_index as usize, chapter_index)
+                .map(|p| p.content)
+                .ok_or_else(|| AppError::NotFound {
+                    entity: page_content_entity(chapter_index, config_hash, page_index),
+                }),
+            PaginationEngine::Block(state) => state
+                .page_plain_text(page_index as usize)
+                .ok_or_else(|| AppError::NotFound {
+                    entity: page_content_entity(chapter_index, config_hash, page_index),
+                }),
         }
-    }
-    drop(cache);
-    get_block_page_content(path, chapter_index, config_hash, page_index)
+    })
 }

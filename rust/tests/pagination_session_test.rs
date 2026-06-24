@@ -153,7 +153,8 @@ async fn test_dispose_evicts_streamer() {
         0,
         config_hash,
         0,
-    );
+    )
+    .expect("bare get_page_content before dispose");
     assert!(!bare_before.is_empty(), "bare get_page_content before dispose");
 
     let clone_before_dispose = handle.clone();
@@ -166,7 +167,7 @@ async fn test_dispose_evicts_streamer() {
         "session page access should fail after dispose"
     );
 
-    // STREAMER_CACHE entry evicted — bare get_page_content returns empty
+    // STREAMER_CACHE entry evicted — bare get_page_content returns NotFound
     let bare_after = rust_lib_zephyr_reader::api::core::get_page_content(
         validated_path,
         0,
@@ -174,8 +175,8 @@ async fn test_dispose_evicts_streamer() {
         0,
     );
     assert!(
-        bare_after.is_empty(),
-        "bare get_page_content should return empty after dispose evicts streamer"
+        bare_after.is_err(),
+        "bare get_page_content should return NotFound after dispose evicts streamer"
     );
 }
 
@@ -277,7 +278,10 @@ async fn test_repaginate_session_with_config_change_evicts_old_streamer() {
         old_hash,
         0,
     );
-    assert!(bare_old.is_empty(), "old streamer should be evicted");
+    assert!(
+        bare_old.is_err(),
+        "old streamer should be evicted (NotFound)"
+    );
 
     dispose_pagination_session(handle).expect("dispose should succeed");
 }
@@ -401,8 +405,8 @@ async fn test_adopt_miss_after_dispose() {
         .await
         .expect_err("adopt after dispose should fail");
     assert!(
-        err.to_string().contains("page streamer"),
-        "expected NotFound for evicted streamer, got: {err}"
+        err.to_string().contains("pagination engine"),
+        "expected NotFound for evicted engine, got: {err}"
     );
 }
 
@@ -425,7 +429,7 @@ async fn test_adopt_miss_wrong_config_hash() {
         .await
         .expect_err("adopt with different config should fail");
     assert!(
-        err.to_string().contains("page streamer"),
+        err.to_string().contains("pagination engine"),
         "expected NotFound for hash mismatch, got: {err}"
     );
 }
@@ -555,8 +559,8 @@ async fn test_dispose_prevents_streamer_adoption() {
         file_path.clone(), 0, config,
     ).await;
     let err = adopt.err().expect("adopt after dispose should fail");
-    assert!(err.to_string().contains("page streamer"),
-        "expected NotFound for evicted streamer, got: {err}");
+    assert!(err.to_string().contains("pagination engine"),
+        "expected NotFound for evicted engine, got: {err}");
 }
 
 /// Regression test for HIGH BUG #2 (audited 2026-06-17):
@@ -610,6 +614,121 @@ async fn test_paginate_chapter_streamer_cache_reuse() {
     // already-loaded content).  The point of this test is correctness
     // — that the streamer cache hit path returns the same result.
     let _ = (first_dur, second_dur);
+}
+
+// =========================================================================
+// Path cache miss + block session lifecycle (ContentBlocks)
+// =========================================================================
+
+#[tokio::test]
+async fn test_path_get_page_content_miss_returns_not_found() {
+    let content = "Short chapter text.\n";
+    let (_dir, file_path) = setup_parsed_txt_book(content).await;
+    let validated_path =
+        rust_lib_zephyr_reader::utils::security::validate_file_path(&file_path)
+            .expect("validate should succeed");
+    let config_hash = TypesetConfig::default().config_hash();
+
+    let err = rust_lib_zephyr_reader::api::core::get_page_content(
+        validated_path,
+        0,
+        config_hash,
+        0,
+    )
+    .expect_err("cache miss should return NotFound");
+    assert!(
+        err.to_string().contains("Resource not found"),
+        "expected NotFound on cache miss, got: {err}"
+    );
+}
+
+#[tokio::test]
+async fn test_plain_session_page_blocks_returns_invalid_input() {
+    let content = "Plain session.\n";
+    let (_dir, file_path) = setup_parsed_txt_book(content).await;
+    let config = TypesetConfig::default();
+
+    let (handle, _) = create_pagination_session(file_path, 0, config, None)
+        .await
+        .expect("create should succeed");
+
+    let err = rust_lib_zephyr_reader::api::core::get_session_page_blocks(handle.clone(), 0)
+        .expect_err("plain session should reject block fetch");
+    assert!(
+        err.to_string().contains("Invalid input"),
+        "expected InvalidInput, got: {err}"
+    );
+
+    dispose_pagination_session(handle).expect("dispose should succeed");
+}
+
+#[tokio::test]
+async fn test_block_session_path_and_session_apis() {
+    use rust_lib_zephyr_reader::api::core::{
+        get_page_blocks, get_page_content, get_session_page_blocks, paginate_chapter,
+    };
+    use rust_lib_zephyr_reader::domain::{ChapterPaginationMode, PageBlockSlice};
+
+    let Some((_dir, file_path)) = common::reading_chain::setup_parsed_image_epub().await else {
+        eprintln!("SKIP: missing fixture medium.epub");
+        return;
+    };
+
+    let config = common::reading_chain::test_typeset_config();
+    let validated_path =
+        rust_lib_zephyr_reader::utils::security::validate_file_path(&file_path)
+            .expect("validate should succeed");
+
+    let result = paginate_chapter(file_path.clone(), 0, config.clone(), None)
+        .await
+        .expect("paginate_chapter should succeed");
+    assert_eq!(result.mode, ChapterPaginationMode::ContentBlocks);
+
+    let path_blocks = get_page_blocks(
+        file_path.clone(),
+        0,
+        result.config_hash,
+        0,
+    )
+    .expect("get_page_blocks should succeed after paginate");
+    assert!(
+        path_blocks
+            .iter()
+            .any(|b| matches!(b, PageBlockSlice::Image(_))),
+        "path get_page_blocks should expose Image slice"
+    );
+
+    let path_text = get_page_content(
+        validated_path.clone(),
+        0,
+        result.config_hash,
+        0,
+    )
+    .expect("get_page_content should succeed after block paginate");
+    assert!(!path_text.is_empty());
+
+    let (handle, adopt_result) =
+        create_pagination_session_adopt(file_path.clone(), 0, config.clone())
+            .await
+            .expect("adopt from BLOCK_CACHE should succeed");
+    assert_eq!(adopt_result.mode, ChapterPaginationMode::ContentBlocks);
+
+    let session_blocks = get_session_page_blocks(handle.clone(), 0)
+        .expect("get_session_page_blocks should succeed");
+    assert!(
+        session_blocks
+            .iter()
+            .any(|b| matches!(b, PageBlockSlice::Image(_))),
+        "session blocks should include Image slice"
+    );
+
+    dispose_pagination_session(handle).expect("dispose should succeed");
+
+    let after_dispose = get_page_content(validated_path, 0, result.config_hash, 0);
+    assert!(
+        after_dispose.is_err(),
+        "block cache should be evicted after session dispose"
+    );
 }
 
 // Local re-export to keep the test self-contained.

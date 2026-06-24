@@ -394,7 +394,8 @@ async fn test_paginate_chapter_partial_txt_uses_chapter_bounds() {
         .expect("validate_file_path should succeed");
     let first_page_text = get_page_content(
         canonical_path.clone(), last_chapter_idx, partial.config_hash, 0,
-    );
+    )
+    .expect("get_page_content should succeed when streamer is cached");
     assert!(!first_page_text.is_empty(),
         "partial last-chapter first page should not be empty: got {first_page_text:?}");
     assert!(!first_page_text.contains("1. First chapter"),

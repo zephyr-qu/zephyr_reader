@@ -502,12 +502,23 @@ fn stress_production_pipeline(sample_size: usize) {
         });
         result_line("pipeline_lru", "repaginate_cache_hit_ms", t_hit.0.as_secs_f64() * 1000.0, "ms");
 
-        // 同步 get_page_content 检查 book_0 缓存状态（应返回空）
+        // 同步 get_page_content 检查 book_0 缓存状态（应 NotFound）
         let evicted_content = api_core::get_page_content(syn_paths[0].clone(), 0, config_hash, 0);
-        result_line("pipeline_lru", "evicted_page_empty", if evicted_content.is_empty() { 1.0 } else { 0.0 }, "flag");
+        result_line(
+            "pipeline_lru",
+            "evicted_page_empty",
+            if evicted_content.is_err() { 1.0 } else { 0.0 },
+            "flag",
+        );
 
-        let hit_content = api_core::get_page_content(syn_paths[4].clone(), 0, config_hash, 0);
-        result_line("pipeline_lru", "cached_page_nonempty", if !hit_content.is_empty() { 1.0 } else { 0.0 }, "flag");
+        let hit_content = api_core::get_page_content(syn_paths[4].clone(), 0, config_hash, 0)
+            .expect("cached book should return page content");
+        result_line(
+            "pipeline_lru",
+            "cached_page_nonempty",
+            if !hit_content.is_empty() { 1.0 } else { 0.0 },
+            "flag",
+        );
     }
 }
 

@@ -103,25 +103,25 @@ pub async fn paginate_chapter(
         .paginate_chapter(file_path, chapter_index, config, max_chars)
         .await
 }
-/// Fetch single page text synchronously from streamer cache.
+/// Fetch single page text synchronously from streamer/block cache.
 #[frb(sync)]
 pub fn get_page_content(
     file_path: String,
     chapter_index: i32,
     config_hash: u64,
     page_index: i32,
-) -> String {
+) -> Result<String, AppError> {
     ReadingOrchestrator::global()
         .get_page_content(file_path, chapter_index, config_hash, page_index)
 }
-/// M5.1：从 BLOCK_CACHE 取单页块（staging 预渲染）。
+/// M5.1：从 `PAGINATION_ENGINE_CACHE` 取单页块（staging 预渲染）。
 #[frb(sync)]
 pub fn get_page_blocks(
     file_path: String,
     chapter_index: i32,
     config_hash: u64,
     page_index: i32,
-) -> Vec<PageBlockSlice> {
+) -> Result<Vec<PageBlockSlice>, AppError> {
     ReadingOrchestrator::global()
         .get_page_blocks(file_path, chapter_index, config_hash, page_index)
 }

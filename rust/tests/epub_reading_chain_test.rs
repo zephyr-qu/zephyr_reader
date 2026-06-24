@@ -318,7 +318,8 @@ async fn epub_golden_image_chapter_adr007_m55() {
         chapter_index,
         result.config_hash,
         0,
-    );
+    )
+    .expect("get_page_blocks should succeed");
     assert!(
         blocks.iter().any(|b| matches!(b, PageBlockSlice::Image(_))),
         "first page of image chapter should expose Image block slice"
