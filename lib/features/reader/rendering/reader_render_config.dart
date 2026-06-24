@@ -74,19 +74,28 @@ class ReaderRenderConfig {
     );
   }
 
+  /// 与 [buildTextStyle] 使用相同字号，避免 `forceStrutHeight` 把行高压扁。
   StrutStyle buildStrutStyle({
     String? fontFamily,
     bool useLatin = false,
     double fontSizeMultiplier = 1.0,
   }) {
+    final size = fontSize * fontSizeMultiplier;
     return StrutStyle(
       fontFamily: fontFamily ?? _resolveFontFamily(useLatin),
       fontFamilyFallback: fallbackStack,
-      fontSize: fontSize * fontSizeMultiplier * 0.95,
+      fontSize: size,
       height: lineHeight,
       forceStrutHeight: baselineAlign,
+      leading: 0,
     );
   }
+
+  /// 分页/滚动正文统一的行高行为（CJK 占满行盒）。
+  static const TextHeightBehavior textHeightBehavior = TextHeightBehavior(
+    applyHeightToFirstAscent: true,
+    applyHeightToLastDescent: true,
+  );
 
   String _resolveFontFamily(bool useLatin) {
     if (fontFamily.isNotEmpty) return fontFamily;

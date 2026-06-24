@@ -132,6 +132,7 @@ class ScrollModeRenderer extends HookWidget {
                 painted,
                 style: textStyle,
                 strutStyle: strutStyle,
+                textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
                 textAlign: config.textAlign,
                 onSelectionChanged: (sel, cause) => _onRichSelectionChanged(
                   sel,
@@ -183,6 +184,7 @@ class ScrollModeRenderer extends HookWidget {
             child: SelectableText.rich(
               painted,
               strutStyle: strutStyle,
+              textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
               textAlign: config.textAlign,
               onSelectionChanged: (sel, cause) => _onPlainSelectionChanged(
                 sel,
@@ -425,6 +427,7 @@ class ScrollModeRenderer extends HookWidget {
         painted,
         style: textStyle,
         strutStyle: strutStyle,
+        textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
         textAlign: config.textAlign,
         onSelectionChanged: (sel, cause) =>
             _onRichSelectionChanged(sel, span, item.charOffset, context),
@@ -457,6 +460,7 @@ class ScrollModeRenderer extends HookWidget {
       child: SelectableText.rich(
         painted,
         strutStyle: strutStyle,
+        textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
         textAlign: config.textAlign,
         onSelectionChanged: (sel, cause) =>
             _onPlainSelectionChanged(sel, text, item.charOffset, context),
@@ -505,6 +509,7 @@ class ScrollModeRenderer extends HookWidget {
             child: SelectableText.rich(
               painted,
               strutStyle: strutStyle,
+              textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
               textAlign: config.textAlign,
               onSelectionChanged: (sel, cause) => _onPlainSelectionChanged(
                 sel,
@@ -634,6 +639,7 @@ class ScrollModeRenderer extends HookWidget {
                 painted,
                 style: textStyle,
                 strutStyle: strutStyle,
+                textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
                 textAlign: config.textAlign,
                 onSelectionChanged: (sel, cause) =>
                     _onRichSelectionChanged(sel, span, offset, context),
