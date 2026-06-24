@@ -1,49 +1,75 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
+import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_position_mapper.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_segment_factory.dart';
 
 void main() {
+  const layout = ScrollLayoutParams(
+    textRowHeight: 88,
+    paragraphSpacing: 12,
+    contentWidth: 360,
+    fontSize: 16,
+  );
+
   group('ScrollPositionMapper', () {
     test('scrollOffsetForChar 映射到正确段落区间', () {
       final seg = ScrollSegmentFactory.fromPayload(
         1,
-        (content: 'AAAA\n\nBBBB\n\nCCCC', richParagraphs: null, richRootSpan: null, epubRichSkipped: false),
+        (
+          content: 'AAAA\n\nBBBB\n\nCCCC',
+          richParagraphs: null,
+          richRootSpan: null,
+          epubRichSkipped: false,
+        ),
       );
-      const extent = 100.0;
 
       expect(
-        ScrollPositionMapper.scrollOffsetForChar([seg], 1, 0, extent),
+        ScrollPositionMapper.scrollOffsetForChar([seg], 1, 0, layout),
         0,
       );
       expect(
-        ScrollPositionMapper.scrollOffsetForChar([seg], 1, 6, extent),
-        extent,
+        ScrollPositionMapper.scrollOffsetForChar([seg], 1, 6, layout),
+        layout.uniformTextExtent,
       );
       expect(
-        ScrollPositionMapper.scrollOffsetForChar([seg], 1, 10, extent),
-        greaterThan(extent),
+        ScrollPositionMapper.scrollOffsetForChar([seg], 1, 10, layout),
+        greaterThan(layout.uniformTextExtent),
       );
     });
 
     test('多段时累加前序段落高度', () {
       final seg0 = ScrollSegmentFactory.fromPayload(
         0,
-        (content: 'Ch0\n\nP2', richParagraphs: null, richRootSpan: null, epubRichSkipped: false),
+        (
+          content: 'Ch0\n\nP2',
+          richParagraphs: null,
+          richRootSpan: null,
+          epubRichSkipped: false,
+        ),
       );
       final seg1 = ScrollSegmentFactory.fromPayload(
         1,
-        (content: 'Ch1\n\nP2', richParagraphs: null, richRootSpan: null, epubRichSkipped: false),
+        (
+          content: 'Ch1\n\nP2',
+          richParagraphs: null,
+          richRootSpan: null,
+          epubRichSkipped: false,
+        ),
       );
-      const extent = 50.0;
 
       final offset = ScrollPositionMapper.scrollOffsetForChar(
         [seg0, seg1],
         1,
         0,
-        extent,
+        layout,
       );
-      expect(offset, seg0.paragraphCount * extent);
+      expect(
+        offset,
+        seg0.metricsFor(layout).totalScrollExtent(
+              uniformFallback: layout.uniformTextExtent,
+            ),
+      );
     });
   });
 }

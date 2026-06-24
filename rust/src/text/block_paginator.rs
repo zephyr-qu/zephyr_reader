@@ -397,6 +397,22 @@ mod tests {
     }
 
     #[test]
+    fn paragraph_spacing_increases_page_count() {
+        let ir = long_text_ir(80);
+        let mut config_no = test_config();
+        config_no.paragraph_spacing = 0.0;
+        let mut config_yes = test_config();
+        config_yes.paragraph_spacing = 1.0;
+
+        let result_no = paginate_chapter_ir(&ir, config_no);
+        let result_yes = paginate_chapter_ir(&ir, config_yes);
+        assert!(
+            result_yes.page_count() >= result_no.page_count(),
+            "paragraph_spacing should not reduce page count"
+        );
+    }
+
+    #[test]
     fn small_image_inline_with_text() {
         let mut b = BlockJoinedPlainBuilder::new();
         b.push_text("Hello".into(), TextBlockStyle::default());

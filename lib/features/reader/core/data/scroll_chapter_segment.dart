@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_list_metrics.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 
@@ -43,6 +44,17 @@ class ScrollChapterSegment {
               paragraphs.last.length +
               2 /* trailing newline pair */
           : 0;
+
+  /// 带排版参数的 ListView 度量（含图片项高度估算）。
+  ScrollListMetrics metricsFor(ScrollLayoutParams layout) {
+    return computeScrollListMetrics(
+      paragraphs: paragraphs,
+      paragraphCharOffsets: paragraphCharOffsets,
+      richParagraphs: richParagraphs,
+      richRootSpan: richRootSpan,
+      layout: layout,
+    );
+  }
 
   /// 根据章节内 charOffset 查找段落索引（含值，即段落起点）。
   /// 返回 -1 当 offset 超出范围。

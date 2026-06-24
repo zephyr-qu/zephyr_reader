@@ -153,6 +153,8 @@ impl BlockPaginateResult {
 pub struct PageTextBlockSlice {
     pub block_index: u32,
     pub text: String,
+    /// 本切片是否为 IR Text 块的末尾（跨页续排时为 false）。
+    pub is_block_end: bool,
 }
 
 /// 页内 Image 块切片。

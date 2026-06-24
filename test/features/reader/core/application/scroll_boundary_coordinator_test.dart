@@ -3,6 +3,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:zephyr_reader/features/reader/core/application/scroll_boundary_coordinator.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_notice.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
+import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_segment_factory.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
@@ -17,6 +18,13 @@ ScrollChapterSegment _seg(int chapter, String marker) {
 }
 
 void main() {
+  const layout = ScrollLayoutParams(
+    textRowHeight: 88,
+    paragraphSpacing: 12,
+    contentWidth: 360,
+    fontSize: 16,
+  );
+
   late _MockRepo repo;
   late ScrollBoundaryCoordinator coord;
   late List<ScrollChapterSegment> emitted;
@@ -126,7 +134,7 @@ void main() {
     test('reportScrollPosition 跨章时触发 onSegmentChanged', () {
       coord.composer!.appendNext(_seg(1, 'Ch1'));
       // 2 段 × 2 段 ≈ 4 段，每段高 100px；offset 250 → 第 3 段（章 1）
-      coord.reportScrollPosition(250, 100);
+      coord.reportScrollPosition(250, layout);
       expect(lastChapter, 1);
       expect(lastOffset, isNotNull);
       expect(coord.composer!.centerChapterIndex, 1);
@@ -166,7 +174,7 @@ void main() {
     });
 
     test('reportScrollPosition 同章内只更新 offset', () {
-      coord.reportScrollPosition(50, 100);
+      coord.reportScrollPosition(50, layout);
       expect(lastChapter, 0);
       expect(coord.composer!.centerChapterIndex, 0);
     });

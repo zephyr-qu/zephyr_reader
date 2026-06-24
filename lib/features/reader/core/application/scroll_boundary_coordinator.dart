@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
+import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_segment_factory.dart';
 import 'package:zephyr_reader/features/reader/core/application/scroll_document_composer.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
@@ -149,13 +150,10 @@ class ScrollBoundaryCoordinator {
   /// 根据滚动偏移映射进度；跨章时自动 [onSegmentChanged]。
   void reportScrollPosition(
     double scrollOffset,
-    double paragraphExtent,
+    ScrollLayoutParams layout,
   ) {
     if (_composer == null) return;
-    final pos = _composer!.charOffsetAtOffset(
-      scrollOffset,
-      (_) => paragraphExtent,
-    );
+    final pos = _composer!.charOffsetAtOffset(scrollOffset, layout);
     if (pos.chapterIndex != _composer!.centerChapterIndex) {
       onSegmentChanged(pos.chapterIndex, charOffset: pos.charOffset);
     } else {

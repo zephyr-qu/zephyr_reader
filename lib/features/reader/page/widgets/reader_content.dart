@@ -11,6 +11,7 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 import '../../core/data/reader_render_data_source.dart';
 import '../../core/data/scroll_chapter_segment.dart';
+import '../../core/data/scroll_layout_params.dart';
 import '../../core/data/scroll_position_mapper.dart';
 
 /// 阅读内容容器组件。
@@ -47,7 +48,7 @@ class ReaderContent extends HookWidget {
   final List<ScrollChapterSegment> scrollSegments;
   final Future<void> Function()? onScrollAppendNext;
   final Future<int> Function()? onScrollPrependPrev;
-  final void Function(double scrollOffset, double paragraphExtent)?
+  final void Function(double scrollOffset, ScrollLayoutParams layout)?
       onScrollSegmentPosition;
   final VoidCallback? onPaginationBoundaryReset;
   final Widget Function(BuildContext context, ScrollController scrollController)
@@ -260,11 +261,13 @@ class ReaderContent extends HookWidget {
         }
 
         if (useScrollSegments && !isLoading) {
-          final paraHeight =
-              renderConfig.textRowHeight + renderConfig.paragraphSpacing;
+          final layout = ScrollLayoutParams.fromRenderConfig(
+            renderConfig,
+            viewportWidth: MediaQuery.sizeOf(context).width,
+          );
           onScrollSegmentPosition?.call(
             scrollController.offset,
-            paraHeight,
+            layout,
           );
 
           final nearBottom =
@@ -366,14 +369,16 @@ class ReaderContent extends HookWidget {
             pageController.jumpToPage(physicalPage(targetIndex));
           }
         } else if (scrollController.hasClients) {
-          final paraHeight =
-              renderConfig.textRowHeight + renderConfig.paragraphSpacing;
+          final layout = ScrollLayoutParams.fromRenderConfig(
+            renderConfig,
+            viewportWidth: MediaQuery.sizeOf(context).width,
+          );
           final target = useScrollSegments && scrollSegments.isNotEmpty
               ? ScrollPositionMapper.scrollOffsetForChar(
                   scrollSegments,
                   chapterId,
                   jumpToCharOffset!,
-                  paraHeight,
+                  layout,
                 )
               : (content.isEmpty
                   ? 0.0

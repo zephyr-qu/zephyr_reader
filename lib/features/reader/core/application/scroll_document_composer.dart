@@ -1,4 +1,5 @@
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
+import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dart';
 
 /// 滚动模式多章拼接的滑动窗口（最多 3 段：prev/current/next）。
 ///
@@ -91,33 +92,29 @@ class ScrollDocumentComposer {
   /// 计算 [scrollOffset] 处的 charOffset。
   ({int chapterIndex, int charOffset}) charOffsetAtOffset(
     double scrollOffset,
-    double Function(int globalIndex) paragraphExtent,
+    ScrollLayoutParams layout,
   ) {
     if (_segments.isEmpty) {
       return (chapterIndex: _centerChapterIndex, charOffset: 0);
     }
 
     var remaining = scrollOffset;
-    for (var gi = 0; gi < totalParagraphCount; gi++) {
-      final ext = paragraphExtent(gi);
-      if (remaining <= ext) {
-        final resolved = resolveGlobalIndex(gi)!;
-        final seg = _segments[resolved.segIdx];
-        final metrics = seg.listMetrics;
-        final localIdx = resolved.localIdx;
-        if (localIdx < 0 || localIdx >= metrics.itemCount) {
-          return (
-            chapterIndex: seg.chapterIndex,
-            charOffset: seg.totalCharLength,
-          );
+    for (final seg in _segments) {
+      final metrics = seg.metricsFor(layout);
+      for (var li = 0; li < metrics.itemCount; li++) {
+        final ext = metrics.itemExtentAt(
+          li,
+          uniformFallback: layout.uniformTextExtent,
+        );
+        if (remaining <= ext) {
+          final ratio = ext <= 0 ? 0.0 : (remaining / ext).clamp(0.0, 1.0);
+          final charLen = metrics.charLengthAt(li);
+          final charOffset = metrics.charOffsetAt(li) +
+              (charLen * ratio).round();
+          return (chapterIndex: seg.chapterIndex, charOffset: charOffset);
         }
-        final ratio = ext <= 0 ? 0.0 : (remaining / ext).clamp(0.0, 1.0);
-        final charLen = metrics.charLengthAt(localIdx);
-        final charOffset = metrics.charOffsetAt(localIdx) +
-            (charLen * ratio).round();
-        return (chapterIndex: seg.chapterIndex, charOffset: charOffset);
+        remaining -= ext;
       }
-      remaining -= ext;
     }
 
     final lastSeg = _segments.last;
