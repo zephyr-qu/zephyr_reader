@@ -13,7 +13,7 @@ use rust_lib_zephyr_reader::api::core::{
     create_pagination_session, paginate_session_full, repaginate_session,
     get_session_page_content, get_session_page_blocks, session_char_offset_to_page_index,
     dispose_pagination_session, get_chapter_first_spine_only,
-    paginate_chapter, get_chapter, ChapterContent,
+    paginate_chapter, get_chapter, get_page_blocks, ChapterContent,
 };
 use rust_lib_zephyr_reader::domain::{AppError, ChapterPaginationMode, PageBlockSlice, TypesetConfig};
 use rust_lib_zephyr_reader::storage::{storage_pool, repos::ChapterRepository};
@@ -265,6 +265,73 @@ async fn epub_multi_chapter_index_1() {
 // =========================================================================
 // ADR-007 — Golden EPUB plain sample (`活着.epub` ch.0)
 // =========================================================================
+
+#[tokio::test]
+async fn epub_golden_image_chapter_adr007_m55() {
+    use rust_lib_zephyr_reader::parser::epub::get_chapter_content_ir;
+
+    let Some(path) = require_fixture("活着.epub") else { return; };
+    let (_dir, file_path, book_id) = setup_parsed_epub(&path).await;
+
+    let pool = storage_pool().expect("storage_pool");
+    let chapters = ChapterRepository::find_by_book(&pool, &book_id)
+        .await
+        .expect("chapters");
+    assert!(!chapters.is_empty(), "活着.epub should have chapters");
+
+    let mut image_chapter: Option<(i32, usize)> = None;
+    for (idx, ch) in chapters.iter().enumerate() {
+        let ir = get_chapter_content_ir(
+            &file_path,
+            ch.start_index as i32,
+            ch.end_index as i32,
+        )
+        .expect("chapter IR should load");
+        let count = ir.image_block_count();
+        if count > 0 {
+            image_chapter = Some((idx as i32, count));
+            break;
+        }
+    }
+
+    let Some((chapter_index, image_count)) = image_chapter else {
+        eprintln!(
+            "SKIP: 活着.epub has no Image blocks in any chapter (M5.5 needs a fixture with inline images)"
+        );
+        return;
+    };
+
+    let config = test_typeset_config();
+    let result = paginate_chapter(file_path.clone(), chapter_index, config.clone(), None)
+        .await
+        .expect("paginate_chapter should succeed");
+
+    assert_eq!(
+        result.mode,
+        ChapterPaginationMode::ContentBlocks,
+        "chapter {chapter_index} with {image_count} image blocks must use block pagination"
+    );
+    assert!(!result.descriptors.is_empty());
+
+    let blocks = get_page_blocks(
+        file_path.clone(),
+        chapter_index,
+        result.config_hash,
+        0,
+    );
+    assert!(
+        blocks.iter().any(|b| matches!(b, PageBlockSlice::Image(_))),
+        "first page of image chapter should expose Image block slice"
+    );
+
+    let (handle, _) = create_pagination_session(file_path, chapter_index, config, None)
+        .await
+        .expect("session adopt path should succeed");
+    let offset_page = session_char_offset_to_page_index(handle.clone(), 0)
+        .expect("charOffset 0 should resolve");
+    assert_eq!(offset_page, 0);
+    dispose_pagination_session(handle).expect("dispose should succeed");
+}
 
 #[tokio::test]
 async fn epub_golden_plain_chapter0_adr007() {

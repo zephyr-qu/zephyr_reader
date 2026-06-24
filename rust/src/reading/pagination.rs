@@ -4,7 +4,9 @@
 
 use std::time::Instant;
 
-use crate::domain::{AppError, ChapterPaginationMode, PageContent, PaginateResult, TypesetConfig};
+use crate::domain::{
+    AppError, ChapterPaginationMode, PageBlockSlice, PageContent, PaginateResult, TypesetConfig,
+};
 use crate::storage::models::BookFormat;
 use crate::text::{paginate_all, paginate_chapter_ir, PageStreamer};
 use crate::utils::security::validate_file_path;
@@ -277,6 +279,35 @@ pub(crate) async fn paginate_chapter(
         is_partial,
         mode: ChapterPaginationMode::PlainText,
     })
+}
+
+/// 块路径单页块列表（对标 `get_session_page_blocks`）。
+pub(crate) fn get_page_blocks(
+    file_path: String,
+    chapter_index: i32,
+    config_hash: u64,
+    page_index: i32,
+) -> Vec<PageBlockSlice> {
+    let path = file_path.as_str();
+    if let Some(state) = pop_block_state(path, chapter_index, config_hash) {
+        let blocks = state
+            .page_blocks(page_index as usize)
+            .unwrap_or_default();
+        put_block_state(path, chapter_index, config_hash, state);
+        blocks
+    } else {
+        Vec::new()
+    }
+}
+
+/// 章 IR 是否含 Image 块（staging 预加载分支用）。
+pub(crate) async fn chapter_has_image_blocks(
+    file_path: String,
+    chapter_index: i32,
+) -> Result<bool, AppError> {
+    let validated_path = validate_file_path(&file_path)?;
+    let ir = load_chapter_content_ir(&validated_path, chapter_index).await?;
+    Ok(ir.image_block_count() > 0)
 }
 
 /// 块路径单页 plain 文本（含 `\uFFFC`）。

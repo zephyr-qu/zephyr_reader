@@ -74,6 +74,26 @@ impl ReadingOrchestrator {
         super::pagination::get_page_content(file_path, chapter_index, config_hash, page_index)
     }
 
+    /// 从 BLOCK_CACHE 按需取页块（staging 预渲染用）。
+    pub fn get_page_blocks(
+        &self,
+        file_path: String,
+        chapter_index: i32,
+        config_hash: u64,
+        page_index: i32,
+    ) -> Vec<PageBlockSlice> {
+        super::pagination::get_page_blocks(file_path, chapter_index, config_hash, page_index)
+    }
+
+    /// 章 IR 是否含 Image 块。
+    pub async fn chapter_has_image_blocks(
+        &self,
+        file_path: String,
+        chapter_index: i32,
+    ) -> Result<bool, AppError> {
+        super::pagination::chapter_has_image_blocks(file_path, chapter_index).await
+    }
+
     /// Create a pagination session and run initial pagination for the chapter.
     #[allow(dead_code)] // Phase 3 — FFI delegates in api/core.rs bridge usage
     pub async fn create_pagination_session(

@@ -77,21 +77,21 @@ Flutter 按页拉块 → Text + Image（asset 本地路径）
 
 | # | 任务 | 层 | 状态 | 验收 |
 |---|------|-----|------|------|
-| 4.1 | 页 Widget 块列表渲染 | Dart | ⬜ | `PaginatedModeRenderer` 支持 Text+Image |
-| 4.2 | `get_processed_image(asset_id, width)` | Rust/FRB | ⬜ | decode → resize → 本地路径 |
-| 4.3 | 图片懒加载 + 占位 | Dart | ⬜ | 不阻塞翻页 |
-| 4.4 | pagination 路径 `epubRichSkipped` 降级 | Dart | ⬜ | 有 IR 后 scroll 仍用 rich |
-| 4.5 | Widget 测试 | Dart | ⬜ | mock 块 → 断言 `Image` 出现 |
+| 4.1 | 页 Widget 块列表渲染 | Dart | ✅ | `buildBlockPageContent` + `PaginatedModeRenderer` 分支 |
+| 4.2 | `get_processed_image(asset_id, width)` | Rust/FRB | ✅ | `get_processed_epub_image` → JPEG 本地路径 |
+| 4.3 | 图片懒加载 + 占位 | Dart | ✅ | `EpubBlockImage` 占位 → async decode |
+| 4.4 | pagination 路径 `epubRichSkipped` 降级 | Dart | ✅ | `contentBlocks` 时 suppress toast |
+| 4.5 | Widget 测试 | Dart | ✅ | mock 块 → 断言 `Icons.image_outlined` |
 
 ### M5 — Staging + 场景验收（~1 周）
 
 | # | 任务 | 层 | 状态 | 验收 |
 |---|------|-----|------|------|
-| 5.1 | staging 缓存 block descriptors | Rust/Dart | ⬜ | `next/prevChapterStaging` 对齐 IR |
-| 5.2 | `stagingPromote*` 回归 | Dart | ⬜ | G2-b 不退化 |
+| 5.1 | staging 缓存 block descriptors | Rust/Dart | ✅ | `NextChapterStaging` + `get_page_blocks` + block 预渲染 |
+| 5.2 | `stagingPromote*` 回归 | Dart | ✅ | intent resolver + staging block widget 测试 |
 | 5.3 | **S2** 插图 EPUB | 手工+测试 | ⬜ | pagination + `PaginationSkin.curl` 均可见图 |
 | 5.4 | **S3** 书签恢复 | 手工+测试 | ⬜ | 杀进程后再开 charOffset 准确 |
-| 5.5 | 黄金样章扩展 | Rust | ⬜ | ADR-007 `活着.epub` 增加含图章断言 |
+| 5.5 | 黄金样章扩展 | Rust | ✅ | `epub_golden_image_chapter_adr007_m55`（活着含图章） |
 
 ---
 

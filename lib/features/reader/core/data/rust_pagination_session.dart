@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/features/reader/core/data/page_blocks_cache.dart';
 import 'package:zephyr_reader/features/reader/core/data/page_content_cache.dart';
 import 'package:zephyr_reader/features/reader/core/domain/pagination_session.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
@@ -8,6 +9,7 @@ import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/reading/types.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
+import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -17,8 +19,11 @@ class RustPaginationSession implements PaginationSession {
   int? _sessionConfigHash;
   int? _sessionChapterIndex;
   bool _sessionIsPartial = false;
+  ChapterPaginationMode _sessionMode = ChapterPaginationMode.plainText;
+  String? _sessionFilePath;
   PaginationSessionHandle? _handle;
   final _contentCache = PageContentCache();
+  final _blocksCache = PageBlocksCache();
 
   String? _cachedBookId;
   Book? _cachedBook;
@@ -35,6 +40,13 @@ class RustPaginationSession implements PaginationSession {
 
   @override
   bool get sessionIsPartial => _sessionIsPartial;
+
+  @override
+  ChapterPaginationMode get sessionMode => _sessionMode;
+
+  /// 当前 session 绑定的 EPUB/TXT 文件路径（图片 decode 用）。
+  @override
+  String? get sessionFilePath => _sessionFilePath;
   Future<Book> _getBook(String bookId) async {
     if (_cachedBookId == bookId && _cachedBook != null) {
       return _cachedBook!;
@@ -81,11 +93,11 @@ class RustPaginationSession implements PaginationSession {
     _descriptors = result.descriptors;
     _sessionConfigHash = result.configHash.toInt();
     _sessionIsPartial = result.isPartial;
+    _sessionMode = result.mode;
     if (chapterIndex != null) _sessionChapterIndex = chapterIndex;
-    // 分页边界变化后必须清空页文本缓存，否则 partial→full 或重排版后会
-    // 用旧页内容配新 descriptors，导致空白页或重复行。
     if (descriptorsChanged) {
       _contentCache.clear();
+      _blocksCache.clear();
     }
   }
 
@@ -99,13 +111,15 @@ class RustPaginationSession implements PaginationSession {
     if (book.filePath.isEmpty) {
       throw Exception('_createSession: book not found for bookId=$bookId');
     }
+    final validated_path = book.filePath;
 
     _releaseHandle();
     _contentCache.clear();
+    _blocksCache.clear();
 
     final sw = Stopwatch()..start();
     final (handle, result) = await core_api.createPaginationSession(
-      filePath: book.filePath,
+      filePath: validated_path,
       chapterIndex: chapterIndex,
       config: config,
       maxChars: maxChars,
@@ -116,6 +130,7 @@ class RustPaginationSession implements PaginationSession {
     );
 
     _handle = handle;
+    _sessionFilePath = validated_path;
     _applyPaginateResult(result, chapterIndex: chapterIndex);
     return result;
   }
@@ -170,6 +185,7 @@ class RustPaginationSession implements PaginationSession {
 
       _releaseHandle();
       _contentCache.clear();
+      _blocksCache.clear();
 
       final sw = Stopwatch()..start();
       final (handle, result) = await core_api.createPaginationSessionAdopt(
@@ -183,6 +199,7 @@ class RustPaginationSession implements PaginationSession {
       );
 
       _handle = handle;
+      _sessionFilePath = book.filePath;
       _applyPaginateResult(result, chapterIndex: chapterIndex);
       return (
         totalPages: result.descriptors.length,
@@ -294,6 +311,15 @@ class RustPaginationSession implements PaginationSession {
   }
 
   @override
+  List<PageBlockSlice>? pageBlocks(int pageIndex) {
+    final cached = _blocksCache.get(pageIndex);
+    if (cached != null) {
+      Logging.debug('[Session] pageBlocks HIT page=$pageIndex (${cached.length} blocks)');
+    }
+    return cached;
+  }
+
+  @override
   String? pageContent(int pageIndex) {
     final cached = _contentCache.get(pageIndex);
     if (cached != null) {
@@ -302,6 +328,28 @@ class RustPaginationSession implements PaginationSession {
       Logging.debug('[Session] pageContent MISS page=$pageIndex');
     }
     return cached;
+  }
+
+  Future<List<PageBlockSlice>?> _fetchAndCacheBlocks(int pageIndex) async {
+    if (_blocksCache.containsKey(pageIndex)) {
+      return _blocksCache.get(pageIndex);
+    }
+    final handle = _handle;
+    if (handle == null || _descriptors == null) return null;
+    if (pageIndex < 0 || pageIndex >= _descriptors!.length) return null;
+    if (_sessionMode != ChapterPaginationMode.contentBlocks) return const [];
+
+    try {
+      final blocks = await Future.microtask(
+        () => core_api.getSessionPageBlocks(handle: handle, pageIndex: pageIndex),
+      );
+      _blocksCache.put(pageIndex, blocks);
+      Logging.info('[Session] fetch blocks page=$pageIndex count=${blocks.length}');
+      return blocks;
+    } catch (e) {
+      Logging.error('_fetchAndCacheBlocks error for page $pageIndex: $e');
+      return null;
+    }
   }
 
   /// Async fetch-and-cache for a single page.
@@ -335,6 +383,9 @@ class RustPaginationSession implements PaginationSession {
     Logging.info('[Session] ensureWindow center=$centerPage total=${_descriptors!.length}');
 
     unawaited(_fetchAndCachePage(centerPage));
+    if (_sessionMode == ChapterPaginationMode.contentBlocks) {
+      unawaited(_fetchAndCacheBlocks(centerPage));
+    }
     _prefetchSurrounding(centerPage);
   }
 
@@ -348,10 +399,14 @@ class RustPaginationSession implements PaginationSession {
     Future.microtask(() async {
       for (int i = start; i <= end; i++) {
         await _fetchAndCachePage(i);
+        if (_sessionMode == ChapterPaginationMode.contentBlocks) {
+          await _fetchAndCacheBlocks(i);
+        }
       }
     });
 
     _contentCache.trimAround(center);
+    _blocksCache.trimAround(center);
   }
 
   @override
@@ -365,7 +420,10 @@ class RustPaginationSession implements PaginationSession {
     _sessionConfigHash = null;
     _sessionChapterIndex = null;
     _sessionIsPartial = false;
+    _sessionMode = ChapterPaginationMode.plainText;
+    _sessionFilePath = null;
     _contentCache.clear();
+    _blocksCache.clear();
     _cachedBook = null;
     _cachedBookId = null;
   }

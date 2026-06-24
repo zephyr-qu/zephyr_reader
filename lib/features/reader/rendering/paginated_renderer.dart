@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
+import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
-import 'highlight_painter.dart';
+import 'package:zephyr_reader/features/reader/rendering/block_page_content.dart';
+import 'package:zephyr_reader/features/reader/rendering/highlight_painter.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'reader_render_config.dart';
@@ -163,14 +165,56 @@ class PaginatedModeRenderer extends StatelessWidget {
       final startOffset = staging.descriptors.isNotEmpty
           ? staging.descriptors[0].startOffset
           : 0;
-      return _buildStagingPageContent(context, staging.firstPageContent, startOffset);
+      return _buildStagingPageFromStaging(
+        context,
+        staging,
+        startOffset,
+      );
     }
     Logging.debug('[Renderer] _buildCrossChapterPage MISS: virtualIndex=$virtualIndex');
     return const Center(child: CircularProgressIndicator());
   }
 
-  /// 跨章 staging 页：直接渲染预加载文本，不走当前章 session 页索引。
-  Widget _buildStagingPageContent(
+  /// 跨章 staging 页：plain 或 block 预渲染。
+  Widget _buildStagingPageFromStaging(
+    BuildContext context,
+    NextChapterStaging staging,
+    int startOffset,
+  ) {
+    if (staging.paginationMode == ChapterPaginationMode.contentBlocks) {
+      final blocks = staging.anchorPageBlocks;
+      final filePath = staging.filePath;
+      if (blocks == null || filePath == null || filePath.isEmpty) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final maxWidth = (constraints.maxWidth - 2 * config.pageMargin)
+              .clamp(1.0, constraints.maxWidth);
+          return buildBlockPageContent(
+            context: context,
+            blocks: blocks,
+            startOffset: startOffset,
+            epubFilePath: filePath,
+            config: config,
+            highlights: highlights,
+            onHighlightTap: onHighlightTap,
+            onSelectionChanged: onSelectionChanged,
+            onSelectionGlobalPosition: onSelectionGlobalPosition,
+            maxContentWidth: maxWidth,
+          );
+        },
+      );
+    }
+    return _buildStagingPlainPageContent(
+      context,
+      staging.firstPageContent,
+      startOffset,
+    );
+  }
+
+  /// 跨章 staging 页：plain 文本预渲染。
+  Widget _buildStagingPlainPageContent(
     BuildContext context,
     String pageContent,
     int startOffset,
@@ -194,9 +238,9 @@ class PaginatedModeRenderer extends StatelessWidget {
       final startOffset = lastIdx >= 0
           ? staging.descriptors[lastIdx].startOffset
           : 0;
-      return _buildStagingPageContent(
+      return _buildStagingPageFromStaging(
         context,
-        staging.firstPageContent,
+        staging,
         startOffset,
       );
     }
@@ -379,7 +423,42 @@ Widget buildSinglePageContent({
   required void Function(String text, int start, int end)? onSelectionChanged,
   required void Function(Offset?)? onSelectionGlobalPosition,
 }) {
-  // 与 PaginatedModeRenderer._buildPageContent 相同：只用 Rust 行切分 plain text。
+  if (dataSource.sessionMode == ChapterPaginationMode.contentBlocks) {
+    final blocks = dataSource.pageBlocks(pageIndex);
+    if (blocks == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Logging.info(
+          '[Renderer] buildBlockPageContent MISS page=$pageIndex → spinner + ensureWindow',
+        );
+        dataSource.ensureWindow(pageIndex);
+      });
+      return const Center(child: CircularProgressIndicator());
+    }
+    final filePath = dataSource.sessionFilePath;
+    if (filePath == null || filePath.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = (constraints.maxWidth - 2 * config.pageMargin)
+            .clamp(1.0, constraints.maxWidth);
+        return buildBlockPageContent(
+          context: context,
+          blocks: blocks,
+          startOffset: startOffset,
+          epubFilePath: filePath,
+          config: config,
+          highlights: highlights,
+          onHighlightTap: onHighlightTap,
+          onSelectionChanged: onSelectionChanged,
+          onSelectionGlobalPosition: onSelectionGlobalPosition,
+          maxContentWidth: maxWidth,
+        );
+      },
+    );
+  }
+
+  // Plain 路径：Rust PageStreamer 行切 plain text。
   final pageContent = dataSource.pageContent(pageIndex);
   if (pageContent == null) {
     WidgetsBinding.instance.addPostFrameCallback((_) {

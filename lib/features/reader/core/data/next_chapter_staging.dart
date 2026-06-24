@@ -1,3 +1,4 @@
+import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 
 class NextChapterStaging {
@@ -6,6 +7,9 @@ class NextChapterStaging {
   final List<PageDescriptor> descriptors;
   final String firstPageContent;
   final bool isPartial;
+  final ChapterPaginationMode paginationMode;
+  final String? filePath;
+  final List<PageBlockSlice>? anchorPageBlocks;
 
   const NextChapterStaging({
     required this.chapterIndex,
@@ -13,6 +17,9 @@ class NextChapterStaging {
     required this.descriptors,
     required this.firstPageContent,
     required this.isPartial,
+    this.paginationMode = ChapterPaginationMode.plainText,
+    this.filePath,
+    this.anchorPageBlocks,
   });
 
   bool matches(int chapterIndex, int configHash) =>

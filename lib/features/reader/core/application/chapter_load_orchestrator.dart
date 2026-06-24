@@ -17,6 +17,7 @@ import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
+import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 章节加载显式状态机：分阶段执行 [ChapterLoadRequest] 并防止竞态写信号。
@@ -282,7 +283,9 @@ class ChapterLoadOrchestrator {
         );
       }
       if (_contentRepo.consumeEpubRichSkippedNotice()) {
-        _chapterVM.readerNotice.value = ReaderNotice.epubRichSkipped;
+        if (_contentRepo.sessionMode != ChapterPaginationMode.contentBlocks) {
+          _chapterVM.readerNotice.value = ReaderNotice.epubRichSkipped;
+        }
       }
     });
 
@@ -548,7 +551,9 @@ class ChapterLoadOrchestrator {
           _chapterVM.currentCharOffset.value;
       _error.value = null;
       if (_contentRepo.consumeEpubRichSkippedNotice()) {
-        _chapterVM.readerNotice.value = ReaderNotice.epubRichSkipped;
+        if (_contentRepo.sessionMode != ChapterPaginationMode.contentBlocks) {
+          _chapterVM.readerNotice.value = ReaderNotice.epubRichSkipped;
+        }
       }
     });
   }

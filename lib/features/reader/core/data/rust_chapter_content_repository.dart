@@ -13,6 +13,8 @@ import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/chapter.dart' as chapter_api;
 import 'package:zephyr_reader/src/rust/api/epub.dart' as epub_api;
+import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
+import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -305,6 +307,46 @@ class RustChapterContentRepository implements ChapterContentRepository {
 
   @override
   NextChapterStaging? get prevChapterStaging => _prevChapterStaging;
+
+  /// 构建 staging 锚页内容（plain 或 block）。
+  NextChapterStaging _buildStaging({
+    required int chapterIndex,
+    required PaginateResult result,
+    required String filePath,
+    required int anchorPageIndex,
+  }) {
+    final mode = result.mode;
+    final configHash = result.configHash.toInt();
+    final pageContent = core_api.getPageContent(
+      filePath: filePath,
+      chapterIndex: chapterIndex,
+      configHash: result.configHash,
+      pageIndex: anchorPageIndex,
+    );
+    List<PageBlockSlice>? blocks;
+    if (mode == ChapterPaginationMode.contentBlocks) {
+      blocks = core_api.getPageBlocks(
+        filePath: filePath,
+        chapterIndex: chapterIndex,
+        configHash: result.configHash,
+        pageIndex: anchorPageIndex,
+      );
+      if (blocks.isEmpty) {
+        blocks = null;
+      }
+    }
+    return NextChapterStaging(
+      chapterIndex: chapterIndex,
+      configHash: configHash,
+      descriptors: result.descriptors,
+      firstPageContent: pageContent,
+      isPartial: result.isPartial,
+      paginationMode: mode,
+      filePath: filePath,
+      anchorPageBlocks: blocks,
+    );
+  }
+
   @override
   Future<void> preloadNextChapterStaging(
     String bookId,
@@ -349,33 +391,32 @@ class RustChapterContentRepository implements ChapterContentRepository {
         firstLineIndent: p.firstLineIndent ? 2 : 0,
       );
 
+      final hasImages = await core_api.chapterHasImageBlocks(
+        filePath: book.filePath,
+        chapterIndex: chapterIndex,
+      );
+      if (gen != _stagingGen) return;
+
       final result = await core_api.paginateChapter(
         filePath: book.filePath,
         chapterIndex: chapterIndex,
         config: config,
-        maxChars: BigInt.from(2000),
+        maxChars: hasImages ? null : BigInt.from(2000),
       );
       if (gen != _stagingGen) return;
 
       Logging.info(
         '[Timing] preloadNextChapterStaging: ${sw.elapsedMilliseconds}ms '
-        '(chapter=$chapterIndex, isPartial=${result.isPartial}, pages=${result.descriptors.length})',
+        '(chapter=$chapterIndex, mode=${result.mode}, isPartial=${result.isPartial}, pages=${result.descriptors.length})',
       );
 
-      final firstContent = core_api.getPageContent(
+      if (result.descriptors.isEmpty) return;
+
+      _nextChapterStaging = _buildStaging(
+        chapterIndex: chapterIndex,
+        result: result,
         filePath: book.filePath,
-        chapterIndex: chapterIndex,
-        configHash: result.configHash,
-        pageIndex: 0,
-      );
-      if (gen != _stagingGen) return;
-
-      _nextChapterStaging = NextChapterStaging(
-        chapterIndex: chapterIndex,
-        configHash: result.configHash.toInt(),
-        descriptors: result.descriptors,
-        firstPageContent: firstContent,
-        isPartial: result.isPartial,
+        anchorPageIndex: 0,
       );
       preloadGeneration.value++;
       Logging.info(
@@ -445,21 +486,13 @@ class RustChapterContentRepository implements ChapterContentRepository {
       if (descriptors.isEmpty) return;
 
       final lastPageIndex = descriptors.length - 1;
-      // Fetch last page content via bare getPageContent (sync cache lookup)
-      final lastContent = core_api.getPageContent(
-        filePath: book.filePath,
-        chapterIndex: chapterIndex,
-        configHash: result.configHash,
-        pageIndex: lastPageIndex,
-      );
       if (gen != _stagingGen) return;
 
-      _prevChapterStaging = NextChapterStaging(
+      _prevChapterStaging = _buildStaging(
         chapterIndex: chapterIndex,
-        configHash: result.configHash.toInt(),
-        descriptors: result.descriptors,
-        firstPageContent: lastContent,
-        isPartial: result.isPartial,
+        result: result,
+        filePath: book.filePath,
+        anchorPageIndex: lastPageIndex,
       );
       preloadGeneration.value++;
       Logging.info(
