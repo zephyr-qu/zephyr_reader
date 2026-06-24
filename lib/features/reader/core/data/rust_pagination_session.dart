@@ -124,21 +124,6 @@ class RustPaginationSession implements PaginationSession {
     }
   }
 
-  Future<BigInt?> _effectiveMaxChars({
-    required String filePath,
-    required int chapterIndex,
-    BigInt? maxChars,
-  }) async {
-    if (maxChars == null) return null;
-    if (await _chapterNeedsBlockPath(
-      filePath: filePath,
-      chapterIndex: chapterIndex,
-    )) {
-      return null;
-    }
-    return maxChars;
-  }
-
   void _notifyCacheUpdated() {
     _onCacheUpdated?.call();
   }
@@ -154,11 +139,6 @@ class RustPaginationSession implements PaginationSession {
       throw Exception('_createSession: book not found for bookId=$bookId');
     }
     final validated_path = book.filePath;
-    final effectiveMaxChars = await _effectiveMaxChars(
-      filePath: validated_path,
-      chapterIndex: chapterIndex,
-      maxChars: maxChars,
-    );
 
     _releaseHandle();
     _contentCache.clear();
@@ -170,11 +150,11 @@ class RustPaginationSession implements PaginationSession {
       filePath: validated_path,
       chapterIndex: chapterIndex,
       config: config,
-      maxChars: effectiveMaxChars,
+      maxChars: maxChars,
     );
     Logging.info(
       '[Timing] createPaginationSession: ${sw.elapsedMilliseconds}ms '
-      '(maxChars=${effectiveMaxChars ?? "full"}, isPartial=${result.isPartial}, pages=${result.descriptors.length}, mode=${result.mode})',
+      '(maxChars=${maxChars ?? "full"}, isPartial=${result.isPartial}, pages=${result.descriptors.length}, mode=${result.mode})',
     );
 
     _handle = handle;
@@ -258,9 +238,10 @@ class RustPaginationSession implements PaginationSession {
         chapterIndex: chapterIndex,
       );
       if (needsBlockPath &&
-          result.mode != ChapterPaginationMode.contentBlocks) {
+          result.mode != ChapterPaginationMode.contentBlocks &&
+          !result.isPartial) {
         Logging.info(
-          '[Session] adopt plain cache for image chapter ch=$chapterIndex → recreate block session',
+          '[Session] adopt stale plain-full cache for image chapter ch=$chapterIndex → recreate block session',
         );
         _releaseHandle();
         return beginPaginate(

@@ -90,6 +90,54 @@ async fn test_paginate_session_full_upgrades_partial() {
 }
 
 #[tokio::test]
+async fn test_image_chapter_partial_plain_upgrades_to_blocks() {
+    use rust_lib_zephyr_reader::api::core::get_session_page_blocks;
+    use rust_lib_zephyr_reader::domain::{ChapterPaginationMode, PageBlockSlice};
+
+    let Some((_dir, file_path)) = common::reading_chain::setup_parsed_image_epub().await else {
+        eprintln!("SKIP: missing fixture medium.epub");
+        return;
+    };
+
+    let config = common::reading_chain::test_typeset_config();
+
+    let (handle, partial) = create_pagination_session(
+        file_path.clone(),
+        0,
+        config.clone(),
+        Some(20),
+    )
+    .await
+    .expect("partial create should succeed");
+    assert!(partial.is_partial);
+    assert_eq!(partial.mode, ChapterPaginationMode::PlainText);
+
+    let err = get_session_page_blocks(handle.clone(), 0)
+        .expect_err("partial plain session should reject block fetch");
+    assert!(
+        err.to_string().contains("Invalid input"),
+        "expected InvalidInput, got: {err}"
+    );
+
+    let full = paginate_session_full(handle.clone(), None)
+        .await
+        .expect("paginate_session_full should succeed");
+    assert!(!full.is_partial);
+    assert_eq!(full.mode, ChapterPaginationMode::ContentBlocks);
+
+    let blocks = get_session_page_blocks(handle.clone(), 0)
+        .expect("blocks should be available after full upgrade");
+    assert!(
+        blocks
+            .iter()
+            .any(|b| matches!(b, PageBlockSlice::Image(_))),
+        "upgraded session should expose Image slice"
+    );
+
+    dispose_pagination_session(handle).expect("dispose should succeed");
+}
+
+#[tokio::test]
 async fn test_dispose_unknown_session_returns_not_found() {
     use rust_lib_zephyr_reader::api::core::PaginationSessionHandle;
 
