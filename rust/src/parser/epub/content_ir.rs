@@ -12,20 +12,140 @@ use crate::text::rich_text;
 
 use super::provider::EpubContentProvider;
 
-/// 与 `get_chapter_content_rich` 相同：单章 HTML 超过此值则跳过 html5ever。
-const MAX_HTML_SIZE: usize = 100 * 1024;
+/// 与 `get_chapter_content_rich` 相同：单个 html5ever 片段超过此值则分块或降级。
+const MAX_HTML_CHUNK_BYTES: usize = 100 * 1024;
 
-fn html_contains_img(html: &str) -> bool {
-    html.to_ascii_lowercase().contains("<img")
+/// 在块级标签边界拆分 oversized HTML，使每段可独立 html5ever 解析。
+fn split_html_at_block_boundaries(html: &str, max_bytes: usize) -> Vec<String> {
+    if html.len() <= max_bytes {
+        return vec![html.to_string()];
+    }
+
+    const BOUNDARY_TAGS: [&str; 9] = [
+        "</p>",
+        "</div>",
+        "</section>",
+        "</li>",
+        "</h1>",
+        "</h2>",
+        "</h3>",
+        "</blockquote>",
+        "<img",
+    ];
+
+    let mut chunks = Vec::new();
+    let mut start = 0;
+
+    while start < html.len() {
+        let tail = &html[start..];
+        if tail.len() <= max_bytes {
+            chunks.push(tail.to_string());
+            break;
+        }
+
+        let window_end = utf8_safe_byte_index(tail, max_bytes);
+        let split_end = find_last_block_boundary(tail, window_end, &BOUNDARY_TAGS)
+            .unwrap_or(window_end);
+
+        let end = if split_end == 0 { window_end } else { split_end };
+        chunks.push(tail[..end].to_string());
+        start += end;
+    }
+
+    chunks
 }
 
-fn oversized_ir_error(total_html_bytes: usize) -> AppError {
-    AppError::EpubParseError {
-        reason: format!(
-            "chapter HTML exceeds {MAX_HTML_SIZE} bytes for IR conversion ({total_html_bytes} bytes)"
-        )
-        .into(),
+fn utf8_safe_byte_index(text: &str, max_bytes: usize) -> usize {
+    if max_bytes >= text.len() {
+        return text.len();
     }
+    let mut end = max_bytes;
+    while end > 0 && !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    end.max(1)
+}
+
+fn find_last_block_boundary(html: &str, max_end: usize, tags: &[&str]) -> Option<usize> {
+    let slice = &html[..max_end];
+    let lower = slice.to_ascii_lowercase();
+    let mut best = 0usize;
+    for tag in tags {
+        let mut pos = 0usize;
+        while let Some(found) = lower[pos..].find(tag) {
+            let end = pos + found + tag.len();
+            if end > best {
+                best = end;
+            }
+            pos = end;
+        }
+    }
+    if best >= max_end / 4 {
+        Some(best)
+    } else {
+        None
+    }
+}
+
+fn append_plain_html_to_builder(builder: &mut BlockJoinedPlainBuilder, html: &str) {
+    use super::provider::html_to_plain_text;
+
+    let plain = html_to_plain_text(html);
+    for line in plain.split('\n') {
+        let text = line.trim();
+        if !text.is_empty() {
+            builder.push_text(text.to_string(), TextBlockStyle::default());
+        }
+    }
+}
+
+/// 将单个 spine HTML 追加进章 IR builder（含 oversized 分块路径）。
+fn append_spine_html_to_builder(
+    builder: &mut BlockJoinedPlainBuilder,
+    html: &str,
+    registry: &super::asset_registry::EpubAssetRegistry,
+    base: &str,
+) -> Result<(), AppError> {
+    if html.trim().is_empty() {
+        return Ok(());
+    }
+
+    let pieces = split_html_at_block_boundaries(html, MAX_HTML_CHUNK_BYTES);
+    if pieces.len() > 1 {
+        tracing::info!(
+            "[get_chapter_content_ir] spine HTML {} bytes split into {} chunks",
+            html.len(),
+            pieces.len(),
+        );
+    }
+
+    for piece in pieces {
+        if piece.trim().is_empty() {
+            continue;
+        }
+        if piece.len() <= MAX_HTML_CHUNK_BYTES {
+            match html_to_chapter_ir(&piece) {
+                Ok(mut ir) => {
+                    canonicalize_chapter_image_assets(&mut ir, registry, base);
+                    append_chapter_ir_to_builder(builder, ir);
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        "[get_chapter_content_ir] chunk IR parse failed ({} bytes), plain fallback: {e}",
+                        piece.len(),
+                    );
+                    append_plain_html_to_builder(builder, &piece);
+                }
+            }
+        } else {
+            tracing::warn!(
+                "[get_chapter_content_ir] chunk still {} bytes after split, plain fallback",
+                piece.len(),
+            );
+            append_plain_html_to_builder(builder, &piece);
+        }
+    }
+    Ok(())
 }
 
 fn rich_paragraph_style(p: &RichParagraph) -> TextBlockStyle {
@@ -88,34 +208,13 @@ pub fn get_chapter_content_ir(
     let provider = EpubContentProvider::open_from_bounds(file_path, start_index, end_index)?;
     let registry = provider.asset_registry();
     let mut builder = BlockJoinedPlainBuilder::new();
-    let mut total_html_bytes = 0usize;
 
     for i in 0..provider.spine_count() {
         let html = provider.read_spine_html(i)?;
-        total_html_bytes += html.len();
-        if total_html_bytes > MAX_HTML_SIZE {
-            if builder.image_block_count() > 0 || html_contains_img(&html) {
-                return Err(oversized_ir_error(total_html_bytes));
-            }
-            for j in (i + 1)..provider.spine_count() {
-                let tail = provider.read_spine_html(j)?;
-                if html_contains_img(&tail) {
-                    return Err(oversized_ir_error(total_html_bytes + tail.len()));
-                }
-            }
-            tracing::warn!(
-                "[get_chapter_content_ir] HTML too large ({} bytes), plain-only chapter — skip IR",
-                total_html_bytes,
-            );
-            return Ok(builder.finish());
-        }
-
         let base = provider
             .spine_internal_path(i)
             .unwrap_or_default();
-        let mut ir = html_to_chapter_ir(&html)?;
-        canonicalize_chapter_image_assets(&mut ir, &registry, &base);
-        append_chapter_ir_to_builder(&mut builder, ir);
+        append_spine_html_to_builder(&mut builder, &html, &registry, &base)?;
     }
 
     let ir = builder.finish();
@@ -257,5 +356,75 @@ mod tests {
         let ir = html_to_chapter_ir("").unwrap();
         assert!(ir.blocks.is_empty());
         assert!(ir.plain_text.is_empty());
+    }
+
+    #[test]
+    fn split_oversized_html_at_paragraph_boundaries() {
+        let para = format!("<p>{}</p>", "word ".repeat(5000));
+        let html = para.repeat(5);
+        assert!(html.len() > MAX_HTML_CHUNK_BYTES);
+
+        let chunks = split_html_at_block_boundaries(&html, MAX_HTML_CHUNK_BYTES);
+        assert!(chunks.len() > 1, "expected multiple chunks, got {}", chunks.len());
+        for chunk in &chunks {
+            assert!(
+                chunk.len() <= MAX_HTML_CHUNK_BYTES,
+                "chunk {} bytes exceeds limit",
+                chunk.len()
+            );
+        }
+
+        let mut builder = BlockJoinedPlainBuilder::new();
+        for chunk in chunks {
+            let ir = html_to_chapter_ir(&chunk).expect("chunk should parse");
+            append_chapter_ir_to_builder(&mut builder, ir);
+        }
+        let ir = builder.finish();
+        assert!(ir.block_count() >= 5);
+        assert_ir_invariants(&ir);
+    }
+
+    #[test]
+    fn multi_spine_cumulative_html_not_truncated() {
+        let registry = sample_registry();
+        let spine_html = format!("<p>{}</p>", "line ".repeat(8000));
+        assert!(spine_html.len() < MAX_HTML_CHUNK_BYTES);
+
+        let mut builder = BlockJoinedPlainBuilder::new();
+        append_spine_html_to_builder(&mut builder, &spine_html, &registry, "part1.xhtml")
+            .expect("first spine");
+        append_spine_html_to_builder(&mut builder, &spine_html, &registry, "part2.xhtml")
+            .expect("second spine");
+
+        let ir = builder.finish();
+        assert_eq!(ir.block_count(), 2);
+        assert!(
+            ir.plain_text.chars().count() > MAX_HTML_CHUNK_BYTES / 4,
+            "cumulative plain should not be truncated early"
+        );
+        assert_ir_invariants(&ir);
+    }
+
+    #[test]
+    fn oversized_spine_with_image_parsed_via_chunks() {
+        let registry = sample_registry();
+        let text = format!("<p>{}</p>", "x ".repeat(60000));
+        let html = format!(
+            "{text}<img src=\"../Images/from_b.jpg\" alt=\"pic\"/>{text}",
+        );
+        assert!(html.len() > MAX_HTML_CHUNK_BYTES);
+
+        let mut builder = BlockJoinedPlainBuilder::new();
+        append_spine_html_to_builder(
+            &mut builder,
+            &html,
+            &registry,
+            "OEBPS/Text/part2.xhtml",
+        )
+        .expect("chunked image spine");
+
+        let ir = builder.finish();
+        assert!(ir.image_block_count() >= 1, "image block should survive chunked parse");
+        assert_ir_invariants(&ir);
     }
 }
