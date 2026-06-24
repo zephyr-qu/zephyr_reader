@@ -3,6 +3,7 @@
 //! 注意：epub crate 2.x API 与 1.x 不兼容
 
 use crate::domain::{AppError, EpubMetadata};
+use super::asset_registry::normalize_asset_path;
 use epub::doc::{EpubDoc, ResourceItem, SpineItem};
 use lru::LruCache;
 use std::collections::HashMap;
@@ -78,15 +79,47 @@ fn find_resource_by_href_or_path<'a>(
     resources: &'a HashMap<String, ResourceItem>,
     href: &str,
 ) -> Option<(&'a String, &'a ResourceItem)> {
-    // 首先尝试直接匹配 href
+    // 首先尝试直接匹配 manifest id
     if let Some((key, item)) = resources.get_key_value(href) {
         return Some((key, item));
     }
 
-    // 然后尝试匹配路径结尾
-    resources
-        .iter()
-        .find(|(_, item)| item.path.to_string_lossy().ends_with(href))
+    let normalized = normalize_asset_path(href.trim().replace('\\', "/").as_str());
+
+    // 规范化路径精确匹配 manifest id 或 OPF 内路径
+    for (key, item) in resources.iter() {
+        let internal = item.path.to_string_lossy().replace('\\', "/");
+        let internal_norm = normalize_asset_path(&internal);
+        if key == &normalized || internal == href || internal_norm == normalized {
+            return Some((key, item));
+        }
+        if internal.ends_with(&normalized)
+            || internal_norm.ends_with(&normalized)
+            || normalized.ends_with(&internal_norm)
+        {
+            return Some((key, item));
+        }
+    }
+
+    // 文件名后缀匹配
+    if let Some(name) = normalized.rsplit('/').next().filter(|s| !s.is_empty()) {
+        for (key, item) in resources.iter() {
+            let internal = item.path.to_string_lossy().replace('\\', "/");
+            if internal.rsplit('/').next() == Some(name) {
+                return Some((key, item));
+            }
+        }
+    }
+
+    None
+}
+
+fn resource_prefers_spine_text(resource: &ResourceItem) -> bool {
+    let mime = resource.mime.to_ascii_lowercase();
+    mime.contains("html")
+        || mime.contains("xml")
+        || mime.contains("xhtml")
+        || mime.contains("text/")
 }
 
 impl EpubFile {
@@ -228,32 +261,43 @@ impl EpubFile {
 
     /// 读取资源字节（不解码）
     pub fn read_resource_bytes(&mut self, href: &str) -> Option<Vec<u8>> {
+        let href = href.split('#').next().unwrap_or(href).trim();
+        if href.is_empty() {
+            return None;
+        }
         // 检查缓存
         if let Some(cached) = self.cache.get(href) {
             return Some(cached.clone());
         }
 
         // 查找资源
-        let (resource_href, _resource) = find_resource_by_href_or_path(&self.doc.resources, href)?;
+        let (resource_href, resource) = find_resource_by_href_or_path(&self.doc.resources, href)?;
         let resource_href: String = resource_href.clone();
 
-        // 先尝试从 spine 读取（适用于章节等文本资源）
-        if let Some(index) = self
-            .doc
-            .spine
-            .iter()
-            .position(|item: &SpineItem| item.idref == resource_href)
-        {
-            let _ = self.doc.set_current_chapter(index);
-            let (content, _charset) = self.doc.get_current()?;
-            self.cache.put(href.to_string(), content.clone());
-            Some(content)
-        } else {
-            // 不在 spine 中（如封面图片），直接从 archive 读取
-            let (content, _mime) = self.doc.get_resource(&resource_href)?;
-            self.cache.put(href.to_string(), content.clone());
-            Some(content)
+        // 仅 XHTML/HTML 走 spine 文本路径；图片等二进制资源必须 get_resource
+        if resource_prefers_spine_text(resource) {
+            if let Some(index) = self
+                .doc
+                .spine
+                .iter()
+                .position(|item: &SpineItem| item.idref == resource_href)
+            {
+                let _ = self.doc.set_current_chapter(index);
+                if let Some((content, _charset)) = self.doc.get_current() {
+                    if !content.is_empty() {
+                        self.cache.put(href.to_string(), content.clone());
+                        return Some(content);
+                    }
+                }
+            }
         }
+
+        let (content, _mime) = self.doc.get_resource(&resource_href)?;
+        if content.is_empty() {
+            return None;
+        }
+        self.cache.put(href.to_string(), content.clone());
+        Some(content)
     }
 
     /// manifest 资源表（M1.4 asset 注册表输入）。

@@ -258,12 +258,19 @@ impl PageStreamer {
             }
             global_offset += line_with_ending.len();
 
-            // 段落间距：在两个**非空**段落之间添加空白行
+            // 段落间距：按 px（paragraph_spacing × font_size）换算为空白行数
             if config.paragraph_spacing > 0.0
                 && !paragraph.is_empty()
                 && line_offsets.last().map(|(s, e)| s != e).unwrap_or(false)
             {
-                let spacer_lines = config.paragraph_spacing.round() as usize;
+                let font_size = config.font_size as f32;
+                let line_height_px = (font_size * config.line_spacing).max(1.0);
+                let gap_px = config.paragraph_spacing * font_size;
+                let spacer_lines = if line_height_px > 0.0 {
+                    (gap_px / line_height_px).round() as usize
+                } else {
+                    0
+                };
                 for _ in 0..spacer_lines {
                     line_offsets.push((global_offset, global_offset));
                     first_of_paragraph.push(false);

@@ -208,6 +208,167 @@ fn build_paragraph(
     }
 }
 
+/// 块级容器（如 `<p>`）内联内容：文本段与 `<img>` 按 DOM 顺序拆成多个 [`RichParagraph`]。
+fn walk_paragraph_children(
+    handle: &Handle,
+    paragraphs: &mut Vec<RichParagraph>,
+    inherited_class: Option<String>,
+    parent_style: &ComputedStyle,
+    style_map: &HashMap<String, Vec<css::CssRule>>,
+) {
+    let mut spans: Vec<RichTextSpan> = Vec::new();
+
+    for child in handle.children.borrow().iter() {
+        if try_emit_image_paragraph(child, &mut spans, paragraphs, inherited_class.clone(), parent_style)
+        {
+            continue;
+        }
+        if let NodeData::Element { ref name, .. } = child.data {
+            match name.local.as_ref() {
+                "br" => {
+                    spans.push(RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
+                        text: "\n".to_string(),
+                        font_size: None,
+                        color: None,
+                    }));
+                }
+                "p" | "div" | "section" | "article" | "h1" | "h2" | "h3" | "h4"
+                | "h5" | "h6" | "ul" | "ol" | "li" | "blockquote" | "table" | "pre" => {
+                    flush_text_paragraph(&mut spans, paragraphs, inherited_class.clone(), parent_style);
+                    traverse_dom(child, paragraphs, inherited_class.clone(), parent_style, style_map);
+                }
+                _ => {
+                    walk_inline_subtree(
+                        child,
+                        &mut spans,
+                        paragraphs,
+                        inherited_class.clone(),
+                        parent_style,
+                        style_map,
+                    );
+                }
+            }
+        } else if let NodeData::Text { .. } = child.data {
+            walk_inline_subtree(
+                child,
+                &mut spans,
+                paragraphs,
+                inherited_class.clone(),
+                parent_style,
+                style_map,
+            );
+        }
+    }
+
+    flush_text_paragraph(&mut spans, paragraphs, inherited_class, parent_style);
+}
+
+/// `<p>` 内任意深度行内子树（含 `<span><img/></span>`）。
+fn walk_inline_subtree(
+    handle: &Handle,
+    spans: &mut Vec<RichTextSpan>,
+    paragraphs: &mut Vec<RichParagraph>,
+    inherited_class: Option<String>,
+    parent_style: &ComputedStyle,
+    style_map: &HashMap<String, Vec<css::CssRule>>,
+) {
+    if try_emit_image_paragraph(handle, spans, paragraphs, inherited_class.clone(), parent_style) {
+        return;
+    }
+
+    if let NodeData::Element {
+        ref name,
+        ref attrs,
+        ..
+    } = handle.data
+    {
+        let current_class = get_class_name(attrs);
+        let classes: Vec<String> = current_class
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+        let el_style = parent_style.derive(name.local.as_ref(), &classes, style_map);
+        let inline_style = extract_inline_css_style(attrs);
+        let merged_style = apply_inline_style(&el_style, &inline_style);
+
+        match name.local.as_ref() {
+            "br" => {
+                spans.push(RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
+                    text: "\n".to_string(),
+                    font_size: None,
+                    color: None,
+                }));
+            }
+            "p" | "div" | "section" | "article" | "h1" | "h2" | "h3" | "h4"
+            | "h5" | "h6" | "ul" | "ol" | "li" | "blockquote" | "table" | "pre" => {
+                flush_text_paragraph(spans, paragraphs, inherited_class.clone(), parent_style);
+                traverse_dom(handle, paragraphs, inherited_class, parent_style, style_map);
+            }
+            _ => {
+                for child in handle.children.borrow().iter() {
+                    walk_inline_subtree(
+                        child,
+                        spans,
+                        paragraphs,
+                        inherited_class.clone(),
+                        &merged_style,
+                        style_map,
+                    );
+                }
+            }
+        }
+    } else if let NodeData::Text { ref contents } = handle.data {
+        let text = contents.borrow().to_string();
+        if !text.trim().is_empty() {
+            spans.push(RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
+                text,
+                font_size: parent_style.font_size,
+                color: parent_style.color.clone(),
+            }));
+        }
+    }
+}
+
+fn flush_text_paragraph(
+    spans: &mut Vec<RichTextSpan>,
+    paragraphs: &mut Vec<RichParagraph>,
+    inherited_class: Option<String>,
+    parent_style: &ComputedStyle,
+) {
+    if spans.is_empty() {
+        return;
+    }
+    paragraphs.push(build_paragraph(
+        std::mem::take(spans),
+        2,
+        false,
+        0,
+        inherited_class,
+        parent_style.text_align.clone(),
+        parent_style.line_height,
+    ));
+}
+
+fn try_emit_image_paragraph(
+    handle: &Handle,
+    spans: &mut Vec<RichTextSpan>,
+    paragraphs: &mut Vec<RichParagraph>,
+    inherited_class: Option<String>,
+    parent_style: &ComputedStyle,
+) -> bool {
+    if let NodeData::Element { ref name, ref attrs, .. } = handle.data {
+        if name.local.as_ref() != "img" {
+            return false;
+        }
+        flush_text_paragraph(spans, paragraphs, inherited_class, parent_style);
+        let src = get_attribute(attrs, "src").unwrap_or_default();
+        let alt = get_attribute(attrs, "alt").unwrap_or_default();
+        paragraphs.push(RichParagraph::image_placeholder(src, alt));
+        return true;
+    }
+    false
+}
+
 /// 遍历 DOM 树
 fn traverse_dom(
     handle: &Handle,
@@ -254,19 +415,17 @@ fn traverse_dom(
             }
 
             "p" => {
-                let mut spans = Vec::new();
-                collect_text_spans(handle, &mut spans, &merged_style, style_map);
-                if !spans.is_empty() {
-                    paragraphs.push(build_paragraph(
-                        spans,
-                        2,
-                        false,
-                        0,
-                        if current_class.is_empty() { inherited_class } else { Some(current_class) },
-                        merged_style.text_align.clone(),
-                        merged_style.line_height,
-                    ));
-                }
+                walk_paragraph_children(
+                    handle,
+                    paragraphs,
+                    if current_class.is_empty() {
+                        inherited_class
+                    } else {
+                        Some(current_class)
+                    },
+                    &merged_style,
+                    style_map,
+                );
             }
 
             "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
@@ -598,6 +757,29 @@ mod tests {
         assert_eq!(result.len(), 2);
         assert!(result[1].is_image);
         assert_eq!(result[1].image_src.as_deref(), Some("test.jpg"));
+    }
+
+    #[test]
+    fn test_parse_html_img_inside_paragraph() {
+        let html = "<p>before<img src=\"inline.jpg\" alt=\"inline\"/>after</p>";
+        let result = parse_html_to_rich_text(html).unwrap();
+        assert_eq!(result.len(), 3, "expected text + image + text, got {result:?}");
+        assert!(!result[0].is_image);
+        assert!(result[0].full_text().contains("before"));
+        assert!(result[1].is_image);
+        assert_eq!(result[1].image_src.as_deref(), Some("inline.jpg"));
+        assert!(!result[2].is_image);
+        assert!(result[2].full_text().contains("after"));
+    }
+
+    #[test]
+    fn test_parse_html_img_inside_span_in_paragraph() {
+        let html = "<p>see <span><img src=\"nested.jpg\" alt=\"n\"/></span> end</p>";
+        let result = parse_html_to_rich_text(html).unwrap();
+        assert!(
+            result.iter().any(|p| p.is_image && p.image_src.as_deref() == Some("nested.jpg")),
+            "nested img should produce image paragraph: {result:?}"
+        );
     }
 
     #[test]

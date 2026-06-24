@@ -39,7 +39,7 @@ impl BlockLayoutMetrics {
         let first_line_indent_width_px = font_size * config.first_line_indent as f32;
         let max_line_width_px = (effective_width - first_line_indent_width_px).max(font_size);
         let paragraph_spacing_extra_px =
-            (config.paragraph_spacing.round() as f32 * line_height_px).max(0.0);
+            (config.paragraph_spacing * font_size).max(0.0);
 
         Self {
             line_height_px,

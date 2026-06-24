@@ -29,10 +29,14 @@ pub struct EpubAssetRegistry {
     by_filename: HashMap<String, String>,
 }
 
-/// 规范化 img `src` / manifest href（trim、`\`→`/`、折叠 `%` 编码 ASCII）。
+/// 规范化 img `src` / manifest href（trim、`\`→`/`、去 `#` 片段、折叠 `%` 编码 ASCII）。
 pub fn normalize_asset_id(src: &str) -> String {
     let trimmed = src.trim().replace('\\', "/");
-    decode_percent_ascii(&trimmed)
+    let without_fragment = trimmed
+        .split('#')
+        .next()
+        .unwrap_or(trimmed.as_str());
+    decode_percent_ascii(without_fragment)
 }
 
 /// 将 `src` 相对 `chapter_href`（spine XHTML manifest id 或 path）解析为包内逻辑路径。
@@ -114,13 +118,35 @@ impl EpubAssetRegistry {
         self.lookup_resolved(&resolved)
     }
 
-    /// 读取 asset 原始字节（manifest id 或解析前的 src 均可尝试）。
+    /// 读取 asset 原始字节（manifest id、包内路径或章内相对 src 均可尝试）。
     pub fn read_bytes(&self, epub: &mut EpubFile, asset_id: &str) -> Option<Vec<u8>> {
-        let href = self
-            .get(asset_id)
-            .map(|e| e.asset_id.as_str())
-            .unwrap_or(asset_id);
-        epub.read_resource_bytes(href)
+        let asset_id = normalize_asset_id(asset_id);
+        if asset_id.is_empty() {
+            return None;
+        }
+        let mut tried = std::collections::HashSet::<String>::new();
+        let mut queue: Vec<String> = Vec::new();
+
+        if let Some(entry) = self
+            .get(&asset_id)
+            .or_else(|| self.lookup_resolved(&asset_id))
+        {
+            queue.push(entry.asset_id.clone());
+            queue.push(entry.internal_path.clone());
+        }
+        queue.push(asset_id.clone());
+
+        while let Some(href) = queue.pop() {
+            if href.is_empty() || !tried.insert(href.clone()) {
+                continue;
+            }
+            if let Some(bytes) = epub.read_resource_bytes(&href) {
+                if !bytes.is_empty() {
+                    return Some(bytes);
+                }
+            }
+        }
+        None
     }
 
     fn lookup_resolved(&self, resolved: &str) -> Option<&EpubAssetEntry> {
@@ -249,6 +275,18 @@ mod tests {
         assert_eq!(
             normalize_asset_id("images/hello%20world.jpg"),
             "images/hello world.jpg"
+        );
+    }
+
+    #[test]
+    fn normalize_strips_url_fragment() {
+        assert_eq!(
+            normalize_asset_id("../Images/cover.jpg#fragment"),
+            "../Images/cover.jpg"
+        );
+        assert_eq!(
+            normalize_asset_id("images/pic.png#"),
+            "images/pic.png"
         );
     }
 
