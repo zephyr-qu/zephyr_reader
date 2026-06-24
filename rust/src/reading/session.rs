@@ -12,20 +12,11 @@ use parking_lot::Mutex;
 use crate::domain::{
     AppError, ChapterPaginationMode, PageBlockSlice, PaginateResult, TypesetConfig,
 };
-use crate::reading::block_cache::{put_block_state, BLOCK_CACHE};
-use crate::reading::block_state::BlockPaginationState;
 use crate::reading::pagination::paginate_chapter;
-use crate::reading::streamer_cache::STREAMER_CACHE;
+use crate::reading::pagination_engine::PaginationEngine;
+use crate::reading::pagination_store::{PaginationKey, PaginationStore};
 use crate::reading::types::PaginationSessionHandle;
-use crate::text::PageStreamer;
 use crate::utils::security::validate_file_path;
-
-/// Session 绑定的分页引擎（plain 或 block）。
-#[derive(Clone)]
-pub(crate) enum PaginationEngine {
-    Plain(PageStreamer),
-    Block(BlockPaginationState),
-}
 
 /// Server-side pagination session entry (file/chapter/config binding).
 #[derive(Clone)]
@@ -41,12 +32,8 @@ impl PaginationSessionEntry {
         self.config.config_hash()
     }
 
-    fn cache_key(&self) -> (String, i32, u64) {
-        (self.file_path.clone(), self.chapter_index, self.config_hash())
-    }
-
-    fn is_block_mode(&self) -> bool {
-        matches!(self.engine, PaginationEngine::Block(_))
+    fn cache_key(&self) -> PaginationKey {
+        PaginationKey::new(&self.file_path, self.chapter_index, self.config_hash())
     }
 }
 
@@ -75,56 +62,14 @@ fn engine_from_paginate_result(
     validated_path: &str,
     chapter_index: i32,
     result: &PaginateResult,
-    old_key: Option<(String, i32, u64)>,
+    old_key: Option<PaginationKey>,
 ) -> Result<PaginationEngine, AppError> {
-    let new_key = (
-        validated_path.to_string(),
-        chapter_index,
-        result.config_hash,
-    );
-
-    match result.mode {
-        ChapterPaginationMode::ContentBlocks => {
-            let state = {
-                let mut cache = BLOCK_CACHE.lock();
-                let state = cache.pop(&new_key).ok_or_else(|| AppError::NotFound {
-                    entity: format!(
-                        "block pagination state (config_hash={:016x})",
-                        result.config_hash
-                    ),
-                })?;
-                if let Some(old) = old_key {
-                    if old != new_key {
-                        cache.pop(&old);
-                        STREAMER_CACHE.lock().pop(&old);
-                    }
-                }
-                state
-            };
-            put_block_state(validated_path, chapter_index, result.config_hash, state.clone());
-            Ok(PaginationEngine::Block(state))
-        }
-        ChapterPaginationMode::PlainText => {
-            let streamer = {
-                let mut cache = STREAMER_CACHE.lock();
-                let streamer = cache.pop(&new_key).ok_or_else(|| AppError::NotFound {
-                    entity: format!(
-                        "page streamer (config_hash={:016x})",
-                        result.config_hash
-                    ),
-                })?;
-                if let Some(old) = old_key {
-                    if old != new_key {
-                        cache.pop(&old);
-                        BLOCK_CACHE.lock().pop(&old);
-                    }
-                }
-                streamer
-            };
-            STREAMER_CACHE.lock().put(new_key, streamer.clone());
-            Ok(PaginationEngine::Plain(streamer))
-        }
-    }
+    let key = PaginationKey::new(validated_path, chapter_index, result.config_hash);
+    PaginationStore::global().attach_for_session(
+        &key,
+        result.mode,
+        old_key.as_ref(),
+    )
 }
 
 /// Internal helper: re-paginate a session and atomically update config + engine.
@@ -214,52 +159,50 @@ pub(crate) async fn create_pagination_session_adopt(
     let validated_path = validate_file_path(&file_path)?;
     let config = config.validate_and_fix();
     let config_hash = config.config_hash();
-    let key = (validated_path.clone(), chapter_index, config_hash);
+    let key = PaginationKey::new(&validated_path, chapter_index, config_hash);
 
-    if let Some(streamer) = STREAMER_CACHE.lock().get(&key).cloned() {
-        let descriptors = streamer.get_descriptors();
-        let is_partial = streamer.is_partial;
-        let session_id = allocate_session_id();
-        SESSION_MAP.lock().insert(
-            session_id,
-            PaginationSessionEntry {
-                file_path: validated_path,
-                chapter_index,
-                config,
-                engine: PaginationEngine::Plain(streamer),
-            },
-        );
-        return Ok((
-            PaginationSessionHandle { session_id },
-            PaginateResult {
-                descriptors,
-                config_hash,
-                is_partial,
-                mode: ChapterPaginationMode::PlainText,
-            },
-        ));
-    }
+    let Some(engine) = PaginationStore::global().clone_for_adopt(&key) else {
+        return Err(AppError::NotFound {
+            entity: PaginationStore::entity(chapter_index, config_hash),
+        });
+    };
 
-    if let Some(state) = BLOCK_CACHE.lock().get(&key).cloned() {
-        let result = state.to_paginate_result(config_hash);
-        let session_id = allocate_session_id();
-        SESSION_MAP.lock().insert(
-            session_id,
-            PaginationSessionEntry {
-                file_path: validated_path,
-                chapter_index,
-                config,
-                engine: PaginationEngine::Block(state),
-            },
-        );
-        return Ok((PaginationSessionHandle { session_id }, result));
-    }
-
-    Err(AppError::NotFound {
-        entity: format!(
-            "page streamer for chapter {chapter_index} (config_hash={config_hash:016x})"
+    let (descriptors, is_partial, mode) = match &engine {
+        PaginationEngine::Plain(streamer) => (
+            streamer.get_descriptors(),
+            streamer.is_partial,
+            ChapterPaginationMode::PlainText,
         ),
-    })
+        PaginationEngine::Block(state) => {
+            let result = state.to_paginate_result(config_hash);
+            (
+                result.descriptors,
+                result.is_partial,
+                ChapterPaginationMode::ContentBlocks,
+            )
+        }
+    };
+
+    let session_id = allocate_session_id();
+    SESSION_MAP.lock().insert(
+        session_id,
+        PaginationSessionEntry {
+            file_path: validated_path,
+            chapter_index,
+            config,
+            engine,
+        },
+    );
+
+    Ok((
+        PaginationSessionHandle { session_id },
+        PaginateResult {
+            descriptors,
+            config_hash,
+            is_partial,
+            mode,
+        },
+    ))
 }
 
 /// Re-paginate an existing session with a new config in-place.
@@ -284,6 +227,10 @@ pub(crate) async fn paginate_session_full(
     apply_session_repagination(handle.session_id, entry, None, None).await
 }
 
+fn session_page_entity(page_index: i32) -> String {
+    format!("session page {page_index}")
+}
+
 /// Get page content by session handle (sync).
 pub(crate) fn get_session_page_content(
     handle: PaginationSessionHandle,
@@ -291,27 +238,35 @@ pub(crate) fn get_session_page_content(
 ) -> Result<String, AppError> {
     let entry = lookup_pagination_session(handle.session_id)?;
     match &entry.engine {
-        PaginationEngine::Plain(streamer) => Ok(streamer
+        PaginationEngine::Plain(streamer) => streamer
             .get_page(page_index as usize, entry.chapter_index)
             .map(|p| p.content)
-            .unwrap_or_default()),
-        PaginationEngine::Block(state) => Ok(state
+            .ok_or_else(|| AppError::NotFound {
+                entity: session_page_entity(page_index),
+            }),
+        PaginationEngine::Block(state) => state
             .page_plain_text(page_index as usize)
-            .unwrap_or_default()),
+            .ok_or_else(|| AppError::NotFound {
+                entity: session_page_entity(page_index),
+            }),
     }
 }
 
-/// M3.2：按 session 获取页内块列表（block 模式）；plain 模式返回空 vec。
+/// M3.2：按 session 获取页内块列表（`ContentBlocks` 模式）。
 pub(crate) fn get_session_page_blocks(
     handle: PaginationSessionHandle,
     page_index: i32,
 ) -> Result<Vec<PageBlockSlice>, AppError> {
     let entry = lookup_pagination_session(handle.session_id)?;
     match &entry.engine {
-        PaginationEngine::Block(state) => Ok(state
+        PaginationEngine::Block(state) => state
             .page_blocks(page_index as usize)
-            .unwrap_or_default()),
-        PaginationEngine::Plain(_) => Ok(Vec::new()),
+            .ok_or_else(|| AppError::NotFound {
+                entity: session_page_entity(page_index),
+            }),
+        PaginationEngine::Plain(_) => Err(AppError::InvalidInput {
+            reason: "plain text session has no block slices".into(),
+        }),
     }
 }
 
@@ -363,13 +318,7 @@ pub(crate) fn dispose_pagination_session(
             entity: format!("pagination session {}", handle.session_id),
         })?;
 
-    let cache_key = entry.cache_key();
-    if entry.is_block_mode() {
-        BLOCK_CACHE.lock().pop(&cache_key);
-    } else {
-        STREAMER_CACHE.lock().pop(&cache_key);
-    }
-
+    PaginationStore::global().evict(&entry.cache_key());
     SESSION_MAP.lock().remove(&handle.session_id);
     let _ = &entry;
     Ok(())

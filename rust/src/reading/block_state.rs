@@ -8,7 +8,7 @@ use crate::domain::{
     slice_by_char_range,
 };
 
-/// 块路径分页状态（session / BLOCK_CACHE 持有）。
+/// 块路径分页状态（session / `PAGINATION_ENGINE_CACHE` 持有）。
 #[derive(Debug, Clone)]
 pub(crate) struct BlockPaginationState {
     pub ir: ChapterContentIr,

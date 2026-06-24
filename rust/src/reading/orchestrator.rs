@@ -70,18 +70,18 @@ impl ReadingOrchestrator {
         chapter_index: i32,
         config_hash: u64,
         page_index: i32,
-    ) -> String {
+    ) -> Result<String, AppError> {
         super::pagination::get_page_content(file_path, chapter_index, config_hash, page_index)
     }
 
-    /// 从 BLOCK_CACHE 按需取页块（staging 预渲染用）。
+    /// 从 `PAGINATION_ENGINE_CACHE` 按需取页块（staging 预渲染用）。
     pub fn get_page_blocks(
         &self,
         file_path: String,
         chapter_index: i32,
         config_hash: u64,
         page_index: i32,
-    ) -> Vec<PageBlockSlice> {
+    ) -> Result<Vec<PageBlockSlice>, AppError> {
         super::pagination::get_page_blocks(file_path, chapter_index, config_hash, page_index)
     }
 
