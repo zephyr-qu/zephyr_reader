@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:flutter/scheduler.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/core/utils/app_error_mapper.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
@@ -145,6 +146,13 @@ class ChapterLoadOrchestrator {
         '${sw.elapsedMilliseconds}ms cumulative',
       );
 
+      final shouldBackfeed = intent !=
+              ChapterPaginationIntent.stagingPromoteForward &&
+          intent != ChapterPaginationIntent.stagingPromoteBackward;
+      final backfeedFuture = shouldBackfeed
+          ? _captureMetricsBackfeed(gen, _pageIndex.value)
+          : Future<CalibrationData?>.value(null);
+
       _setPhase(gen, ChapterLoadPhase.awaitingConcurrent);
       final results = await Future.wait([chapterPlainFuture, calibFuture]);
       if (_isStale(gen)) {
@@ -156,6 +164,11 @@ class ChapterLoadOrchestrator {
       _applyIfCurrent(gen, () {
         _pagination.calibration.value ??= results[1] as CalibrationData?;
       });
+
+      final refinedCalibration = await backfeedFuture;
+      if (refinedCalibration != null && !_isStale(gen)) {
+        _pagination.calibration.value = refinedCalibration;
+      }
 
       final tConcurrent = sw.elapsedMilliseconds;
       Logging.info(
@@ -175,6 +188,12 @@ class ChapterLoadOrchestrator {
           _setPhase(gen, ChapterLoadPhase.cancelled);
           return;
         }
+        _syncPaginationSignalsAfterRepaginate(
+          gen,
+          request,
+          totalPages: total,
+          content: content,
+        );
         Logging.info(
           '[Timing] gen=$gen phase=fullPaginate paginateChapter: '
           '${sw.elapsedMilliseconds - tBeforePaginate}ms '
@@ -182,6 +201,26 @@ class ChapterLoadOrchestrator {
         );
       } else {
         total = quickResult.totalPages;
+        if (refinedCalibration != null) {
+          final repaginated = await _pagination.repaginateAfterMetricsBackfeed(
+            maxChars: null,
+          );
+          if (_isStale(gen)) {
+            _setPhase(gen, ChapterLoadPhase.cancelled);
+            return;
+          }
+          total = repaginated.totalPages;
+          _syncPaginationSignalsAfterRepaginate(
+            gen,
+            request,
+            totalPages: total,
+            content: content,
+          );
+          Logging.info(
+            '[Timing] gen=$gen phase=metricsBackfeed repaginate: '
+            'pages=$total',
+          );
+        }
         Logging.info(
           '[Timing] gen=$gen phase=fullPaginate skipped '
           '(partial covered full content, ${quickResult.totalPages} pages)',
@@ -635,4 +674,71 @@ class ChapterLoadOrchestrator {
   ///
   /// 仅 [ReadingMode.pagination] 需要 Rust 分页链路。
   static bool _needsPagination(ReadingMode mode) => needsRustPagination(mode);
+
+  /// descriptors 变更后立即同步页码信号，避免 finalize 前 UI 与 Rust 脱节。
+  void _syncPaginationSignalsAfterRepaginate(
+    int gen,
+    ChapterLoadRequest request, {
+    required int totalPages,
+    required String content,
+  }) {
+    if (_isStale(gen)) return;
+    if (!_pagination.isPaginationValid(totalPages)) return;
+
+    final applied = _pagination.applyFullResult(
+      total: totalPages,
+      initialCharOffset: request.initialCharOffset,
+      content: content,
+    );
+    _applyIfCurrent(gen, () {
+      _totalPages.value = applied.totalPages;
+      _pageIndex.value = applied.pageIndex;
+    });
+  }
+
+  /// 首屏渲染后从实际页文本采样 TextPainter metrics（P4-4 / ADR-013）。
+  Future<CalibrationData?> _captureMetricsBackfeed(
+    int gen,
+    int pageIndex,
+  ) async {
+    try {
+      await SchedulerBinding.instance.endOfFrame;
+      if (_isStale(gen)) return null;
+
+      final pageText = await _contentRepo.fetchPageContent(pageIndex);
+      if (pageText == null || pageText.isEmpty) return null;
+      if (_isStale(gen)) return null;
+
+      final baseline = _pagination.calibration.value;
+      if (baseline == null) return null;
+
+      final refined = calibrateFromPageText(
+        pageText: pageText,
+        fontSize: _config.fontSize.value,
+        devicePixelRatio: _pagination.devicePixelRatio,
+        fontFamily: _pagination.fontFamily,
+        baseline: baseline,
+      );
+      if (refined == null || !calibrationDriftExceeds(baseline, refined)) {
+        return null;
+      }
+      if (!isCalibrationPlausible(refined, _config.fontSize.value)) {
+        Logging.info(
+          '[MetricsBackfeed] refined calibration failed plausibility check, '
+          'discarding',
+        );
+        return null;
+      }
+
+      Logging.info(
+        '[MetricsBackfeed] page=$pageIndex cjk '
+        '${baseline.cjkWidth.toStringAsFixed(2)}→'
+        '${refined.cjkWidth.toStringAsFixed(2)}',
+      );
+      return refined;
+    } catch (e) {
+      Logging.warning('[MetricsBackfeed] capture failed: $e');
+      return null;
+    }
+  }
 }

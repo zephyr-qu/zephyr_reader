@@ -132,6 +132,18 @@ class PaginationCoordinator {
     );
   }
 
+  /// P4-4：首屏 metrics 回传后 repaginate（仅更新 calibration）。
+  Future<({int totalPages, bool isPartial})> repaginateAfterMetricsBackfeed({
+    BigInt? maxChars,
+  }) {
+    return _repo.applySessionCalibration(
+      bookId: _chapterVM.bookId.value,
+      chapterIndex: _chapterVM.chapterIndex.value,
+      params: buildPaginationParams(),
+      maxChars: maxChars,
+    );
+  }
+
 
   /// 应用完整 Rust 分页结果。
   ({int totalPages, int pageIndex}) applyFullResult({

@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use crate::domain::{
     BlockPaginateResult, ChapterContentIr, ChapterPaginationMode, ContentBlock,
     ImageBlockLayout, PageBlockSlice, PageImageBlockSlice, PageTextBlockSlice, PaginateResult,
-    slice_by_char_range,
+    slice_by_char_range, slice_rich_spans,
 };
 
 /// 块路径分页状态（session / `PAGINATION_ENGINE_CACHE` 持有）。
@@ -72,6 +72,7 @@ impl BlockPaginationState {
                     let local_start = slice_start - block_start;
                     let local_len = slice_end - slice_start;
                     let text = slice_by_char_range(&t.text, local_start, local_len);
+                    let spans = slice_rich_spans(&t.spans, local_start, local_len);
                     if !text.is_empty() {
                         slices.push(PageBlockSlice::Text(PageTextBlockSlice {
                             block_index: bi,
@@ -79,6 +80,7 @@ impl BlockPaginationState {
                             is_block_start: local_start == 0,
                             is_block_end: slice_end == block_end,
                             style: t.style.clone(),
+                            spans,
                         }));
                     }
                 }

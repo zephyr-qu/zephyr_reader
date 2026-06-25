@@ -97,7 +97,7 @@ Phase 1（Rust adopt）、Phase 2（Orchestrator stagingPromote）、Phase 3（�
 |---|-----------|----------|------|
 | 1 | `resolveIntent` 中对 `adjacentCrossChapter` 先计算 `pagination.computeConfigHash()` 再检查 staging | `computeConfigHash()` 调用 Rust FFI，在测试环境不可用（`flutter_rust_bridge` 未初始化）。此外无 staging 时也应避免无意义的 FFI 调用。 | **修复**：先检查 `staging != null && staging.chapterIndex == chapterIndex`，命中后才计算 `currentHash` 与 `staging.configHash` 比较。避免 staging 未就绪时不必要的 FFI 开销。 |
 | 2 | `ChapterNavigator.preloadAdjacentFirstPages` 仅预加载 next staging（原设计） | Phase 3 要求双向预加载，但 plan 原文未明确修改此方法 | **扩展**：方法名不变，内部新增对 `preloadPreviousChapterStaging` 的对称调用。新增 `ensurePrevChapterStaging(pageIndex)` 在 `pageIndex ≤ 1` 时加速。 |
-| 3 | Phase 4.2 pageTurn 向后卷曲虚拟页完整实现（`prevChapterStaging` 渲染 + curl 动画） | 仅添加了 `_buildPreviousChapterPage()` 骨架（返回空白 Container）。pageTurn mode 的 `pageBuilder` 尚未处理 `idx < 0` 的 prev staging 渲染。 | **未完成**：需在 `ReaderContent.build()` 的 pageTurn 分支中，当 `hasPreviousChapter` 时增加缩进偏移量，并在 `pageBuilder` 中渲染 prevChapterStaging 的末页。延期到后续 PR。 |
+| 3 | Phase 4.2 pageTurn 向后卷曲虚拟页完整实现（`prevChapterStaging` 渲染 + curl 动画） | 仅添加了 `_buildPreviousChapterPage()` 骨架（返回空白 Container）。pageTurn mode 的 `pageBuilder` 尚未处理 `idx < 0` 的 prev staging 渲染。 | **部分完成**：`_buildPreviousChapterPage` 已渲染 prev staging 内容 + ADR-012 hold 帧兜底（T4）。pageTurn curl 皮肤向后翻页动画待补（P4-2）。 |
 | 4 | 测试验证跨章 <50ms 真机 Timing 日志 | 未执行真机验证 | **待完成**：需在实体设备上运行，观察 `[Timing] createPaginationSessionAdopt: HIT` 日志确认 <50ms。Rust 单元测试已覆盖 adopt hit/miss 路径。 |
 | 5 | `ChapterNavigator.jumpToChapter` / `jumpToPosition` 原定保持 `manualJump`（未写此行但 plan 隐含） | 新增 `_chapterVM.showChapterTransition.value = true` 调用（与 adjacent 路径对称） | **正确**：确保手动跳章时 AnimatedSwitcher 过渡动画正常触发。不是偏差。 |
 | 6 | plan 称 orchestrator `run()` 入口对 `adjacentCrossChapter` 不 `clearNextChapterStaging`，改为 promote 完成后才 clear | `_runStagingPromote` 中调用 `clearAdjacentStaging()` 而非 `clearNextChapterStaging()`，兼顾双向 staging | **合理扩展**：plan 原文未预期 bidirectional staging，但 Phase 3 加入后需同时清除 next+prev staging。 |
@@ -180,8 +180,7 @@ test/features/reader/
 
 ## 待完成
 
-- Phase 4.2: pageTurn 向后卷曲虚拟页（`pageBuilder` handle idx < 0 + prevChapterStaging 渲染）
-- 真机 `[Timing]` 日志验证跨章 <50ms
+- staging miss UI：ADR-012 hold 帧已实现（T4），需真机验证 <50ms
 
 | # | review 发现 | 处理 | 状态 |
 |---|-------------|------|------|
@@ -192,13 +191,13 @@ test/features/reader/
 
 ## 最终状态
 
-Phase 1 核心数据结构与 composer 已完成；`ScrollModeRenderer` 多段渲染已完成；边界检测、进度映射、预加载尚待接入。
+Phase 1 核心数据结构与 composer 已完成；`ScrollModeRenderer` 多段渲染已完成；边界检测、进度映射、预加载**已接入** `reader_content`。
 
 ## 偏差记录
 
 | # | plan 描述 | 实际情况 | 处理 |
 |---|-----------|----------|------|
-| 2 | Phase 1 计划完成 `ScrollModeRenderer` 多段 ListView + `reader_content` 边界改造 + 预加载 + 全部测试 | `ScrollModeRenderer` 多段拼接 + `ScrollBoundaryCoordinator` 已完成；`reader_content` 边界检测/进度映射未接入 | `ScrollBoundaryCoordinator` 持有 `ScrollDocumentComposer` + `loadChapterContent` + generation 防护 + 信号回调。`reader_content` 接入（替换 onReachEnd→nextChapter）延期到后续 PR。 |
+| 2 | Phase 1 计划完成 `ScrollModeRenderer` 多段 ListView + `reader_content` 边界改造 + 预加载 + 全部测试 | `ScrollModeRenderer` 多段拼接 + `ScrollBoundaryCoordinator` 已完成；`reader_content` 边界检测/进度映射**已接入**（`onScrollAppendNext` / `onScrollPrependPrev` / `scrollSegments`） | **已接入**：`reader_content_area.dart` 已启用 `onScrollAppendNext` / `onScrollPrependPrev` / `onScrollSegmentPosition`。 |
 
 ## 无偏差（与 plan 一致）
 
@@ -936,3 +935,22 @@ pub(crate) fn put_provider(
 - L10: `test_get_chapter_epub_uses_db_bounds` 假阳性（已被新 `test_get_chapter_epub_returns_full_chapter_content` 替代）
 - L11: `test_get_page_content_after_dispose_returns_not_found` 命名误导
 - L12: `diagnose_content_extraction_pipeline` 语义变更（用 FFI 层更接近用户行为）
+
+
+# Phase 4 — 引擎完善（2026-06-25）
+
+来源：[discuss/PHASE4_SCOPE.md](../discuss/PHASE4_SCOPE.md) · [discuss/xinxi-round5.md](../discuss/xinxi-round5.md)  
+参与索引：[discuss/plans/PHASE4_PARTICIPANT_INDEX.md](../discuss/plans/PHASE4_PARTICIPANT_INDEX.md)
+
+| 项 | 状态 | 负责 | 说明 |
+|----|------|------|------|
+| P4-1 Scroll→IR | 🚧 进行中 | Agent 主线程 | 见 plan-p4-1-scroll-ir-unification.md |
+| P4-2 IR 块 CSS | ⬜ 排队 | Agent 主线程 | 依赖 P4-1 |
+| P4-3 Staging 零 loading | ✅ 已完成 | 参与 T4 | ADR-012 hold 帧 |
+| P4-4 Metrics 回传 | ⬜ 排队 | Agent 主线程 | 独立 Rust+FRB |
+| P4-5 双语模块化 | ⬜ 排队 | — | 可并行 |
+| T1 跨章 Timing 日志 | ✅ 已完成 | 参与 T1 | 5 个新 [Timing] 埋点 |
+| T2 文档债务清理 | ✅ 已完成 | 参与 T2 | rust/README、doc 索引、CHANGELOG |
+| T3 差距分析刷新 | ✅ 已完成 | 参与 T3 | READING_CORE_GAP_ANALYSIS.md |
+| T5 Staging 单测 | ✅ 已完成 | 参与 T5 | 4 staging virtual page tests |
+| T6 偏差文档同步 | ✅ 已完成 | 参与 T6 | 本文件

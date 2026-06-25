@@ -40,9 +40,9 @@
 |---|-----|------|
 | P4-0 | 文档对齐（README、DOMAIN_MODEL、glossary） | 无 Won't 冲突描述 |
 | P4-1 | **Scroll → Chunked IR**（消除 plain/rich 双管线） | scroll 含图章不走 `epubRichSkipped` 降级；与 pagination 同源 IR |
-| P4-2 | **IR Text 块基础 CSS**（`text-indent`、margin、font-family） | 🚧 `TextBlockStyle` + `IrTextBlockStyle` 共用映射；行内 span 待续 |
+| P4-2 | **IR Text 块基础 CSS**（`text-indent`、margin、font-family） | ✅ 块级 + 行内 span；CSS 显式 indent 优先；`BlockLayoutCache` v2 |
 | P4-3 | **Staging 硬保证** | ✅ 跨章 prev hold 帧 + next 门闸；剩余 spinner 仅 page cache / EPS / fallback |
-| P4-4 | **Flutter Metrics 回传** | 首屏 TextPainter metrics → Rust 微调后续页 + 更新 sled |
+| P4-4 | **Flutter Metrics 回传** | ✅ 首屏 TextPainter → `applySessionCalibration` → repaginate + sled |
 | P4-5 | **双语 feature 模块** | 主链 `features/reader/core` 无翻译 API import；`--no-default-features` 可跳过双语 |
 
 **不在 Phase 4**：PDF 阅读 UI、章内搜索、云盘直同步、Rust CancellationToken、CJK 标点挤压引擎。

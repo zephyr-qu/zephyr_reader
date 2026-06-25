@@ -6,6 +6,8 @@
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
 
+use super::rich_text::RichTextSpan;
+
 /// ADR-008：每个 [`ContentBlock::Image`] 在章级 plain 中占 1 个 OBJECT REPLACEMENT 字符。
 pub const IMAGE_PLAIN_PLACEHOLDER: char = '\u{FFFC}';
 
@@ -63,15 +65,35 @@ pub struct TextBlock {
     /// 块内 UTF-8 文本（与 plain 投影一致；不含 `\uFFFC`）。
     pub text: String,
     pub style: TextBlockStyle,
+    /// 行内格式段（ADR-010）。空 → 渲染时按 [text] plain 处理（TXT 路径）。
+    pub spans: Vec<RichTextSpan>,
 }
 
 impl TextBlock {
+    /// 无行内样式（TXT / plain fallback）。
     pub fn new(plain_start: u32, text: String, style: TextBlockStyle) -> Self {
         let plain_len = text.chars().count() as u32;
         Self {
             plain: BlockPlainRange::new(plain_start, plain_len),
             text,
             style,
+            spans: Vec::new(),
+        }
+    }
+
+    /// EPUB 富文本段（[spans] 拼接须等于 [text]）。
+    pub fn with_spans(
+        plain_start: u32,
+        spans: Vec<RichTextSpan>,
+        style: TextBlockStyle,
+    ) -> Self {
+        let text: String = spans.iter().map(|s| s.text()).collect();
+        let plain_len = text.chars().count() as u32;
+        Self {
+            plain: BlockPlainRange::new(plain_start, plain_len),
+            text,
+            style,
+            spans,
         }
     }
 }

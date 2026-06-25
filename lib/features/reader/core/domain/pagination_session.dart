@@ -36,6 +36,17 @@ abstract class PaginationSession {
     BigInt? maxChars,
   });
 
+  /// P4-4：仅更新 Flutter 实测 calibration 并 repaginate（ADR-013）。
+  Future<({int totalPages, bool isPartial})> applySessionCalibration({
+    required String bookId,
+    required int chapterIndex,
+    required PaginationParams params,
+    BigInt? maxChars,
+  });
+
+  /// 异步拉取并缓存单页 plain text（metrics 回传用）。
+  Future<String?> fetchPageContent(int pageIndex);
+
   /// 创建分页会话并分页。maxChars=null 表示全章。
   Future<({int totalPages, bool isPartial})> beginPaginate({
     required String bookId,

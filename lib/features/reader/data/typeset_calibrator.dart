@@ -132,6 +132,167 @@ double _measureWidth(String text, double fontSize, String fontFamily) {
   return paragraphObj.maxIntrinsicWidth / text.length;
 }
 
+/// Unicode 分类，与 Rust `CharWidthTable::char_width` 区间对齐。
+enum _CharCategory { cjk, digit, ascii, punct, latinExt, other }
+
+_CharCategory _charCategory(String ch) {
+  if (ch.isEmpty) return _CharCategory.other;
+  final code = ch.codeUnitAt(0);
+  if ((code >= 0x4E00 && code <= 0x9FFF) ||
+      (code >= 0x3400 && code <= 0x4DBF)) {
+    return _CharCategory.cjk;
+  }
+  if (code >= 0x30 && code <= 0x39) return _CharCategory.digit;
+  if (code >= 0x20 && code <= 0x7F) return _CharCategory.ascii;
+  if ((code >= 0x3000 && code <= 0x303F) ||
+      (code >= 0xFF00 && code <= 0xFFEF)) {
+    return _CharCategory.punct;
+  }
+  if (code >= 0xC0 && code <= 0x24F) return _CharCategory.latinExt;
+  return _CharCategory.other;
+}
+
+String _sampleCharsFromText(
+  String text,
+  _CharCategory category, {
+  int maxSamples = 24,
+}) {
+  final seen = <String>{};
+  final buffer = StringBuffer();
+  for (final rune in text.runes) {
+    final ch = String.fromCharCode(rune);
+    if (_charCategory(ch) != category) continue;
+    if (seen.add(ch)) buffer.write(ch);
+    if (seen.length >= maxSamples) break;
+  }
+  return buffer.toString();
+}
+
+double? _avgWidthForCategory(
+  String samples,
+  double fontSize,
+  String fontFamily,
+) {
+  if (samples.isEmpty) return null;
+  return _measureWidth(samples, fontSize, fontFamily);
+}
+
+/// 从首屏实际文本采样各 Unicode 区间字宽（P4-4 / ADR-013）。
+///
+/// 某类字符在 [pageText] 中不存在时，回退到 [baseline] 对应值。
+CalibrationData? calibrateFromPageText({
+  required String pageText,
+  required double fontSize,
+  required double devicePixelRatio,
+  required String fontFamily,
+  CalibrationData? baseline,
+  int maxSamplesPerCategory = 24,
+}) {
+  if (pageText.trim().isEmpty) return null;
+
+  final cjkSamples = _sampleCharsFromText(
+    pageText,
+    _CharCategory.cjk,
+    maxSamples: maxSamplesPerCategory,
+  );
+  final asciiSamples = _sampleCharsFromText(
+    pageText,
+    _CharCategory.ascii,
+    maxSamples: maxSamplesPerCategory,
+  );
+  final digitSamples = _sampleCharsFromText(
+    pageText,
+    _CharCategory.digit,
+    maxSamples: maxSamplesPerCategory,
+  );
+  final punctSamples = _sampleCharsFromText(
+    pageText,
+    _CharCategory.punct,
+    maxSamples: maxSamplesPerCategory,
+  );
+  final latinExtSamples = _sampleCharsFromText(
+    pageText,
+    _CharCategory.latinExt,
+    maxSamples: maxSamplesPerCategory,
+  );
+  final otherSamples = _sampleCharsFromText(
+    pageText,
+    _CharCategory.other,
+    maxSamples: maxSamplesPerCategory,
+  );
+
+  final hasAnySamples = cjkSamples.isNotEmpty ||
+      asciiSamples.isNotEmpty ||
+      digitSamples.isNotEmpty ||
+      punctSamples.isNotEmpty ||
+      latinExtSamples.isNotEmpty ||
+      otherSamples.isNotEmpty;
+  if (!hasAnySamples) return baseline;
+
+  final fallback = baseline ??
+      _calibrateCharacterWidths(
+        fontSize: fontSize,
+        devicePixelRatio: devicePixelRatio,
+        fontFamily: fontFamily,
+      );
+
+  final latinOrOther = latinExtSamples.isNotEmpty
+      ? latinExtSamples
+      : otherSamples;
+
+  return CalibrationData(
+    dpr: devicePixelRatio,
+    cjkWidth: _avgWidthForCategory(cjkSamples, fontSize, fontFamily) ??
+        fallback.cjkWidth,
+    asciiWidth: _avgWidthForCategory(asciiSamples, fontSize, fontFamily) ??
+        fallback.asciiWidth,
+    digitWidth: _avgWidthForCategory(digitSamples, fontSize, fontFamily) ??
+        fallback.digitWidth,
+    punctWidth: _avgWidthForCategory(punctSamples, fontSize, fontFamily) ??
+        fallback.punctWidth,
+    otherWidth: _avgWidthForCategory(latinOrOther, fontSize, fontFamily) ??
+        fallback.otherWidth,
+  );
+}
+
+/// 判断两次校准是否存在显著漂移（相对误差超过 [threshold]）。
+bool calibrationDriftExceeds(
+  CalibrationData baseline,
+  CalibrationData refined, {
+  double threshold = 0.03,
+}) {
+  bool drift(double a, double b) {
+    if (a <= 0) return false;
+    return (a - b).abs() / a > threshold;
+  }
+
+  return drift(baseline.cjkWidth, refined.cjkWidth) ||
+      drift(baseline.asciiWidth, refined.asciiWidth) ||
+      drift(baseline.digitWidth, refined.digitWidth) ||
+      drift(baseline.punctWidth, refined.punctWidth) ||
+      drift(baseline.otherWidth, refined.otherWidth);
+}
+
+/// CJK 宽度与 [fontSize] 比例是否在合理区间（与 calibrateSafely 一致）。
+bool isCalibrationPlausible(CalibrationData data, double fontSize) {
+  if (fontSize <= 0) return false;
+  final ratio = data.cjkWidth / fontSize;
+  return ratio >= 0.5 && ratio <= 1.5;
+}
+
+/// 将 [CalibrationData] 转为 Rust FRB 类型。
+TypesetCalibration calibrationToRust(CalibrationData data) {
+  return TypesetCalibration(
+    dpr: data.dpr,
+    cjkWidth: data.cjkWidth,
+    asciiWidth: data.asciiWidth,
+    digitWidth: data.digitWidth,
+    punctWidth: data.punctWidth,
+    otherWidth: data.otherWidth,
+    latinExtWidth: data.otherWidth,
+  );
+}
+
 // ===== Typeset config builder =====
 
 /// 将 Flutter UI 参数转换为 Rust TypesetConfig
@@ -163,15 +324,7 @@ TypesetConfig buildTypesetConfig({
   LanguageType language = LanguageType.auto,
 }) {
   final rustCalibration = calibration != null
-      ? TypesetCalibration(
-          dpr: calibration.dpr,
-          cjkWidth: calibration.cjkWidth,
-          asciiWidth: calibration.asciiWidth,
-          digitWidth: calibration.digitWidth,
-          punctWidth: calibration.punctWidth,
-          otherWidth: calibration.otherWidth,
-          latinExtWidth: calibration.otherWidth,
-        )
+      ? calibrationToRust(calibration)
       : null;
 
   return TypesetConfig(

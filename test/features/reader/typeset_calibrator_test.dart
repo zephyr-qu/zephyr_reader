@@ -134,7 +134,7 @@ void main() {
         expect(config.calibration!.digitWidth, equals(9.0));
         expect(config.calibration!.punctWidth, equals(17.5));
         expect(config.calibration!.otherWidth, equals(14.0));
-        expect(config.calibration!.latinExtWidth, equals(0.0));
+        expect(config.calibration!.latinExtWidth, equals(14.0));
       });
 
       test('calibration dpr 与 devicePixelRatio 独立', () {
@@ -157,8 +157,87 @@ void main() {
 
         // pageWidth 使用 devicePixelRatio(1.5)，不是 calibration.dpr(2.0)
         expect(config.pageWidth, equals(540)); // 360 * 1.5
-        expect(config.calibration!.dpr, equals(2.0));
-      });
+      expect(config.calibration!.dpr, equals(2.0));
     });
   });
+
+  group('calibrateFromPageText', () {
+    test('空文本返回 null', () {
+      expect(
+        calibrateFromPageText(
+          pageText: '',
+          fontSize: 16,
+          devicePixelRatio: 1.0,
+          fontFamily: 'Roboto',
+        ),
+        isNull,
+      );
+    });
+
+    test('calibrationDriftExceeds 检测相对漂移', () {
+      const baseline = CalibrationData(
+        dpr: 1.0,
+        cjkWidth: 16.0,
+        asciiWidth: 9.6,
+        digitWidth: 9.6,
+        punctWidth: 16.0,
+        otherWidth: 12.0,
+      );
+      const smallDrift = CalibrationData(
+        dpr: 1.0,
+        cjkWidth: 16.4,
+        asciiWidth: 9.6,
+        digitWidth: 9.6,
+        punctWidth: 16.0,
+        otherWidth: 12.0,
+      );
+      const largeDrift = CalibrationData(
+        dpr: 1.0,
+        cjkWidth: 18.0,
+        asciiWidth: 9.6,
+        digitWidth: 9.6,
+        punctWidth: 16.0,
+        otherWidth: 12.0,
+      );
+
+      expect(calibrationDriftExceeds(baseline, smallDrift), isFalse);
+      expect(calibrationDriftExceeds(baseline, largeDrift), isTrue);
+    });
+
+    test('isCalibrationPlausible 拒绝异常 CJK 比例', () {
+      const plausible = CalibrationData(
+        dpr: 1.0,
+        cjkWidth: 16.0,
+        asciiWidth: 9.6,
+        digitWidth: 9.6,
+        punctWidth: 16.0,
+        otherWidth: 12.0,
+      );
+      const tooWide = CalibrationData(
+        dpr: 1.0,
+        cjkWidth: 30.0,
+        asciiWidth: 9.6,
+        digitWidth: 9.6,
+        punctWidth: 16.0,
+        otherWidth: 12.0,
+      );
+
+      expect(isCalibrationPlausible(plausible, 16.0), isTrue);
+      expect(isCalibrationPlausible(tooWide, 16.0), isFalse);
+    });
+
+    test('calibrationToRust 映射 latinExtWidth', () {
+      const cal = CalibrationData(
+        dpr: 2.0,
+        cjkWidth: 18.0,
+        asciiWidth: 9.5,
+        digitWidth: 9.0,
+        punctWidth: 17.5,
+        otherWidth: 14.0,
+      );
+      final rust = calibrationToRust(cal);
+      expect(rust.latinExtWidth, equals(14.0));
+    });
+  });
+});
 }

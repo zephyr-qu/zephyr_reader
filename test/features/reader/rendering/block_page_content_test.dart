@@ -4,6 +4,7 @@ import 'package:zephyr_reader/features/reader/rendering/block_page_content.dart'
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
+import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 
 const _defaultStyle = TextBlockStyle(
   isHeading: false,
@@ -15,6 +16,8 @@ const _defaultStyle = TextBlockStyle(
   lineHeight: null,
   textAlign: null,
 );
+
+const _emptySpans = <RichTextSpan>[];
 
 ReaderRenderConfig _config({double paragraphSpacing = 12}) {
   return ReaderRenderConfig(
@@ -57,6 +60,7 @@ void main() {
                   isBlockStart: true,
                   isBlockEnd: true,
                   style: _defaultStyle,
+                  spans: _emptySpans,
                 ),
               ),
               PageBlockSlice.text(
@@ -66,6 +70,7 @@ void main() {
                   isBlockStart: true,
                   isBlockEnd: true,
                   style: _defaultStyle,
+                  spans: _emptySpans,
                 ),
               ),
             ],
@@ -102,6 +107,7 @@ void main() {
                   isBlockStart: false,
                   isBlockEnd: false,
                   style: _defaultStyle,
+                  spans: _emptySpans,
                 ),
               ),
             ],

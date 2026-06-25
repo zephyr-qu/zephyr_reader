@@ -130,6 +130,16 @@ impl ReadingOrchestrator {
         super::session::repaginate_session(handle, config, max_chars).await
     }
 
+    /// Apply Flutter TextPainter calibration to an existing session.
+    pub async fn apply_session_calibration(
+        &self,
+        handle: PaginationSessionHandle,
+        calibration: crate::domain::types::typeset::TypesetCalibration,
+        max_chars: Option<u64>,
+    ) -> Result<PaginateResult, AppError> {
+        super::session::apply_session_calibration(handle, calibration, max_chars).await
+    }
+
     /// Expand session to full chapter.
     #[allow(dead_code)] // Phase 3 — FFI delegates in api/core.rs bridge usage
     pub async fn paginate_session_full(

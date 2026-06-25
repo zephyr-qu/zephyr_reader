@@ -6,6 +6,7 @@ use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
 
 use super::content_ir::{BlockPlainRange, TextBlockStyle};
+use super::rich_text::RichTextSpan;
 
 /// 页内 Image 块的排版方式（ADR-003）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
@@ -159,6 +160,8 @@ pub struct PageTextBlockSlice {
     pub is_block_end: bool,
     /// 源 IR 块样式（ADR-010）。
     pub style: TextBlockStyle,
+    /// 页内行内格式段（ADR-010）；空 → 按 [text] plain 渲染。
+    pub spans: Vec<RichTextSpan>,
 }
 
 /// 页内 Image 块切片。

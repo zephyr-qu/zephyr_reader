@@ -169,6 +169,18 @@ pub async fn repaginate_session(
         .repaginate_session(handle, config, max_chars)
         .await
 }
+
+/// Apply Flutter TextPainter metrics to an existing session (P4-4 / ADR-013).
+#[frb]
+pub async fn apply_session_calibration(
+    handle: PaginationSessionHandle,
+    calibration: crate::domain::types::typeset::TypesetCalibration,
+    max_chars: Option<u64>,
+) -> Result<PaginateResult, AppError> {
+    ReadingOrchestrator::global()
+        .apply_session_calibration(handle, calibration, max_chars)
+        .await
+}
 /// Expand session to full chapter.
 #[frb]
 pub async fn paginate_session_full(

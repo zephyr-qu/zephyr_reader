@@ -435,4 +435,30 @@ mod tests {
         assert_eq!(loaded.result.descriptors.len(), 1);
         assert_eq!(loaded.config_hash, config_hash);
     }
+
+    #[test]
+    fn block_layout_cache_v1_is_stale() {
+        use crate::domain::{
+            BlockJoinedPlainBuilder, BlockPaginateResult, BlockPageDescriptor, BlockPlainRange,
+            TextBlockStyle,
+        };
+
+        let mut builder = BlockJoinedPlainBuilder::new();
+        builder.push_text("Hi".into(), TextBlockStyle::default());
+        let ir = builder.finish();
+        let result = BlockPaginateResult::new(
+            vec![BlockPageDescriptor::new(0, 0, 1, BlockPlainRange::new(0, 2), true)],
+            1,
+            false,
+        );
+        let stale = BlockLayoutCache {
+            version: 1,
+            config_hash: 1,
+            ir,
+            result,
+            total_pages: 1,
+            created_at: 0,
+        };
+        assert!(!stale.is_valid(1));
+    }
 }
