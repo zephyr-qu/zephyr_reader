@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 
@@ -103,7 +103,7 @@ void main() {
     test('应返回正确的 StrutStyle', () {
       final strut = _config().buildStrutStyle();
 
-      expect(strut.fontSize, closeTo(15.2, 0.01));
+      expect(strut.fontSize, equals(16));
       expect(strut.height, equals(1.5));
       expect(strut.forceStrutHeight, isTrue);
     });
@@ -139,7 +139,7 @@ void main() {
         fontSize: 20,
       ).buildStrutStyle(fontSizeMultiplier: 0.9);
 
-      expect(strut.fontSize, closeTo(20 * 0.9 * 0.95, 0.01));
+      expect(strut.fontSize, equals(18)); // 20 * 0.9
     });
   });
 

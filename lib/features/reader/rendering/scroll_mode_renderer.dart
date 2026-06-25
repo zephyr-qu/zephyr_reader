@@ -1,10 +1,7 @@
-import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 import 'highlight_painter.dart';
-import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
@@ -62,8 +59,6 @@ class ScrollModeRenderer extends HookWidget {
       config.lineHeight,
       config.fontFamily,
     ]);
-    final richSpan = dataSource.currentRichContent;
-    final chapterIr = dataSource.currentChapterIr;
     final paragraphList = useMemoized(
       () => content
           .split('\n\n')
@@ -72,14 +67,9 @@ class ScrollModeRenderer extends HookWidget {
           .toList(),
       [content],
     );
-    final richParagraphs = dataSource.currentRichParagraphs;
-    final richTextParagraphs = useMemoized(
-      () => richSpan != null ? _extractParagraphSpans(richSpan) : null,
-      [richSpan],
-    );
 
+    final chapterIr = dataSource.currentChapterIr;
     final hasSegments = segments.isNotEmpty;
-    final segmentsHaveRich = hasSegments && segments.any((s) => s.isRich);
 
     if (hasSegments && segments.every((s) => s.isIr)) {
       return buildScrollIrMultiSegmentList(
@@ -112,72 +102,7 @@ class ScrollModeRenderer extends HookWidget {
     }
 
     if (hasSegments) {
-      if (segmentsHaveRich) {
-        return _buildMultiSegmentRichList(context, textStyle, strutStyle);
-      }
       return _buildMultiSegmentPlainList(context, textStyle, strutStyle);
-    }
-
-    if (richParagraphs != null && richParagraphs.any((p) => p.isImage)) {
-      return _buildRichScrollWithImages(
-        richParagraphs,
-        richSpan!,
-        textStyle,
-        strutStyle,
-        scrollController,
-        context,
-      );
-    }
-
-    if (richTextParagraphs != null && richTextParagraphs.isNotEmpty) {
-      final paragraphs = richTextParagraphs;
-      var accOffset = 0;
-      final paraOffsets = paragraphs.map((p) {
-        final o = accOffset;
-        accOffset += _spanTextLength(p) + 2;
-        return o;
-      }).toList();
-      return ListView.builder(
-        controller: scrollController,
-        physics: adaptiveScrollPhysics(context),
-        padding: EdgeInsets.symmetric(
-          horizontal: config.pageMargin,
-          vertical: 20,
-        ),
-        itemCount: paragraphs.length,
-        itemBuilder: (context, index) {
-          final painted = HighlightPainter.paintRich(
-            paragraphs[index],
-            paraOffsets[index],
-            highlights,
-            onHighlightTap: onHighlightTap,
-            vocabularyWords: config.effectiveVocabWords,
-          );
-          return RepaintBoundary(
-            child: Padding(
-              padding: EdgeInsets.only(
-                bottom: index < paragraphs.length - 1
-                    ? config.paragraphSpacing
-                    : 0,
-              ),
-              child: SelectableText.rich(
-                painted,
-                style: textStyle,
-                strutStyle: strutStyle,
-                textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
-                textAlign: config.textAlign,
-                onSelectionChanged: (sel, cause) => _onRichSelectionChanged(
-                  sel,
-                  paragraphs[index],
-                  paraOffsets[index],
-                  context,
-                ),
-                contextMenuBuilder: (_, _) => const SizedBox.shrink(),
-              ),
-            ),
-          );
-        },
-      );
     }
 
     // Fallback: plain text content
@@ -232,56 +157,6 @@ class ScrollModeRenderer extends HookWidget {
     );
   }
 
-  /// 多段富文本（EPUB/MD，含图片）拼接 ListView。
-  Widget _buildMultiSegmentRichList(
-    BuildContext context,
-    TextStyle textStyle,
-    StrutStyle strutStyle,
-  ) {
-    final items = _flattenSegmentItems(segments);
-    final chapterIds = segments.map((s) => s.chapterIndex).toSet();
-    final segHighlights =
-        highlights.where((h) => chapterIds.contains(h.chapterIndex.toInt())).toList();
-    final maxWidth = _scrollImageMaxWidth(context);
-
-    return ListView.builder(
-      controller: scrollController,
-      physics: adaptiveScrollPhysics(context),
-      padding: EdgeInsets.symmetric(
-        horizontal: config.pageMargin,
-        vertical: 20,
-      ),
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final item = items[index];
-        final widget = item.imageParagraph != null
-            ? _buildSegmentImageItem(item.imageParagraph!, maxWidth, context)
-            : item.richSpan != null
-                ? _buildSegmentRichTextItem(
-                    context,
-                    item,
-                    segHighlights,
-                    textStyle,
-                    strutStyle,
-                  )
-                : _buildSegmentPlainTextItem(
-                    context,
-                    item,
-                    segHighlights,
-                    textStyle,
-                    strutStyle,
-                  );
-        final isImage = item.imageParagraph != null;
-        final bottomPad = index < items.length - 1
-            ? (isImage ? (config.paragraphSpacing / 2).clamp(4, 16) : config.paragraphSpacing)
-            : 0.0;
-        return Padding(
-          padding: EdgeInsets.only(bottom: bottomPad.toDouble()),
-          child: widget,
-        );
-      },
-    );
-  }
 
   List<_GlobalPara> _flattenPlainParagraphs(List<ScrollChapterSegment> segments) {
     final globalParagraphs = <_GlobalPara>[];
@@ -301,101 +176,6 @@ class ScrollModeRenderer extends HookWidget {
     return globalParagraphs;
   }
 
-  List<_GlobalScrollItem> _flattenSegmentItems(List<ScrollChapterSegment> segments) {
-    final items = <_GlobalScrollItem>[];
-    for (var si = 0; si < segments.length; si++) {
-      final seg = segments[si];
-      final isBoundary =
-          si > 0 && segments[si - 1].chapterIndex != seg.chapterIndex;
-      if (seg.isRich) {
-        items.addAll(_flattenRichSegment(seg, si, isBoundary));
-      } else {
-        for (var pi = 0; pi < seg.paragraphs.length; pi++) {
-          items.add(_GlobalScrollItem(
-            segIdx: si,
-            chapterIndex: seg.chapterIndex,
-            charOffset: seg.paragraphCharOffsets[pi],
-            plainText: seg.paragraphs[pi],
-            isSegmentBoundary: isBoundary && pi == 0,
-          ));
-        }
-      }
-    }
-    return items;
-  }
-
-  List<_GlobalScrollItem> _flattenRichSegment(
-    ScrollChapterSegment seg,
-    int segIdx,
-    bool isBoundary,
-  ) {
-    final items = <_GlobalScrollItem>[];
-    if (!seg.hasImages) {
-      final spans = seg.richRootSpan != null
-          ? _extractParagraphSpans(seg.richRootSpan!)
-          : <TextSpan>[];
-      var acc = 0;
-      for (var i = 0; i < spans.length; i++) {
-        final o = acc;
-        acc += _spanTextLength(spans[i]) + 2;
-        items.add(_GlobalScrollItem(
-          segIdx: segIdx,
-          chapterIndex: seg.chapterIndex,
-          charOffset: o,
-          richSpan: spans[i],
-          isSegmentBoundary: isBoundary && i == 0,
-        ));
-      }
-      return items;
-    }
-
-    final textParagraphs = seg.richRootSpan != null
-        ? _extractParagraphSpans(seg.richRootSpan!)
-        : <TextSpan>[];
-    var accOffset = 0;
-    final paraOffsets = <int>[];
-    for (final p in textParagraphs) {
-      paraOffsets.add(accOffset);
-      accOffset += _spanTextLength(p) + 2;
-    }
-    var textIdx = 0;
-    for (var li = 0; li < seg.richParagraphs!.length; li++) {
-      final rp = seg.richParagraphs![li];
-      if (rp.isImage) {
-        final imgOffset =
-            textIdx < paraOffsets.length ? paraOffsets[textIdx] : accOffset;
-        items.add(_GlobalScrollItem(
-          segIdx: segIdx,
-          chapterIndex: seg.chapterIndex,
-          charOffset: imgOffset,
-          imageParagraph: rp,
-          isSegmentBoundary: isBoundary && li == 0,
-        ));
-      } else {
-        if (textIdx >= textParagraphs.length) {
-          if (textIdx >= seg.paragraphs.length) continue;
-          items.add(_GlobalScrollItem(
-            segIdx: segIdx,
-            chapterIndex: seg.chapterIndex,
-            charOffset: seg.paragraphCharOffsets[textIdx],
-            plainText: seg.paragraphs[textIdx],
-            isSegmentBoundary: isBoundary && li == 0,
-          ));
-          textIdx++;
-          continue;
-        }
-        items.add(_GlobalScrollItem(
-          segIdx: segIdx,
-          chapterIndex: seg.chapterIndex,
-          charOffset: paraOffsets[textIdx],
-          richSpan: textParagraphs[textIdx],
-          isSegmentBoundary: isBoundary && li == 0,
-        ));
-        textIdx++;
-      }
-    }
-    return items;
-  }
 
   List<Note> _highlightsForParagraph(
     List<Note> segHighlights,
@@ -414,105 +194,6 @@ class ScrollModeRenderer extends HookWidget {
         .toList();
   }
 
-  Widget _buildSegmentImageItem(
-    RichParagraph rp,
-    double maxWidth,
-    BuildContext context,
-  ) {
-    if (rp.imageData.isEmpty) return const SizedBox.shrink();
-    return RepaintBoundary(
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: Spacing.sm.value),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: Image.memory(
-            rp.imageData,
-            width: maxWidth,
-            fit: BoxFit.contain,
-            cacheWidth:
-                (maxWidth * MediaQuery.devicePixelRatioOf(context)).ceil(),
-            errorBuilder: (_, e, s) => Container(
-              height: 100,
-              color: Colors.grey.withValues(alpha: 0.1),
-              child: const Center(
-                child: Icon(
-                  PhosphorIconsRegular.imageBroken,
-                  color: Colors.grey,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSegmentRichTextItem(
-    BuildContext context,
-    _GlobalScrollItem item,
-    List<Note> segHighlights,
-    TextStyle textStyle,
-    StrutStyle strutStyle,
-  ) {
-    final span = item.richSpan!;
-    final painted = HighlightPainter.paintRich(
-      span,
-      item.charOffset,
-      _highlightsForParagraph(
-        segHighlights,
-        item.chapterIndex,
-        item.charOffset,
-        _spanTextLength(span),
-      ),
-      onHighlightTap: onHighlightTap,
-      vocabularyWords: config.effectiveVocabWords,
-    );
-    return RepaintBoundary(
-      child: SelectableText.rich(
-        painted,
-        style: textStyle,
-        strutStyle: strutStyle,
-        textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
-        textAlign: config.textAlign,
-        onSelectionChanged: (sel, cause) =>
-            _onRichSelectionChanged(sel, span, item.charOffset, context),
-        contextMenuBuilder: (_, _) => const SizedBox.shrink(),
-      ),
-    );
-  }
-
-  Widget _buildSegmentPlainTextItem(
-    BuildContext context,
-    _GlobalScrollItem item,
-    List<Note> segHighlights,
-    TextStyle textStyle,
-    StrutStyle strutStyle,
-  ) {
-    final text = item.plainText ?? '';
-    final painted = HighlightPainter.paintPlain(
-      text,
-      textStyle,
-      _highlightsForParagraph(
-        segHighlights,
-        item.chapterIndex,
-        item.charOffset,
-        text.length,
-      ),
-      onHighlightTap: onHighlightTap,
-      vocabularyWords: config.effectiveVocabWords,
-    );
-    return RepaintBoundary(
-      child: SelectableText.rich(
-        painted,
-        strutStyle: strutStyle,
-        textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
-        textAlign: config.textAlign,
-        onSelectionChanged: (sel, cause) =>
-            _onPlainSelectionChanged(sel, text, item.charOffset, context),
-        contextMenuBuilder: (_, _) => const SizedBox.shrink(),
-      ),
-    );
-  }
 
   /// 多段拼接纯文本 ListView。遍历 [segments] 所有段落，按全局段落索引构建连续滚动列表。
   Widget _buildMultiSegmentPlainList(
@@ -592,138 +273,7 @@ class ScrollModeRenderer extends HookWidget {
     );
   }
 
-  Widget _buildRichScrollWithImages(
-    List<RichParagraph> richParagraphs,
-    TextSpan richSpan,
-    TextStyle textStyle,
-    StrutStyle strutStyle,
-    ScrollController scrollController,
-    BuildContext context,
-  ) {
-    final textParagraphs = _extractParagraphSpans(richSpan);
-    var accOffset = 0;
-    final paraOffsets = <int>[];
-    for (final p in textParagraphs) {
-      paraOffsets.add(accOffset);
-      accOffset += _spanTextLength(p) + 2;
-    }
 
-    final textParaIndex = <int>[];
-    var ti = 0;
-    for (final rp in richParagraphs) {
-      if (rp.isImage) {
-        textParaIndex.add(-1);
-      } else {
-        textParaIndex.add(ti);
-        ti++;
-      }
-    }
-
-    final maxWidth = _scrollImageMaxWidth(context);
-
-    return ListView.builder(
-      controller: scrollController,
-      physics: adaptiveScrollPhysics(context),
-      padding: EdgeInsets.symmetric(
-        horizontal: config.pageMargin,
-        vertical: 20,
-      ),
-      itemCount: richParagraphs.length,
-      itemBuilder: (context, index) {
-        final rp = richParagraphs[index];
-        if (rp.isImage) {
-          if (rp.imageData.isEmpty) return const SizedBox.shrink();
-          return RepaintBoundary(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: Spacing.sm.value),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: Image.memory(
-                  rp.imageData,
-                  width: maxWidth,
-                  fit: BoxFit.contain,
-                  cacheWidth:
-                      (maxWidth * MediaQuery.devicePixelRatioOf(context))
-                          .ceil(),
-                  errorBuilder: (_, e, s) => Container(
-                    height: 100,
-                    color: Colors.grey.withValues(alpha: 0.1),
-                    child: const Center(
-                      child: Icon(
-                        PhosphorIconsRegular.imageBroken,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-        } else {
-          final textIdx = textParaIndex[index];
-          if (textIdx < 0 || textIdx >= textParagraphs.length) {
-            return const SizedBox.shrink();
-          }
-          final span = textParagraphs[textIdx];
-          final offset = paraOffsets[textIdx];
-          final painted = HighlightPainter.paintRich(
-            span,
-            offset,
-            highlights,
-            onHighlightTap: onHighlightTap,
-            vocabularyWords: config.effectiveVocabWords,
-          );
-          return RepaintBoundary(
-            child: Padding(
-              padding: EdgeInsets.only(
-                bottom: textIdx < textParagraphs.length - 1
-                    ? config.paragraphSpacing
-                    : 0,
-              ),
-              child: SelectableText.rich(
-                painted,
-                style: textStyle,
-                strutStyle: strutStyle,
-                textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
-                textAlign: config.textAlign,
-                onSelectionChanged: (sel, cause) =>
-                    _onRichSelectionChanged(sel, span, offset, context),
-                contextMenuBuilder: (_, _) => const SizedBox.shrink(),
-              ),
-            ),
-          );
-        }
-      },
-    );
-  }
-
-  double _scrollImageMaxWidth(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    return (width - 2 * config.pageMargin).clamp(1.0, width);
-  }
-
-  List<TextSpan> _extractParagraphSpans(TextSpan rootSpan) {
-    if (rootSpan.children == null || rootSpan.children!.isEmpty) {
-      return [rootSpan];
-    }
-    final paragraphs = <TextSpan>[];
-    var currentChildren = <InlineSpan>[];
-    for (final child in rootSpan.children!) {
-      if (child is! TextSpan) continue;
-      if (child.text == '\n\n') {
-        if (currentChildren.isNotEmpty) {
-          paragraphs.add(TextSpan(children: currentChildren));
-          currentChildren = [];
-        }
-      } else {
-        currentChildren.add(child);
-      }
-    }
-    if (currentChildren.isNotEmpty) {
-      paragraphs.add(TextSpan(children: currentChildren));
-    }
-    return paragraphs;
-  }
 
   void _reportSelectionPosition(BuildContext context, TextSelection sel) {
     if (!sel.isValid || sel.isCollapsed) {
@@ -754,40 +304,7 @@ class ScrollModeRenderer extends HookWidget {
     }
   }
 
-  void _onRichSelectionChanged(
-    TextSelection sel,
-    TextSpan span,
-    int offset, [
-    BuildContext? buildContext,
-  ]) {
-    if (!sel.isValid || sel.isCollapsed) {
-      onSelectionChanged?.call('', 0, 0);
-      return;
-    }
-    final fullText = span.toPlainText();
-    if (sel.start >= fullText.length) {
-      onSelectionChanged?.call('', 0, 0);
-      return;
-    }
-    final end = sel.end > fullText.length ? fullText.length : sel.end;
-    final text = fullText.substring(sel.start, end);
-    onSelectionChanged?.call(text, offset + sel.start, offset + end);
-    if (buildContext != null) {
-      _reportSelectionPosition(buildContext, sel);
-    }
-  }
 
-  int _spanTextLength(TextSpan span) {
-    if (span.text != null) return span.text!.length;
-    if (span.children != null) {
-      var len = 0;
-      for (final child in span.children!) {
-        if (child is TextSpan) len += _spanTextLength(child);
-      }
-      return len;
-    }
-    return 0;
-  }
 
   String _splitLongSentence(String text) {
     if (!showSentenceSplit || text.length < 80) return text;
@@ -832,23 +349,3 @@ class _GlobalPara {
   });
 }
 
-/// 多段滚动列表项（plain / rich / image）。
-class _GlobalScrollItem {
-  final int segIdx;
-  final int chapterIndex;
-  final int charOffset;
-  final bool isSegmentBoundary;
-  final String? plainText;
-  final TextSpan? richSpan;
-  final RichParagraph? imageParagraph;
-
-  const _GlobalScrollItem({
-    required this.segIdx,
-    required this.chapterIndex,
-    required this.charOffset,
-    this.isSegmentBoundary = false,
-    this.plainText,
-    this.richSpan,
-    this.imageParagraph,
-  });
-}
