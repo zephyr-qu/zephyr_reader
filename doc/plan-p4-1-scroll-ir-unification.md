@@ -4,22 +4,22 @@ overview: Agent 主线程 — 让 scroll 模式与 pagination 共用 ContentBloc
 todos:
   - id: spike-data-path
     content: "摸清 scroll 当前 loadScrollSegment / RichParagraph 与 pagination block 路径差异"
-    status: in_progress
+    status: completed
   - id: frb-scroll-blocks
     content: "暴露 get_chapter_blocks 或复用 session block API 给 scroll（无分页）"
-    status: pending
+    status: completed
   - id: scroll-renderer-ir
     content: "ScrollModeRenderer 按 ContentBlock 流渲染 Text/Image"
-    status: pending
+    status: completed
   - id: boundary-ir-segments
     content: "ScrollBoundaryCoordinator 拼接 IR 段而非 plain 段"
-    status: pending
+    status: completed
   - id: remove-rich-fallback
     content: "含图章不再 epubRichSkipped plain 降级（scroll 路径）"
-    status: pending
+    status: completed
   - id: tests
     content: "scroll_boundary + integration：含图 EPUB scroll 可见图"
-    status: pending
+    status: completed
 isProject: false
 ---
 
@@ -83,14 +83,21 @@ flowchart LR
 - [ ] `ScrollChapterSegment` 携带 `List<ContentBlock>` 或 block 范围
 - [ ] `ScrollBoundaryCoordinator.appendNext/prependPrev` 加载 IR 而非 plain payload
 
-### Phase D — 删除 scroll rich 主路径
+### Phase D — 删除 scroll rich 主路径 ✅（2026-06-25）
 
-- [ ] `epubRichSkipped` 在 scroll+IR 路径不再触发
-- [ ] `RichParagraph` 仅双语过渡（至 P4-5）
+- [x] `_loadScrollModePayload`：IR → plain 回退；不加载 rich
+- [x] scroll 路径永不 `epubRichSkipped`；notice 仅双语
+- [x] `scrollIrPayload` helper；segment/coordinator 单测
+
+**遗留（P4-5）**：双语仍走 `RichParagraph` 过渡。
 
 ---
 
-## Spike 结果（Agent 填写）
+## 验收（PHASE4_SCOPE）
+
+- [x] scroll 含图章走 IR，无 `epubRichSkipped` toast（scroll 模式）
+- [x] scroll / pagination 同源 `ContentBlock[]`
+- [x] I1/I2 不变：进度仍 charOffset on plainText
 
 **2026-06-25 初查**
 

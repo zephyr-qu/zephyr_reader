@@ -1851,7 +1851,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get otherExperimental => 'Experimental';
 
-
   @override
   String get otherLegal => 'Legal & Compliance';
 

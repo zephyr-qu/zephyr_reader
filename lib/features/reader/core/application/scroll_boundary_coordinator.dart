@@ -15,7 +15,7 @@ import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 /// 滚动模式章界协调器。
 ///
 /// 管理 [ScrollDocumentComposer] 的生命周期、内容加载与信号更新。
-/// 绕过 [ChapterLoadOrchestrator] 全量分页 pipeline，支持 plain + EPUB 富文本拼接。
+/// Scroll 主路径走 IR（ADR-009）；双语仍可用 rich + epubRichSkipped 降级。
 class ScrollBoundaryCoordinator {
   final ReaderRepositoryInterface _repo;
   final void Function(int chapterIndex, int charOffset) _onPositionChanged;
@@ -95,7 +95,8 @@ class ScrollBoundaryCoordinator {
       if (gen != _loadingGen || _composer == null) return;
       _composer!.appendNext(ScrollSegmentFactory.fromPayload(nextIdx, payload));
       _emitSegments();
-      if (payload.epubRichSkipped) {
+      if (payload.epubRichSkipped &&
+          readingMode == ReadingMode.bilingual) {
         _onReaderNotice?.call(ReaderNotice.epubRichSkipped);
       }
       unawaited(
@@ -134,7 +135,8 @@ class ScrollBoundaryCoordinator {
         ScrollSegmentFactory.fromPayload(prevIdx, payload),
       );
       _emitSegments();
-      if (payload.epubRichSkipped) {
+      if (payload.epubRichSkipped &&
+          readingMode == ReadingMode.bilingual) {
         _onReaderNotice?.call(ReaderNotice.epubRichSkipped);
       }
     } catch (e) {

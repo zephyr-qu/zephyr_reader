@@ -324,7 +324,8 @@ class ChapterLoadOrchestrator {
         );
       }
       if (_contentRepo.consumeEpubRichSkippedNotice()) {
-        if (_contentRepo.sessionMode != ChapterPaginationMode.contentBlocks) {
+        if (request.readingMode == ReadingMode.bilingual &&
+            _contentRepo.sessionMode != ChapterPaginationMode.contentBlocks) {
           _chapterVM.readerNotice.value = ReaderNotice.epubRichSkipped;
         }
       }

@@ -271,10 +271,12 @@ class ScrollModeRenderer extends HookWidget {
                     textStyle,
                     strutStyle,
                   );
+        final isImage = item.imageParagraph != null;
+        final bottomPad = index < items.length - 1
+            ? (isImage ? (config.paragraphSpacing / 2).clamp(4, 16) : config.paragraphSpacing)
+            : 0.0;
         return Padding(
-          padding: EdgeInsets.only(
-            bottom: index < items.length - 1 ? config.paragraphSpacing : 0,
-          ),
+          padding: EdgeInsets.only(bottom: bottomPad.toDouble()),
           child: widget,
         );
       },
@@ -285,7 +287,7 @@ class ScrollModeRenderer extends HookWidget {
     final globalParagraphs = <_GlobalPara>[];
     for (var si = 0; si < segments.length; si++) {
       final seg = segments[si];
-      for (var pi = 0; pi < seg.paragraphCount; pi++) {
+      for (var pi = 0; pi < seg.paragraphs.length; pi++) {
         globalParagraphs.add(_GlobalPara(
           segIdx: si,
           localIdx: pi,
@@ -308,7 +310,7 @@ class ScrollModeRenderer extends HookWidget {
       if (seg.isRich) {
         items.addAll(_flattenRichSegment(seg, si, isBoundary));
       } else {
-        for (var pi = 0; pi < seg.paragraphCount; pi++) {
+        for (var pi = 0; pi < seg.paragraphs.length; pi++) {
           items.add(_GlobalScrollItem(
             segIdx: si,
             chapterIndex: seg.chapterIndex,
