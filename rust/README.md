@@ -19,17 +19,6 @@ Zephyr Reader 的高性能阅读引擎，基于 Rust 实现，提供书籍解析
   - 富文本内容解析（支持 HTML 标签）
   - 内容提供者模式
 
-- **PDF 文件解析**
-  - PDF 文本提取
-  - 元数据读取
-  - 封面提取
-  - 内容提供者模式
-
-- **Markdown 文件解析**
-  - Markdown 语法解析
-  - HTML 渲染
-  - 内容提供者模式
-
 ### 🎨 文本处理
 
 - **智能排版**
@@ -90,7 +79,6 @@ Zephyr Reader 的高性能阅读引擎，基于 Rust 实现，提供书籍解析
 ### 🖼️ 封面提取
 
 - EPUB 封面提取
-- PDF 封面提取
 - 格式支持检测
 
 ## 目录结构
@@ -106,7 +94,6 @@ rust/
 │   │   ├── search.rs                 # 全文搜索 API
 │   │   ├── cover.rs                  # 封面提取 API
 │   │   ├── epub.rs                   # EPUB 特有功能 API
-│   │   ├── md.rs                     # Markdown 解析 API
 │   │   ├── dictionary.rs             # 词典查询 API
 │   │   └── data/                     # 数据存储 API
 │   │       ├── mod.rs
@@ -139,18 +126,6 @@ rust/
 │   │   │   ├── parse.rs              # 内容解析
 │   │   │   ├── toc.rs                # 目录提取
 │   │   │   └── provider.rs           # EPUB 内容提供者
-│   │   ├── pdf/                      # PDF 解析
-│   │   │   ├── mod.rs
-│   │   │   ├── parse.rs              # PDF 解析
-│   │   │   ├── text.rs               # 文本提取
-│   │   │   ├── images.rs             # 封面提取
-│   │   │   ├── metadata.rs           # 元数据提取
-│   │   │   └── provider.rs           # PDF 内容提供者
-│   │   └── md/                       # Markdown 解析
-│   │       ├── mod.rs
-│   │       ├── parse.rs              # Markdown 解析
-│   │       ├── render.rs             # 渲染
-│   │       └── provider.rs           # Markdown 内容提供者
 │   │
 │   ├── text/                         # 文本处理引擎
 │   │   ├── mod.rs                    # 模块声明
@@ -368,8 +343,7 @@ pub struct BilingualAlignment {
 ### 解析优化
 
 1. **增量解析**: 使用 `parseLocalBookIncremental` 支持缓存，避免重复解析
-2. **异步解析**: PDF 支持异步解析模式 (`asyncParsePdfFile`)
-3. **流式加载**: 大文件使用流式 API，避免一次性加载
+2. **流式加载**: 大文件使用流式 API，避免一次性加载
 
 ### 存储优化
 

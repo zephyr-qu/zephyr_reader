@@ -25,7 +25,7 @@ abstract class ChapterContentRepository {
 
   Future<void> preload(String bookId, int chapterId);
 
-  /// 当前章节的富文本内容（EPUB/MD）。
+  /// 当前章节的富文本内容（EPUB）。
   TextSpan? get currentRichContent;
 
   /// 当前章节的富文本段落。

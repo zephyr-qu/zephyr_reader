@@ -7,7 +7,7 @@ import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 ///
 /// 每个 [ScrollChapterSegment] 对应一个章节的段落序列，
 /// 供 [ScrollDocumentComposer] 拼接多章时使用。
-/// Phase 2：可选 [richParagraphs] / [richRootSpan] 支持 EPUB/MD 富文本与图片。
+/// Phase 2：可选 [richParagraphs] / [richRootSpan] 支持 EPUB 富文本与图片。
 class ScrollChapterSegment {
   final int chapterIndex;
   final List<String> paragraphs;

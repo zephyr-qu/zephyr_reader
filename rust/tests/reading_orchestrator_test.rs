@@ -343,7 +343,7 @@ async fn test_get_chapter_epub_returns_full_chapter_content() {
 }
 
 /// Regression test for CRITICAL BUG #2 (audited 2026-06-17):
-/// `paginate_chapter` partial mode for TXT/MD must read from the chapter's
+/// `paginate_chapter` partial mode for TXT must read from the chapter's
 /// start byte offset, not from byte 0. Before the fix, partial pagination
 /// for chapter_index > 0 returned the first 100 chars of the FILE (i.e.
 /// chapter 0), regardless of the requested chapter.

@@ -5,7 +5,7 @@
 //! - `rich_text`: 富文本结构
 //! - `content_ir`: Phase 2 章节 IR（ContentBlock）
 //! - `pagination`: 分页内容
-//! - `metadata`: 元数据（EPUB/PDF/解析结果）
+//! - `metadata`: 元数据（EPUB/解析结果）
 
 // 子模块声明
 pub mod block_pagination;

@@ -1,8 +1,8 @@
 # 阅读核心路线图（与边界 v1.1 绑定）
 
-> **当前阶段 = Phase 3 已退出**（2026-06-24 合入 `master` @ `faa1653`）  
-> **Phase 2** 已合入 `master`（2026-06-24）  
-> **下一项**：无 Phase 4 定义；功能 backlog 见 [READING_BOUNDARIES.md](./READING_BOUNDARIES.md) Should + [PHASE3_EXIT.md](./PHASE3_EXIT.md) 非阻塞遗留
+> **当前阶段 = Phase 4 引擎完善**（2026-06-25 定义，见 [PHASE4_SCOPE.md](./PHASE4_SCOPE.md)）  
+> **Phase 3** 已合入 `master`（2026-06-24）  
+> **上一阶段**：Phase 3 退出 @ `faa1653`
 
 ---
 
@@ -70,6 +70,23 @@ EPUB 分页内联图 + 大图独占页；`BlockPaginator`；charOffset 兼容 AD
 
 ---
 
-## 不做
+## Phase 4 — 引擎完善 🚧 进行中
 
-PDF 主链、WebView、账号同步、双语主链重构。
+**目标**：统一 IR 渲染管线、块级 CSS、staging 硬保证、metrics 校准、双语模块边界。详见 [PHASE4_SCOPE.md](./PHASE4_SCOPE.md)。
+
+| # | 项 | ADR | 状态 |
+|---|-----|-----|------|
+| P4-0 | 文档对齐（README / DOMAIN_MODEL / glossary） | — | ✅ |
+| P4-1 | Scroll → Chunked IR | 009 | ⬜ |
+| P4-2 | IR Text 块基础 CSS | 010 | ⬜ |
+| P4-3 | Staging 零可见 loading | 012 | ⬜ |
+| P4-4 | Flutter Metrics 回传校准 | 013 | ⬜ |
+| P4-5 | 双语独立 feature 模块 | 011 | ⬜ |
+
+**退出标准**：[PHASE4_SCOPE.md](./PHASE4_SCOPE.md) §退出标准
+
+---
+
+## 不做（Phase 4 仍适用）
+
+PDF 阅读、WebView、账号/多端同步、章内搜索 UI、Rust CancellationToken、CJK 标点挤压引擎。
