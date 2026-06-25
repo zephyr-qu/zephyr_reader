@@ -77,7 +77,7 @@ EPUB 分页内联图 + 大图独占页；`BlockPaginator`；charOffset 兼容 AD
 | # | 项 | ADR | 状态 |
 |---|-----|-----|------|
 | P4-0 | 文档对齐（README / DOMAIN_MODEL / glossary） | — | ✅ |
-| P4-1 | Scroll → Chunked IR | 009 | ⬜ |
+| P4-1 | Scroll → Chunked IR | 009 | 🚧 Phase B+C ✅；待集成测 + 双语路径 |
 | P4-2 | IR Text 块基础 CSS | 010 | ⬜ |
 | P4-3 | Staging 零可见 loading | 012 | ⬜ |
 | P4-4 | Flutter Metrics 回传校准 | 013 | ⬜ |

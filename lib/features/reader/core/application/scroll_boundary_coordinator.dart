@@ -9,6 +9,7 @@ import 'package:zephyr_reader/features/reader/core/data/scroll_segment_factory.d
 import 'package:zephyr_reader/features/reader/core/application/scroll_document_composer.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_notice.dart';
+import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 
 /// 滚动模式章界协调器。
@@ -51,6 +52,8 @@ class ScrollBoundaryCoordinator {
     String content, {
     List<RichParagraph>? richParagraphs,
     TextSpan? richRootSpan,
+    ChapterContentIr? chapterIr,
+    String? chapterFilePath,
   }) {
     _composer = ScrollDocumentComposer(centerChapterIndex: chapterIndex);
     _composer!.reset(
@@ -61,6 +64,8 @@ class ScrollBoundaryCoordinator {
           richParagraphs: richParagraphs,
           richRootSpan: richRootSpan,
           epubRichSkipped: false,
+          chapterIr: chapterIr,
+          chapterFilePath: chapterFilePath,
         ),
       ),
     );
@@ -168,6 +173,8 @@ class ScrollBoundaryCoordinator {
     String content, {
     List<RichParagraph>? richParagraphs,
     TextSpan? richRootSpan,
+    ChapterContentIr? chapterIr,
+    String? chapterFilePath,
   }) {
     _loadingGen++;
     _isLoadingNext = false;
@@ -181,6 +188,8 @@ class ScrollBoundaryCoordinator {
           richParagraphs: richParagraphs,
           richRootSpan: richRootSpan,
           epubRichSkipped: false,
+          chapterIr: chapterIr,
+          chapterFilePath: chapterFilePath,
         ),
       ),
     );

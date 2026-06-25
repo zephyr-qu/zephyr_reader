@@ -254,6 +254,8 @@ class ReaderViewModel {
           chapterManager.chapterIndex.value,
           richParagraphs: _repo.currentRichParagraphs,
           richRootSpan: _repo.currentRichContent,
+          chapterIr: _repo.currentChapterIr,
+          chapterFilePath: _repo.currentChapterFilePath,
         );
       }
     }

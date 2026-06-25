@@ -11,6 +11,7 @@ import 'package:zephyr_reader/features/reader/core/data/reader_render_data_sourc
 import 'reader_render_config.dart';
 import 'find_render_box.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
+import 'scroll_ir_block_list.dart';
 
 /// 滚动模式渲染器。
 ///
@@ -62,6 +63,7 @@ class ScrollModeRenderer extends HookWidget {
       config.fontFamily,
     ]);
     final richSpan = dataSource.currentRichContent;
+    final chapterIr = dataSource.currentChapterIr;
     final paragraphList = useMemoized(
       () => content
           .split('\n\n')
@@ -78,6 +80,36 @@ class ScrollModeRenderer extends HookWidget {
 
     final hasSegments = segments.isNotEmpty;
     final segmentsHaveRich = hasSegments && segments.any((s) => s.isRich);
+
+    if (hasSegments && segments.every((s) => s.isIr)) {
+      return buildScrollIrMultiSegmentList(
+        context: context,
+        scrollController: scrollController,
+        segments: segments,
+        config: config,
+        highlights: highlights,
+        onHighlightTap: onHighlightTap,
+        onSelectionChanged: onSelectionChanged,
+        onSelectionGlobalPosition: onSelectionGlobalPosition,
+      );
+    }
+
+    if (!hasSegments &&
+        chapterIr != null &&
+        chapterIr.blocks.isNotEmpty) {
+      return buildScrollIrBlockList(
+        context: context,
+        scrollController: scrollController,
+        blocks: chapterIr.blocks,
+        epubFilePath: dataSource.currentChapterFilePath,
+        chapterIndex: chapterId,
+        config: config,
+        highlights: highlights,
+        onHighlightTap: onHighlightTap,
+        onSelectionChanged: onSelectionChanged,
+        onSelectionGlobalPosition: onSelectionGlobalPosition,
+      );
+    }
 
     if (hasSegments) {
       if (segmentsHaveRich) {

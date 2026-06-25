@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
@@ -35,9 +36,11 @@ class ChapterNavigator {
 
   Future<void> previousChapter() async {
     if (_loader.isLoading.value) return;
-    if (_chapterVM.chapterIndex.value > 0) {
-      final newChapterIndex = _chapterVM.chapterIndex.value - 1;
+    final fromChapter = _chapterVM.chapterIndex.value;
+    if (fromChapter > 0) {
+      final newChapterIndex = fromChapter - 1;
       _chapterVM.showChapterTransition.value = false;
+      final sw = Stopwatch()..start();
       await _loader.loadChapter(
         newChapterIndex,
         preserveContent: true,
@@ -45,20 +48,28 @@ class ChapterNavigator {
         navigationKind: ChapterNavigationKind.adjacentCrossChapter,
         initialCharOffset: preferLastPageCharOffset,
       );
+      Logging.info(
+        '[Timing] cross-chapter backward: chapter_from=$fromChapter chapter_to=$newChapterIndex total_ms=${sw.elapsedMilliseconds}',
+      );
     }
   }
 
   Future<void> nextChapter() async {
     if (_loader.isLoading.value) return;
     final chapterList = _chapters.value.value ?? [];
-    if (_chapterVM.chapterIndex.value < chapterList.length - 1) {
-      final newChapterIndex = _chapterVM.chapterIndex.value + 1;
+    final fromChapter = _chapterVM.chapterIndex.value;
+    if (fromChapter < chapterList.length - 1) {
+      final newChapterIndex = fromChapter + 1;
       _chapterVM.showChapterTransition.value = false;
+      final sw = Stopwatch()..start();
       await _loader.loadChapter(
         newChapterIndex,
         preserveContent: true,
         readingMode: _chapterVM.activeReadingMode,
         navigationKind: ChapterNavigationKind.adjacentCrossChapter,
+      );
+      Logging.info(
+        '[Timing] cross-chapter forward: chapter_from=$fromChapter chapter_to=$newChapterIndex total_ms=${sw.elapsedMilliseconds}',
       );
     }
   }
