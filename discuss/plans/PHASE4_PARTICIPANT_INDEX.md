@@ -49,7 +49,7 @@
 
 | 项 | 状态 | 说明 |
 |----|------|------|
-| P4-1 Scroll → IR | 🚧 进行中 | 见 [plan-p4-1-scroll-ir-unification.md](../../doc/plan-p4-1-scroll-ir-unification.md) |
+| P4-1 Scroll → IR | ✅ 完成 | Phase D：scroll 无 rich 降级 |
 | P4-2 IR 块 CSS | ⬜ 排队 | 依赖 P4-1 块加载路径 |
 | P4-4 Metrics 回传 | ✅ 完成 | 独立 Rust+FRB，主线程第二阶段 |
 | P4-5 双语 feature 模块 | ⬜ 排队 | 可与 T4 并行，但改动面大 |

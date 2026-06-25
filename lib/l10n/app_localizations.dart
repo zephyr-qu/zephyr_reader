@@ -3548,7 +3548,6 @@ abstract class AppLocalizations {
   /// **'实验性功能'**
   String get otherExperimental;
 
-
   /// No description provided for @otherLegal.
   ///
   /// In zh, this message translates to:

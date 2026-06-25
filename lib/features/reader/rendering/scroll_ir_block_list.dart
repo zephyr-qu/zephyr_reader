@@ -195,12 +195,12 @@ Widget buildScrollIrBlockItem({
   }
   final bottomSpacing = textBlockStyle != null
       ? IrTextBlockStyle.resolveBottomSpacing(textBlockStyle, config)
-      : config.paragraphSpacing;
+      : (config.paragraphSpacing / 2).clamp(4, 16);
   if (bottomSpacing <= 0) {
     return wrapped;
   }
   return Padding(
-    padding: EdgeInsets.only(bottom: bottomSpacing),
+    padding: EdgeInsets.only(bottom: bottomSpacing.toDouble()),
     child: wrapped,
   );
 }

@@ -28,3 +28,17 @@ ScrollChapterPayload scrollPlainPayload(
       chapterFilePath: chapterFilePath,
     );
 
+/// IR 章节 payload（scroll 主路径，ADR-009）。
+ScrollChapterPayload scrollIrPayload({
+  required ChapterContentIr chapterIr,
+  required String chapterFilePath,
+}) =>
+    (
+      content: chapterIr.plainText,
+      richParagraphs: null,
+      richRootSpan: null,
+      epubRichSkipped: false,
+      chapterIr: chapterIr,
+      chapterFilePath: chapterFilePath,
+    );
+

@@ -98,9 +98,9 @@ class RustChapterContentRepository implements ChapterContentRepository {
   }) =>
       _loadChapterPayload(bookId, chapterId, readingMode: readingMode);
 
-  /// 仅滚动/双语模式需要 EPUB 富文本；分页路径只用 plain。
+  /// 仅双语模式需要 EPUB 富文本；scroll 走 IR；分页路径只用 plain。
   static bool _needsRichContent(ReadingMode? mode) =>
-      mode == ReadingMode.scroll || mode == ReadingMode.bilingual;
+      mode == ReadingMode.bilingual;
 
   void _applyCurrentRich(int chapterId, ScrollChapterPayload payload) {
     _currentRichContent = payload.richRootSpan;
@@ -132,14 +132,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
       Logging.info(
         '[Timing] loadChapterIr: ${sw.elapsedMilliseconds}ms blocks=${ir.blocks.length}',
       );
-      return (
-        content: ir.plainText,
-        richParagraphs: null,
-        richRootSpan: null,
-        epubRichSkipped: false,
-        chapterIr: ir,
-        chapterFilePath: filePath,
-      );
+      return scrollIrPayload(chapterIr: ir, chapterFilePath: filePath);
     } catch (e) {
       Logging.warning('loadChapterPayload IR failed, fallback rich/plain: $e');
       return null;
@@ -248,7 +241,6 @@ class RustChapterContentRepository implements ChapterContentRepository {
     int chapterId, {
     ReadingMode? readingMode,
   }) async {
-    final loadRich = _needsRichContent(readingMode);
     final sw = Stopwatch()..start();
     try {
       final book = await _getBook(bookId);
@@ -257,91 +249,148 @@ class RustChapterContentRepository implements ChapterContentRepository {
       }
 
       final filePath = book.filePath;
-      final isEpub = filePath.toLowerCase().endsWith('.epub');
 
-      final irPayload = await _tryLoadScrollIr(
+      if (readingMode == ReadingMode.scroll) {
+        return _loadScrollModePayload(
+          filePath: filePath,
+          chapterId: chapterId,
+          sw: sw,
+        );
+      }
+
+      return _loadRichCapablePayload(
         filePath: filePath,
         chapterId: chapterId,
         readingMode: readingMode,
-      );
-      if (irPayload != null) {
-        _flagEpubRichSkipped(false);
-        _setChapterFilePath(filePath);
-        return irPayload;
-      }
-
-      Future<List<RichParagraph>>? epubRichFuture;
-      if (isEpub && loadRich) {
-        final config = _resolveTypesetConfig();
-        epubRichFuture = epub_api
-            .getEpubChapterRichContent(
-              filePath: filePath,
-              chapterIndex: chapterId,
-              config: config,
-            )
-            .catchError((_) => <RichParagraph>[]);
-      }
-
-      final results = await Future.wait([
-        core_api.getChapter(filePath: filePath, chapterIndex: chapterId),
-        if (epubRichFuture != null)
-          epubRichFuture
-        else
-          Future<Object?>.value(null),
-      ]);
-      var content = (results[0] as core_api.ChapterContent).when(
-        raw: (text) => text,
-        pages: (pages) => pages.map((p) => p.content).join('\n\n'),
-      );
-
-      var epubRichSkipped = false;
-      if (isEpub && content.length > 500 * 1024) {
-        Logging.warning(
-          'loadContent: content too large (${content.length} bytes), '
-          'discarding rich text typesetting result',
-        );
-        epubRichSkipped = true;
-      } else if (epubRichFuture != null && results[1] is List<RichParagraph>) {
-        try {
-          final paragraphs = results[1] as List<RichParagraph>;
-          if (paragraphs.isNotEmpty) {
-            final result = _richTextConverter.toTextSpan(paragraphs);
-            content = result.$2;
-            _flagEpubRichSkipped(false);
-            return (
-              content: content,
-              richParagraphs: paragraphs,
-              richRootSpan: result.$1,
-              epubRichSkipped: false,
-              chapterIr: null,
-              chapterFilePath: filePath,
-            );
-          }
-        } catch (e) {
-          Logging.error('loadContent EPUB rich typeset failed: $e');
-        }
-      }
-
-      if (content.isEmpty) {
-        throw Exception('Chapter content is empty');
-      }
-
-      final tTotal = sw.elapsedMilliseconds;
-      Logging.info(
-        '[Timing] loadContent total: ${tTotal}ms '
-        '(EPUB=$isEpub)',
-      );
-
-      _flagEpubRichSkipped(epubRichSkipped);
-      return scrollPlainPayload(
-        content,
-        epubRichSkipped: epubRichSkipped,
-        chapterFilePath: filePath,
+        sw: sw,
       );
     } catch (e) {
       Logging.error('loadContent error: $e');
       throw Exception('Failed to load chapter content: $e');
     }
+  }
+
+  /// Scroll 主路径：IR → plain 回退；不走 rich / epubRichSkipped（ADR-009 Phase D）。
+  Future<ScrollChapterPayload> _loadScrollModePayload({
+    required String filePath,
+    required int chapterId,
+    required Stopwatch sw,
+  }) async {
+    final irPayload = await _tryLoadScrollIr(
+      filePath: filePath,
+      chapterId: chapterId,
+      readingMode: ReadingMode.scroll,
+    );
+    if (irPayload != null) {
+      _flagEpubRichSkipped(false);
+      _setChapterFilePath(filePath);
+      return irPayload;
+    }
+
+    final content = await _fetchPlainChapterContent(filePath, chapterId);
+    Logging.info(
+      '[Timing] loadScrollPayload plain fallback: ${sw.elapsedMilliseconds}ms',
+    );
+    _flagEpubRichSkipped(false);
+    _setChapterFilePath(filePath);
+    return scrollPlainPayload(content, chapterFilePath: filePath);
+  }
+
+  Future<String> _fetchPlainChapterContent(
+    String filePath,
+    int chapterId,
+  ) async {
+    final result = await core_api.getChapter(
+      filePath: filePath,
+      chapterIndex: chapterId,
+    );
+    final content = result.when(
+      raw: (text) => text,
+      pages: (pages) => pages.map((p) => p.content).join('\n\n'),
+    );
+    if (content.isEmpty) {
+      throw Exception('Chapter content is empty');
+    }
+    return content;
+  }
+
+  /// 双语 / 默认路径：可加载 EPUB rich；大章可触发 epubRichSkipped。
+  Future<ScrollChapterPayload> _loadRichCapablePayload({
+    required String filePath,
+    required int chapterId,
+    ReadingMode? readingMode,
+    required Stopwatch sw,
+  }) async {
+    final loadRich = _needsRichContent(readingMode);
+    final isEpub = filePath.toLowerCase().endsWith('.epub');
+
+    Future<List<RichParagraph>>? epubRichFuture;
+    if (isEpub && loadRich) {
+      final config = _resolveTypesetConfig();
+      epubRichFuture = epub_api
+          .getEpubChapterRichContent(
+            filePath: filePath,
+            chapterIndex: chapterId,
+            config: config,
+          )
+          .catchError((_) => <RichParagraph>[]);
+    }
+
+    final results = await Future.wait([
+      core_api.getChapter(filePath: filePath, chapterIndex: chapterId),
+      if (epubRichFuture != null)
+        epubRichFuture
+      else
+        Future<Object?>.value(null),
+    ]);
+    var content = (results[0] as core_api.ChapterContent).when(
+      raw: (text) => text,
+      pages: (pages) => pages.map((p) => p.content).join('\n\n'),
+    );
+
+    var epubRichSkipped = false;
+    if (isEpub && content.length > 500 * 1024) {
+      Logging.warning(
+        'loadContent: content too large (${content.length} bytes), '
+        'discarding rich text typesetting result',
+      );
+      epubRichSkipped = true;
+    } else if (epubRichFuture != null && results[1] is List<RichParagraph>) {
+      try {
+        final paragraphs = results[1] as List<RichParagraph>;
+        if (paragraphs.isNotEmpty) {
+          final result = _richTextConverter.toTextSpan(paragraphs);
+          content = result.$2;
+          _flagEpubRichSkipped(false);
+          return (
+            content: content,
+            richParagraphs: paragraphs,
+            richRootSpan: result.$1,
+            epubRichSkipped: false,
+            chapterIr: null,
+            chapterFilePath: filePath,
+          );
+        }
+      } catch (e) {
+        Logging.error('loadContent EPUB rich typeset failed: $e');
+      }
+    }
+
+    if (content.isEmpty) {
+      throw Exception('Chapter content is empty');
+    }
+
+    Logging.info(
+      '[Timing] loadContent total: ${sw.elapsedMilliseconds}ms '
+      '(EPUB=$isEpub)',
+    );
+
+    _flagEpubRichSkipped(epubRichSkipped);
+    return scrollPlainPayload(
+      content,
+      epubRichSkipped: epubRichSkipped,
+      chapterFilePath: filePath,
+    );
   }
 
   Future<String> _loadRawContent(String bookId, int chapterId) async {

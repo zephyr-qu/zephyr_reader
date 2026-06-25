@@ -1825,7 +1825,6 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get otherExperimental => '实验性功能';
 
-
   @override
   String get otherLegal => '法律与合规';
 
