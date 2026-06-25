@@ -149,9 +149,24 @@ fn append_spine_html_to_builder(
 }
 
 fn rich_paragraph_style(p: &RichParagraph) -> TextBlockStyle {
+    let text_indent_em = if p.is_heading {
+        Some(0.0)
+    } else {
+        p.text_indent_em.or(if p.indent > 0 {
+            Some(p.indent as f32)
+        } else {
+            None
+        })
+    };
     TextBlockStyle {
         is_heading: p.is_heading,
         heading_level: p.heading_level,
+        text_indent_em,
+        margin_top_em: p.margin_top_em,
+        margin_bottom_em: p.margin_bottom_em,
+        font_family: p.font_family.clone(),
+        line_height: p.line_height,
+        text_align: p.text_align.clone(),
     }
 }
 
@@ -322,6 +337,31 @@ mod tests {
             panic!("expected image in second spine");
         };
         assert_eq!(img.asset_id, "img_spine_b");
+    }
+
+    #[test]
+    fn html_text_indent_style_preserved() {
+        let html = r#"<style>p { text-indent: 2em; margin-top: 0.5em; margin-bottom: 1em; }</style><p>Indented</p>"#;
+        let ir = html_to_chapter_ir(html).unwrap();
+        assert_eq!(ir.block_count(), 1);
+        let ContentBlock::Text(t) = &ir.blocks[0] else {
+            panic!("expected Text block");
+        };
+        assert_eq!(t.style.text_indent_em, Some(2.0));
+        assert_eq!(t.style.margin_top_em, Some(0.5));
+        assert_eq!(t.style.margin_bottom_em, Some(1.0));
+        assert_ir_invariants(&ir);
+    }
+
+    #[test]
+    fn html_font_family_style_preserved() {
+        let html = r#"<style>p { font-family: 'Georgia', serif; }</style><p>Serif</p>"#;
+        let ir = html_to_chapter_ir(html).unwrap();
+        let ContentBlock::Text(t) = &ir.blocks[0] else {
+            panic!("expected Text block");
+        };
+        assert_eq!(t.style.font_family.as_deref(), Some("Georgia"));
+        assert_ir_invariants(&ir);
     }
 
     #[test]

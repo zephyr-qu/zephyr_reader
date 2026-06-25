@@ -35,16 +35,28 @@ impl BlockPlainRange {
     }
 }
 
-/// 文本块级样式（MVP；行内 span 后续扩展）。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default, bincode::Encode, bincode::Decode)]
+/// 文本块级样式（ADR-010；行内 span 后续扩展）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, bincode::Encode, bincode::Decode)]
 #[frb(non_opaque)]
 pub struct TextBlockStyle {
     pub is_heading: bool,
     pub heading_level: u8,
+    /// 首行缩进（em）。`None` → 使用 [`TypesetConfig::first_line_indent`] / 用户设置。
+    pub text_indent_em: Option<f32>,
+    /// 块上边距（em）。
+    pub margin_top_em: Option<f32>,
+    /// 块下边距（em）。
+    pub margin_bottom_em: Option<f32>,
+    /// CSS `font-family` 提示（首族名）。
+    pub font_family: Option<String>,
+    /// CSS `line-height` 倍数。
+    pub line_height: Option<f32>,
+    /// CSS `text-align`：`left` | `center` | `right` | `justify`。
+    pub text_align: Option<String>,
 }
 
 /// 文本内容块。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 #[frb(non_opaque)]
 pub struct TextBlock {
     pub plain: BlockPlainRange,
@@ -106,7 +118,7 @@ impl ImageBlock {
 }
 
 /// 章节 IR 块（Text | Image）。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 #[frb(non_opaque)]
 pub enum ContentBlock {
     Text(TextBlock),
@@ -135,7 +147,7 @@ impl ContentBlock {
 }
 
 /// 一章的 IR 产物：块流 + 完整 plain 投影。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 #[frb(non_opaque)]
 pub struct ChapterContentIr {
     pub blocks: Vec<ContentBlock>,

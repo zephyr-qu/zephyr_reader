@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
+import 'package:zephyr_reader/features/reader/rendering/ir_text_block_style.dart';
 import 'package:zephyr_reader/features/reader/rendering/block_page_content.dart';
 import 'package:zephyr_reader/features/reader/rendering/highlight_painter.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
@@ -124,25 +125,30 @@ Widget buildScrollIrBlockItem({
   void Function(Offset?)? onSelectionGlobalPosition,
   bool addBottomSpacing = false,
 }) {
-  final textStyle = config.buildTextStyle();
-  final strutStyle = config.buildStrutStyle();
-
   final child = block.when(
     text: (tb) {
       if (tb.text.isEmpty) return const SizedBox.shrink();
       final offset = tb.plain.plainStart;
-      final painted = HighlightPainter.paintPlain(
-        tb.text,
-        textStyle,
-        highlights,
-        onHighlightTap: onHighlightTap,
-        vocabularyWords: config.effectiveVocabWords,
+      final blockStrutStyle = config.buildStrutStyle(
+        fontFamily: tb.style.fontFamily,
+      );
+      final textAlign = IrTextBlockStyle.resolveTextAlign(
+        tb.style.textAlign,
+        config.textAlign,
+      );
+      final painted = IrTextBlockStyle.buildHighlightedSpan(
+        text: tb.text,
+        irStyle: tb.style,
+        config: config,
+        highlights: highlights,
         contentStart: offset,
+        applyFirstLineIndent: true,
+        onHighlightTap: onHighlightTap,
       );
       return SelectableText.rich(
         painted,
-        strutStyle: strutStyle,
-        textAlign: config.textAlign,
+        strutStyle: blockStrutStyle,
+        textAlign: textAlign,
         textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
         onSelectionChanged: (sel, cause) => _handleSelection(
           sel,
@@ -170,12 +176,31 @@ Widget buildScrollIrBlockItem({
     },
   );
 
-  if (!addBottomSpacing || config.paragraphSpacing <= 0) {
-    return child;
+  final textBlockStyle = block.when(
+    text: (tb) => tb.style,
+    image: (_) => null,
+  );
+
+  Widget wrapped = child;
+  if (textBlockStyle != null) {
+    wrapped = Padding(
+      padding: IrTextBlockStyle.resolveBlockPadding(textBlockStyle, config),
+      child: child,
+    );
+  }
+
+  if (!addBottomSpacing) {
+    return wrapped;
+  }
+  final bottomSpacing = textBlockStyle != null
+      ? IrTextBlockStyle.resolveBottomSpacing(textBlockStyle, config)
+      : config.paragraphSpacing;
+  if (bottomSpacing <= 0) {
+    return wrapped;
   }
   return Padding(
-    padding: EdgeInsets.only(bottom: config.paragraphSpacing),
-    child: child,
+    padding: EdgeInsets.only(bottom: bottomSpacing),
+    child: wrapped,
   );
 }
 

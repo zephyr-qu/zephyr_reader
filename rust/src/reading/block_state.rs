@@ -76,7 +76,9 @@ impl BlockPaginationState {
                         slices.push(PageBlockSlice::Text(PageTextBlockSlice {
                             block_index: bi,
                             text,
+                            is_block_start: local_start == 0,
                             is_block_end: slice_end == block_end,
+                            style: t.style.clone(),
                         }));
                     }
                 }

@@ -225,6 +225,13 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_resolve_length_to_em() {
+        assert_eq!(resolve_length_to_em("2em", 16.0), Some(2.0));
+        assert_eq!(resolve_length_to_em("32px", 16.0), Some(2.0));
+        assert_eq!(resolve_length_to_em("0", 16.0), Some(0.0));
+    }
+
+    #[test]
     fn test_parse_css_single_rule() {
         let css = "p { color: red; font-size: 16px; }";
         let rules = parse_css(css);
@@ -273,5 +280,24 @@ pub fn resolve_float(value: &str, parent_px: f32) -> Option<f32> {
         return Some(1.2);
     }
 
+    value.parse::<f32>().ok()
+}
+
+/// 将 CSS 长度解析为 **em** 倍数（供 IR 块样式存储）。
+///
+/// 支持 `em`、`px`（相对 `reference_px` 字号）、裸数字（视为 em）。
+pub fn resolve_length_to_em(value: &str, reference_px: f32) -> Option<f32> {
+    let value = value.trim().to_lowercase();
+    if value.is_empty() || value == "0" || value == "0px" || value == "0em" {
+        return Some(0.0);
+    }
+    if let Some(v) = value.strip_suffix("em") {
+        return v.trim().parse::<f32>().ok();
+    }
+    if let Some(v) = value.strip_suffix("px") {
+        let px = v.trim().parse::<f32>().ok()?;
+        let ref_px = reference_px.max(1.0);
+        return Some(px / ref_px);
+    }
     value.parse::<f32>().ok()
 }

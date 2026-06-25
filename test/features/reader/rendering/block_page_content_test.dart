@@ -3,6 +3,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/reader/rendering/block_page_content.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
+import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
+
+const _defaultStyle = TextBlockStyle(
+  isHeading: false,
+  headingLevel: 0,
+  textIndentEm: null,
+  marginTopEm: null,
+  marginBottomEm: null,
+  fontFamily: null,
+  lineHeight: null,
+  textAlign: null,
+);
 
 ReaderRenderConfig _config({double paragraphSpacing = 12}) {
   return ReaderRenderConfig(
@@ -42,14 +54,18 @@ void main() {
                 PageTextBlockSlice(
                   blockIndex: 0,
                   text: 'First paragraph.',
+                  isBlockStart: true,
                   isBlockEnd: true,
+                  style: _defaultStyle,
                 ),
               ),
               PageBlockSlice.text(
                 PageTextBlockSlice(
                   blockIndex: 1,
                   text: 'Second paragraph.',
+                  isBlockStart: true,
                   isBlockEnd: true,
+                  style: _defaultStyle,
                 ),
               ),
             ],
@@ -83,7 +99,9 @@ void main() {
                 PageTextBlockSlice(
                   blockIndex: 0,
                   text: 'Continuation slice.',
+                  isBlockStart: false,
                   isBlockEnd: false,
+                  style: _defaultStyle,
                 ),
               ),
             ],

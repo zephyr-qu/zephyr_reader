@@ -28,11 +28,11 @@
 | **T1** | 跨章 `[Timing]` 诊断日志 | [plan-p4-cross-chapter-timing.md](../../doc/plan-p4-cross-chapter-timing.md) | 0.5d | 低 |
 | **T2** | 文档债务清理（PDF/过时索引） | [plan-p4-doc-debt-cleanup.md](../../doc/plan-p4-doc-debt-cleanup.md) | 0.5d | ✅ 已完成 |
 | **T3** | 过时差距分析文档修订 | [plan-p4-gap-analysis-refresh.md](../../doc/plan-p4-gap-analysis-refresh.md) | 0.5d | 无 |
-| **T4** | Staging 零可见 loading（ADR-012） | [plan-p4-3-staging-zero-loading.md](../../doc/plan-p4-3-staging-zero-loading.md) | 1–2d | 中（`paginated_renderer`） |
+| **T4** | Staging 零可见 loading（ADR-012） | [plan-p4-3-staging-zero-loading.md](../../doc/plan-p4-3-staging-zero-loading.md) | 1–2d | ✅ 已完成 |
 | **T5** | `PaginatedModeRenderer` staging 单测补强 | [plan-p4-staging-widget-tests.md](../../doc/plan-p4-staging-widget-tests.md) | 1d | ✅ 已完成 |
 | **T6** | `PLAN_EXECUTION_DEVIATIONS` 状态同步 | [plan-p4-deviations-refresh.md](../../doc/plan-p4-deviations-refresh.md) | 0.5d | 无 |
 
-**推荐起步顺序**：T2 → T1 → T5 → T4（T4 与主线程可能碰同一文件，先沟通或等 T5 测好再改 UI）
+**推荐起步顺序**：T2 ✅ → T5 ✅ → T4 ✅ → T1 / T3 / T6（T4 与主线程可能碰同一文件，先沟通或等 T5 测好再改 UI）
 
 ---
 

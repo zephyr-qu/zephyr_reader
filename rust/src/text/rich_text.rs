@@ -86,6 +86,9 @@ struct ComputedStyle {
     font_weight: Option<i32>,
     font_style: Option<String>,
     text_decoration: Option<String>,
+    text_indent_em: Option<f32>,
+    margin_top_em: Option<f32>,
+    margin_bottom_em: Option<f32>,
 }
 
 impl ComputedStyle {
@@ -181,6 +184,24 @@ impl ComputedStyle {
                     self.text_decoration = Some(v);
                 }
             }
+            "text-indent" => {
+                let parent_px = self.font_size.unwrap_or(16.0);
+                if let Some(em) = css::resolve_length_to_em(value, parent_px) {
+                    self.text_indent_em = Some(em);
+                }
+            }
+            "margin-top" => {
+                let parent_px = self.font_size.unwrap_or(16.0);
+                if let Some(em) = css::resolve_length_to_em(value, parent_px) {
+                    self.margin_top_em = Some(em);
+                }
+            }
+            "margin-bottom" => {
+                let parent_px = self.font_size.unwrap_or(16.0);
+                if let Some(em) = css::resolve_length_to_em(value, parent_px) {
+                    self.margin_bottom_em = Some(em);
+                }
+            }
             _ => {}
         }
     }
@@ -195,6 +216,10 @@ fn build_paragraph(
     class_name: Option<String>,
     text_align: Option<String>,
     line_height: Option<f32>,
+    margin_top_em: Option<f32>,
+    margin_bottom_em: Option<f32>,
+    font_family: Option<String>,
+    text_indent_em: Option<f32>,
 ) -> RichParagraph {
     RichParagraph {
         spans,
@@ -204,6 +229,10 @@ fn build_paragraph(
         class_name,
         text_align,
         line_height,
+        margin_top_em,
+        margin_bottom_em,
+        font_family,
+        text_indent_em,
         ..Default::default()
     }
 }
@@ -329,6 +358,13 @@ fn walk_inline_subtree(
     }
 }
 
+fn paragraph_indent_chars(style: &ComputedStyle) -> u8 {
+    if let Some(em) = style.text_indent_em {
+        return em.round().clamp(0.0, 12.0) as u8;
+    }
+    2
+}
+
 fn flush_text_paragraph(
     spans: &mut Vec<RichTextSpan>,
     paragraphs: &mut Vec<RichParagraph>,
@@ -340,12 +376,16 @@ fn flush_text_paragraph(
     }
     paragraphs.push(build_paragraph(
         std::mem::take(spans),
-        2,
+        paragraph_indent_chars(parent_style),
         false,
         0,
         inherited_class,
         parent_style.text_align.clone(),
         parent_style.line_height,
+        parent_style.margin_top_em,
+        parent_style.margin_bottom_em,
+        parent_style.font_family.clone(),
+        parent_style.text_indent_em.or(Some(2.0)),
     ));
 }
 
@@ -464,6 +504,10 @@ fn traverse_dom(
                         if current_class.is_empty() { inherited_class } else { Some(current_class) },
                         merged_style.text_align.clone().or(Some("left".to_string())),
                         merged_style.line_height,
+                        merged_style.margin_top_em,
+                        merged_style.margin_bottom_em,
+                        merged_style.font_family.clone(),
+                        Some(0.0),
                     ));
                 }
 
@@ -491,6 +535,10 @@ fn traverse_dom(
                         if current_class.is_empty() { inherited_class } else { Some(current_class) },
                         merged_style.text_align.clone(),
                         merged_style.line_height,
+                        merged_style.margin_top_em,
+                        merged_style.margin_bottom_em,
+                        merged_style.font_family.clone(),
+                        merged_style.text_indent_em,
                     ));
                 }
 

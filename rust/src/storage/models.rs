@@ -88,7 +88,7 @@ impl LayoutCache {
 pub const BLOCK_LAYOUT_CACHE_VERSION: u8 = 1;
 
 /// 块路径分页索引 + 章 IR（跨 session 复用，避免重复 IR 解析与 BlockPaginator CPU）。
-#[derive(Debug, Clone, PartialEq, Eq, bincode::Encode, bincode::Decode)]
+#[derive(Debug, Clone, PartialEq, bincode::Encode, bincode::Decode)]
 pub struct BlockLayoutCache {
     pub version: u8,
     pub config_hash: u64,
