@@ -1,7 +1,8 @@
 # 阅读核心路线图（与边界 v1.1 绑定）
 
-> **当前阶段 = Phase 3**（体验与缓存，见 [PHASE2_EXIT.md](./PHASE2_EXIT.md) Phase 3 backlog）  
-> **Phase 2** 已合入 `master`（2026-06-24）
+> **当前阶段 = Phase 3 已退出**（2026-06-24 合入 `master` @ `faa1653`）  
+> **Phase 2** 已合入 `master`（2026-06-24）  
+> **下一项**：无 Phase 4 定义；功能 backlog 见 [READING_BOUNDARIES.md](./READING_BOUNDARIES.md) Should + [PHASE3_EXIT.md](./PHASE3_EXIT.md) 非阻塞遗留
 
 ---
 
@@ -44,7 +45,7 @@ EPUB 分页内联图 + 大图独占页；`BlockPaginator`；charOffset 兼容 AD
 | M0 | `ContentBlock` 契约 + FRB | ✅ |
 | M1 | EPUB/TXT → IR + plain 投影 | ✅ |
 | M2 | `BlockPaginator` MVP | ✅ |
-| M3 | 接入 `PaginationSession` | ✅（M3.3 → Phase 3） |
+| M3 | 接入 `PaginationSession` | ✅ |
 | M4 | Flutter 块渲染 + 图片管道 | ✅ |
 | M5 | staging 回归 + S2/S3 | ✅ |
 
@@ -52,9 +53,20 @@ EPUB 分页内联图 + 大图独占页；`BlockPaginator`；charOffset 兼容 AD
 
 ---
 
-## Phase 3 — 体验与缓存（当前）
+## Phase 3 — 体验与缓存 ✅ 已完成
 
-预取强化、图片管道、sled 分页索引、大章 chunked IR。详见 [PHASE2_EXIT.md](./PHASE2_EXIT.md) **Phase 3 backlog**。
+预取强化、图片管道、sled 块分页索引、大章 chunked IR。详见 [PHASE3_EXIT.md](./PHASE3_EXIT.md)。
+
+| # | 项 | 状态 |
+|---|-----|------|
+| P3-1 | M3.3 partial → block expand | ✅ |
+| P3-2 | 段间距 Rust ↔ Flutter | ✅ |
+| P3-3 | 图片预取深化 | ✅ |
+| P3-4 | scroll 含图进度模型 | ✅ |
+| P3-5 | 大章 chunked IR | ✅ |
+| P3-6 | sled block 分页索引 | ✅ |
+
+**退出标准**：[PHASE3_EXIT.md](./PHASE3_EXIT.md) 全绿 ✅
 
 ---
 
