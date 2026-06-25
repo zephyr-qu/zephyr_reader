@@ -280,6 +280,8 @@ class ChapterLoadOrchestrator {
           request.chapterIndex,
           richParagraphs: _contentRepo.currentRichParagraphs,
           richRootSpan: _contentRepo.currentRichContent,
+          chapterIr: _contentRepo.currentChapterIr,
+          chapterFilePath: _contentRepo.currentChapterFilePath,
         );
       }
       if (_contentRepo.consumeEpubRichSkippedNotice()) {
@@ -446,6 +448,7 @@ class ChapterLoadOrchestrator {
     required Future<CalibrationData?> calibFuture,
     required Future<void> Function(int chapterIndex)? preloadAdjacentFirstPages,
   }) async {
+    final sw = Stopwatch()..start();
     _setPhase(gen, ChapterLoadPhase.firstSpine);
 
     // 等待校准完成
@@ -459,6 +462,8 @@ class ChapterLoadOrchestrator {
       request.chapterIndex,
     );
     if (_isStale(gen)) return null;
+
+    final preloadHit = !result.isPartial;
 
     // 同步写 signals — promote handoff
     final descriptors = _contentRepo.descriptors;
@@ -486,7 +491,10 @@ class ChapterLoadOrchestrator {
     _contentRepo.clearAdjacentStaging();
     unawaited(preloadAdjacentFirstPages?.call(request.chapterIndex));
 
-    Logging.info('[Timing] gen=$gen phase=firstSpine stagingPromote done');
+    final direction = isForward ? 'forward' : 'backward';
+    Logging.info(
+      '[Timing] gen=$gen phase=stagingPromote direction=$direction chapter_to=${request.chapterIndex} preload_hit=$preloadHit promote_ms=${sw.elapsedMilliseconds}',
+    );
     return result;
   }
 
@@ -509,6 +517,8 @@ class ChapterLoadOrchestrator {
         request.chapterIndex,
         richParagraphs: _contentRepo.currentRichParagraphs,
         richRootSpan: _contentRepo.currentRichContent,
+        chapterIr: _contentRepo.currentChapterIr,
+        chapterFilePath: _contentRepo.currentChapterFilePath,
       );
     }
 

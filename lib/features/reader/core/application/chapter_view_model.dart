@@ -14,6 +14,7 @@ import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dar
 import 'package:zephyr_reader/features/reader/core/application/search_index_lifecycle.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_notice.dart';
@@ -186,6 +187,8 @@ class ChapterViewModel {
     int chapterIndex, {
     List<RichParagraph>? richParagraphs,
     TextSpan? richRootSpan,
+    ChapterContentIr? chapterIr,
+    String? chapterFilePath,
   }) {
     _scrollBoundary.reset(
       bookId.value,
@@ -193,6 +196,8 @@ class ChapterViewModel {
       content,
       richParagraphs: richParagraphs,
       richRootSpan: richRootSpan,
+      chapterIr: chapterIr,
+      chapterFilePath: chapterFilePath,
     );
   }
 

@@ -1,4 +1,4 @@
-pub(crate) use crate::domain::{AppError, PageBlockSlice, TypesetConfig};
+pub(crate) use crate::domain::{AppError, ChapterContentIr, PageBlockSlice, TypesetConfig};
 use crate::domain::{PageContent, PaginateResult};
 use crate::parser::registry::parser_for_file;
 use crate::reading::chapter_access::format_from_file_path;
@@ -225,4 +225,15 @@ pub fn supports_chunked_pagination(file_path: String) -> bool {
         format_from_file_path(&file_path),
         Ok(BookFormat::Txt | BookFormat::Epub)
     )
+}
+
+/// P4-1：加载整章 ContentBlock IR + plain 投影（scroll 路径；不创建 session）。
+#[frb]
+pub async fn get_chapter_content_ir(
+    file_path: String,
+    chapter_index: i32,
+) -> Result<ChapterContentIr, AppError> {
+    ReadingOrchestrator::global()
+        .get_chapter_content_ir(file_path, chapter_index)
+        .await
 }

@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:zephyr_reader/features/reader/core/application/scroll_boundary_coordinator.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_notice.dart';
+import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_segment_factory.dart';
@@ -13,7 +14,7 @@ class _MockRepo extends Mock implements ReaderRepositoryInterface {}
 ScrollChapterSegment _seg(int chapter, String marker) {
   return ScrollSegmentFactory.fromPayload(
     chapter,
-    (content: '$marker\n\nPara2', richParagraphs: null, richRootSpan: null, epubRichSkipped: false),
+    scrollPlainPayload('$marker\n\nPara2'),
   );
 }
 
@@ -68,12 +69,7 @@ void main() {
           readingMode: any(named: 'readingMode'),
         ),
       ).thenAnswer(
-        (_) async => (
-          content: 'Ch2\n\nPara2',
-          richParagraphs: null,
-          richRootSpan: null,
-          epubRichSkipped: false,
-        ),
+        (_) async => scrollPlainPayload('Ch2\n\nPara2'),
       );
 
       await coord.appendNext(
@@ -108,12 +104,7 @@ void main() {
           readingMode: any(named: 'readingMode'),
         ),
       ).thenAnswer(
-        (_) async => (
-          content: 'Ch0prev\n\nPara2',
-          richParagraphs: null,
-          richRootSpan: null,
-          epubRichSkipped: false,
-        ),
+        (_) async => scrollPlainPayload('Ch0prev\n\nPara2'),
       );
 
       await local.prependPrev(
@@ -148,12 +139,7 @@ void main() {
           readingMode: any(named: 'readingMode'),
         ),
       ).thenAnswer(
-        (_) async => (
-          content: 'Ch1\n\nPara2',
-          richParagraphs: null,
-          richRootSpan: null,
-          epubRichSkipped: true,
-        ),
+        (_) async => scrollPlainPayload('Ch1\n\nPara2', epubRichSkipped: true),
       );
       ReaderNotice? noticed;
       final local = ScrollBoundaryCoordinator(

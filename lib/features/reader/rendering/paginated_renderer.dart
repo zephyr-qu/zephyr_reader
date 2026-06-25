@@ -161,8 +161,9 @@ class PaginatedModeRenderer extends StatelessWidget {
 
   Widget _buildCrossChapterPage(BuildContext context, int virtualIndex) {
     final staging = dataSource.nextChapterStaging;
-    if (staging != null && staging.chapterIndex == chapterId + 1) {
-      Logging.debug('[Renderer] _buildCrossChapterPage HIT: chapter=${staging.chapterIndex} virtualIndex=$virtualIndex');
+    final stagingReady = staging != null && staging.chapterIndex == chapterId + 1;
+    if (stagingReady) {
+      Logging.info('[Timing] cross-chapter render: staging_ready=true chapter=${staging!.chapterIndex} virtualIndex=$virtualIndex');
       final startOffset = staging.descriptors.isNotEmpty
           ? staging.descriptors[0].startOffset
           : 0;
@@ -172,7 +173,7 @@ class PaginatedModeRenderer extends StatelessWidget {
         startOffset,
       );
     }
-    Logging.debug('[Renderer] _buildCrossChapterPage MISS: virtualIndex=$virtualIndex');
+    Logging.info('[Timing] cross-chapter render: staging_ready=false virtualIndex=$virtualIndex');
     return const Center(child: CircularProgressIndicator());
   }
 

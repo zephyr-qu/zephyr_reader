@@ -12,6 +12,7 @@ import 'package:zephyr_reader/features/reader/core/domain/progress_repository.da
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
+import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
@@ -87,6 +88,12 @@ class ReaderRepository
   @override
   List<RichParagraph>? get currentRichParagraphs =>
       _chapterContent.currentRichParagraphs;
+
+  @override
+  ChapterContentIr? get currentChapterIr => _chapterContent.currentChapterIr;
+
+  @override
+  String? get currentChapterFilePath => _chapterContent.currentChapterFilePath;
 
   // ==================== ReaderRepositoryInterface ====================
 

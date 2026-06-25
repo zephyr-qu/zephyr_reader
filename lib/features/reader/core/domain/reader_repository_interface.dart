@@ -3,6 +3,7 @@ import 'package:zephyr_reader/features/reader/core/domain/progress_repository.da
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.dart';
+import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -75,6 +76,12 @@ abstract class ReaderRepositoryInterface {
 
   /// 当前章节的富文本段落（EPUB）。
   List<RichParagraph>? get currentRichParagraphs;
+
+  /// P4-1：当前章 IR（scroll）。
+  ChapterContentIr? get currentChapterIr;
+
+  /// 当前章书籍文件路径。
+  String? get currentChapterFilePath;
 
   /// 页面描述符列表（轻量级）。
   List<PageDescriptor>? get descriptors;

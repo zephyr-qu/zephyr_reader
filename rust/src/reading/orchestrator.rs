@@ -9,9 +9,11 @@
 
 use std::sync::LazyLock;
 
-use crate::domain::{AppError, PageBlockSlice, PageContent, PaginateResult, TypesetConfig};
+use crate::domain::{AppError, ChapterContentIr, PageBlockSlice, PageContent, PaginateResult, TypesetConfig};
 use crate::reading::types::PaginationSessionHandle;
 use crate::api::core::{ChapterContent, FirstSpineResult};
+
+use crate::utils::security::validate_file_path;
 
 use super::chapter_access;
 
@@ -201,6 +203,16 @@ impl ReadingOrchestrator {
         config: Option<TypesetConfig>,
     ) -> Result<ChapterContent, AppError> {
         super::chapter_access::get_chapter(file_path, chapter_index, config).await
+    }
+
+    /// P4-1：加载整章 IR（scroll / 块渲染；不创建 pagination session）。
+    pub async fn get_chapter_content_ir(
+        &self,
+        file_path: String,
+        chapter_index: i32,
+    ) -> Result<ChapterContentIr, AppError> {
+        let validated_path = validate_file_path(&file_path)?;
+        super::chapter_ir::load_chapter_content_ir(&validated_path, chapter_index).await
     }
 
     /// 清理 PROVIDER_CACHE + BOOK_ID_CACHE + 分页内存 LRU（测试用）。
