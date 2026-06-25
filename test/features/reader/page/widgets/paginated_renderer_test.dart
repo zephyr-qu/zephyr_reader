@@ -72,7 +72,7 @@ void main() {
   // ========================
 
   group('buildSinglePageContent', () {
-    testWidgets('dataSource 返回 null 时渲染加载指示器', (tester) async {
+    testWidgets('dataSource 返回 null 时渲染骨架占位（无 spinner）', (tester) async {
       final dataSource = _mockDataSource();
       when(() => dataSource.pageContent(any())).thenReturn(null);
 
@@ -94,7 +94,7 @@ void main() {
         ),
       );
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
     testWidgets('正常页面内容渲染 SelectableText.rich', (tester) async {

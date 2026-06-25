@@ -431,6 +431,17 @@ Widget buildStagingPageContent({
   );
 }
 
+
+/// ADR-012: page cache miss 骨架占位，替代 spinner。
+/// [ensureWindow] 已在调用方通过 postFrameCallback 触发；
+/// 当 [ReaderRenderDataSource.preloadGeneration] 变化时 AnimatedBuilder 重建本 widget。
+Widget _buildPageSkeleton() {
+  return Container(
+    color: Colors.grey.withValues(alpha: 0.03),
+    child: const Center(child: SizedBox.shrink()),
+  );
+}
+
 /// Builds a single page widget for a given page index.
 /// Used by [PageCurlWidget] to render page content on demand.
 Widget buildSinglePageContent({
@@ -449,15 +460,15 @@ Widget buildSinglePageContent({
     if (blocks == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Logging.info(
-          '[Renderer] buildBlockPageContent MISS page=$pageIndex → spinner + ensureWindow',
+          '[Renderer] buildBlockPageContent MISS page=$pageIndex → skeleton + ensureWindow',
         );
         dataSource.ensureWindow(pageIndex);
       });
-      return const Center(child: CircularProgressIndicator());
+      return _buildPageSkeleton();
     }
     final filePath = dataSource.sessionFilePath;
     if (filePath == null || filePath.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return _buildPageSkeleton();
     }
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -481,10 +492,10 @@ Widget buildSinglePageContent({
   final pageContent = dataSource.pageContent(pageIndex);
   if (pageContent == null) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Logging.info('[Renderer] buildSinglePageContent MISS page=$pageIndex → spinner + ensureWindow');
+      Logging.info('[Renderer] buildSinglePageContent MISS page=$pageIndex → skeleton + ensureWindow');
       dataSource.ensureWindow(pageIndex);
     });
-    return const Center(child: CircularProgressIndicator());
+    return _buildPageSkeleton();
   }
   final textStyle = config.buildTextStyle();
   final strutStyle = config.buildStrutStyle();

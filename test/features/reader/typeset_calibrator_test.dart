@@ -13,7 +13,7 @@ void main() {
         paragraphSpacing: 32, // 32/16 = 2.0
       );
 
-      expect(config.pageWidth, equals(360)); // 360 * 1.0 ≈ 360
+      expect(config.pageWidth, equals(328)); // (360-32)*1.0
       expect(config.pageHeight, equals(640)); // 640 * 1.0 ≈ 640
       expect(config.fontSize, equals(16));
       expect(config.lineSpacing, equals(1.5));
@@ -35,8 +35,8 @@ void main() {
         devicePixelRatio: 2.0,
       );
 
-      // 360.7 * 2 = 721.4 → round → 721
-      expect(config.pageWidth, equals(721));
+      // (360.7-32)*2 = 657.4 → round → 657
+      expect(config.pageWidth, equals(657)); // (360.7-32)*2.0
       // 640.4 * 2 = 1280.8 → round → 1281
       expect(config.pageHeight, equals(1281));
       // 16.3 * 2 = 32.6 → round → 33
@@ -55,7 +55,7 @@ void main() {
       );
 
       // padding 参数不影响计算结果
-      expect(config.pageWidth, equals(400));
+      expect(config.pageWidth, equals(352)); // (400-48)*1.0
       expect(config.pageHeight, equals(700));
     });
 
@@ -68,7 +68,7 @@ void main() {
         devicePixelRatio: 3.0,
       );
 
-      expect(config.pageWidth, equals(1080)); // 360 * 3
+      expect(config.pageWidth, equals(984)); // (360-32)*3
       expect(config.pageHeight, equals(1920)); // 640 * 3
       expect(config.fontSize, equals(48)); // 16 * 3
     });
@@ -156,7 +156,7 @@ void main() {
         );
 
         // pageWidth 使用 devicePixelRatio(1.5)，不是 calibration.dpr(2.0)
-        expect(config.pageWidth, equals(540)); // 360 * 1.5
+        expect(config.pageWidth, equals(492)); // (360-32)*1.5
       expect(config.calibration!.dpr, equals(2.0));
     });
   });

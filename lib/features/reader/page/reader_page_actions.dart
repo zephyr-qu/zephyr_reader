@@ -66,7 +66,9 @@ Future<void> onBilingualHighlight(
   final l10n = AppLocalizations.of(context)!;
   if (text.isEmpty) return;
 
-  final alignment = vm.translation.bilingualAlignment.value.value;
+  final bilingual = vm.bilingual;
+  if (bilingual == null) return;
+  final alignment = bilingual.alignment;
   if (alignment == null || alignment.segments.isEmpty) {
     vm.toastMessage.value = l10n.bilingualNoAlignment;
     return;
@@ -115,7 +117,7 @@ Future<void> onBilingualHighlight(
   final seg = alignment.segments[segmentIndex];
   final targetText = targetLanguage == 'zh' ? seg.chinese : seg.english;
   try {
-    await vm.translation.createBilingualHighlight(
+    await bilingual.createBilingualHighlight(
       BilingualHighlightParams(
         sourceBookId: vm.chapterManager.bookId.value,
         sourceChapterIndex: vm.chapterManager.chapterIndex.value,

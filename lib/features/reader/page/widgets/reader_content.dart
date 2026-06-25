@@ -6,7 +6,6 @@ import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.d
 import 'package:zephyr_reader/features/reader/data/pagination_viewport_index.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 import '../../core/data/reader_render_data_source.dart';
@@ -53,11 +52,7 @@ class ReaderContent extends HookWidget {
   final VoidCallback? onPaginationBoundaryReset;
   final Widget Function(BuildContext context, ScrollController scrollController)
       scrollBuilder;
-  final Widget Function(
-    BuildContext context,
-    ScrollController scrollController,
-    List<BilingualHighlightPair> bilingualPairs,
-  )
+  final Widget Function(BuildContext context, ScrollController scrollController)
       bilingualBuilder;
   final Widget Function(BuildContext context, PageController pageController)
       paginatedBuilder;
@@ -110,7 +105,6 @@ class ReaderContent extends HookWidget {
       [],
     );
     final scrollController = useScrollController();
-    final bilingualPairs = useState<List<BilingualHighlightPair>>([]);
     final disableAnim = MediaQuery.disableAnimationsOf(context);
     final viewportHeight = MediaQuery.sizeOf(context).height;
     final nextStaging = dataSource.nextChapterStaging;
@@ -183,20 +177,6 @@ class ReaderContent extends HookWidget {
       hasPreviousChapter,
     ]);
 
-    useEffect(() {
-      if (readingMode != ReadingMode.bilingual) {
-        bilingualPairs.value = [];
-        return null;
-      }
-      () async {
-        final pairs = await getBilingualHighlightPairs(
-          bookId: bookId,
-          chapterIndex: chapterId,
-        );
-        bilingualPairs.value = pairs;
-      }();
-      return null;
-    }, [bookId, chapterId, readingMode]);
 
     // Guard against repeated reach-end/start triggers (auto chapter change)
     final reachEndTriggered = useRef(false);
@@ -419,7 +399,6 @@ class ReaderContent extends HookWidget {
       context,
       pageController,
       scrollController,
-      bilingualPairs.value,
     );
 
     if (usePaginationSlide) {
@@ -458,7 +437,6 @@ class ReaderContent extends HookWidget {
     BuildContext context,
     PageController pageController,
     ScrollController scrollController,
-    List<BilingualHighlightPair> bilingualPairs,
   ) {
     final l10n = AppLocalizations.of(context)!;
     final error = this.error;
@@ -495,7 +473,7 @@ class ReaderContent extends HookWidget {
         return RepaintBoundary(child: scrollBuilder(context, scrollController));
       case ReadingMode.bilingual:
         return RepaintBoundary(
-          child: bilingualBuilder(context, scrollController, bilingualPairs),
+          child: bilingualBuilder(context, scrollController),
         );
       case ReadingMode.pagination:
         return RepaintBoundary(

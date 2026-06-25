@@ -19,6 +19,7 @@ import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
+import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.dart';
 import '../../helpers/fixtures.dart';
 
 // ===== Mocks =====
@@ -398,7 +399,7 @@ void main() {
     ).thenAnswer((invocation) async {
       final chapterId = invocation.positionalArguments[1] as int;
       final content = 'Chapter$chapterId ${'X' * 80}';
-      return (content: content, richParagraphs: null, richRootSpan: null, epubRichSkipped: false);
+      return scrollPlainPayload(content);
     });
 
     manager = createManager(repo: repo, config: config);

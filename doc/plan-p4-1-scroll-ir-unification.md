@@ -68,9 +68,9 @@ flowchart LR
 
 ### Phase A — 只读 spike（当前）
 
-- [ ] 列出 FRB 已有 block 相关 API（`anchorPageBlocks`、`sessionMode`…）
-- [ ] 确认 scroll 是否可 **不创建完整 session** 仅拉 IR
-- [ ] 记录于本文件 §Spike 结果
+- [x] 列出 FRB 已有 block 相关 API（`anchorPageBlocks`、`sessionMode`…）
+- [x] 确认 scroll 是否可 **不创建完整 session** 仅拉 IR
+- [x] 记录于本文件 §Spike 结果
 
 ### Phase B — Scroll 单章 IR 渲染 MVP
 
@@ -131,9 +131,9 @@ flowchart LR
 - [x] 测试：`scroll_boundary_coordinator_test` + 你的 `paginated_renderer_test`（16/16 绿）
 
 **待办**：
-- [ ] 跨章 `ScrollBoundaryCoordinator` 拼接 IR 段
-- [ ] 双语改 IR 或独立 feature（P4-5）
-- [ ] Dart/集成测试：含图 EPUB scroll
+- [x] 跨章 `ScrollBoundaryCoordinator` 拼接 IR 段（R1.1 验证完成）
+- [ ] 双语改 IR 或独立 feature（P4-5，延迟至后续）
+- [x] Dart/集成测试：含图 EPUB scroll（R4.1 金路径测试 6/6 绿）
 
 ---
 
@@ -149,6 +149,6 @@ flowchart LR
 
 ## 验收（PHASE4_SCOPE）
 
-- [ ] 含图 EPUB **scroll** 模式可见图，无 `epubRichSkipped` toast
-- [ ] scroll / pagination 同源 `ContentBlock[]`
-- [ ] I1/I2 不变：进度仍 charOffset on plainText
+- [x] 含图 EPUB **scroll** 模式可见图，无 `epubRichSkipped` toast
+- [x] scroll / pagination 同源 `ContentBlock[]`
+- [x] I1/I2 不变：进度仍 charOffset on plainText
