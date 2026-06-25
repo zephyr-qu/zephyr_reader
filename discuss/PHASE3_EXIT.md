@@ -49,7 +49,7 @@
 | 极端 fast-flip 图片 | P3-3 基础版；多 `maxWidth` 仍可能 miss |
 | 排版细项 | 首行缩进 / 部分 CSS → `RichParagraph`（`issue/FINE_TYPESETTING_GAP.md`） |
 
-下一优先级见 [READING_BOUNDARIES.md](./READING_BOUNDARIES.md) **Should**（章内搜索、主题色、笔记等）；**无 Phase 4 路线图**。
+下一优先级见 [PHASE4_SCOPE.md](./PHASE4_SCOPE.md)（Phase 4 引擎完善）；本章非阻塞遗留部分纳入 P4-1 / P4-3。
 
 ---
 

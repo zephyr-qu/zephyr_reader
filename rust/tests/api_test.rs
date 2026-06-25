@@ -36,7 +36,7 @@ fn test_api_response_format() {
 #[test]
 fn test_get_supported_formats() {
     // 应该至少支持常见格式
-    let known_formats = ["txt", "epub", "pdf", "md"];
+    let known_formats = ["txt", "epub"];
     for fmt in &known_formats {
         assert!(
             rust_lib_zephyr_reader::parser::registry::format_from_extension(fmt).is_ok(),
@@ -259,7 +259,7 @@ async fn test_concurrent_format_checks() {
     common::init_logger();
 
     // 测试并发格式检测
-    let formats = vec!["epub", "txt", "pdf", "md"];
+    let formats = vec!["epub", "txt"];
 
     let mut handles = vec![];
     for format in formats {

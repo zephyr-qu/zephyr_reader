@@ -24,11 +24,6 @@ class OtherSettingsViewModel {
     SettingsKeys.otherStartupCheck,
     true,
   );
-  late final markdownPreview = persistedBool(
-    _prefs,
-    SettingsKeys.otherMarkdownPreview,
-    false,
-  );
 
   bool _initialized = false;
 
@@ -45,7 +40,6 @@ class OtherSettingsViewModel {
     getIt<ReaderConfig>().resetToDefault();
     notificationsEnabled.value = true;
     startupCheckEnabled.value = true;
-    markdownPreview.value = false;
 
     // 重置语言到跟随系统
     final tm = ThemeManager.instance;
@@ -67,6 +61,5 @@ class OtherSettingsViewModel {
   void dispose() {
     notificationsEnabled.dispose();
     startupCheckEnabled.dispose();
-    markdownPreview.dispose();
   }
 }

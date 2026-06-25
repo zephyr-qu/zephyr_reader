@@ -576,8 +576,6 @@
   "otherStartupCheck": "Check Updates on Start",
   "otherStartupCheckDesc": "Check for new versions on foreground start",
   "otherExperimental": "Experimental",
-  "otherMarkdownPreview": "Markdown Preview",
-  "otherMarkdownPreviewDesc": "Render Markdown in notes list",
   "otherLegal": "Legal & Compliance",
   "openSourceLicenseDesc": "Flutter / Rust / Third-party licenses",
   "resetAllSettings": "Reset All Settings",

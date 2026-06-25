@@ -179,19 +179,6 @@ class OtherSettingsPage extends HookWidget {
                 ],
               ),
             ),
-            SettingsCard(
-              showDividers: true,
-              children: [
-                SettingsToggleTile(
-                  icon: PhosphorIconsRegular.markdownLogo,
-                  semantic: MenuItemSemantic.experimental,
-                  title: l10n.otherMarkdownPreview,
-                  subtitle: l10n.otherMarkdownPreviewDesc,
-                  value: vm.markdownPreview.value,
-                  onChanged: (v) => vm.markdownPreview.value = v,
-                ),
-              ],
-            ),
           ],
         )
         .animate()

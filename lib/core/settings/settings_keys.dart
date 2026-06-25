@@ -148,8 +148,6 @@ abstract final class SettingsKeys {
   /// 启动检查更新
   static const otherStartupCheck = 'other.startup_check';
 
-  /// Markdown 预览
-  static const otherMarkdownPreview = 'feature.markdown_preview';
 
   // ==================== 自动翻译 ====================
 
