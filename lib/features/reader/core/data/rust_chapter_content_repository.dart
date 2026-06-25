@@ -283,6 +283,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
     );
     if (irPayload != null) {
       _flagEpubRichSkipped(false);
+      _applyCurrentRich(chapterId, irPayload);
       _setChapterFilePath(filePath);
       return irPayload;
     }
@@ -291,9 +292,11 @@ class RustChapterContentRepository implements ChapterContentRepository {
     Logging.info(
       '[Timing] loadScrollPayload plain fallback: ${sw.elapsedMilliseconds}ms',
     );
+    final plainPayload = scrollPlainPayload(content, chapterFilePath: filePath);
     _flagEpubRichSkipped(false);
+    _applyCurrentRich(chapterId, plainPayload);
     _setChapterFilePath(filePath);
-    return scrollPlainPayload(content, chapterFilePath: filePath);
+    return plainPayload;
   }
 
   Future<String> _fetchPlainChapterContent(

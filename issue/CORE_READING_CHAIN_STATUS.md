@@ -160,4 +160,35 @@ cargo test --test pagination_session_test -- --test-threads=1 --nocapture
 
 ---
 
+
+## 8. Phase 4 收敛（2026-06-25）
+
+### 8.1 Scroll → IR 统一（P4-1，ADR-009）
+
+- Scroll 模式不再加载 EPUB rich 内容，仅走 IR（`_loadScrollModePayload`: IR → plain 回退）
+- `ScrollModeRenderer.build()` 决策树收敛为 2 条路径：IR（多段/单章）→ plain
+- 删除 ~500 行 dead rich 渲染代码（`_buildMultiSegmentRichList`、`_buildRichScrollWithImages` 等），文件从 855→352 行
+- `_needsRichContent` 仅 `ReadingMode.bilingual`
+- 金路径测试 `scroll_ir_golden_test.dart`：6/6 绿
+
+### 8.2 Staging 零 spinner（P4-3，ADR-012）
+
+- 分页 pageContent / block miss 改用骨架占位（`_buildPageSkeleton`），不再出 `CircularProgressIndicator`
+- `_buildHoldFrame` 边缘 case（descriptors 为空）同步改为 skeleton
+- `paginated_renderer_test.dart`：18/18 绿
+
+### 8.3 图片占位防排版跳动（P4-2 补充）
+
+- `EpubBlockImage._compactPlaceholder` → `_sizedPlaceholder`：根据 `maxWidthPx`/`maxHeightPx` 预留正确空间
+- 分页和 scroll 共用同一 widget，两路径均受益
+
+### 8.4 Flutter Metrics（P4-4，ADR-013）
+
+- `buildTypesetConfig` 已接入 padding 减法 + calibration 回传
+- `typeset_calibrator_test.dart`：13/13 绿
+
+### 8.5 待完成
+
+- P4-5 双语 codegen + `ReaderSessionFactory` 回调注入
+- 真机验收（跨章 forward/backward 无可见 spinner）
 **维护者**：当核心阅读链发生重大变更（如替换 PageStreamer 算法、改变 Provider 边界获取方式、移除/新增错误变体）时，请同步更新本文件的 §3 状态对照表。

@@ -164,7 +164,7 @@ class PaginatedModeRenderer extends StatelessWidget {
     final staging = dataSource.nextChapterStaging;
     final stagingReady = staging != null && staging.chapterIndex == chapterId + 1;
     if (stagingReady) {
-      Logging.info('[Timing] cross-chapter render: staging_ready=true chapter=${staging!.chapterIndex} virtualIndex=$virtualIndex');
+      Logging.info('[Timing] cross-chapter render: staging_ready=true chapter=${staging.chapterIndex} virtualIndex=$virtualIndex');
       final startOffset = staging.descriptors.isNotEmpty
           ? staging.descriptors[0].startOffset
           : 0;
@@ -284,11 +284,6 @@ class PaginatedModeRenderer extends StatelessWidget {
     onPositionChanged?.call(descriptors[realIndex].startOffset);
   }
 
-  bool _stagingReadyForPrev() {
-    if (!hasPreviousChapter) return false;
-    final staging = dataSource.prevChapterStaging;
-    return staging != null && staging.chapterIndex == chapterId - 1;
-  }
 
   bool _stagingReadyForNext() {
     if (!hasNextChapter) return false;
