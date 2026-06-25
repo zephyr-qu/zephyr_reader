@@ -256,7 +256,7 @@ class PaginatedModeRenderer extends StatelessWidget {
   Widget _buildHoldFrame(BuildContext context, {required bool isFirstPage}) {
     final descriptors = dataSource.descriptors;
     if (descriptors == null || descriptors.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return _buildPageSkeleton();
     }
     if (isFirstPage) {
       return _buildPageContent(context, 0, descriptors[0].startOffset);

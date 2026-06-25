@@ -60,10 +60,10 @@
 
 ## 退出标准（草案）
 
-- [x] P4-0～P4-5 代码 + 对应 Rust/Dart 测试（P4-1 完成，P4-2/P4-3/P4-4 部分完成，P4-5 延迟）
+- [x] P4-1～P4-4 代码 + 对应 Rust/Dart 测试（P4-1 完成，P4-2/P4-3/P4-4 已交付）
+- [ ] P4-5 双语 feature 模块（生产 wiring 已接 `ReaderSessionFactory`，待 DI codegen + 真机全链路验证）
 - [x] Phase 2/3 回归：`pagination_session_test` (34 pass)、`epub_reading_chain_test` (34 pass)
 - [ ] 真机：跨章 forward/backward 无可见 spinner（待真机验收）
-- [x] README / DOMAIN_MODEL / glossary 与 v1.2 边界一致（core 零 import translation/bilingual）
 
 ---
 
