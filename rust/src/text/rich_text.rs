@@ -328,6 +328,9 @@ fn walk_inline_subtree(
                     color: None,
                 }));
             }
+            "b" | "strong" | "i" | "em" | "u" | "s" | "strike" | "del" | "code" | "a" | "span" => {
+                collect_text_spans(handle, spans, parent_style, style_map);
+            }
             "p" | "div" | "section" | "article" | "h1" | "h2" | "h3" | "h4"
             | "h5" | "h6" | "ul" | "ol" | "li" | "blockquote" | "table" | "pre" => {
                 flush_text_paragraph(spans, paragraphs, inherited_class.clone(), parent_style);
@@ -348,14 +351,44 @@ fn walk_inline_subtree(
         }
     } else if let NodeData::Text { ref contents } = handle.data {
         let text = contents.borrow().to_string();
-        if !text.trim().is_empty() {
-            spans.push(RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
-                text,
-                font_size: parent_style.font_size,
-                color: parent_style.color.clone(),
-            }));
+        if !text.is_empty() {
+            push_styled_text_span(spans, text, parent_style);
         }
     }
+}
+
+/// 将 CSS 计算样式映射为行内 [SpanStyle]（`<span style="font-weight:bold">` 等）。
+fn span_style_from_computed(style: &ComputedStyle) -> SpanStyle {
+    let bold = style.font_weight.unwrap_or(400) >= 700;
+    let italic = style.font_style.as_deref() == Some("italic");
+    let deco = style.text_decoration.as_deref().unwrap_or("");
+
+    if deco.contains("line-through") {
+        return SpanStyle::Strikethrough;
+    }
+    if deco.contains("underline") {
+        return SpanStyle::Underline;
+    }
+    match (bold, italic) {
+        (true, true) => SpanStyle::BoldItalic,
+        (true, false) => SpanStyle::Bold,
+        (false, true) => SpanStyle::Italic,
+        _ => SpanStyle::Plain,
+    }
+}
+
+fn push_styled_text_span(spans: &mut Vec<RichTextSpan>, text: String, style: &ComputedStyle) {
+    if text.is_empty() {
+        return;
+    }
+    spans.push(RichTextSpan::Styled(
+        span_style_from_computed(style),
+        RichTextSpanData {
+            text,
+            font_size: style.font_size,
+            color: style.color.clone(),
+        },
+    ));
 }
 
 fn paragraph_indent_chars(style: &ComputedStyle) -> u8 {
@@ -385,7 +418,7 @@ fn flush_text_paragraph(
         parent_style.margin_top_em,
         parent_style.margin_bottom_em,
         parent_style.font_family.clone(),
-        parent_style.text_indent_em.or(Some(2.0)),
+        parent_style.text_indent_em,
     ));
 }
 
@@ -701,12 +734,8 @@ fn collect_text_spans(
         }
     } else if let NodeData::Text { ref contents } = node.data {
         let text = contents.borrow().to_string();
-        if !text.trim().is_empty() {
-            spans.push(RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
-                text,
-                font_size: parent_style.font_size,
-                color: parent_style.color.clone(),
-            }));
+        if !text.is_empty() {
+            push_styled_text_span(spans, text, parent_style);
         }
     }
 }
@@ -827,6 +856,32 @@ mod tests {
         assert!(
             result.iter().any(|p| p.is_image && p.image_src.as_deref() == Some("nested.jpg")),
             "nested img should produce image paragraph: {result:?}"
+        );
+    }
+
+    #[test]
+    fn test_parse_html_css_font_weight_on_span() {
+        let html = r#"<p><span style="font-weight: bold">bold</span> plain</p>"#;
+        let result = parse_html_to_rich_text(html).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(
+            result[0]
+                .spans
+                .iter()
+                .any(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Bold, _)))
+        );
+    }
+
+    #[test]
+    fn test_parse_html_css_font_style_italic_on_span() {
+        let html = r#"<p><span style="font-style: italic">em</span></p>"#;
+        let result = parse_html_to_rich_text(html).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(
+            result[0]
+                .spans
+                .iter()
+                .any(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Italic, _)))
         );
     }
 

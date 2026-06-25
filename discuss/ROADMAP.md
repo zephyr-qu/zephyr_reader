@@ -78,9 +78,9 @@ EPUB 分页内联图 + 大图独占页；`BlockPaginator`；charOffset 兼容 AD
 |---|-----|-----|------|
 | P4-0 | 文档对齐（README / DOMAIN_MODEL / glossary） | — | ✅ |
 | P4-1 | Scroll → Chunked IR | 009 | 🚧 Phase B+C ✅；待集成测 + 双语路径 |
-| P4-2 | IR Text 块基础 CSS | 010 | 🚧 MVP（块级 indent/margin/font；行内 span 待续） |
+| P4-2 | IR Text 块基础 CSS | 010 | ✅ 块级 + 行内 span；用户缩进开关；cache v2 |
 | P4-3 | Staging 零可见 loading | 012 | ✅ |
-| P4-4 | Flutter Metrics 回传校准 | 013 | ⬜ |
+| P4-4 | Flutter Metrics 回传校准 | 013 | ✅ |
 | P4-5 | 双语独立 feature 模块 | 011 | ⬜ |
 
 **退出标准**：[PHASE4_SCOPE.md](./PHASE4_SCOPE.md) §退出标准

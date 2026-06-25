@@ -138,6 +138,7 @@ Widget buildScrollIrBlockItem({
       );
       final painted = IrTextBlockStyle.buildHighlightedSpan(
         text: tb.text,
+        spans: tb.spans,
         irStyle: tb.style,
         config: config,
         highlights: highlights,

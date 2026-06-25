@@ -144,6 +144,23 @@ class ReaderRepository
   );
 
   @override
+  Future<({int totalPages, bool isPartial})> applySessionCalibration({
+    required String bookId,
+    required int chapterIndex,
+    required PaginationParams params,
+    BigInt? maxChars,
+  }) => _session.applySessionCalibration(
+    bookId: bookId,
+    chapterIndex: chapterIndex,
+    params: params,
+    maxChars: maxChars,
+  );
+
+  @override
+  Future<String?> fetchPageContent(int pageIndex) =>
+      _session.fetchPageContent(pageIndex);
+
+  @override
   Future<({int totalPages, bool isPartial})> beginPaginate({
     required String bookId,
     required int chapterIndex,

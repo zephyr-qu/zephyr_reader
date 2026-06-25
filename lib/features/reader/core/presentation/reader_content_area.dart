@@ -107,6 +107,9 @@ class ReaderContentArea extends HookWidget {
       vm.config.brightnessOverlay.value = _brightnessPresets[nextIdx];
     }
 
+    final bool bFirstlineindent = useSignalValue(
+      vm.config.firstLineIndent.signal,
+    );
     final textScaler = vm.config.followSystemFontScale.value
         ? MediaQuery.textScalerOf(context)
         : TextScaler.noScaling;
@@ -134,6 +137,7 @@ class ReaderContentArea extends HookWidget {
                 vocabularyWords: vocabWordSet,
                 baselineAlign: bBaselinealign,
                 textAlign: bTextalign,
+                firstLineIndent: bFirstlineindent,
               );
               Future<void> onHighlightTap(Note note) =>
                   showModalBottomSheet<void>(

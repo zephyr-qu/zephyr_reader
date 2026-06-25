@@ -13,6 +13,7 @@ use super::content_ir::{
     ChapterContentIr, ContentBlock, ImageBlock, TextBlock, TextBlockStyle,
     IMAGE_PLAIN_CHAR_LEN, IMAGE_PLAIN_PLACEHOLDER,
 };
+use super::rich_text::{RichTextSpan, RichTextSpanData};
 
 /// plain 投影 / 校验风格。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -89,6 +90,56 @@ pub fn slice_by_char_range(text: &str, start: u32, len: u32) -> String {
         .collect()
 }
 
+/// 将 [`RichTextSpan`] 流按块内字符范围裁剪（分页切片用）。
+pub fn slice_rich_spans(spans: &[RichTextSpan], start: u32, len: u32) -> Vec<RichTextSpan> {
+    if len == 0 || spans.is_empty() {
+        return Vec::new();
+    }
+    let end = start.saturating_add(len);
+    let mut cursor = 0u32;
+    let mut out = Vec::new();
+
+    for span in spans {
+        let full = span.text();
+        let span_len = full.chars().count() as u32;
+        let span_start = cursor;
+        let span_end = cursor.saturating_add(span_len);
+        cursor = span_end;
+
+        if span_end <= start || span_start >= end {
+            continue;
+        }
+
+        let overlap_start = start.saturating_sub(span_start);
+        let overlap_end = end.saturating_sub(span_start).min(span_len);
+        let slice_len = overlap_end.saturating_sub(overlap_start);
+        if slice_len == 0 {
+            continue;
+        }
+        let text = slice_by_char_range(full, overlap_start, slice_len);
+        out.push(clone_span_with_text(span, text));
+    }
+    out
+}
+
+fn clone_span_with_text(span: &RichTextSpan, text: String) -> RichTextSpan {
+    match span {
+        RichTextSpan::Styled(style, data) => RichTextSpan::Styled(*style, RichTextSpanData {
+            text,
+            font_size: data.font_size,
+            color: data.color.clone(),
+        }),
+        RichTextSpan::Link { data, url } => RichTextSpan::Link {
+            data: RichTextSpanData {
+                text,
+                font_size: data.font_size,
+                color: data.color.clone(),
+            },
+            url: url.clone(),
+        },
+    }
+}
+
 /// 块级 `\n` 分隔符（ADR-007 单换行）。
 pub fn append_block_separator(plain: &mut String, plain_cursor: &mut u32) {
     if plain.is_empty() || plain.ends_with('\n') {
@@ -135,6 +186,15 @@ impl BlockJoinedPlainBuilder {
     }
 
     pub fn push_text(&mut self, text: String, style: TextBlockStyle) {
+        self.push_text_spans(text, style, Vec::new());
+    }
+
+    pub fn push_text_spans(
+        &mut self,
+        text: String,
+        style: TextBlockStyle,
+        spans: Vec<RichTextSpan>,
+    ) {
         if text.trim().is_empty() {
             return;
         }
@@ -142,8 +202,12 @@ impl BlockJoinedPlainBuilder {
         let start = self.cursor;
         self.plain.push_str(&text);
         self.cursor += text.chars().count() as u32;
-        self.blocks
-            .push(ContentBlock::Text(TextBlock::new(start, text, style)));
+        let block = if spans.is_empty() {
+            TextBlock::new(start, text, style)
+        } else {
+            TextBlock::with_spans(start, spans, style)
+        };
+        self.blocks.push(ContentBlock::Text(block));
     }
 
     pub fn push_image(&mut self, asset_id: String, alt: Option<String>) {
@@ -171,7 +235,7 @@ impl BlockJoinedPlainBuilder {
 pub fn append_chapter_ir_to_builder(builder: &mut BlockJoinedPlainBuilder, ir: ChapterContentIr) {
     for block in ir.blocks {
         match block {
-            ContentBlock::Text(t) => builder.push_text(t.text, t.style),
+            ContentBlock::Text(t) => builder.push_text_spans(t.text, t.style, t.spans),
             ContentBlock::Image(img) => builder.push_image(img.asset_id, img.alt),
         }
     }
@@ -228,6 +292,12 @@ pub fn validate_chapter_plain(
                 let slice = slice_by_char_range(&ir.plain_text, range.plain_start, range.plain_len);
                 if slice != t.text {
                     return Err(PlainProjectionError::TextBlockContentMismatch { block_index: i });
+                }
+                if !t.spans.is_empty() {
+                    let joined: String = t.spans.iter().map(|s| s.text()).collect();
+                    if joined != t.text {
+                        return Err(PlainProjectionError::TextBlockContentMismatch { block_index: i });
+                    }
                 }
             }
             ContentBlock::Image(img) => {
@@ -376,6 +446,45 @@ mod tests {
     #[test]
     fn project_block_joined_empty() {
         assert!(project_block_joined(&[]).is_empty());
+    }
+
+    #[test]
+    fn slice_rich_spans_preserves_style() {
+        use crate::domain::{RichTextSpan, RichTextSpanData, SpanStyle};
+
+        let spans = vec![
+            RichTextSpan::Styled(
+                SpanStyle::Plain,
+                RichTextSpanData {
+                    text: "Hello ".into(),
+                    font_size: None,
+                    color: None,
+                },
+            ),
+            RichTextSpan::Styled(
+                SpanStyle::Bold,
+                RichTextSpanData {
+                    text: "bold".into(),
+                    font_size: None,
+                    color: None,
+                },
+            ),
+            RichTextSpan::Styled(
+                SpanStyle::Plain,
+                RichTextSpanData {
+                    text: " world".into(),
+                    font_size: None,
+                    color: None,
+                },
+            ),
+        ];
+        let sliced = slice_rich_spans(&spans, 6, 4);
+        assert_eq!(sliced.len(), 1);
+        assert!(matches!(
+            sliced[0],
+            RichTextSpan::Styled(SpanStyle::Bold, _)
+        ));
+        assert_eq!(sliced[0].text(), "bold");
     }
 
     #[test]

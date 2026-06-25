@@ -215,6 +215,18 @@ pub(crate) async fn repaginate_session(
     apply_session_repagination(handle.session_id, entry, Some(config), max_chars).await
 }
 
+/// Apply Flutter-measured calibration to an existing session and repaginate in-place.
+pub(crate) async fn apply_session_calibration(
+    handle: PaginationSessionHandle,
+    calibration: crate::domain::types::typeset::TypesetCalibration,
+    max_chars: Option<u64>,
+) -> Result<PaginateResult, AppError> {
+    let entry = lookup_pagination_session(handle.session_id)?;
+    let mut config = entry.config.clone();
+    config.calibration = Some(calibration);
+    apply_session_repagination(handle.session_id, entry, Some(config), max_chars).await
+}
+
 /// Expand session to full chapter.
 pub(crate) async fn paginate_session_full(
     handle: PaginationSessionHandle,

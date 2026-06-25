@@ -387,6 +387,60 @@ class RustPaginationSession implements PaginationSession {
   }
 
   @override
+  Future<({int totalPages, bool isPartial})> applySessionCalibration({
+    required String bookId,
+    required int chapterIndex,
+    required PaginationParams params,
+    BigInt? maxChars,
+  }) async {
+    final handle = _handle;
+    final calibration = params.calibration;
+    if (handle == null || calibration == null) {
+      Logging.warning(
+        'applySessionCalibration: missing handle or calibration, '
+        'falling back to repaginateInPlace',
+      );
+      return repaginateInPlace(
+        bookId: bookId,
+        chapterIndex: chapterIndex,
+        params: params,
+        maxChars: maxChars,
+      );
+    }
+    try {
+      _syncImageMaxWidth(params);
+      final sw = Stopwatch()..start();
+      final result = await core_api.applySessionCalibration(
+        handle: handle,
+        calibration: calibrationToRust(calibration),
+        maxChars: maxChars,
+      );
+      Logging.info(
+        '[Timing] applySessionCalibration: ${sw.elapsedMilliseconds}ms '
+        '(pages=${result.descriptors.length})',
+      );
+
+      _applyPaginateResult(result, chapterIndex: chapterIndex);
+      await _preloadPageRange(5);
+      return (
+        totalPages: result.descriptors.length,
+        isPartial: result.isPartial,
+      );
+    } catch (e, st) {
+      Logging.error(
+        'applySessionCalibration error: $e',
+        exception: e,
+        stackTrace: st,
+      );
+      rethrow;
+    }
+  }
+
+  @override
+  Future<String?> fetchPageContent(int pageIndex) =>
+      _fetchAndCachePage(pageIndex);
+
+  @override
   List<PageBlockSlice>? pageBlocks(int pageIndex) {
     final cached = _blocksCache.get(pageIndex);
     if (cached != null) {

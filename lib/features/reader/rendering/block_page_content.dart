@@ -54,6 +54,7 @@ Widget buildBlockPageContent({
                 );
                 final paintedSpan = IrTextBlockStyle.buildHighlightedSpan(
                   text: slice.text,
+                  spans: slice.spans,
                   irStyle: irStyle,
                   config: config,
                   highlights: highlights,

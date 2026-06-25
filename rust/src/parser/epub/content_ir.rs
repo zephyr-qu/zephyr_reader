@@ -149,14 +149,11 @@ fn append_spine_html_to_builder(
 }
 
 fn rich_paragraph_style(p: &RichParagraph) -> TextBlockStyle {
+    // text_indent_em：仅 EPUB/CSS 显式值；None → Flutter/Rust 侧用用户首行缩进设置。
     let text_indent_em = if p.is_heading {
         Some(0.0)
     } else {
-        p.text_indent_em.or(if p.indent > 0 {
-            Some(p.indent as f32)
-        } else {
-            None
-        })
+        p.text_indent_em
     };
     TextBlockStyle {
         is_heading: p.is_heading,
@@ -195,7 +192,7 @@ pub fn chapter_ir_from_rich_paragraphs(paragraphs: &[RichParagraph]) -> ChapterC
         if text.trim().is_empty() {
             continue;
         }
-        builder.push_text(text, rich_paragraph_style(p));
+        builder.push_text_spans(text, rich_paragraph_style(p), p.spans.clone());
     }
 
     builder.finish()
@@ -337,6 +334,51 @@ mod tests {
             panic!("expected image in second spine");
         };
         assert_eq!(img.asset_id, "img_spine_b");
+    }
+
+    #[test]
+    fn html_inline_bold_spans_preserved() {
+        use crate::domain::{RichTextSpan, SpanStyle};
+
+        let ir = html_to_chapter_ir("<p>Hello <b>bold</b> world</p>").unwrap();
+        assert_eq!(ir.block_count(), 1);
+        let ContentBlock::Text(t) = &ir.blocks[0] else {
+            panic!("expected Text block");
+        };
+        assert!(!t.spans.is_empty());
+        assert_eq!(t.text, "Hello bold world");
+        assert!(
+            t.spans
+                .iter()
+                .any(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Bold, _)))
+        );
+        assert_ir_invariants(&ir);
+    }
+
+    #[test]
+    fn html_plain_paragraph_has_no_explicit_text_indent() {
+        let ir = html_to_chapter_ir("<p>Plain</p>").unwrap();
+        let ContentBlock::Text(t) = &ir.blocks[0] else {
+            panic!("expected Text");
+        };
+        assert!(t.style.text_indent_em.is_none());
+        assert_ir_invariants(&ir);
+    }
+
+    #[test]
+    fn html_css_span_font_weight_in_spans() {
+        use crate::domain::{RichTextSpan, SpanStyle};
+
+        let ir = html_to_chapter_ir(r#"<p><span style="font-weight: bold">bold</span></p>"#).unwrap();
+        let ContentBlock::Text(t) = &ir.blocks[0] else {
+            panic!("expected Text");
+        };
+        assert!(
+            t.spans
+                .iter()
+                .any(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Bold, _)))
+        );
+        assert_ir_invariants(&ir);
     }
 
     #[test]

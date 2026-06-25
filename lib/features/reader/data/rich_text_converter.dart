@@ -99,6 +99,27 @@ class RichTextConverter {
     );
   }
 
+  /// 将 IR 行内 [RichTextSpan] 列表转为 [TextSpan] 树（块级样式作基底）。
+  TextSpan irSpansToTextSpan(
+    List<RichTextSpan> spans, {
+    required TextStyle blockStyle,
+  }) {
+    if (spans.isEmpty) {
+      return TextSpan(text: '', style: blockStyle);
+    }
+    return TextSpan(
+      style: blockStyle,
+      children: spans
+          .map(
+            (s) => TextSpan(
+              text: _spanText(s),
+              style: blockStyle.merge(spanToStyle(s)),
+            ),
+          )
+          .toList(),
+    );
+  }
+
   /// 生成段落级样式（CSS block 属性 + 标题回退）。
   TextStyle paragraphBlockStyle(
     RichParagraph p, {

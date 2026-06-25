@@ -85,7 +85,7 @@ impl LayoutCache {
 // ==================== 块分页持久化缓存（Phase 3 P3-6） ====================
 
 /// 块分页 sled 缓存格式版本（与 plain `LayoutCache` 独立演进）。
-pub const BLOCK_LAYOUT_CACHE_VERSION: u8 = 1;
+pub const BLOCK_LAYOUT_CACHE_VERSION: u8 = 2;
 
 /// 块路径分页索引 + 章 IR（跨 session 复用，避免重复 IR 解析与 BlockPaginator CPU）。
 #[derive(Debug, Clone, PartialEq, bincode::Encode, bincode::Decode)]
