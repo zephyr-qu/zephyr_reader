@@ -4,19 +4,19 @@ overview: 实现 ADR-012 — adjacent 跨章时不得展示 CircularProgressIndi
 todos:
   - id: inventory-spinners
     content: "枚举 paginated_renderer.dart 所有 staging 相关 spinner"
-    status: pending
+    status: completed
   - id: hold-frame
     content: "MISS 时复用当前章末页/首页 Widget 而非 spinner"
-    status: pending
+    status: completed
   - id: gate-gesture
     content: "PageView/PageCurl 在 staging 未就绪时禁止翻入虚拟页（可选加强）"
-    status: pending
+    status: completed
   - id: preload-earlier
     content: "chapter_navigator ensurePrev 阈值或 preload 时机微调"
-    status: pending
+    status: completed
   - id: tests
     content: "paginated_renderer_test：MISS 不返回 CircularProgressIndicator"
-    status: pending
+    status: completed
 isProject: false
 ---
 

@@ -16,6 +16,7 @@ const DEFAULT_IMAGE_HEIGHT_RATIO: f32 = 0.55;
 
 /// 排版度量（由 [`TypesetConfig`] 派生）。
 struct BlockLayoutMetrics {
+    font_size_px: f32,
     line_height_px: f32,
     page_height_px: f32,
     page_width_px: f32,
@@ -42,6 +43,7 @@ impl BlockLayoutMetrics {
             (config.paragraph_spacing * font_size).max(0.0);
 
         Self {
+            font_size_px: font_size,
             line_height_px,
             page_height_px,
             page_width_px,
@@ -71,13 +73,48 @@ fn char_index_at_byte(text: &str, byte: usize) -> u32 {
         .count() as u32
 }
 
+/// 块级首行缩进（ADR-010）：IR 字段优先，否则 TypesetConfig。
+fn effective_first_line_indent(
+    style: &TextBlockStyle,
+    metrics: &BlockLayoutMetrics,
+) -> (bool, f32) {
+    if style.is_heading {
+        return (false, 0.0);
+    }
+    match style.text_indent_em {
+        Some(em) if em <= 0.0 => (false, 0.0),
+        Some(em) => (true, em * metrics.font_size_px),
+        None if metrics.first_line_indent_chars > 0 => (
+            true,
+            metrics.first_line_indent_width_px,
+        ),
+        None => (false, 0.0),
+    }
+}
+
+fn block_top_spacing_px(style: &TextBlockStyle, font_size_px: f32) -> f32 {
+    style
+        .margin_top_em
+        .map(|em| em * font_size_px)
+        .unwrap_or(0.0)
+        .max(0.0)
+}
+
+fn block_bottom_spacing_px(style: &TextBlockStyle, metrics: &BlockLayoutMetrics) -> f32 {
+    style
+        .margin_bottom_em
+        .map(|em| em * metrics.font_size_px)
+        .unwrap_or(metrics.paragraph_spacing_extra_px)
+        .max(0.0)
+}
+
 /// 将 Text 块拆成视觉行（含块内 `\n` 硬换行）。
 fn layout_text_block_lines(
     text: &str,
     metrics: &BlockLayoutMetrics,
     style: &TextBlockStyle,
 ) -> Vec<TextLineSegment> {
-    let indent_first = !style.is_heading && metrics.first_line_indent_chars > 0;
+    let (indent_first, indent_width_px) = effective_first_line_indent(style, metrics);
     let char_indices: Vec<(usize, char)> = text.char_indices().collect();
     let mut segments = Vec::new();
     let mut global_char = 0u32;
@@ -116,7 +153,7 @@ fn layout_text_block_lines(
 
         let is_first_line_in_block = segments.is_empty();
         let max_width = if is_first_line_in_block && indent_first {
-            (metrics.max_line_width_px - metrics.first_line_indent_width_px)
+            (metrics.max_line_width_px - indent_width_px)
                 .max(metrics.width_table.char_width('A'))
         } else {
             metrics.max_line_width_px
@@ -251,8 +288,14 @@ impl BlockPaginator {
     }
 
     fn paginate_text_block(&mut self, block_index: u32, block: &TextBlock) {
+        let top_spacing = block_top_spacing_px(&block.style, self.metrics.font_size_px);
+        if top_spacing > 0.0 {
+            self.remaining_height = (self.remaining_height - top_spacing).max(0.0);
+        }
+
         let lines = layout_text_block_lines(&block.text, &self.metrics, &block.style);
         let base_plain = block.plain.plain_start;
+        let bottom_spacing = block_bottom_spacing_px(&block.style, &self.metrics);
 
         for (i, seg) in lines.iter().enumerate() {
             if self.remaining_height < self.metrics.line_height_px {
@@ -265,10 +308,8 @@ impl BlockPaginator {
             self.extend_plain_end(seg_plain_end);
             self.remaining_height -= self.metrics.line_height_px;
 
-            if i + 1 == lines.len() && self.metrics.paragraph_spacing_extra_px > 0.0 {
-                self.remaining_height = (self.remaining_height
-                    - self.metrics.paragraph_spacing_extra_px)
-                    .max(0.0);
+            if i + 1 == lines.len() && bottom_spacing > 0.0 {
+                self.remaining_height = (self.remaining_height - bottom_spacing).max(0.0);
             }
         }
     }

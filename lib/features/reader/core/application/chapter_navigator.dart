@@ -178,9 +178,9 @@ class ChapterNavigator {
     }
   }
 
-  /// 条件触发上一章 staging 预加载（pageIndex <= 1 时加速）。
+  /// 条件触发上一章 staging 预加载（pageIndex <= 2 时提前触发）。
   void ensurePrevChapterStaging(int pageIndex) {
-    if (pageIndex > 1) return;
+    if (pageIndex > 2) return;
     final centerIndex = _chapterVM.chapterIndex.value;
     if (centerIndex - 1 < 0) return;
     if (_repo.prevChapterStaging != null) return;

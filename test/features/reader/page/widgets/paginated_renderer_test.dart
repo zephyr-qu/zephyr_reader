@@ -483,12 +483,9 @@ void main() {
       expect(find.text('Next chapter first page.'), findsOneWidget);
     });
 
-    /// T4 前：staging miss 当前行为 = spinner。
-    /// T4 合并后应改为 hold 帧（同章末页 Text），届时修改此断言。
-    /// staging miss 时 _extendedPageCount 排除跨章虚拟页，
-    /// 用户翻到末页即停止，不暴露 spinner。
-    /// T4 合并后：预留跨章虚拟页并 hold 同章末帧。
-    testWidgets('staging miss excludes cross-chapter page (pre-T4)', (
+    /// ADR-012: staging miss 时 _extendedPageCount 排除跨章虚拟页，
+    /// 用户翻到末页即停止。hold 帧由 _buildCrossChapterPage 兜底。
+    testWidgets('next staging miss excludes cross-chapter page', (
       tester,
     ) async {
       // nextChapterStaging is null → _stagingReadyForNext() = false
@@ -524,6 +521,48 @@ void main() {
       // 跨章虚拟页被 _extendedPageCount 排除，仅渲染内容页
       expect(find.byType(CircularProgressIndicator), findsNothing);
       expect(find.text('Current last page.'), findsOneWidget);
+    });
+
+    /// ADR-012: prev staging miss 时，_buildPreviousChapterPage 返回 hold 帧（当前章首页），不展示 spinner。
+    testWidgets('prev staging miss shows hold frame (not spinner)', (
+      tester,
+    ) async {
+      // prevChapterStaging is null, but hasPreviousChapter = true
+      when(() => dataSource.prevChapterStaging).thenReturn(null);
+      when(() => dataSource.descriptors).thenReturn([
+        const PageDescriptor(
+          pageIndex: 0,
+          startOffset: 0,
+          endOffset: 80,
+          isLastPage: false,
+          firstParagraphIndex: 0,
+          lastParagraphIndex: 0,
+        ),
+      ]);
+      when(() => dataSource.pageContent(0)).thenReturn('Current first page.');
+
+      await tester.pumpWidget(
+        _buildInApp(
+          PaginatedModeRenderer(
+            config: _config(),
+            // page 0 = prev virtual page (hasPreviousChapter=true)
+            pageController: PageController(initialPage: 0),
+            dataSource: dataSource,
+            bookId: 'test_book',
+            chapterId: 0,
+            pageIndex: 0,
+            content: 'Current first page.',
+            highlights: const [],
+            readingMode: ReadingMode.pagination,
+            hasPreviousChapter: true,
+          ),
+        ),
+      );
+
+      // ADR-012: hold frame renders content, not spinner
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      // Hold frame shows current chapter's first page
+      expect(find.text('Current first page.'), findsOneWidget);
     });
   });
   });

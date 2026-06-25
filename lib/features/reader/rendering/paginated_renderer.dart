@@ -159,6 +159,7 @@ class PaginatedModeRenderer extends StatelessWidget {
     );
   }
 
+  /// 下一章虚拟页：staging 命中渲染预加载内容，miss 显示当前章末页 hold 帧。
   Widget _buildCrossChapterPage(BuildContext context, int virtualIndex) {
     final staging = dataSource.nextChapterStaging;
     final stagingReady = staging != null && staging.chapterIndex == chapterId + 1;
@@ -173,8 +174,9 @@ class PaginatedModeRenderer extends StatelessWidget {
         startOffset,
       );
     }
-    Logging.info('[Timing] cross-chapter render: staging_ready=false virtualIndex=$virtualIndex');
-    return const Center(child: CircularProgressIndicator());
+    // ADR-012: staging miss → hold 帧（当前章末页），不展示 spinner
+    Logging.info('[Timing] cross-chapter render: staging_ready=false virtualIndex=$virtualIndex → hold frame');
+    return _buildHoldFrame(context, isFirstPage: false);
   }
 
   /// 跨章 staging 页：plain 或 block 预渲染。
@@ -187,7 +189,8 @@ class PaginatedModeRenderer extends StatelessWidget {
       final blocks = staging.anchorPageBlocks;
       final filePath = staging.filePath;
       if (blocks == null || filePath == null || filePath.isEmpty) {
-        return const Center(child: CircularProgressIndicator());
+        // ADR-012: incomplete staging → hold frame, not spinner
+        return _buildHoldFrame(context, isFirstPage: true);
       }
       return LayoutBuilder(
         builder: (context, constraints) {
@@ -230,7 +233,7 @@ class PaginatedModeRenderer extends StatelessWidget {
       onSelectionGlobalPosition: onSelectionGlobalPosition,
     );
   }
-
+  /// 上一章虚拟页：staging 命中渲染预加载内容，miss 显示当前章首页 hold 帧。
   Widget _buildPreviousChapterPage(BuildContext context) {
     final staging = dataSource.prevChapterStaging;
     if (staging != null && staging.chapterIndex == chapterId - 1) {
@@ -244,9 +247,23 @@ class PaginatedModeRenderer extends StatelessWidget {
         startOffset,
       );
     }
-    return const Center(child: CircularProgressIndicator());
+    // ADR-012: staging miss → hold 帧（当前章首页），不展示 spinner
+    return _buildHoldFrame(context, isFirstPage: true);
   }
 
+
+  /// ADR-012: staging miss 时显示当前章首/末页 hold 帧，替代 spinner。
+  Widget _buildHoldFrame(BuildContext context, {required bool isFirstPage}) {
+    final descriptors = dataSource.descriptors;
+    if (descriptors == null || descriptors.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (isFirstPage) {
+      return _buildPageContent(context, 0, descriptors[0].startOffset);
+    }
+    final lastIdx = descriptors.length - 1;
+    return _buildPageContent(context, lastIdx, descriptors[lastIdx].startOffset);
+  }
   void _handlePageChanged(List<PageDescriptor> descriptors, int index) {
     Logging.debug('[Renderer] _handlePageChanged: virtualIndex=$index');
     // 向后虚拟页 → onReachStart
@@ -267,6 +284,12 @@ class PaginatedModeRenderer extends StatelessWidget {
     onPositionChanged?.call(descriptors[realIndex].startOffset);
   }
 
+  bool _stagingReadyForPrev() {
+    if (!hasPreviousChapter) return false;
+    final staging = dataSource.prevChapterStaging;
+    return staging != null && staging.chapterIndex == chapterId - 1;
+  }
+
   bool _stagingReadyForNext() {
     if (!hasNextChapter) return false;
     final staging = dataSource.nextChapterStaging;
@@ -274,8 +297,10 @@ class PaginatedModeRenderer extends StatelessWidget {
   }
 
   int _extendedPageCount(List<PageDescriptor> descriptors) {
-    final offset = hasPreviousChapter ? 1 : 0;
-    return descriptors.length + (_stagingReadyForNext() ? 1 : 0) + offset;
+    // Prev virtual page always included (hasPreviousChapter flag is static);
+    // hold frame in _buildPreviousChapterPage covers the staging-miss visual.
+    final prevOffset = hasPreviousChapter ? 1 : 0;
+    return descriptors.length + (_stagingReadyForNext() ? 1 : 0) + prevOffset;
   }
   @override
   Widget build(BuildContext context) {

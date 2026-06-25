@@ -48,7 +48,9 @@ pub fn phase2_ir_sample_page_block_slices() -> Vec<PageBlockSlice> {
         PageBlockSlice::Text(PageTextBlockSlice {
             block_index: 0,
             text: "sample".into(),
+            is_block_start: true,
             is_block_end: true,
+            style: TextBlockStyle::default(),
         }),
         PageBlockSlice::Image(PageImageBlockSlice {
             block_index: 1,

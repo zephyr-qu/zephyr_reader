@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/data/epub_block_image_cache.dart';
-import 'package:zephyr_reader/features/reader/rendering/highlight_painter.dart';
+import 'package:zephyr_reader/features/reader/rendering/ir_text_block_style.dart';
 import 'package:zephyr_reader/features/reader/rendering/paginated_page_viewport.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
@@ -23,8 +23,6 @@ Widget buildBlockPageContent({
   required void Function(Offset?)? onSelectionGlobalPosition,
   required double maxContentWidth,
 }) {
-  final textStyle = config.buildTextStyle();
-  final strutStyle = config.buildStrutStyle();
   final vPad = ReaderRenderConfig.pageContentVerticalPadding;
   final imageMaxWidth =
       (maxContentWidth - 2 * config.pageMargin).clamp(1.0, maxContentWidth);
@@ -46,40 +44,62 @@ Widget buildBlockPageContent({
             block.when(
               text: (slice) {
                 if (slice.text.isEmpty) return;
-                final paintedSpan = HighlightPainter.paintPlain(
-                  slice.text,
-                  textStyle,
-                  highlights,
-                  onHighlightTap: onHighlightTap,
-                  vocabularyWords: config.effectiveVocabWords,
+                final irStyle = slice.style;
+                final blockStrutStyle = config.buildStrutStyle(
+                  fontFamily: irStyle.fontFamily,
+                );
+                final textAlign = IrTextBlockStyle.resolveTextAlign(
+                  irStyle.textAlign,
+                  config.textAlign,
+                );
+                final paintedSpan = IrTextBlockStyle.buildHighlightedSpan(
+                  text: slice.text,
+                  irStyle: irStyle,
+                  config: config,
+                  highlights: highlights,
                   contentStart: runningOffset,
+                  applyFirstLineIndent: slice.isBlockStart,
+                  onHighlightTap: onHighlightTap,
                 );
-                final textWidget = SelectableText.rich(
-                  paintedSpan,
-                  strutStyle: strutStyle,
-                  textAlign: config.textAlign,
-                  textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
-                  onSelectionChanged: (sel, cause) => _handleBlockTextSelection(
-                    sel,
-                    slice.text,
-                    runningOffset,
-                    context,
-                    onSelectionChanged,
-                    onSelectionGlobalPosition,
-                  ),
-                  contextMenuBuilder: (_, _) => const SizedBox.shrink(),
-                );
-                if (slice.isBlockEnd && config.paragraphSpacing > 0) {
-                  children.add(
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        textWidget,
-                        SizedBox(height: config.paragraphSpacing),
-                      ],
+                final blockPadding = slice.isBlockStart
+                    ? IrTextBlockStyle.resolveBlockPadding(irStyle, config)
+                    : EdgeInsets.zero;
+                final textWidget = Padding(
+                  padding: blockPadding,
+                  child: SelectableText.rich(
+                    paintedSpan,
+                    strutStyle: blockStrutStyle,
+                    textAlign: textAlign,
+                    textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
+                    onSelectionChanged: (sel, cause) =>
+                        _handleBlockTextSelection(
+                      sel,
+                      slice.text,
+                      runningOffset,
+                      context,
+                      onSelectionChanged,
+                      onSelectionGlobalPosition,
                     ),
-                  );
+                    contextMenuBuilder: (_, _) => const SizedBox.shrink(),
+                  ),
+                );
+                if (slice.isBlockEnd) {
+                  final bottomSpacing =
+                      IrTextBlockStyle.resolveBottomSpacing(irStyle, config);
+                  if (bottomSpacing > 0) {
+                    children.add(
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          textWidget,
+                          SizedBox(height: bottomSpacing),
+                        ],
+                      ),
+                    );
+                  } else {
+                    children.add(textWidget);
+                  }
                 } else {
                   children.add(textWidget);
                 }

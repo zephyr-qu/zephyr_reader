@@ -29,6 +29,14 @@ pub struct RichParagraph {
     pub text_align: Option<String>,
     /// 行高
     pub line_height: Option<f32>,
+    /// CSS 块上边距（em）
+    pub margin_top_em: Option<f32>,
+    /// CSS 块下边距（em）
+    pub margin_bottom_em: Option<f32>,
+    /// CSS font-family 提示
+    pub font_family: Option<String>,
+    /// CSS text-indent（em）；`None` 表示未指定
+    pub text_indent_em: Option<f32>,
     /// 是否为图片
     pub is_image: bool,
     /// 图片源路径
