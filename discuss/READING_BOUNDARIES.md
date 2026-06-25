@@ -16,7 +16,7 @@
 | **80%** | 进度/书签/笔记稳定 · 排版可调 · 搜索快 · **换章丝滑** |
 | **进度真理** | `chapterIndex` + `charOffset`（plainText）— [ADR-001](./adr/001-reading-position-truth.md) |
 | **技术分工** | Rust IR+块分页+缓存；Flutter 渲染+staging — [ADR-006](./adr/006-rust-flutter-division.md) |
-| **当前阶段** | **Phase 1**（瘦身现有链）— [ROADMAP.md](./ROADMAP.md) |
+| **当前阶段** | **Phase 3 已退出**（2026-06-24）— [ROADMAP.md](./ROADMAP.md) / [PHASE3_EXIT.md](./PHASE3_EXIT.md) |
 | **明确不做** | PDF 阅读、账号/同步、复杂 CSS、WebView 全引擎 |
 
 ---

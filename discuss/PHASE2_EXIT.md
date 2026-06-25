@@ -70,7 +70,7 @@ Flutter 按页拉块 → Text + Image.memory（Rust 解码字节 + 本地缓存�
 |---|------|-----|------|------|
 | 3.1 | Session 双路径（`PageStreamer` vs `BlockPaginator`） | Rust | ✅ | `ir.image_block_count() > 0` 全章走 block |
 | 3.2 | `get_page_blocks`（或扩展 `get_page_content`） | Rust/FRB | ✅ | `get_session_page_blocks` |
-| 3.3 | partial 首屏 + `expandToFullChapter` | Rust | ⬜ | partial 仍 plain；expand 全章可切 block |
+| 3.3 | partial 首屏 + `expandToFullChapter` | Rust | ✅ | Phase 3 P3-1；含图章 expand 切 block |
 | 3.4 | `charOffset` → `pageIndex` | Rust/Dart | ✅ | `session_char_offset_to_page_index` |
 | 3.5 | 集成测试 | Rust | ✅ | `epub_block_session_with_image` |
 
@@ -155,19 +155,19 @@ flowchart LR
 
 ---
 
-## Phase 3 backlog（已知遗留，不阻塞 Phase 2 退出）
+## Phase 3 backlog（已归档 → [PHASE3_EXIT.md](./PHASE3_EXIT.md)）
 
-| # | 项 | 说明 |
-|---|-----|------|
-| P3-1 | **M3.3** partial → full 切 block | partial 首屏仍 plain；`expandToFullChapter` 后含图章应稳定切 `ContentBlocks` |
-| P3-2 | **段间距 Rust ↔ Flutter 对齐** | block 分页 Column 未渲染 `paragraphSpacing`；Rust 分页已扣高度，视觉可能偏紧/偏松 |
-| P3-3 | **图片预取深化** | 块 ±3 预取 + `EpubBlockImageCache` 已做；极端 fast-flip / 不同 `maxWidth` cache miss 可再优化 |
-| P3-4 | **滚动进度模型** | 含图 rich 段 `ScrollListMetrics` 已修 RangeError；ListView 仍用 uniform 段高近似 |
-| P3-5 | **大章 chunked IR** | 单章 HTML >100KB / 超大 spine 的 IR 与分页策略（ROADMAP Phase 3） |
-| P3-6 | **sled 分页索引** | 跨 session 块/页缓存持久化（ROADMAP Phase 3） |
+| # | 项 | 说明 | 状态 |
+|---|-----|------|------|
+| P3-1 | **M3.3** partial → full 切 block | partial 首屏仍 plain；`expandToFullChapter` 后含图章应稳定切 `ContentBlocks` | ✅ |
+| P3-2 | **段间距 Rust ↔ Flutter 对齐** | block 分页 Column 渲染 `paragraphSpacing` | ✅ |
+| P3-3 | **图片预取深化** | 块 ±3 预取 + `EpubBlockImageCache` 分级 | ✅ |
+| P3-4 | **滚动进度模型** | `ScrollListMetrics.itemExtents` + layout 透传 | ✅ |
+| P3-5 | **大章 chunked IR** | spine / HTML 块边界分块解析 | ✅ |
+| P3-6 | **sled 分页索引** | `block_layout_cache` 跨 session | ✅ |
 
 ---
 
 ## Phase 2 完成后
 
-✅ 已合入 `master`。进入 [Phase 3](./ROADMAP.md)（预取强化、图片管道深化、大章 chunked IR）；**不**在 Phase 2 做 PDF 主链 / WebView。
+✅ 已合入 `master`。Phase 3 已于 2026-06-24 合入 `master`（见 [PHASE3_EXIT.md](./PHASE3_EXIT.md)）。
