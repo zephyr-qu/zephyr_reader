@@ -18,6 +18,14 @@ import 'package:zephyr_reader/core/network/network_module.dart' as _i510;
 import 'package:zephyr_reader/core/network/wifi_transfer_service.dart' as _i82;
 import 'package:zephyr_reader/core/theme/theme_manager.dart' as _i182;
 import 'package:zephyr_reader/di/app_module.dart' as _i431;
+import 'package:zephyr_reader/features/bilingual/application/bilingual_config.dart'
+    as _i917;
+import 'package:zephyr_reader/features/bilingual/application/bilingual_view_model.dart'
+    as _i136;
+import 'package:zephyr_reader/features/bilingual/bilingual_module.dart'
+    as _i984;
+import 'package:zephyr_reader/features/bilingual/domain/bilingual_service.dart'
+    as _i884;
 import 'package:zephyr_reader/features/bookshelf/application/book_import_service.dart'
     as _i339;
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart'
@@ -90,6 +98,7 @@ extension GetItInjectableX on _i174.GetIt {
     final gh = _i526.GetItHelper(this, environment, environmentFilter);
     final appModule = _$AppModule();
     final networkModule = _$NetworkModule();
+    final bilingualModule = _$BilingualModule();
     final translationModule = _$TranslationModule();
     await gh.factoryAsync<_i985.PreferencesService>(
       () => appModule.providePreferencesService(),
@@ -116,6 +125,13 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i1020.TtsService>(() => _i1020.TtsService());
     gh.lazySingleton<_i1.SearchViewModel>(() => _i1.SearchViewModel());
     gh.factory<_i768.ProgressRepository>(() => _i433.RustProgressRepository());
+    gh.factoryParam<_i136.BilingualViewModel, _i642.ChapterViewModel, dynamic>(
+      (chapterVM, _) => _i136.BilingualViewModel(
+        chapterVM,
+        config: gh<_i917.BilingualConfig>(),
+        service: gh<_i884.BilingualService>(),
+      ),
+    );
     gh.factoryParam<
       _i642.ChapterViewModel,
       _i421.ReaderRepositoryInterface,
@@ -173,22 +189,23 @@ extension GetItInjectableX on _i174.GetIt {
     gh.singleton<_i182.ThemeManager>(
       () => _i182.ThemeManager(gh<_i985.PreferencesService>()),
     );
+    gh.singleton<_i917.BilingualConfig>(
+      () => _i917.BilingualConfig(gh<_i985.PreferencesService>()),
+    );
     gh.singleton<_i402.ReaderConfig>(
       () => _i402.ReaderConfig(gh<_i985.PreferencesService>()),
     );
     gh.singleton<_i466.TranslationConfig>(
       () => _i466.TranslationConfig(gh<_i985.PreferencesService>()),
     );
+    gh.lazySingleton<_i884.BilingualService>(
+      () => bilingualModule.bilingualService(
+        gh<_i917.BilingualConfig>(),
+        gh<_i361.Dio>(),
+      ),
+    );
     gh.factory<_i291.ChapterContentRepository>(
       () => _i109.RustChapterContentRepository(gh<_i402.ReaderConfig>()),
-    );
-    gh.factory<_i305.ReaderSessionFactory>(
-      () => _i305.ReaderSessionFactory(
-        gh<_i291.ChapterContentRepository>(),
-        gh<_i768.ProgressRepository>(),
-        gh<_i693.PaginationSessionFactory>(),
-        gh<_i402.ReaderConfig>(),
-      ),
     );
     gh.lazySingleton<_i877.TranslationService>(
       () => translationModule.translationService(
@@ -203,6 +220,14 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i693.PaginationSessionFactory>(),
       ),
     );
+    gh.factory<_i305.ReaderSessionFactory>(
+      () => _i305.ReaderSessionFactory(
+        gh<_i291.ChapterContentRepository>(),
+        gh<_i768.ProgressRepository>(),
+        gh<_i693.PaginationSessionFactory>(),
+        gh<_i402.ReaderConfig>(),
+      ),
+    );
     return this;
   }
 }
@@ -210,5 +235,7 @@ extension GetItInjectableX on _i174.GetIt {
 class _$AppModule extends _i431.AppModule {}
 
 class _$NetworkModule extends _i510.NetworkModule {}
+
+class _$BilingualModule extends _i984.BilingualModule {}
 
 class _$TranslationModule extends _i401.TranslationModule {}

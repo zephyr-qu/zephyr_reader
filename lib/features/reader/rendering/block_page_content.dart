@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -230,11 +231,11 @@ class _EpubBlockImageState extends State<EpubBlockImage> {
   @override
   Widget build(BuildContext context) {
     if (_error != null) {
-      return _compactPlaceholder(icon: Icons.broken_image_outlined);
+      return _sizedPlaceholder(icon: Icons.broken_image_outlined);
     }
     final bytes = _imageBytes;
     if (bytes == null) {
-      return _compactPlaceholder(icon: Icons.image_outlined);
+      return _sizedPlaceholder(icon: Icons.image_outlined);
     }
 
     final maxW = widget.maxWidthPx.toDouble();
@@ -248,7 +249,7 @@ class _EpubBlockImageState extends State<EpubBlockImage> {
       cacheWidth: (maxW * dpr).ceil().clamp(1, 8192),
       semanticLabel: widget.alt,
       errorBuilder: (_, _, _) =>
-          _compactPlaceholder(icon: Icons.broken_image_outlined),
+          _sizedPlaceholder(icon: Icons.broken_image_outlined),
     );
 
     if (widget.fullPage) {
@@ -264,10 +265,16 @@ class _EpubBlockImageState extends State<EpubBlockImage> {
     );
   }
 
-  Widget _compactPlaceholder({required IconData icon}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Icon(icon, size: 28, color: Colors.grey),
+  /// 占位符：预留图片实际尺寸空间，避免加载完成后排版跳动。
+  Widget _sizedPlaceholder({required IconData icon}) {
+    final maxW = widget.maxWidthPx.toDouble();
+    final maxH = widget.maxHeightPx?.toDouble() ?? maxW * 0.5625;
+    return SizedBox(
+      width: maxW,
+      height: math.min(maxH, 1200),
+      child: Center(
+        child: Icon(icon, size: 28, color: Colors.grey),
+      ),
     );
   }
 }

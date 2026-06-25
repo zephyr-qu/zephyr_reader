@@ -70,10 +70,11 @@ EPUB 分页内联图 + 大图独占页；`BlockPaginator`；charOffset 兼容 AD
 
 ---
 
-## Phase 4 — 引擎完善 🚧 进行中
+## Phase 4 — 引擎完善 🚧 进行中（核心链路完成，待真机签退）
 
 **目标**：统一 IR 渲染管线、块级 CSS、staging 硬保证、metrics 校准、双语模块边界。详见 [PHASE4_SCOPE.md](./PHASE4_SCOPE.md)。
 
+> **2026-06-25 收敛完成**：scroll 仅走 IR（`scroll_mode_renderer.dart` 855→352 行），分页 miss 用骨架替代 spinner，金路径测试 6/6。未完成：P4-5 双语 codegen、真机验收。详见 [PHASE4_SCOPE.md](./PHASE4_SCOPE.md) §退出标准。
 | # | 项 | ADR | 状态 |
 |---|-----|-----|------|
 | P4-0 | 文档对齐（README / DOMAIN_MODEL / glossary） | — | ✅ |

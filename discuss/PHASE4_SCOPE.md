@@ -1,6 +1,6 @@
 # Phase 4 范围 — 引擎完善（Grilling 第五轮，2026-06-25）
 
-> **状态**：已拍板 · **主线 = D1-B**（核心引擎完善）  
+> **状态**：核心链路已完成（P4-1～P4-4 代码 + 测试），**正式签退待真机验收 + P4-5 双语 codegen**。  
 > **来源**：`/grill-with-docs` 会话；决策归档 [xinxi-round5.md](./xinxi-round5.md)  
 > **绑定**：[READING_BOUNDARIES.md](./READING_BOUNDARIES.md) v1.2 · [ROADMAP.md](./ROADMAP.md) Phase 4
 

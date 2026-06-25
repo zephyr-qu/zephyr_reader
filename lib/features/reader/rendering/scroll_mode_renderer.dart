@@ -17,7 +17,6 @@ class ScrollModeRenderer extends HookWidget {
   final ReaderRenderConfig config;
   final ScrollController scrollController;
   final ReaderRenderDataSource dataSource;
-  final String bookId;
   final int chapterId;
   final String content;
   final List<ScrollChapterSegment> segments;
@@ -33,7 +32,6 @@ class ScrollModeRenderer extends HookWidget {
     required this.config,
     required this.scrollController,
     required this.dataSource,
-    required this.bookId,
     required this.chapterId,
     required this.content,
     this.segments = const [],
@@ -59,14 +57,6 @@ class ScrollModeRenderer extends HookWidget {
       config.lineHeight,
       config.fontFamily,
     ]);
-    final paragraphList = useMemoized(
-      () => content
-          .split('\n\n')
-          .where((p) => p.trim().isNotEmpty)
-          .map((p) => _splitLongSentence(p))
-          .toList(),
-      [content],
-    );
 
     final chapterIr = dataSource.currentChapterIr;
     final hasSegments = segments.isNotEmpty;
@@ -105,7 +95,12 @@ class ScrollModeRenderer extends HookWidget {
       return _buildMultiSegmentPlainList(context, textStyle, strutStyle);
     }
 
-    // Fallback: plain text content
+    // Fallback: plain text content（IR 未命中时）
+    final paragraphList = content
+        .split('\n\n')
+        .where((p) => p.trim().isNotEmpty)
+        .map((p) => _splitLongSentence(p))
+        .toList();
     if (paragraphList.isEmpty) {
       return const Center(child: Text('内容为空'));
     }

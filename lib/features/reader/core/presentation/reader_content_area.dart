@@ -174,7 +174,6 @@ class ReaderContentArea extends HookWidget {
                   config: renderConfig,
                   scrollController: sc,
                   dataSource: dataSource,
-                  bookId: bCurrentbookid,
                   chapterId: bChapterindex,
                   content: bContent,
                   segments: scrollSegments,
