@@ -267,10 +267,10 @@ void main() {
     testWidgets('contentBlocks staging 渲染 Image 占位', (tester) async {
       final dataSource = _mockDataSource();
       when(() => dataSource.nextChapterStaging).thenReturn(
-        NextChapterStaging(
+        const NextChapterStaging(
           chapterIndex: 1,
           configHash: 0x1234,
-          descriptors: const [
+          descriptors: [
             PageDescriptor(
               pageIndex: 0,
               startOffset: 0,
@@ -284,7 +284,7 @@ void main() {
           isPartial: false,
           paginationMode: ChapterPaginationMode.contentBlocks,
           filePath: '/books/test.epub',
-          anchorPageBlocks: const [
+          anchorPageBlocks: [
             PageBlockSlice.image(
               PageImageBlockSlice(
                 blockIndex: 1,
@@ -375,10 +375,10 @@ void main() {
         tester,
       ) async {
         when(() => dataSource.prevChapterStaging).thenReturn(
-          NextChapterStaging(
+          const NextChapterStaging(
             chapterIndex: -1,
             configHash: 0xABCD,
-            descriptors: const [
+            descriptors: [
               PageDescriptor(
                 pageIndex: 0,
                 startOffset: 0,
@@ -431,10 +431,10 @@ void main() {
         tester,
       ) async {
         when(() => dataSource.nextChapterStaging).thenReturn(
-          NextChapterStaging(
+          const NextChapterStaging(
             chapterIndex: 1,
             configHash: 0xABCD,
-            descriptors: const [
+            descriptors: [
               PageDescriptor(
                 pageIndex: 0,
                 startOffset: 0,

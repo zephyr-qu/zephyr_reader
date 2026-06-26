@@ -12,7 +12,6 @@ import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/init.dart';
 import 'package:zephyr_reader/src/rust/frb_generated.dart';
-import 'package:zephyr_reader/src/rust/domain/types/metadata.dart';
 
 /// 当前活动的临时目录，由 [setupTestStorage] 创建。
 Directory? _tempDir;

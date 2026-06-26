@@ -149,7 +149,7 @@ void main() {
       applyFirstLineIndent: true,
     );
     expect(span, isA<TextSpan>());
-    final children = (span as TextSpan).children;
+    final children = (span).children;
     expect(children, isNotNull);
     expect(children!.first, isA<WidgetSpan>());
   });

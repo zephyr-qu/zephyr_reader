@@ -30,7 +30,7 @@ ChapterContentIr _sampleIr() {
     lineHeight: null,
     textAlign: null,
   );
-  return ChapterContentIr(
+  return const ChapterContentIr(
     plainText: 'Hello\uFFFC world',
     blocks: [
       ContentBlock.text(
@@ -38,7 +38,7 @@ ChapterContentIr _sampleIr() {
           plain: BlockPlainRange(plainStart: 0, plainLen: 5),
           text: 'Hello',
           style: style,
-          spans: const [],
+          spans: [],
         ),
       ),
       ContentBlock.image(
@@ -52,7 +52,7 @@ ChapterContentIr _sampleIr() {
           plain: BlockPlainRange(plainStart: 6, plainLen: 6),
           text: ' world',
           style: style,
-          spans: const [],
+          spans: [],
         ),
       ),
     ],

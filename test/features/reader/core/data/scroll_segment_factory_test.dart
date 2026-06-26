@@ -29,7 +29,7 @@ void main() {
         lineHeight: null,
         textAlign: null,
       );
-      final ir = ChapterContentIr(
+      final ir = const ChapterContentIr(
         plainText: 'Text\uFFFC',
         blocks: [
           ContentBlock.text(
@@ -37,7 +37,7 @@ void main() {
               plain: BlockPlainRange(plainStart: 0, plainLen: 4),
               text: 'Text',
               style: style,
-              spans: const [],
+              spans: [],
             ),
           ),
           ContentBlock.image(
@@ -63,9 +63,9 @@ void main() {
       final richParagraphs = [
         RichParagraph(
           spans: [
-            RichTextSpan.styled(
+            const RichTextSpan.styled(
               SpanStyle.plain,
-              const RichTextSpanData(text: 'Title'),
+              RichTextSpanData(text: 'Title'),
             ),
           ],
           indent: 0,
@@ -76,9 +76,9 @@ void main() {
         ),
         RichParagraph(
           spans: [
-            RichTextSpan.styled(
+            const RichTextSpan.styled(
               SpanStyle.plain,
-              const RichTextSpanData(text: 'Body'),
+              RichTextSpanData(text: 'Body'),
             ),
           ],
           indent: 0,

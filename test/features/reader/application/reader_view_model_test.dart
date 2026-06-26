@@ -226,16 +226,16 @@ void main() {
       ReaderConfig
     >((repo, config) => ChapterViewModel(repo, config));
     GetIt.I.registerFactoryParam<ReadingSessionManager, ChapterViewModel, void>(
-      (vm, _) => ReadingSessionManager(vm as ChapterViewModel),
+      (vm, _) => ReadingSessionManager(vm),
     );
     GetIt.I.registerFactoryParam<BookmarkViewModel, ChapterViewModel, void>(
-      (vm, _) => BookmarkViewModel(vm as ChapterViewModel),
+      (vm, _) => BookmarkViewModel(vm),
     );
     GetIt.I.registerFactoryParam<AnnotationViewModel, ChapterViewModel, void>(
-      (vm, _) => AnnotationViewModel(vm as ChapterViewModel),
+      (vm, _) => AnnotationViewModel(vm),
     );
     GetIt.I.registerFactoryParam<BilingualViewModel, ChapterViewModel, void>(
-      (vm, _) => BilingualViewModel(vm as ChapterViewModel),
+      (vm, _) => BilingualViewModel(vm),
     );
   });
   setUp(() {

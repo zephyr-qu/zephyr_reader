@@ -14,7 +14,6 @@ import 'package:zephyr_reader/features/reader/rendering/paginated_renderer.dart'
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/features/reader/rendering/scroll_mode_renderer.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
-import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dart';
 import 'package:zephyr_reader/features/reader/page/ui/battery_indicator.dart';
 import 'package:zephyr_reader/features/reader/page/ui/brightness_mask.dart';
 import 'package:zephyr_reader/features/reader/page/widgets/reader_content.dart';

@@ -16,8 +16,7 @@ import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 class RustPaginationSession implements PaginationSession {
-  RustPaginationSession({void Function()? onCacheUpdated})
-    : _onCacheUpdated = onCacheUpdated;
+  RustPaginationSession({this._onCacheUpdated});
 
   final void Function()? _onCacheUpdated;
 
@@ -141,7 +140,7 @@ class RustPaginationSession implements PaginationSession {
     if (book.filePath.isEmpty) {
       throw Exception('_createSession: book not found for bookId=$bookId');
     }
-    final validated_path = book.filePath;
+    final validatedPath = book.filePath;
 
     _releaseHandle();
     _contentCache.clear();
@@ -150,7 +149,7 @@ class RustPaginationSession implements PaginationSession {
 
     final sw = Stopwatch()..start();
     final (handle, result) = await core_api.createPaginationSession(
-      filePath: validated_path,
+      filePath: validatedPath,
       chapterIndex: chapterIndex,
       config: config,
       maxChars: maxChars,
@@ -161,7 +160,7 @@ class RustPaginationSession implements PaginationSession {
     );
 
     _handle = handle;
-    _sessionFilePath = validated_path;
+    _sessionFilePath = validatedPath;
     _applyPaginateResult(result, chapterIndex: chapterIndex);
     return result;
   }
@@ -512,8 +511,9 @@ class RustPaginationSession implements PaginationSession {
   /// Async fetch-and-cache for a single page.
   /// Returns null on invalid state or fetch error.
   Future<String?> _fetchAndCachePage(int pageIndex) async {
-    if (_contentCache.containsKey(pageIndex))
+    if (_contentCache.containsKey(pageIndex)) {
       return _contentCache.get(pageIndex);
+    }
     final handle = _handle;
     if (handle == null || _descriptors == null) return null;
     if (pageIndex < 0 || pageIndex >= _descriptors!.length) return null;
