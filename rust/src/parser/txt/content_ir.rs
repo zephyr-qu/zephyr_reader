@@ -4,9 +4,11 @@
 //! `TxtContentProvider::read_text_range` 章内字节/字符内容 **完全一致**。
 
 use crate::domain::{
-    AppError, ChapterContentIr, ContentBlock, PlainProjectionStyle, TextBlock, TextBlockStyle,
+    AppError, ChapterContentIr, ContentBlock, TextBlock, TextBlockStyle,
     slice_by_char_range,
 };
+#[cfg(test)]
+use crate::domain::PlainProjectionStyle;
 
 use super::provider::TxtContentProvider;
 use crate::parser::provider::ChapterContentProvider;

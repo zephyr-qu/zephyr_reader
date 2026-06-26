@@ -218,9 +218,7 @@ void main() {
     // Mock bilingual deps for BilingualViewModel's getIt fallback
     GetIt.I.reset();
     GetIt.I.registerFactory<BilingualConfig>(() => _MockBilingualConfig());
-    GetIt.I.registerFactory<BilingualService>(
-      () => _MockBilingualService(),
-    );
+    GetIt.I.registerFactory<BilingualService>(() => _MockBilingualService());
     // Register sub-VMs as factoryParam for DI
     GetIt.I.registerFactoryParam<
       ChapterViewModel,

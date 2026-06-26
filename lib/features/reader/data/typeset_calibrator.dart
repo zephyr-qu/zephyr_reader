@@ -221,7 +221,8 @@ CalibrationData? calibrateFromPageText({
     maxSamples: maxSamplesPerCategory,
   );
 
-  final hasAnySamples = cjkSamples.isNotEmpty ||
+  final hasAnySamples =
+      cjkSamples.isNotEmpty ||
       asciiSamples.isNotEmpty ||
       digitSamples.isNotEmpty ||
       punctSamples.isNotEmpty ||
@@ -229,7 +230,8 @@ CalibrationData? calibrateFromPageText({
       otherSamples.isNotEmpty;
   if (!hasAnySamples) return baseline;
 
-  final fallback = baseline ??
+  final fallback =
+      baseline ??
       _calibrateCharacterWidths(
         fontSize: fontSize,
         devicePixelRatio: devicePixelRatio,
@@ -242,15 +244,20 @@ CalibrationData? calibrateFromPageText({
 
   return CalibrationData(
     dpr: devicePixelRatio,
-    cjkWidth: _avgWidthForCategory(cjkSamples, fontSize, fontFamily) ??
+    cjkWidth:
+        _avgWidthForCategory(cjkSamples, fontSize, fontFamily) ??
         fallback.cjkWidth,
-    asciiWidth: _avgWidthForCategory(asciiSamples, fontSize, fontFamily) ??
+    asciiWidth:
+        _avgWidthForCategory(asciiSamples, fontSize, fontFamily) ??
         fallback.asciiWidth,
-    digitWidth: _avgWidthForCategory(digitSamples, fontSize, fontFamily) ??
+    digitWidth:
+        _avgWidthForCategory(digitSamples, fontSize, fontFamily) ??
         fallback.digitWidth,
-    punctWidth: _avgWidthForCategory(punctSamples, fontSize, fontFamily) ??
+    punctWidth:
+        _avgWidthForCategory(punctSamples, fontSize, fontFamily) ??
         fallback.punctWidth,
-    otherWidth: _avgWidthForCategory(latinOrOther, fontSize, fontFamily) ??
+    otherWidth:
+        _avgWidthForCategory(latinOrOther, fontSize, fontFamily) ??
         fallback.otherWidth,
   );
 }

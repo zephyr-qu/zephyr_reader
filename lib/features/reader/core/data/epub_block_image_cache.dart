@@ -6,24 +6,24 @@ import 'package:zephyr_reader/src/rust/api/epub.dart' as epub_api;
 import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 
 /// 解码 EPUB 图片字节（可注入以便测试）。
-typedef EpubImageLoader = Future<Uint8List> Function({
-  required String filePath,
-  required String assetId,
-  required int maxWidthPx,
-});
+typedef EpubImageLoader =
+    Future<Uint8List> Function({
+      required String filePath,
+      required String assetId,
+      required int maxWidthPx,
+    });
 
 Future<Uint8List> _defaultEpubImageLoader({
   required String filePath,
   required String assetId,
   required int maxWidthPx,
-}) =>
-    Future.microtask(
-      () => epub_api.getProcessedEpubImageBytes(
-        filePath: filePath,
-        assetId: assetId,
-        maxWidthPx: maxWidthPx,
-      ),
-    );
+}) => Future.microtask(
+  () => epub_api.getProcessedEpubImageBytes(
+    filePath: filePath,
+    assetId: assetId,
+    maxWidthPx: maxWidthPx,
+  ),
+);
 
 class _ImageCacheEntry {
   const _ImageCacheEntry({required this.maxWidthPx, required this.bytes});
@@ -42,17 +42,14 @@ class _ImageCacheEntry {
 /// 旋转导致 cache miss。
 class EpubBlockImageCache {
   EpubBlockImageCache({EpubImageLoader? loader})
-      : _loader = loader ?? _defaultEpubImageLoader;
+    : _loader = loader ?? _defaultEpubImageLoader;
 
   final EpubImageLoader _loader;
 
   final Map<String, _ImageCacheEntry> _ready = {};
   final Map<String, Future<_ImageCacheEntry>> _inflight = {};
 
-  static String assetKey({
-    required String filePath,
-    required String assetId,
-  }) =>
+  static String assetKey({required String filePath, required String assetId}) =>
       '$filePath\x00$assetId';
 
   /// 精确宽度键（仅用于合并同宽度并发请求）。
@@ -60,14 +57,10 @@ class EpubBlockImageCache {
     required String filePath,
     required String assetId,
     required int maxWidthPx,
-  }) =>
-      '${assetKey(filePath: filePath, assetId: assetId)}\x00$maxWidthPx';
+  }) => '${assetKey(filePath: filePath, assetId: assetId)}\x00$maxWidthPx';
 
   @visibleForTesting
-  int? cachedMaxWidthPx({
-    required String filePath,
-    required String assetId,
-  }) =>
+  int? cachedMaxWidthPx({required String filePath, required String assetId}) =>
       _ready[assetKey(filePath: filePath, assetId: assetId)]?.maxWidthPx;
 
   Uint8List? get({
@@ -119,11 +112,7 @@ class EpubBlockImageCache {
     });
 
     if (entry.maxWidthPx >= maxWidthPx) return entry.bytes;
-    return get(
-          filePath: filePath,
-          assetId: assetId,
-          maxWidthPx: maxWidthPx,
-        ) ??
+    return get(filePath: filePath, assetId: assetId, maxWidthPx: maxWidthPx) ??
         entry.bytes;
   }
 

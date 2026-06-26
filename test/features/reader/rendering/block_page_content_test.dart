@@ -35,17 +35,13 @@ ReaderRenderConfig _config({double paragraphSpacing = 12}) {
 }
 
 Widget _wrap(Widget child) => MaterialApp(
-  home: Scaffold(
-    body: SizedBox(
-      width: 400,
-      height: 600,
-      child: child,
-    ),
-  ),
+  home: Scaffold(body: SizedBox(width: 400, height: 600, child: child)),
 );
 
 void main() {
-  testWidgets('isBlockEnd 为 true 时在 Text 块后插入 paragraphSpacing', (tester) async {
+  testWidgets('isBlockEnd 为 true 时在 Text 块后插入 paragraphSpacing', (
+    tester,
+  ) async {
     const spacing = 12.0;
     await tester.pumpWidget(
       _wrap(

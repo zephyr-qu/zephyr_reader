@@ -17,7 +17,7 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 class RustPaginationSession implements PaginationSession {
   RustPaginationSession({void Function()? onCacheUpdated})
-      : _onCacheUpdated = onCacheUpdated;
+    : _onCacheUpdated = onCacheUpdated;
 
   final void Function()? _onCacheUpdated;
 
@@ -83,8 +83,10 @@ class RustPaginationSession implements PaginationSession {
   );
 
   void _syncImageMaxWidth(PaginationParams params) {
-    _imageMaxWidthPx =
-        (params.width - 2 * params.padding).round().clamp(1, 4096);
+    _imageMaxWidthPx = (params.width - 2 * params.padding).round().clamp(
+      1,
+      4096,
+    );
   }
 
   void _prefetchBlockImages(List<PageBlockSlice> blocks) {
@@ -109,7 +111,8 @@ class RustPaginationSession implements PaginationSession {
   }
 
   void _applyPaginateResult(PaginateResult result, {int? chapterIndex}) {
-    final descriptorsChanged = _descriptors != result.descriptors ||
+    final descriptorsChanged =
+        _descriptors != result.descriptors ||
         _sessionIsPartial != result.isPartial ||
         _sessionConfigHash != result.configHash.toInt();
     _descriptors = result.descriptors;
@@ -214,7 +217,9 @@ class RustPaginationSession implements PaginationSession {
     try {
       final book = await _getBook(bookId);
       if (book.filePath.isEmpty) {
-        throw Exception('beginPaginateFromCache: book not found for bookId=$bookId');
+        throw Exception(
+          'beginPaginateFromCache: book not found for bookId=$bookId',
+        );
       }
       _syncImageMaxWidth(params);
       final config = _buildConfig(params);
@@ -307,8 +312,9 @@ class RustPaginationSession implements PaginationSession {
         final sw = Stopwatch()..start();
         // config hash 未变 → 复用 session 已有 config，避免重复 validate
         final newHash = core_api.computeConfigHash(config: newConfig);
-        final configArg =
-            (newHash.toInt() == _sessionConfigHash) ? null : newConfig;
+        final configArg = (newHash.toInt() == _sessionConfigHash)
+            ? null
+            : newConfig;
         result = await core_api.paginateSessionFull(
           handle: _handle!,
           config: configArg,
@@ -332,7 +338,11 @@ class RustPaginationSession implements PaginationSession {
         isPartial: result.isPartial,
       );
     } catch (e, st) {
-      Logging.error('expandToFullChapter error: $e', exception: e, stackTrace: st);
+      Logging.error(
+        'expandToFullChapter error: $e',
+        exception: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -381,7 +391,11 @@ class RustPaginationSession implements PaginationSession {
         isPartial: result.isPartial,
       );
     } catch (e, st) {
-      Logging.error('repaginateInPlace error: $e', exception: e, stackTrace: st);
+      Logging.error(
+        'repaginateInPlace error: $e',
+        exception: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -444,7 +458,9 @@ class RustPaginationSession implements PaginationSession {
   List<PageBlockSlice>? pageBlocks(int pageIndex) {
     final cached = _blocksCache.get(pageIndex);
     if (cached != null) {
-      Logging.debug('[Session] pageBlocks HIT page=$pageIndex (${cached.length} blocks)');
+      Logging.debug(
+        '[Session] pageBlocks HIT page=$pageIndex (${cached.length} blocks)',
+      );
     }
     return cached;
   }
@@ -453,7 +469,9 @@ class RustPaginationSession implements PaginationSession {
   String? pageContent(int pageIndex) {
     final cached = _contentCache.get(pageIndex);
     if (cached != null) {
-      Logging.debug('[Session] pageContent HIT  page=$pageIndex (${cached.length} chars)');
+      Logging.debug(
+        '[Session] pageContent HIT  page=$pageIndex (${cached.length} chars)',
+      );
     } else {
       Logging.debug('[Session] pageContent MISS page=$pageIndex');
     }
@@ -475,10 +493,13 @@ class RustPaginationSession implements PaginationSession {
 
     try {
       final blocks = await Future.microtask(
-        () => core_api.getSessionPageBlocks(handle: handle, pageIndex: pageIndex),
+        () =>
+            core_api.getSessionPageBlocks(handle: handle, pageIndex: pageIndex),
       );
       _blocksCache.put(pageIndex, blocks);
-      Logging.info('[Session] fetch blocks page=$pageIndex count=${blocks.length}');
+      Logging.info(
+        '[Session] fetch blocks page=$pageIndex count=${blocks.length}',
+      );
       _prefetchBlockImages(blocks);
       _notifyCacheUpdated();
       return blocks;
@@ -491,20 +512,25 @@ class RustPaginationSession implements PaginationSession {
   /// Async fetch-and-cache for a single page.
   /// Returns null on invalid state or fetch error.
   Future<String?> _fetchAndCachePage(int pageIndex) async {
-    if (_contentCache.containsKey(pageIndex)) return _contentCache.get(pageIndex);
+    if (_contentCache.containsKey(pageIndex))
+      return _contentCache.get(pageIndex);
     final handle = _handle;
     if (handle == null || _descriptors == null) return null;
     if (pageIndex < 0 || pageIndex >= _descriptors!.length) return null;
     Logging.info('[Session] fetch page=$pageIndex start');
     try {
-      final content = await Future.microtask(() => core_api.getSessionPageContent(
-        handle: handle,
-        pageIndex: pageIndex,
-      ));
+      final content = await Future.microtask(
+        () => core_api.getSessionPageContent(
+          handle: handle,
+          pageIndex: pageIndex,
+        ),
+      );
       if (content.isNotEmpty) {
         _contentCache.put(pageIndex, content);
       }
-      Logging.info('[Session] fetch page=$pageIndex done (${content.length} chars)');
+      Logging.info(
+        '[Session] fetch page=$pageIndex done (${content.length} chars)',
+      );
       if (content.isNotEmpty) {
         _notifyCacheUpdated();
       }
@@ -515,11 +541,12 @@ class RustPaginationSession implements PaginationSession {
     }
   }
 
-
   @override
   void ensureWindow(int centerPage) {
     if (_descriptors == null) return;
-    Logging.info('[Session] ensureWindow center=$centerPage total=${_descriptors!.length}');
+    Logging.info(
+      '[Session] ensureWindow center=$centerPage total=${_descriptors!.length}',
+    );
 
     unawaited(_fetchAndCachePage(centerPage));
     if (_sessionMode == ChapterPaginationMode.contentBlocks) {
@@ -533,7 +560,9 @@ class RustPaginationSession implements PaginationSession {
     final total = _descriptors!.length;
     final start = math.max(0, center - 3);
     final end = math.min(total - 1, center + 3);
-    Logging.debug('[Session] prefetch surrounding pages=$start..$end (center=$center total=$total)');
+    Logging.debug(
+      '[Session] prefetch surrounding pages=$start..$end (center=$center total=$total)',
+    );
 
     Future.microtask(() async {
       await _prefetchPageBundle(center);

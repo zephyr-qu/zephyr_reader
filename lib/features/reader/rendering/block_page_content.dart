@@ -25,8 +25,10 @@ Widget buildBlockPageContent({
   required double maxContentWidth,
 }) {
   final vPad = ReaderRenderConfig.pageContentVerticalPadding;
-  final imageMaxWidth =
-      (maxContentWidth - 2 * config.pageMargin).clamp(1.0, maxContentWidth);
+  final imageMaxWidth = (maxContentWidth - 2 * config.pageMargin).clamp(
+    1.0,
+    maxContentWidth,
+  );
 
   return RepaintBoundary(
     child: Padding(
@@ -36,8 +38,10 @@ Widget buildBlockPageContent({
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final bodyHeight =
-              (constraints.maxHeight - 2 * vPad).clamp(0.0, constraints.maxHeight);
+          final bodyHeight = (constraints.maxHeight - 2 * vPad).clamp(
+            0.0,
+            constraints.maxHeight,
+          );
           final children = <Widget>[];
           var runningOffset = startOffset;
 
@@ -75,19 +79,21 @@ Widget buildBlockPageContent({
                     textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
                     onSelectionChanged: (sel, cause) =>
                         _handleBlockTextSelection(
-                      sel,
-                      slice.text,
-                      runningOffset,
-                      context,
-                      onSelectionChanged,
-                      onSelectionGlobalPosition,
-                    ),
+                          sel,
+                          slice.text,
+                          runningOffset,
+                          context,
+                          onSelectionChanged,
+                          onSelectionGlobalPosition,
+                        ),
                     contextMenuBuilder: (_, _) => const SizedBox.shrink(),
                   ),
                 );
                 if (slice.isBlockEnd) {
-                  final bottomSpacing =
-                      IrTextBlockStyle.resolveBottomSpacing(irStyle, config);
+                  final bottomSpacing = IrTextBlockStyle.resolveBottomSpacing(
+                    irStyle,
+                    config,
+                  );
                   if (bottomSpacing > 0) {
                     children.add(
                       Column(
@@ -115,7 +121,9 @@ Widget buildBlockPageContent({
                     assetId: slice.assetId,
                     alt: slice.alt,
                     maxWidthPx: imageMaxWidth.round().clamp(1, 4096),
-                    maxHeightPx: isFullPage ? bodyHeight.round().clamp(1, 4096) : null,
+                    maxHeightPx: isFullPage
+                        ? bodyHeight.round().clamp(1, 4096)
+                        : null,
                     fullPage: isFullPage,
                   ),
                 );
@@ -222,7 +230,9 @@ class _EpubBlockImageState extends State<EpubBlockImage> {
       if (!mounted) return;
       setState(() => _imageBytes = bytes);
     } catch (e) {
-      Logging.warning('[EpubBlockImage] load failed asset=${widget.assetId}: $e');
+      Logging.warning(
+        '[EpubBlockImage] load failed asset=${widget.assetId}: $e',
+      );
       if (!mounted) return;
       setState(() => _error = e);
     }
@@ -253,17 +263,14 @@ class _EpubBlockImageState extends State<EpubBlockImage> {
     );
 
     if (widget.fullPage) {
-      return SizedBox(
-        width: maxW,
-        height: maxH,
-        child: image,
-      );
+      return SizedBox(width: maxW, height: maxH, child: image);
     }
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: image,
     );
   }
+
   /// 占位符：预留图片实际尺寸空间，避免加载完成后排版跳动。
   Widget _sizedPlaceholder({required IconData icon}) {
     final maxW = widget.maxWidthPx.toDouble();

@@ -36,7 +36,8 @@ class AppErrorMapper {
         fileWriteError: (path, details) => '文件写入失败: $details',
         epubParseError: (reason) => 'EPUB 解析失败: $reason',
         chapterExtractError: (index, reason) => '章节 $index 提取失败: $reason',
-        chapterTooLarge: (sizeBytes, details) => '章节过大（${sizeBytes}bytes，最大2MB），建议重新导入',
+        chapterTooLarge: (sizeBytes, details) =>
+            '章节过大（${sizeBytes}bytes，最大2MB），建议重新导入',
         typesetConfigError: (reason) => '排版配置错误: $reason',
         databaseError: (reason) => '数据库错误: $reason',
         notFound: (entity) => '$entity 未找到',

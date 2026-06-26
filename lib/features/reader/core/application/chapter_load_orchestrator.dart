@@ -80,7 +80,8 @@ class ChapterLoadOrchestrator {
   }) async {
     final gen = ++_generation;
     // stagingPromote 路径保留 staging（promote 完成后自身 clear），normalLoad 清除
-    final isStagingPromote = request.navigationKind == ChapterNavigationKind.adjacentCrossChapter;
+    final isStagingPromote =
+        request.navigationKind == ChapterNavigationKind.adjacentCrossChapter;
     if (!isStagingPromote) {
       _contentRepo.clearAdjacentStaging();
     }
@@ -94,8 +95,8 @@ class ChapterLoadOrchestrator {
         repo: _contentRepo,
         pagination: _pagination,
       );
-      final effectivePreserveContent = request.preserveContent ??
-          shouldPreserveContentForIntent(intent);
+      final effectivePreserveContent =
+          request.preserveContent ?? shouldPreserveContentForIntent(intent);
       Logging.info(
         '[Timing] gen=$gen intent=$intent preserveContent=$effectivePreserveContent',
       );
@@ -110,8 +111,10 @@ class ChapterLoadOrchestrator {
         return;
       }
 
-
-      await _runStarting(gen, effectivePreserveContent: effectivePreserveContent);
+      await _runStarting(
+        gen,
+        effectivePreserveContent: effectivePreserveContent,
+      );
       if (_isStale(gen)) {
         _setPhase(gen, ChapterLoadPhase.cancelled);
         return;
@@ -146,8 +149,8 @@ class ChapterLoadOrchestrator {
         '${sw.elapsedMilliseconds}ms cumulative',
       );
 
-      final shouldBackfeed = intent !=
-              ChapterPaginationIntent.stagingPromoteForward &&
+      final shouldBackfeed =
+          intent != ChapterPaginationIntent.stagingPromoteForward &&
           intent != ChapterPaginationIntent.stagingPromoteBackward;
       final backfeedFuture = shouldBackfeed
           ? _captureMetricsBackfeed(gen, _pageIndex.value)
@@ -262,7 +265,10 @@ class ChapterLoadOrchestrator {
     }
   }
 
-  Future<void> _runStarting(int gen, {required bool effectivePreserveContent}) async {
+  Future<void> _runStarting(
+    int gen, {
+    required bool effectivePreserveContent,
+  }) async {
     _setPhase(gen, ChapterLoadPhase.starting);
     if (!effectivePreserveContent) {
       _applyIfCurrent(gen, () {
@@ -279,7 +285,7 @@ class ChapterLoadOrchestrator {
     int gen,
     ChapterLoadRequest request, {
     required Future<void> Function(int chapterIndex, String content)?
-        scheduleSearchIndex,
+    scheduleSearchIndex,
   }) async {
     _setPhase(gen, ChapterLoadPhase.starting);
     _applyIfCurrent(gen, () {
@@ -307,8 +313,10 @@ class ChapterLoadOrchestrator {
     _applyIfCurrent(gen, () {
       _chapterVM.chapterContent.value = AsyncState.data(content);
       _chapterVM.chapterIndex.value = request.chapterIndex;
-      _chapterVM.currentCharOffset.value =
-          request.initialCharOffset.clamp(0, content.length);
+      _chapterVM.currentCharOffset.value = request.initialCharOffset.clamp(
+        0,
+        content.length,
+      );
       _totalPages.value = 1;
       _pageIndex.value = 0;
       _error.value = null;
@@ -336,15 +344,21 @@ class ChapterLoadOrchestrator {
       final bookId = _chapterVM.bookId.value;
       unawaited(
         _contentRepo
-            .loadScrollSegment(bookId, request.chapterIndex + 1,
-                readingMode: ReadingMode.scroll)
+            .loadScrollSegment(
+              bookId,
+              request.chapterIndex + 1,
+              readingMode: ReadingMode.scroll,
+            )
             .then((_) {}, onError: (_) {}),
       );
       if (request.chapterIndex > 0) {
         unawaited(
           _contentRepo
-              .loadScrollSegment(bookId, request.chapterIndex - 1,
-                  readingMode: ReadingMode.scroll)
+              .loadScrollSegment(
+                bookId,
+                request.chapterIndex - 1,
+                readingMode: ReadingMode.scroll,
+              )
               .then((_) {}, onError: (_) {}),
         );
       }
@@ -355,7 +369,6 @@ class ChapterLoadOrchestrator {
       _loadPhase.value = ChapterLoadPhase.idle;
     });
   }
-
 
   Future<({int totalPages, bool isPartial})?> _runQuickPaginateForIntent(
     int gen,
@@ -534,8 +547,8 @@ class ChapterLoadOrchestrator {
       _totalPages.value = result.totalPages;
       _chapterVM.chapterIndex.value = request.chapterIndex;
       _pageIndex.value = pageIndex;
-      _chapterVM.currentCharOffset.value = descriptors != null &&
-              pageIndex < descriptors.length
+      _chapterVM.currentCharOffset.value =
+          descriptors != null && pageIndex < descriptors.length
           ? descriptors[pageIndex].startOffset
           : 0;
       _chapterVM.pendingJumpCharOffset.value = null;

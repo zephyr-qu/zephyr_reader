@@ -111,8 +111,9 @@ class ReaderTapZoneLayer extends HookWidget {
     );
     final int bNumchapters = (chaptersState.value as List?)?.length ?? 0;
     final ReadingMode bCurrentreadingmode = useSignalValue(vm.readingMode);
-    final PaginationSkin bPaginationSkin =
-        useSignalValue(vm.config.paginationSkin.signal);
+    final PaginationSkin bPaginationSkin = useSignalValue(
+      vm.config.paginationSkin.signal,
+    );
 
     final showSelection = bSelectedtext.isNotEmpty;
     final hideTapZones = usesPageCurlSkin(

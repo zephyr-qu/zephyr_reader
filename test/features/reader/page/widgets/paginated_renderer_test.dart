@@ -27,7 +27,9 @@ void _stubDataSource(_MockDataSource dataSource) {
   when(() => dataSource.preloadGeneration).thenReturn(ValueNotifier<int>(0));
   when(() => dataSource.prevChapterStaging).thenReturn(null);
   when(() => dataSource.nextChapterStaging).thenReturn(null);
-  when(() => dataSource.sessionMode).thenReturn(ChapterPaginationMode.plainText);
+  when(
+    () => dataSource.sessionMode,
+  ).thenReturn(ChapterPaginationMode.plainText);
   when(() => dataSource.sessionFilePath).thenReturn(null);
   when(() => dataSource.pageBlocks(any())).thenReturn(null);
 }
@@ -124,8 +126,9 @@ void main() {
 
     testWidgets('contentBlocks 模式渲染 Image 占位', (tester) async {
       final dataSource = _mockDataSource();
-      when(() => dataSource.sessionMode)
-          .thenReturn(ChapterPaginationMode.contentBlocks);
+      when(
+        () => dataSource.sessionMode,
+      ).thenReturn(ChapterPaginationMode.contentBlocks);
       when(() => dataSource.sessionFilePath).thenReturn('/books/test.epub');
       when(() => dataSource.pageBlocks(0)).thenReturn([
         const PageBlockSlice.image(
@@ -227,9 +230,7 @@ void main() {
       expect(find.byType(SelectableText), findsOneWidget);
     });
 
-    testWidgets('slide 皮肤+descriptors 渲染 PageView.builder', (
-      tester,
-    ) async {
+    testWidgets('slide 皮肤+descriptors 渲染 PageView.builder', (tester) async {
       final dataSource = _MockDataSource();
       _stubDataSource(dataSource);
       when(() => dataSource.descriptors).thenReturn([
@@ -359,211 +360,211 @@ void main() {
       expect(find.text('分页数据加载失败'), findsOneWidget);
     });
 
-  // ========================
-  // T5 — staging virtual pages (ADR-012 行为锁定)
-  // ========================
+    // ========================
+    // T5 — staging virtual pages (ADR-012 行为锁定)
+    // ========================
 
-  group('staging virtual pages', () {
-    late _MockDataSource dataSource;
+    group('staging virtual pages', () {
+      late _MockDataSource dataSource;
 
-    setUp(() {
-      dataSource = _mockDataSource();
-    });
+      setUp(() {
+        dataSource = _mockDataSource();
+      });
 
-    testWidgets('prev staging hit renders content (not spinner)', (
-      tester,
-    ) async {
-      when(() => dataSource.prevChapterStaging).thenReturn(
-        NextChapterStaging(
-          chapterIndex: -1,
-          configHash: 0xABCD,
-          descriptors: const [
-            PageDescriptor(
+      testWidgets('prev staging hit renders content (not spinner)', (
+        tester,
+      ) async {
+        when(() => dataSource.prevChapterStaging).thenReturn(
+          NextChapterStaging(
+            chapterIndex: -1,
+            configHash: 0xABCD,
+            descriptors: const [
+              PageDescriptor(
+                pageIndex: 0,
+                startOffset: 0,
+                endOffset: 100,
+                isLastPage: true,
+                firstParagraphIndex: 0,
+                lastParagraphIndex: 0,
+              ),
+            ],
+            firstPageContent: 'Previous chapter content.',
+            isPartial: false,
+          ),
+        );
+        when(() => dataSource.descriptors).thenReturn([
+          const PageDescriptor(
+            pageIndex: 0,
+            startOffset: 0,
+            endOffset: 80,
+            isLastPage: false,
+            firstParagraphIndex: 0,
+            lastParagraphIndex: 0,
+          ),
+        ]);
+        when(() => dataSource.pageContent(0)).thenReturn('Current page.');
+
+        await tester.pumpWidget(
+          _buildInApp(
+            PaginatedModeRenderer(
+              config: _config(),
+              pageController: PageController(initialPage: 0),
+              dataSource: dataSource,
+              bookId: 'test_book',
+              chapterId: 0,
               pageIndex: 0,
-              startOffset: 0,
-              endOffset: 100,
-              isLastPage: true,
-              firstParagraphIndex: 0,
-              lastParagraphIndex: 0,
+              content: 'Current page.',
+              highlights: const [],
+              readingMode: ReadingMode.pagination,
+              hasPreviousChapter: true,
             ),
-          ],
-          firstPageContent: 'Previous chapter content.',
-          isPartial: false,
-        ),
-      );
-      when(() => dataSource.descriptors).thenReturn([
-        const PageDescriptor(
-          pageIndex: 0,
-          startOffset: 0,
-          endOffset: 80,
-          isLastPage: false,
-          firstParagraphIndex: 0,
-          lastParagraphIndex: 0,
-        ),
-      ]);
-      when(() => dataSource.pageContent(0)).thenReturn('Current page.');
-
-      await tester.pumpWidget(
-        _buildInApp(
-          PaginatedModeRenderer(
-            config: _config(),
-            pageController: PageController(initialPage: 0),
-            dataSource: dataSource,
-            bookId: 'test_book',
-            chapterId: 0,
-            pageIndex: 0,
-            content: 'Current page.',
-            highlights: const [],
-            readingMode: ReadingMode.pagination,
-            hasPreviousChapter: true,
           ),
-        ),
-      );
+        );
 
-      // Virtual page 0 = previous chapter staging page → must NOT show spinner
-      expect(find.byType(CircularProgressIndicator), findsNothing);
-      // Should render staging page content
-      expect(find.text('Previous chapter content.'), findsOneWidget);
-    });
+        // Virtual page 0 = previous chapter staging page → must NOT show spinner
+        expect(find.byType(CircularProgressIndicator), findsNothing);
+        // Should render staging page content
+        expect(find.text('Previous chapter content.'), findsOneWidget);
+      });
 
-    testWidgets('next staging hit on cross chapter page renders content', (
-      tester,
-    ) async {
-      when(() => dataSource.nextChapterStaging).thenReturn(
-        NextChapterStaging(
-          chapterIndex: 1,
-          configHash: 0xABCD,
-          descriptors: const [
-            PageDescriptor(
+      testWidgets('next staging hit on cross chapter page renders content', (
+        tester,
+      ) async {
+        when(() => dataSource.nextChapterStaging).thenReturn(
+          NextChapterStaging(
+            chapterIndex: 1,
+            configHash: 0xABCD,
+            descriptors: const [
+              PageDescriptor(
+                pageIndex: 0,
+                startOffset: 0,
+                endOffset: 100,
+                isLastPage: false,
+                firstParagraphIndex: 0,
+                lastParagraphIndex: 0,
+              ),
+            ],
+            firstPageContent: 'Next chapter first page.',
+            isPartial: false,
+          ),
+        );
+        when(() => dataSource.descriptors).thenReturn([
+          const PageDescriptor(
+            pageIndex: 0,
+            startOffset: 0,
+            endOffset: 80,
+            isLastPage: true,
+            firstParagraphIndex: 0,
+            lastParagraphIndex: 0,
+          ),
+        ]);
+        when(() => dataSource.pageContent(0)).thenReturn('Current last page.');
+
+        await tester.pumpWidget(
+          _buildInApp(
+            PaginatedModeRenderer(
+              config: _config(),
+              // initialPage 1 = cross-chapter virtual page (beyond descriptors[0])
+              pageController: PageController(initialPage: 1),
+              dataSource: dataSource,
+              bookId: 'test_book',
+              chapterId: 0,
               pageIndex: 0,
-              startOffset: 0,
-              endOffset: 100,
-              isLastPage: false,
-              firstParagraphIndex: 0,
-              lastParagraphIndex: 0,
+              content: 'Current last page.',
+              highlights: const [],
+              readingMode: ReadingMode.pagination,
+              hasNextChapter: true,
             ),
-          ],
-          firstPageContent: 'Next chapter first page.',
-          isPartial: false,
-        ),
-      );
-      when(() => dataSource.descriptors).thenReturn([
-        const PageDescriptor(
-          pageIndex: 0,
-          startOffset: 0,
-          endOffset: 80,
-          isLastPage: true,
-          firstParagraphIndex: 0,
-          lastParagraphIndex: 0,
-        ),
-      ]);
-      when(() => dataSource.pageContent(0)).thenReturn('Current last page.');
-
-      await tester.pumpWidget(
-        _buildInApp(
-          PaginatedModeRenderer(
-            config: _config(),
-            // initialPage 1 = cross-chapter virtual page (beyond descriptors[0])
-            pageController: PageController(initialPage: 1),
-            dataSource: dataSource,
-            bookId: 'test_book',
-            chapterId: 0,
-            pageIndex: 0,
-            content: 'Current last page.',
-            highlights: const [],
-            readingMode: ReadingMode.pagination,
-            hasNextChapter: true,
           ),
-        ),
-      );
+        );
 
-      // Virtual page 1 = next chapter staging page → must NOT show spinner
-      expect(find.byType(CircularProgressIndicator), findsNothing);
-      // Should render staging page content
-      expect(find.text('Next chapter first page.'), findsOneWidget);
-    });
+        // Virtual page 1 = next chapter staging page → must NOT show spinner
+        expect(find.byType(CircularProgressIndicator), findsNothing);
+        // Should render staging page content
+        expect(find.text('Next chapter first page.'), findsOneWidget);
+      });
 
-    /// ADR-012: staging miss 时 _extendedPageCount 排除跨章虚拟页，
-    /// 用户翻到末页即停止。hold 帧由 _buildCrossChapterPage 兜底。
-    testWidgets('next staging miss excludes cross-chapter page', (
-      tester,
-    ) async {
-      // nextChapterStaging is null → _stagingReadyForNext() = false
-      when(() => dataSource.descriptors).thenReturn([
-        const PageDescriptor(
-          pageIndex: 0,
-          startOffset: 0,
-          endOffset: 80,
-          isLastPage: true,
-          firstParagraphIndex: 0,
-          lastParagraphIndex: 0,
-        ),
-      ]);
-      when(() => dataSource.pageContent(0)).thenReturn('Current last page.');
-
-      await tester.pumpWidget(
-        _buildInApp(
-          PaginatedModeRenderer(
-            config: _config(),
-            pageController: PageController(initialPage: 0),
-            dataSource: dataSource,
-            bookId: 'test_book',
-            chapterId: 0,
+      /// ADR-012: staging miss 时 _extendedPageCount 排除跨章虚拟页，
+      /// 用户翻到末页即停止。hold 帧由 _buildCrossChapterPage 兜底。
+      testWidgets('next staging miss excludes cross-chapter page', (
+        tester,
+      ) async {
+        // nextChapterStaging is null → _stagingReadyForNext() = false
+        when(() => dataSource.descriptors).thenReturn([
+          const PageDescriptor(
             pageIndex: 0,
-            content: 'Current last page.',
-            highlights: const [],
-            readingMode: ReadingMode.pagination,
-            hasNextChapter: true,
+            startOffset: 0,
+            endOffset: 80,
+            isLastPage: true,
+            firstParagraphIndex: 0,
+            lastParagraphIndex: 0,
           ),
-        ),
-      );
+        ]);
+        when(() => dataSource.pageContent(0)).thenReturn('Current last page.');
 
-      // 跨章虚拟页被 _extendedPageCount 排除，仅渲染内容页
-      expect(find.byType(CircularProgressIndicator), findsNothing);
-      expect(find.text('Current last page.'), findsOneWidget);
-    });
+        await tester.pumpWidget(
+          _buildInApp(
+            PaginatedModeRenderer(
+              config: _config(),
+              pageController: PageController(initialPage: 0),
+              dataSource: dataSource,
+              bookId: 'test_book',
+              chapterId: 0,
+              pageIndex: 0,
+              content: 'Current last page.',
+              highlights: const [],
+              readingMode: ReadingMode.pagination,
+              hasNextChapter: true,
+            ),
+          ),
+        );
 
-    /// ADR-012: prev staging miss 时，_buildPreviousChapterPage 返回 hold 帧（当前章首页），不展示 spinner。
-    testWidgets('prev staging miss shows hold frame (not spinner)', (
-      tester,
-    ) async {
-      // prevChapterStaging is null, but hasPreviousChapter = true
-      when(() => dataSource.prevChapterStaging).thenReturn(null);
-      when(() => dataSource.descriptors).thenReturn([
-        const PageDescriptor(
-          pageIndex: 0,
-          startOffset: 0,
-          endOffset: 80,
-          isLastPage: false,
-          firstParagraphIndex: 0,
-          lastParagraphIndex: 0,
-        ),
-      ]);
-      when(() => dataSource.pageContent(0)).thenReturn('Current first page.');
+        // 跨章虚拟页被 _extendedPageCount 排除，仅渲染内容页
+        expect(find.byType(CircularProgressIndicator), findsNothing);
+        expect(find.text('Current last page.'), findsOneWidget);
+      });
 
-      await tester.pumpWidget(
-        _buildInApp(
-          PaginatedModeRenderer(
-            config: _config(),
-            // page 0 = prev virtual page (hasPreviousChapter=true)
-            pageController: PageController(initialPage: 0),
-            dataSource: dataSource,
-            bookId: 'test_book',
-            chapterId: 0,
+      /// ADR-012: prev staging miss 时，_buildPreviousChapterPage 返回 hold 帧（当前章首页），不展示 spinner。
+      testWidgets('prev staging miss shows hold frame (not spinner)', (
+        tester,
+      ) async {
+        // prevChapterStaging is null, but hasPreviousChapter = true
+        when(() => dataSource.prevChapterStaging).thenReturn(null);
+        when(() => dataSource.descriptors).thenReturn([
+          const PageDescriptor(
             pageIndex: 0,
-            content: 'Current first page.',
-            highlights: const [],
-            readingMode: ReadingMode.pagination,
-            hasPreviousChapter: true,
+            startOffset: 0,
+            endOffset: 80,
+            isLastPage: false,
+            firstParagraphIndex: 0,
+            lastParagraphIndex: 0,
           ),
-        ),
-      );
+        ]);
+        when(() => dataSource.pageContent(0)).thenReturn('Current first page.');
 
-      // ADR-012: hold frame renders content, not spinner
-      expect(find.byType(CircularProgressIndicator), findsNothing);
-      // Hold frame shows current chapter's first page
-      expect(find.text('Current first page.'), findsOneWidget);
+        await tester.pumpWidget(
+          _buildInApp(
+            PaginatedModeRenderer(
+              config: _config(),
+              // page 0 = prev virtual page (hasPreviousChapter=true)
+              pageController: PageController(initialPage: 0),
+              dataSource: dataSource,
+              bookId: 'test_book',
+              chapterId: 0,
+              pageIndex: 0,
+              content: 'Current first page.',
+              highlights: const [],
+              readingMode: ReadingMode.pagination,
+              hasPreviousChapter: true,
+            ),
+          ),
+        );
+
+        // ADR-012: hold frame renders content, not spinner
+        expect(find.byType(CircularProgressIndicator), findsNothing);
+        // Hold frame shows current chapter's first page
+        expect(find.text('Current first page.'), findsOneWidget);
+      });
     });
-  });
   });
 }

@@ -4,13 +4,16 @@ import 'package:zephyr_reader/src/rust/domain/error.dart';
 
 void main() {
   group('AppErrorMapper.humanReadable', () {
-    test('StaleBookData returns the message verbatim (user-facing instruction)', () {
-      const msg = 'Chapter bounds missing. Please re-import this book.';
-      final result = AppErrorMapper.humanReadable(
-        AppError.staleBookData(message: msg),
-      );
-      expect(result, msg);
-    });
+    test(
+      'StaleBookData returns the message verbatim (user-facing instruction)',
+      () {
+        const msg = 'Chapter bounds missing. Please re-import this book.';
+        final result = AppErrorMapper.humanReadable(
+          AppError.staleBookData(message: msg),
+        );
+        expect(result, msg);
+      },
+    );
 
     test('ChapterTooLarge returns size info + reimport hint', () {
       final result = AppErrorMapper.humanReadable(
@@ -21,11 +24,15 @@ void main() {
       );
       // 消息应提到 size 数量级（MB）+ 重新导入建议
       final hasMb = result.toLowerCase().contains('mb');
-      final hasReimport = result.contains('重新导入') ||
+      final hasReimport =
+          result.contains('重新导入') ||
           result.toLowerCase().contains('reimport') ||
           result.toLowerCase().contains('re-import');
-      expect(hasMb || hasReimport, true,
-          reason: 'Should mention MB or reimport hint, got: $result');
+      expect(
+        hasMb || hasReimport,
+        true,
+        reason: 'Should mention MB or reimport hint, got: $result',
+      );
     });
 
     test('chapterExtractError includes chapter index and reason', () {

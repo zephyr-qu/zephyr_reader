@@ -67,7 +67,8 @@ class ScrollListMetrics {
       offset += itemExtentAt(i, uniformFallback: uniformFallback);
     }
     if (index >= 0 && index < itemCount && inItemRatio > 0) {
-      offset += itemExtentAt(index, uniformFallback: uniformFallback) *
+      offset +=
+          itemExtentAt(index, uniformFallback: uniformFallback) *
           inItemRatio.clamp(0.0, 1.0);
     }
     return offset;
@@ -120,9 +121,7 @@ ScrollListMetrics computeScrollListMetrics({
       itemCount: spans.length,
       charOffsets: offsets,
       charLengths: lengths,
-      itemExtents: layout == null
-          ? const []
-          : _richTextExtents(spans, layout),
+      itemExtents: layout == null ? const [] : _richTextExtents(spans, layout),
     );
   }
 
@@ -211,13 +210,14 @@ ScrollListMetrics computeScrollIrListMetrics({
     itemCount: offsets.length,
     charOffsets: offsets,
     charLengths: lengths,
-    itemExtents: layout == null
-        ? const []
-        : _irBlockExtents(blocks, layout),
+    itemExtents: layout == null ? const [] : _irBlockExtents(blocks, layout),
   );
 }
 
-List<double> _irBlockExtents(List<ContentBlock> blocks, ScrollLayoutParams layout) {
+List<double> _irBlockExtents(
+  List<ContentBlock> blocks,
+  ScrollLayoutParams layout,
+) {
   final extents = <double>[];
   for (var i = 0; i < blocks.length; i++) {
     final includeBottomSpacing = i < blocks.length - 1;
@@ -241,7 +241,10 @@ List<double> _irBlockExtents(List<ContentBlock> blocks, ScrollLayoutParams layou
 
 enum _ScrollItemKind { text, image }
 
-List<double> _plainTextExtents(List<int> charLengths, ScrollLayoutParams layout) {
+List<double> _plainTextExtents(
+  List<int> charLengths,
+  ScrollLayoutParams layout,
+) {
   final extents = <double>[];
   for (var i = 0; i < charLengths.length; i++) {
     extents.add(
@@ -278,20 +281,18 @@ List<double> _mixedRichExtents({
   final extents = <double>[];
   for (var i = 0; i < kinds.length; i++) {
     final includeBottomSpacing = i < kinds.length - 1;
-    extents.add(
-      switch (kinds[i]) {
-        _ScrollItemKind.text => _textItemExtent(
-            charLengths[i],
-            layout,
-            includeBottomSpacing: includeBottomSpacing,
-          ),
-        _ScrollItemKind.image => _imageItemExtent(
-            imageData[i] ?? Uint8List(0),
-            layout,
-            includeBottomSpacing: includeBottomSpacing,
-          ),
-      },
-    );
+    extents.add(switch (kinds[i]) {
+      _ScrollItemKind.text => _textItemExtent(
+        charLengths[i],
+        layout,
+        includeBottomSpacing: includeBottomSpacing,
+      ),
+      _ScrollItemKind.image => _imageItemExtent(
+        imageData[i] ?? Uint8List(0),
+        layout,
+        includeBottomSpacing: includeBottomSpacing,
+      ),
+    });
   }
   return extents;
 }
@@ -327,8 +328,9 @@ double _imageItemExtent(
 
 int _estimateLineCount(int charLen, ScrollLayoutParams layout) {
   if (charLen <= 0) return 1;
-  final charsPerLine =
-      (layout.contentWidth / layout.fontSize * 0.9).floor().clamp(1, 999);
+  final charsPerLine = (layout.contentWidth / layout.fontSize * 0.9)
+      .floor()
+      .clamp(1, 999);
   return (charLen / charsPerLine).ceil().clamp(1, 9999);
 }
 
@@ -339,14 +341,10 @@ int _estimateLineCount(int charLen, ScrollLayoutParams layout) {
       bytes[1] == 0x50 &&
       bytes[2] == 0x4E &&
       bytes[3] == 0x47) {
-    final w = (bytes[16] << 24) |
-        (bytes[17] << 16) |
-        (bytes[18] << 8) |
-        bytes[19];
-    final h = (bytes[20] << 24) |
-        (bytes[21] << 16) |
-        (bytes[22] << 8) |
-        bytes[23];
+    final w =
+        (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
+    final h =
+        (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
     if (w > 0 && h > 0) return (w, h);
   }
 

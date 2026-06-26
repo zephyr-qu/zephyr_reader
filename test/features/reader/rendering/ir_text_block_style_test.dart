@@ -81,10 +81,7 @@ void main() {
       lineHeight: null,
       textAlign: null,
     );
-    expect(
-      IrTextBlockStyle.resolveFirstLineIndentPx(style, _config()),
-      48,
-    );
+    expect(IrTextBlockStyle.resolveFirstLineIndentPx(style, _config()), 48);
   });
 
   test('headings never indent', () {
@@ -98,10 +95,7 @@ void main() {
       lineHeight: null,
       textAlign: null,
     );
-    expect(
-      IrTextBlockStyle.resolveFirstLineIndentPx(style, _config()),
-      0,
-    );
+    expect(IrTextBlockStyle.resolveFirstLineIndentPx(style, _config()), 0);
   });
 
   test('marginBottomEm overrides paragraphSpacing', () {
@@ -115,23 +109,14 @@ void main() {
       lineHeight: null,
       textAlign: null,
     );
-    expect(
-      IrTextBlockStyle.resolveBottomSpacing(style, _config()),
-      24,
-    );
+    expect(IrTextBlockStyle.resolveBottomSpacing(style, _config()), 24);
   });
 
   test('irSpansToTextSpan applies bold style', () {
     const converter = RichTextConverter();
     const spans = [
-      RichTextSpan.styled(
-        SpanStyle.plain,
-        RichTextSpanData(text: 'Hello '),
-      ),
-      RichTextSpan.styled(
-        SpanStyle.bold,
-        RichTextSpanData(text: 'bold'),
-      ),
+      RichTextSpan.styled(SpanStyle.plain, RichTextSpanData(text: 'Hello ')),
+      RichTextSpan.styled(SpanStyle.bold, RichTextSpanData(text: 'bold')),
     ];
     final result = converter.irSpansToTextSpan(
       spans,

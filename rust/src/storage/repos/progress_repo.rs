@@ -4,15 +4,13 @@ use sqlx::SqlitePool;
 use super::super::models::*;
 
 const SQL_UPSERT_PROGRESS: &str = "\
-INSERT INTO reading_progress (book_id, chapter_index, chunk_index, chapter_id, char_offset, page_index, total_pages, progress, reading_time_seconds, last_read_at, is_completed) \
-VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11) \
+INSERT INTO reading_progress (book_id, chapter_index, chunk_index, chapter_id, char_offset, progress, reading_time_seconds, last_read_at, is_completed) \
+VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9) \
 ON CONFLICT(book_id) DO UPDATE SET \
 chapter_index = excluded.chapter_index, \
 chunk_index = excluded.chunk_index, \
 chapter_id = excluded.chapter_id, \
 char_offset = excluded.char_offset, \
-page_index = excluded.page_index, \
-total_pages = excluded.total_pages, \
 progress = excluded.progress, \
 reading_time_seconds = excluded.reading_time_seconds, \
 last_read_at = excluded.last_read_at, \
@@ -30,8 +28,6 @@ impl ProgressRepository {
             .bind(progress.chunk_index)
             .bind(&progress.chapter_id)
             .bind(progress.char_offset)
-            .bind(progress.page_index)
-            .bind(progress.total_pages)
             .bind(progress.progress)
             .bind(progress.reading_time_seconds)
             .bind(progress.last_read_at)
@@ -48,7 +44,9 @@ impl ProgressRepository {
     pub async fn list_all_with_progress(pool: &SqlitePool) -> Result<Vec<BookWithProgress>, AppError> {
         let books = super::BookRepository::list_progress(pool).await?;
         let all_progress: Vec<ReadingProgress> =
-            sqlx::query_as::<_, ReadingProgress>("SELECT * FROM reading_progress")
+            sqlx::query_as::<_, ReadingProgress>(
+                "SELECT book_id, chapter_index, chunk_index, chapter_id, char_offset, progress, reading_time_seconds, last_read_at, is_completed FROM reading_progress"
+            )
                 .fetch_all(pool)
                 .await?;
 
@@ -72,7 +70,7 @@ impl ProgressRepository {
     pub async fn find_by_book(pool: &SqlitePool, book_id: &str) -> Result<Option<ReadingProgress>, AppError> {
         Ok(
             sqlx::query_as::<_, ReadingProgress>(
-                "SELECT * FROM reading_progress WHERE book_id = ?",
+                "SELECT book_id, chapter_index, chunk_index, chapter_id, char_offset, progress, reading_time_seconds, last_read_at, is_completed FROM reading_progress WHERE book_id = ?",
             )
             .bind(book_id)
             .fetch_optional(pool)
@@ -89,4 +87,3 @@ impl ProgressRepository {
         Ok(())
     }
 }
-

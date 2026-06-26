@@ -172,21 +172,24 @@ class ReaderScaffold extends HookWidget {
                                     scaffoldKey.currentState?.openDrawer(),
                                 onShowNotes: () =>
                                     scaffoldKey.currentState?.openEndDrawer(),
-                                onToggleTypesetting: () => uiState.activePanel.value =
-                                    uiState.activePanel.value ==
-                                        ReaderPanelType.typesetting
-                                    ? null
-                                    : ReaderPanelType.typesetting,
-                                onToggleDisplay: () => uiState.activePanel.value =
-                                    uiState.activePanel.value ==
-                                        ReaderPanelType.display
-                                    ? null
-                                    : ReaderPanelType.display,
-                                onToggleAssist: () => uiState.activePanel.value =
-                                    uiState.activePanel.value ==
-                                        ReaderPanelType.assist
-                                    ? null
-                                    : ReaderPanelType.assist,
+                                onToggleTypesetting: () =>
+                                    uiState.activePanel.value =
+                                        uiState.activePanel.value ==
+                                            ReaderPanelType.typesetting
+                                        ? null
+                                        : ReaderPanelType.typesetting,
+                                onToggleDisplay: () =>
+                                    uiState.activePanel.value =
+                                        uiState.activePanel.value ==
+                                            ReaderPanelType.display
+                                        ? null
+                                        : ReaderPanelType.display,
+                                onToggleAssist: () =>
+                                    uiState.activePanel.value =
+                                        uiState.activePanel.value ==
+                                            ReaderPanelType.assist
+                                        ? null
+                                        : ReaderPanelType.assist,
                               ),
                             ],
                           ),

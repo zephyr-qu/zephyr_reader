@@ -7,8 +7,7 @@ int paginationVirtualPrevOffset(bool hasPreviousChapter) =>
 int paginationPhysicalPageIndex({
   required int logicalPageIndex,
   required bool hasPreviousChapter,
-}) =>
-    logicalPageIndex + paginationVirtualPrevOffset(hasPreviousChapter);
+}) => logicalPageIndex + paginationVirtualPrevOffset(hasPreviousChapter);
 
 int paginationMaxPhysicalPageIndex({
   required int logicalPageCount,

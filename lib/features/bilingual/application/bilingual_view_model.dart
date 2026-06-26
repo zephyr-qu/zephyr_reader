@@ -233,8 +233,7 @@ class BilingualViewModel implements BilingualReaderDelegate {
     if (segmentIndex == -1) return false;
 
     final seg = a.segments[segmentIndex];
-    final targetText =
-        targetLanguage == 'zh' ? seg.chinese : seg.english;
+    final targetText = targetLanguage == 'zh' ? seg.chinese : seg.english;
 
     await createBilingualHighlightPair(
       params: BilingualHighlightParams(

@@ -121,6 +121,7 @@ class ChapterViewModel {
     _pagination.devicePixelRatio = value;
     _pagination.syncChapterTypesetLayoutToRepo();
   }
+
   late final ReadonlySignal<String> progressText = computed(() {
     final totalChapters = chapters.value.value?.length ?? 0;
     if (totalChapters == 0) return '0%';
@@ -155,7 +156,8 @@ class ChapterViewModel {
     bool? preserveContent,
     ChapterNavigationKind navigationKind = ChapterNavigationKind.manualJump,
   }) {
-    showChapterTransition.value = (navigationKind == ChapterNavigationKind.manualJump);
+    showChapterTransition.value =
+        (navigationKind == ChapterNavigationKind.manualJump);
     return _loader.loadChapter(
       chapterIndex,
       initialCharOffset: initialCharOffset,
@@ -165,6 +167,7 @@ class ChapterViewModel {
       navigationKind: navigationKind,
     );
   }
+
   Future<void> previousChapter() => _navigator.previousChapter();
   Future<void> nextChapter() => _navigator.nextChapter();
   Future<void> jumpToChapter(int chapterIndex) =>

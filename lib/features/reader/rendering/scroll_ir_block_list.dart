@@ -21,18 +21,16 @@ Widget buildScrollIrBlockList({
   void Function(String text, int start, int end)? onSelectionChanged,
   void Function(Offset?)? onSelectionGlobalPosition,
 }) {
-  final chapterHighlights =
-      highlights.where((h) => h.chapterIndex.toInt() == chapterIndex).toList();
+  final chapterHighlights = highlights
+      .where((h) => h.chapterIndex.toInt() == chapterIndex)
+      .toList();
   final imageMaxWidth = _scrollImageMaxWidth(context, config);
   final imageMaxHeight = _scrollImageMaxHeight(context);
 
   return ListView.builder(
     controller: scrollController,
     physics: adaptiveScrollPhysics(context),
-    padding: EdgeInsets.symmetric(
-      horizontal: config.pageMargin,
-      vertical: 20,
-    ),
+    padding: EdgeInsets.symmetric(horizontal: config.pageMargin, vertical: 20),
     itemCount: blocks.length,
     itemBuilder: (context, index) {
       return buildScrollIrBlockItem(
@@ -85,10 +83,7 @@ Widget buildScrollIrMultiSegmentList({
   return ListView.builder(
     controller: scrollController,
     physics: adaptiveScrollPhysics(context),
-    padding: EdgeInsets.symmetric(
-      horizontal: config.pageMargin,
-      vertical: 20,
-    ),
+    padding: EdgeInsets.symmetric(horizontal: config.pageMargin, vertical: 20),
     itemCount: items.length,
     itemBuilder: (context, index) {
       final item = items[index];
@@ -177,10 +172,7 @@ Widget buildScrollIrBlockItem({
     },
   );
 
-  final textBlockStyle = block.when(
-    text: (tb) => tb.style,
-    image: (_) => null,
-  );
+  final textBlockStyle = block.when(text: (tb) => tb.style, image: (_) => null);
 
   Widget wrapped = child;
   if (textBlockStyle != null) {
@@ -220,8 +212,10 @@ class _IrSegmentItem {
 }
 
 double _scrollImageMaxWidth(BuildContext context, ReaderRenderConfig config) {
-  return (MediaQuery.sizeOf(context).width - 2 * config.pageMargin)
-      .clamp(1.0, 4096.0);
+  return (MediaQuery.sizeOf(context).width - 2 * config.pageMargin).clamp(
+    1.0,
+    4096.0,
+  );
 }
 
 int _scrollImageMaxHeight(BuildContext context) {
@@ -243,7 +237,11 @@ void _handleSelection(
   final start = sel.start;
   final end = sel.end;
   final text = blockText.substring(start, end);
-  onSelectionChanged?.call(text, blockPlainStart + start, blockPlainStart + end);
+  onSelectionChanged?.call(
+    text,
+    blockPlainStart + start,
+    blockPlainStart + end,
+  );
   if (onSelectionGlobalPosition != null) {
     final box = context.findRenderObject() as RenderBox?;
     if (box != null && box.hasSize && box.attached) {

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
-
 class BookDetailDescSection extends StatelessWidget {
   final String description;
   const BookDetailDescSection({super.key, required this.description});
@@ -31,10 +30,10 @@ class BookDetailDescSection extends StatelessWidget {
           const SizedBox(height: 8),
           SelectableText(
             description,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
-            height: 1.7,
-          ),
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+              height: 1.7,
+            ),
           ),
         ],
       ),

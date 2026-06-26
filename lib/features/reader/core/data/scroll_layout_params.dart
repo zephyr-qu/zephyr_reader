@@ -18,8 +18,10 @@ class ScrollLayoutParams {
     ReaderRenderConfig config, {
     required double viewportWidth,
   }) {
-    final contentWidth =
-        (viewportWidth - 2 * config.pageMargin).clamp(1.0, viewportWidth);
+    final contentWidth = (viewportWidth - 2 * config.pageMargin).clamp(
+      1.0,
+      viewportWidth,
+    );
     return ScrollLayoutParams(
       textRowHeight: config.textRowHeight,
       paragraphSpacing: config.paragraphSpacing,

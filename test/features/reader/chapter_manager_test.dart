@@ -553,18 +553,17 @@ void main() {
       });
 
       test('loadChapter 走 beginPaginate 首屏路径', () async {
-          await manager.loadChapter(0);
+        await manager.loadChapter(0);
 
-          verify(
-            () => repo.beginPaginate(
-              bookId: any(named: 'bookId'),
-              chapterIndex: any(named: 'chapterIndex'),
-              params: any(named: 'params'),
-              maxChars: any(named: 'maxChars'),
-            ),
-          ).called(1);
-        },
-      );
+        verify(
+          () => repo.beginPaginate(
+            bookId: any(named: 'bookId'),
+            chapterIndex: any(named: 'chapterIndex'),
+            params: any(named: 'params'),
+            maxChars: any(named: 'maxChars'),
+          ),
+        ).called(1);
+      });
     });
 
     group('loadChapter 竞态', () {

@@ -39,9 +39,9 @@ class PageTurnShell extends StatelessWidget {
       logicalPageCount + _virtualPrev + (hasNextStagingPage ? 1 : 0);
 
   int get _physicalPageIndex => paginationPhysicalPageIndex(
-        logicalPageIndex: logicalPageIndex,
-        hasPreviousChapter: hasPreviousChapter,
-      );
+    logicalPageIndex: logicalPageIndex,
+    hasPreviousChapter: hasPreviousChapter,
+  );
 
   void _handlePhysicalPageChanged(int physicalIdx) {
     if (hasPreviousChapter && physicalIdx == 0) {

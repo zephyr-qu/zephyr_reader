@@ -17,7 +17,8 @@ class ReaderSession {
 }
 
 /// P4-5 双语 delegate 工厂签名。由 DI 层注入，接受 [ChapterViewModel] 返回 delegate。
-typedef BilingualReaderDelegateFactory = BilingualReaderDelegate? Function(ChapterViewModel chapterVM);
+typedef BilingualReaderDelegateFactory =
+    BilingualReaderDelegate? Function(ChapterViewModel chapterVM);
 
 /// Creates scoped [ReaderSession] instances with dedicated [ReaderRepository].
 ///
