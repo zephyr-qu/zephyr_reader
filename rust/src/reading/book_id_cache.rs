@@ -24,19 +24,7 @@ pub(crate) type BookIdCache = LruCache<String, String>;  // file_path → book_i
 pub static BOOK_ID_CACHE: LazyLock<Mutex<BookIdCache>> =
     LazyLock::new(|| Mutex::new(LruCache::new(BOOK_ID_CACHE_CAPACITY)));
 
-/// 命中则返回 book_id 的 clone；未命中返回 None。
-#[allow(dead_code)] // Phase 2+ 接入
-pub(crate) fn get_book_id(validated_path: &str) -> Option<String> {
-    let mut cache = BOOK_ID_CACHE.lock();
-    cache.get(validated_path).cloned()
-}
 
-/// 写入 book_id 缓存。
-#[allow(dead_code)] // Phase 2+ 接入
-pub(crate) fn put_book_id(validated_path: &str, book_id: String) {
-    let mut cache = BOOK_ID_CACHE.lock();
-    cache.put(validated_path.to_string(), book_id);
-}
 pub(crate) fn clear_for_test() {
     BOOK_ID_CACHE.lock().clear();
 }

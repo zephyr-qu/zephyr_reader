@@ -35,32 +35,6 @@ pub(crate) type CacheKey = (String, i32, BookFormat);
 pub(crate) static PROVIDER_CACHE: LazyLock<Mutex<LruCache<CacheKey, Arc<dyn ChapterContentProvider>>>> =
     LazyLock::new(|| Mutex::new(LruCache::new(PROVIDER_CACHE_CAPACITY)));
 
-/// 从 LRU 缓存获取已存在的 provider；不构造新实例。
-#[allow(dead_code)] // Phase 2 接入：替代 core.rs 内的 PROVIDER_CACHE.lock().get
-pub(crate) fn get_cached_provider(
-    validated_path: &str,
-    chapter_index: i32,
-    format: BookFormat,
-) -> Option<Arc<dyn ChapterContentProvider>> {
-    let key = (validated_path.to_string(), chapter_index, format);
-    let mut cache = PROVIDER_CACHE.lock();
-    cache.get(&key).cloned()
-}
-
-/// 写入 provider（仅在 key 尚未存在时插入，避免覆盖并发结果）。
-#[allow(dead_code)] // Phase 2 接入：替代 core.rs 内的 PROVIDER_CACHE.lock().put
-pub(crate) fn put_provider(
-    validated_path: &str,
-    chapter_index: i32,
-    format: BookFormat,
-    provider: Arc<dyn ChapterContentProvider>,
-) {
-    let key = (validated_path.to_string(), chapter_index, format);
-    let mut cache = PROVIDER_CACHE.lock();
-    if !cache.contains(&key) {
-        cache.put(key, provider);
-    }
-}
 
 /// 清空 provider LRU（仅供测试使用）。
 pub(crate) fn clear_for_test() {

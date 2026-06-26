@@ -31,6 +31,8 @@ pub use bilingual::{
 /// 测试 Rust 引擎连接是否正常。
 ///
 /// 返回成功连接信息，用于 Dart 侧启动时验证 FFI 通道可用性。
+// Reserved: FRB binding exists for binary compatibility.
+// Currently unused — Dart goes through StorageSyncViewModel.testConnection.
 #[frb(sync)]
 // DEAD CODE: Dart 侧走 StorageSyncViewModel.testConnection 不经过 FFI
 pub fn test_connection() -> Result<String, AppError> {
