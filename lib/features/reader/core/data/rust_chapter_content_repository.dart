@@ -336,7 +336,10 @@ class RustChapterContentRepository implements ChapterContentRepository {
             chapterIndex: chapterId,
             config: config,
           )
-          .catchError((_) => <RichParagraph>[]);
+          .catchError((Object e) {
+        Logging.warning('getEpubChapterRichContent failed, falling back to plain text: $e');
+        return <RichParagraph>[];
+      });
     }
 
     final results = await Future.wait([

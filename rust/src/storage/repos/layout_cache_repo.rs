@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::domain::AppError;
 
 use super::super::kv_store::KvStore;
-use super::super::models::{BlockLayoutCache, LayoutCache, LayoutCacheKey};
+use super::super::models::{BlockLayoutCache, LayoutCache, LayoutCacheKey, ScrollIrCache};
 
 /// 排版缓存仓储 — 委托 KvStore 操作
 pub struct LayoutCacheRepository {
@@ -41,6 +41,25 @@ impl LayoutCacheRepository {
         key: &LayoutCacheKey,
     ) -> Result<Option<BlockLayoutCache>, AppError> {
         self.kv.get_block_layout_cache(key)
+    }
+
+    /// 保存 Scroll IR 缓存
+    pub fn save_scroll_ir_cache(
+        &self,
+        file_path: &str,
+        chapter_index: i32,
+        cache: &ScrollIrCache,
+    ) -> Result<(), AppError> {
+        self.kv.save_scroll_ir_cache(file_path, chapter_index, cache)
+    }
+
+    /// 获取 Scroll IR 缓存
+    pub fn get_scroll_ir_cache(
+        &self,
+        file_path: &str,
+        chapter_index: i32,
+    ) -> Result<Option<ScrollIrCache>, AppError> {
+        self.kv.get_scroll_ir_cache(file_path, chapter_index)
     }
 
     /// 使指定书籍的所有排版缓存失效

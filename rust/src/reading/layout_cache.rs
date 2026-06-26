@@ -13,7 +13,7 @@
 
 use crate::domain::PageContent;
 use crate::domain::{BlockPaginateResult, ChapterContentIr};
-use crate::storage::models::{BlockLayoutCache, LayoutCache, LayoutCacheKey};
+use crate::storage::models::{BlockLayoutCache, LayoutCache, LayoutCacheKey, ScrollIrCache};
 use crate::storage::repos::{BookRepository, LayoutCacheRepository};
 use crate::storage::storage_pool;
 
@@ -175,5 +175,47 @@ pub(crate) async fn try_save_block_cached(
     let cache_repo = LayoutCacheRepository::new(storage.kv());
     if let Err(e) = cache_repo.save_block_layout_cache(&cache_key, &cache) {
         tracing::warn!("block_cache save failed: {}", e);
+    }
+}
+
+/// 尝试从 sled 加载 Scroll IR 缓存（无 config_hash 依赖）。
+///
+/// 命中返回 ；miss / 版本不匹配 / 存储不可用均返回 。
+pub(crate) async fn try_get_scroll_ir_cached(
+    validated_path: &str,
+    chapter_index: i32,
+) -> Option<ChapterContentIr> {
+    let storage = crate::storage::storage()?;
+    let cache_repo = LayoutCacheRepository::new(storage.kv());
+    match cache_repo.get_scroll_ir_cache(validated_path, chapter_index) {
+        Ok(Some(cache)) => {
+            tracing::debug!(
+                "scroll_ir_cache HIT: {}#{}",
+                validated_path,
+                chapter_index
+            );
+            Some(cache.ir)
+        }
+        Ok(None) => None,
+        Err(e) => {
+            tracing::warn!("scroll_ir_cache read failed: {}", e);
+            None
+        }
+    }
+}
+
+/// 保存 Scroll IR 到 sled（写入失败不影响阅读）。
+pub(crate) async fn try_save_scroll_ir_cached(
+    validated_path: &str,
+    chapter_index: i32,
+    ir: &ChapterContentIr,
+) {
+    let Some(storage) = crate::storage::storage() else {
+        return;
+    };
+    let cache = ScrollIrCache::new(ir.clone());
+    let cache_repo = LayoutCacheRepository::new(storage.kv());
+    if let Err(e) = cache_repo.save_scroll_ir_cache(validated_path, chapter_index, &cache) {
+        tracing::warn!("scroll_ir_cache save failed: {}", e);
     }
 }

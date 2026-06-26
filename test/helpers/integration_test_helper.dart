@@ -8,11 +8,12 @@
 
 import 'dart:io';
 
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/init.dart';
 import 'package:zephyr_reader/src/rust/frb_generated.dart';
-import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 /// 当前活动的临时目录，由 [setupTestStorage] 创建。
 Directory? _tempDir;
@@ -110,22 +111,22 @@ Future<bool> initFfiForTest() async {
     return false;
   }
   try {
-    final libName = Platform.isWindows ? 'rust_lib_zephyr_reader.dll' :
-                  Platform.isMacOS ? 'librust_lib_zephyr_reader.dylib' :
-                  'librust_lib_zephyr_reader.so';
+    final libName = Platform.isWindows
+        ? 'rust_lib_zephyr_reader.dll'
+        : Platform.isMacOS
+        ? 'librust_lib_zephyr_reader.dylib'
+        : 'librust_lib_zephyr_reader.so';
     // debug 编译产物（release 可在 CI 用 --release 切换）
     final libPath = 'rust/target/debug/$libName';
     final libFile = File(libPath);
     if (!libFile.existsSync()) {
-      print('[initFfiForTest] native lib not found: $libPath');
+      Logging.error('[initFfiForTest] native lib not found: $libPath');
       return false;
     }
-    await RustLib.init(
-      externalLibrary: ExternalLibrary.open(libPath),
-    );
+    await RustLib.init(externalLibrary: ExternalLibrary.open(libPath));
     return true;
   } catch (e) {
-    print('[initFfiForTest] failed: $e');
+    Logging.error('[initFfiForTest] failed: $e');
     return false;
   }
 }

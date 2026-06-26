@@ -75,7 +75,7 @@ pub fn parse_epub(file_path: String) -> Result<ParseResult, AppError> {
         publisher,
         translator,
         isbn,
-        file_size: 0,
+        file_size: std::fs::metadata(&file_path).map(|m| m.len() as i64).unwrap_or(0),
         format: BookFormat::Epub,
         added_at: chrono::Utc::now(),
         ..Default::default()

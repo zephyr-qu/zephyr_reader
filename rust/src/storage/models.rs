@@ -122,6 +122,33 @@ impl BlockLayoutCache {
     }
 }
 
+// ==================== Scroll IR 持久化缓存 ====================
+
+/// Scroll IR sled 缓存格式版本。
+pub const SCROLL_IR_CACHE_VERSION: u8 = 1;
+
+/// Scroll 路径章 IR 缓存（无 config_hash 依赖；跨 session 复用 HTML 解析）。
+#[derive(Debug, Clone, PartialEq, bincode::Encode, bincode::Decode)]
+pub struct ScrollIrCache {
+    pub version: u8,
+    pub ir: crate::domain::ChapterContentIr,
+    pub created_at: i64,
+}
+
+impl ScrollIrCache {
+    pub fn new(ir: crate::domain::ChapterContentIr) -> Self {
+        Self {
+            version: SCROLL_IR_CACHE_VERSION,
+            ir,
+            created_at: chrono::Utc::now().timestamp(),
+        }
+    }
+
+    pub fn is_valid(&self) -> bool {
+        self.version == SCROLL_IR_CACHE_VERSION
+    }
+}
+
 // ==================== 阅读进度 ====================
 
 /// 单章阅读进度

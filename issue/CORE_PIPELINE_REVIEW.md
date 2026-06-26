@@ -56,13 +56,12 @@ flowchart LR
 
 ### 1.2 待解决问题
 
-| 问题                                      | 位置                                                                                              | 影响                                   |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------ |
-| **EPUB 内容提取两套活跃路径**                     | `getEpubChapterRichContent`（滚动/双语）/ `EpubContentProvider`（分页）；`EpubParser::extract_chapter` 已封堵 | 滚动与分页各有独立提取路径，维护成本高；行为差异可能导致样式/内容不一致 |
-| **TOC href 映射失败 distributing fallback** | `toc.rs` 提取 TOC 时 href 未匹配 spine → 按失败条目数均匀分配到剩余 spine                                          | 部分 EPUB 章节边界偏移，边界字符可能跨章节归属错误         |
-| **元数据不一致**                              | EPUB `extract_metadata` 用 spine 数，`parse_epub` 用 TOC 数；MD 用 byte length，TXT 用 char count        | 进度统计不准                               |
-| **错误被 Dart 吞掉**                         | `BookImportService` 只返回 bool；`catchError((_) => [])` 静默丢弃 rich content 失败                       | 导入/加载失败无反馈                           |
-| **EPUB 导入时** **`file_size: 0`**         | TXT 设置真实大小，EPUB 留 0                                                                             | 书架文件大小显示异常                           |
+| 问题                                      | 位置                                                                              | 影响                           |
+| --------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------- |
+| **EPUB 内容提取两套活跃路径**                     | Scroll 已统一到 IR（`get_chapter_content_ir`），双语仍走 `getEpubChapterRichContent`（Rich） | 剩余 Rich 路径仅双语使用，维护面已大幅收敛     |
+| **TOC href 映射失败 distributing fallback** | `toc.rs` 提取 TOC 时 href 未匹配 spine → 按失败条目数均匀分配到剩余 spine                          | 部分 EPUB 章节边界偏移，边界字符可能跨章节归属错误 |
+| **错误被 Dart 吞掉**                         | `BookImportService` 只返回 bool；`catchError((_) => [])` 静默丢弃 rich content 失败       | 导入/加载失败无反馈                   |
+| **EPUB 导入时** **`file_size: 0`**         | TXT 设置真实大小，EPUB 留 0                                                             | 书架文件大小显示异常                   |
 
 ### 1.3 并发 / 缓存
 
@@ -124,11 +123,10 @@ Book file
 
 ### 2.3 待解决问题
 
-- **首行缩进用硬编码空格**：Rust 用 `"  ".repeat(indent)`，宽度未走校准表
+- ~~首行缩进~~ ✅ IR 路径用 `WidgetSpan` 像素精确缩进，Rich 路径用 CJK 全角空格（2026-06-26）
 - **End-avoid 标点只在预处理**：`optimize_punctuation` 处理，`compute_line_breaks_from_indices` 不处理
-- **分页/滚动内容分裂**：分页用 plain text（EPUB 样式全丢）；滚动用 rich text
+- **分页/滚动内容分裂**：IR 路径已统一（分页/滚动同走 `TextBlockStyle`），plain 回退仅 TXT 无样式时触发
 - **全章 materialize 开销**：cache miss 时 `paginate_chapter` 构建全部 `PageContent` 字符串再写 KV
-- **benchmark 残留**：`rust/benches/parsing_benchmark.rs` 仍引用已删除的 `enable_hyphenation` / `hyphenation_language` 字段
 
 ### 2.4 关键文件
 
@@ -191,63 +189,11 @@ Book file
 
 ## 四、跨链路系统性问题
 
-### 4.1 「两套真理源」
+<br />
 
-```
-Scroll 模式:  HTML → RichParagraph → TextSpan → Flutter 真实排版
-分页 模式:    Plain text → CharWidth 近似 → PageStreamer → SelectableText
-```
+IR 路径已将 scroll 和 block 分页统一到 `TextBlockStyle`（8 字段全投射），分页不再是 plain-text-only。Rich 路径（双语模式）仍独立。断页漂移已通过 `TypesetCalibration` 对齐改善。
 
-分页模式在解析阶段就丢掉了 EPUB 样式和图片，排版阶段用近似宽度，渲染阶段再用 Flutter 真实字体——**三层精度不一致**，断页漂移是结构性问题，不是单点 bug。
-
-### 4.2 `start_index` / `end_index` 语义过载
-
-| 格式       | 含义                                                              |
-| -------- | --------------------------------------------------------------- |
-| TXT / MD | 字节 offset（`paginate_chapter` / `get_chapter_partial` 路径已改用字符计数） |
-| EPUB     | spine index                                                     |
-
-上层 API 统一用 `Chapter`，但边界语义不同，容易在 Provider / pagination / progress 之间传错。
-
-### 4.3 与现有差距文档的差异
-
-`issue/READING_CORE_GAP_ANALYSIS.md` 对以下项描述偏乐观，应以本报告代码审查结论为准：
-
-| 文档声称              | 代码实际                                   |
-| ----------------- | -------------------------------------- |
-| **分页模式差距在图片**     | 该文档称图片双模式 `✅` 无差距，但 paginated 模式实际仍无图片 |
-| **EPUB 2/3 完整解析** | spine 上限不一致已修复；两套活跃提取路径仍待合并            |
-
-***
-
-## 五、修复优先级
-
-### P2 — 功能完整性
-
-| # | 项目                             | 优先级 | 说明                                                   |
-| - | ------------------------------ | --- | ---------------------------------------------------- |
-| 1 | **分页模式 Rich text 路径**（图片 + 样式） | 高   | 参见 `issue/FINE_TYPESETTING_GAP.md`                   |
-| 2 | **MD 纳入 scanFolder**           | 低   | Rust 支持 MD，Dart `book_import_service.dart` 需扩展 `.md` |
-
-### P3 — 架构清理
-
-| # | 项目                                        | 优先级 | 说明                          |
-| - | ----------------------------------------- | --- | --------------------------- |
-| 1 | **合并 EPUB 三套 extract 逻辑** 为单一 Provider 路径 | 中   | `extract_chapter` 已封堵，但代码残留 |
-
-***
-
-## 六、总结
-
-| 链路     | 健康度 | 主要风险                 |
-| ------ | --- | -------------------- |
-| **解析** | 中等  | 多路径不一致、语义混用          |
-| **排版** | 良好  | 首行缩进/CJK 标点待改善       |
-| **渲染** | 中等  | 分页模式 Rich text 为独立特征 |
-
-***
-
-## 相关文档
+相关文档
 
 - [READING\_CORE\_GAP\_ANALYSIS.md](./READING_CORE_GAP_ANALYSIS.md) — 功能清单差距（需与本报告交叉核对）
 - [FINE\_TYPESETTING\_GAP.md](./FINE_TYPESETTING_GAP.md) — 精细排版差距
