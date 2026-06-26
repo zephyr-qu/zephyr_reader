@@ -24,7 +24,7 @@ pub struct VocabMatch {
 /// # 返回值
 /// 返回所有匹配的单词及其在文本中的位置
 #[frb(sync)]
-// DEAD CODE: 扫描在 Dart 侧进行
+// Reserved: FRB binding exists for binary compatibility.
 pub fn scan_for_vocabulary(text: &str) -> Result<Vec<VocabMatch>, AppError> {
     Ok(engine::scan_for_vocabulary(text)
         .into_iter()

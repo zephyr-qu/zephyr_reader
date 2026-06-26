@@ -109,11 +109,13 @@ pub struct EpubImageInfo {
 /// # 返回值
 /// * `Ok(EpubMetadata)` - 元数据（包含标题、作者、封面、目录、阅读顺序）
 /// * `Err(AppError)` - 解析失败（文件不存在、格式错误等）
-// DEAD CODE: Dart 侧无调用，导入走 parseBook 不经过此函数
+// Reserved: FRB binding exists (frb_generated.rs), kept for binary compatibility.
+// Currently unused — imports go through parseBook.
 #[frb]
 pub async fn get_epub_metadata(file_path: String) -> Result<EpubMetadata, AppError> {
     let validated_path = validate_file_path(&file_path)?;
-    crate::parser::epub::unzip::get_epub_metadata(&validated_path)
+    let metadata = crate::parser::epub::unzip::get_epub_metadata(&validated_path)?;
+    Ok(metadata)
 }
 
 /// 获取 EPUB 章节富文本内容（带排版）
