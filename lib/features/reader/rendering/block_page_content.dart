@@ -115,7 +115,7 @@ Widget buildBlockPageContent({
                     assetId: slice.assetId,
                     alt: slice.alt,
                     maxWidthPx: imageMaxWidth.round().clamp(1, 4096),
-                    maxHeightPx: bodyHeight.round().clamp(1, 4096),
+                    maxHeightPx: isFullPage ? bodyHeight.round().clamp(1, 4096) : null,
                     fullPage: isFullPage,
                   ),
                 );
@@ -264,17 +264,22 @@ class _EpubBlockImageState extends State<EpubBlockImage> {
       child: image,
     );
   }
-
   /// 占位符：预留图片实际尺寸空间，避免加载完成后排版跳动。
   Widget _sizedPlaceholder({required IconData icon}) {
     final maxW = widget.maxWidthPx.toDouble();
-    final maxH = widget.maxHeightPx?.toDouble() ?? maxW * 0.5625;
+    final maxH = widget.maxHeightPx?.toDouble();
+    if (maxH != null) {
+      return SizedBox(
+        width: maxW,
+        height: math.min(maxH, 1200),
+        child: Center(child: Icon(icon, size: 28, color: Colors.grey)),
+      );
+    }
+    // 内联图片无固定高度：按 16:9 估算占位
     return SizedBox(
       width: maxW,
-      height: math.min(maxH, 1200),
-      child: Center(
-        child: Icon(icon, size: 28, color: Colors.grey),
-      ),
+      height: maxW * 9 / 16,
+      child: Center(child: Icon(icon, size: 28, color: Colors.grey)),
     );
   }
 }

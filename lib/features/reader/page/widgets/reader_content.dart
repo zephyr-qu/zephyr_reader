@@ -465,9 +465,6 @@ class ReaderContent extends HookWidget {
         ),
       );
     }
-    if (content.isEmpty) {
-      return Center(child: Text(l10n.contentEmpty));
-    }
     switch (readingMode) {
       case ReadingMode.scroll:
         return RepaintBoundary(child: scrollBuilder(context, scrollController));
