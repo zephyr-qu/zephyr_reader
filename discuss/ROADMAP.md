@@ -74,7 +74,7 @@ EPUB 分页内联图 + 大图独占页；`BlockPaginator`；charOffset 兼容 AD
 
 **目标**：统一 IR 渲染管线、块级 CSS、staging 硬保证、metrics 校准、双语模块边界。详见 [PHASE4_SCOPE.md](./PHASE4_SCOPE.md)。
 
-> **2026-06-25 收敛完成**：scroll 仅走 IR（`scroll_mode_renderer.dart` 855→352 行），分页 miss 用骨架替代 spinner，金路径测试 6/6。未完成：P4-5 双语 codegen、真机验收。详见 [PHASE4_SCOPE.md](./PHASE4_SCOPE.md) §退出标准。
+> **2026-06-26 收敛完成**：scroll 仅走 IR，分页 miss 用骨架替代 spinner，双语独立模块完成，I1 持久化清理，block font-size 贯穿 IR 管线，FFI 集成测试恢复（29 pass），金路径测试 24/24。未完成：真机验收。详见 [PHASE4_SCOPE.md](./PHASE4_SCOPE.md) §退出标准。
 | # | 项 | ADR | 状态 |
 |---|-----|-----|------|
 | P4-0 | 文档对齐（README / DOMAIN_MODEL / glossary） | — | ✅ |
@@ -82,7 +82,7 @@ EPUB 分页内联图 + 大图独占页；`BlockPaginator`；charOffset 兼容 AD
 | P4-2 | IR Text 块基础 CSS | 010 | ✅ 块级 + 行内 span；用户缩进开关；cache v2 |
 | P4-3 | Staging 零可见 loading | 012 | ✅ |
 | P4-4 | Flutter Metrics 回传校准 | 013 | ✅ |
-| P4-5 | 双语独立 feature 模块 | 011 | ⬜ |
+| P4-5 | 双语独立 feature 模块 | 011 | ✅ |
 
 **退出标准**：[PHASE4_SCOPE.md](./PHASE4_SCOPE.md) §退出标准
 

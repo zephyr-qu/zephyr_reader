@@ -37,6 +37,8 @@ pub struct RichParagraph {
     pub font_family: Option<String>,
     /// CSS text-indent（em）；`None` 表示未指定
     pub text_indent_em: Option<f32>,
+    /// CSS font-size（px）；`None` 表示未指定，回退到 TypesetConfig。
+    pub font_size: Option<f32>,
     /// 是否为图片
     pub is_image: bool,
     /// 图片源路径

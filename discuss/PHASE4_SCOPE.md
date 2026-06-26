@@ -1,6 +1,6 @@
 # Phase 4 范围 — 引擎完善（Grilling 第五轮，2026-06-25）
 
-> **状态**：核心链路已完成（P4-1～P4-4 代码 + 测试），**正式签退待真机验收 + P4-5 双语 codegen**。  
+> **状态**：核心链路已完成（P4-1～P4-5 代码 + 测试），**正式签退待真机验收**。  
 > **来源**：`/grill-with-docs` 会话；决策归档 [xinxi-round5.md](./xinxi-round5.md)  
 > **绑定**：[READING_BOUNDARIES.md](./READING_BOUNDARIES.md) v1.2 · [ROADMAP.md](./ROADMAP.md) Phase 4
 
@@ -43,7 +43,7 @@
 | P4-2 | **IR Text 块基础 CSS**（`text-indent`、margin、font-family） | ✅ 块级 + 行内 span；CSS 显式 indent 优先；`BlockLayoutCache` v2 |
 | P4-3 | **Staging 硬保证** | ✅ 跨章 prev hold 帧 + next 门闸；剩余 spinner 仅 page cache / EPS / fallback |
 | P4-4 | **Flutter Metrics 回传** | ✅ 首屏 TextPainter → `applySessionCalibration` → repaginate + sled |
-| P4-5 | **双语 feature 模块** | 主链 `features/reader/core` 无翻译 API import；`--no-default-features` 可跳过双语 |
+| P4-5 | **双语 feature 模块** | ✅ 独立模块，旧 `reader/translation/` 已删除，DI 重新生成；`BilingualReaderDelegate` 封装高亮逻辑，主链零 FRB 双语 import |
 
 **不在 Phase 4**：PDF 阅读 UI、章内搜索、云盘直同步、Rust CancellationToken、CJK 标点挤压引擎。
 
@@ -61,8 +61,11 @@
 ## 退出标准（草案）
 
 - [x] P4-1～P4-4 代码 + 对应 Rust/Dart 测试（P4-1 完成，P4-2/P4-3/P4-4 已交付）
-- [ ] P4-5 双语 feature 模块（生产 wiring 已接 `ReaderSessionFactory`，待 DI codegen + 真机全链路验证）
+- [x] P4-5 双语 feature 模块（旧 `reader/translation/` 已删除，DI codegen 完成，真机待验收）
 - [x] Phase 2/3 回归：`pagination_session_test` (34 pass)、`epub_reading_chain_test` (34 pass)
+- [x] I1 持久化清理：`ReadingProgress` 移除 `page_index`/`total_pages`（Rust struct + SQL + Dart 全链路）
+- [x] G1+G2 block font-size：`RichParagraph` → `TextBlockStyle`(IR) → Flutter `mapToTextStyle()`
+- [x] FFI 测试恢复：`initFfiForTest()` 显式加载 DLL，集成测试 24/24 pass
 - [ ] 真机：跨章 forward/backward 无可见 spinner（待真机验收）
 
 ---

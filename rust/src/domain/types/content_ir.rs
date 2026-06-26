@@ -55,6 +55,8 @@ pub struct TextBlockStyle {
     pub line_height: Option<f32>,
     /// CSS `text-align`：`left` | `center` | `right` | `justify`。
     pub text_align: Option<String>,
+    /// CSS `font-size`（px）；`None` → 使用 [`TypesetConfig::font_size`]。
+    pub font_size: Option<f32>,
 }
 
 /// 文本内容块。

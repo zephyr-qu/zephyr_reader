@@ -20,6 +20,18 @@ import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 String _spanText(RichTextSpan span) =>
     span.when(styled: (_, data) => data.text, link: (data, _) => data.text);
 
+/// 根据 [RichParagraph.textIndentEm] 生成首行缩进字符。
+///
+/// 使用 CJK 全角空格 `\u3000`（≈1em），取 ceil 保证非零值至少 1 个空格。
+/// 返回空字符串当 `textIndentEm` 为 `null` 或 ≤ 0。
+String _resolveIndentPrefix(RichParagraph p) {
+  final em = p.textIndentEm;
+  if (em == null || em <= 0) return '';
+  // 1em ≈ 1 CJK fullwidth space; round up to at least 1
+  final count = em.ceil().clamp(1, 8); // cap at 8 spaces to avoid abuse
+  return String.fromCharCodes(List.filled(count, 0x3000));
+}
+
 class RichTextConverter {
   const RichTextConverter();
 
@@ -39,24 +51,41 @@ class RichTextConverter {
       final p = paragraphs[i];
       if (p.isImage) continue;
 
+      final indentPrefix = _resolveIndentPrefix(p);
       final paraText = p.spans.map(_spanText).join();
-      if (paraText.isEmpty) continue;
+      if (paraText.isEmpty && indentPrefix.isEmpty) continue;
 
       final blockStyle = paragraphBlockStyle(
         p,
         baseFontSize: baseFontSize,
         baseLineHeight: baseLineHeight,
       );
-      final spanChildren = p.spans
-          .map((s) => TextSpan(text: _spanText(s), style: spanToStyle(s)))
-          .toList();
+
+      // Build per-paragraph InlineSpan list, injecting indent into the first span.
+      final spanChildren = <InlineSpan>[];
+      if (p.spans.isNotEmpty) {
+        spanChildren.add(
+          TextSpan(
+            text: indentPrefix + _spanText(p.spans.first),
+            style: spanToStyle(p.spans.first),
+          ),
+        );
+        for (int j = 1; j < p.spans.length; j++) {
+          spanChildren.add(
+            TextSpan(
+              text: _spanText(p.spans[j]),
+              style: spanToStyle(p.spans[j]),
+            ),
+          );
+        }
+      }
 
       if (blockStyle != const TextStyle()) {
         children.add(TextSpan(style: blockStyle, children: spanChildren));
       } else {
         children.addAll(spanChildren);
       }
-      plainParts.add(paraText);
+      plainParts.add(indentPrefix + paraText);
 
       if (i < paragraphs.length - 1) {
         children.add(const TextSpan(text: '\n\n'));

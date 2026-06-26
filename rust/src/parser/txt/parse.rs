@@ -330,4 +330,52 @@ mod tests {
         let result = parse_txt(file_path.to_str().unwrap().to_string());
         assert!(result.is_ok());
     }
+    #[test]
+    fn extract_kv_chinese_colon() {
+        assert_eq!(
+            extract_kv("书名：三体", &["书名"]),
+            Some("三体".to_string())
+        );
+    }
+
+    #[test]
+    fn extract_kv_ascii_colon() {
+        assert_eq!(
+            extract_kv("书名:三体", &["书名"]),
+            Some("三体".to_string())
+        );
+    }
+
+    #[test]
+    fn extract_kv_no_match_returns_none() {
+        assert_eq!(extract_kv("这是一行无标记的正文", &["书名", "作者"]), None);
+    }
+
+    #[test]
+    fn extract_kv_multiple_keys_finds_first() {
+        assert_eq!(
+            extract_kv("书名：三体", &["书名", "作者"]),
+            Some("三体".to_string())
+        );
+    }
+
+    #[test]
+    fn extract_kv_colon_only_no_value() {
+        // extract_kv 要求值非空（line 77: if !val.is_empty()）
+        assert_eq!(extract_kv("书名：", &["书名"]), None);
+    }
+
+    #[test]
+    fn extract_kv_line_without_colon() {
+        assert_eq!(extract_kv("没有冒号的行", &["书名"]), None);
+    }
+
+    #[test]
+    fn extract_kv_author_field() {
+        assert_eq!(
+            extract_kv("作者：刘慈欣", &["作者"]),
+            Some("刘慈欣".to_string())
+        );
+    }
 }
+

@@ -12,6 +12,7 @@ import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/init.dart';
 import 'package:zephyr_reader/src/rust/frb_generated.dart';
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 /// 当前活动的临时目录，由 [setupTestStorage] 创建。
 Directory? _tempDir;
@@ -100,21 +101,49 @@ Future<void> deleteTestBook(String bookId) async {
   }
 }
 
-/// 检查 FFI 是否可用（宿主平台 + RustLib 已初始化）。
+/// 尝试显式加载编译好的 Rust 原生库用于测试。
 ///
-/// 如果 Rust 原生库未加载（如 `flutter test` 无原生编译），返回 false。
-/// 通过尝试创建无意义临时调用来探测 FFI 通道是否通畅。
-bool isFfiAvailable() {
+/// 在 [flutter test] 中不自动加载原生库，需手动指定路径。
+/// 返回 true 表示加载成功，FFI 通道就绪。
+Future<bool> initFfiForTest() async {
   if (!(Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
     return false;
   }
-  // 通过尝试访问 FRB 内部状态来验证初始化
-  // BaseEntrypoint 在未初始化时 _state 会抛出 StateError
+  try {
+    final libName = Platform.isWindows ? 'rust_lib_zephyr_reader.dll' :
+                  Platform.isMacOS ? 'librust_lib_zephyr_reader.dylib' :
+                  'librust_lib_zephyr_reader.so';
+    // debug 编译产物（release 可在 CI 用 --release 切换）
+    final libPath = 'rust/target/debug/$libName';
+    final libFile = File(libPath);
+    if (!libFile.existsSync()) {
+      print('[initFfiForTest] native lib not found: $libPath');
+      return false;
+    }
+    await RustLib.init(
+      externalLibrary: ExternalLibrary.open(libPath),
+    );
+    return true;
+  } catch (e) {
+    print('[initFfiForTest] failed: $e');
+    return false;
+  }
+}
+
+/// 检查 FFI 是否可用（宿主平台 + RustLib 已初始化）。
+///
+/// 如果 Rust 原生库未加载（如 `flutter test` 无原生编译），返回 false。
+Future<bool> isFfiAvailable() async {
+  if (!(Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+    return false;
+  }
+  // 先尝试通过 FRB 内部状态判断
   try {
     // ignore: invalid_use_of_internal_member
     RustLib.instance.api; // throws StateError if not initialized
     return true;
   } catch (_) {
-    return false;
+    // 未初始化 -> 尝试显式加载
   }
+  return initFfiForTest();
 }

@@ -164,6 +164,7 @@ fn rich_paragraph_style(p: &RichParagraph) -> TextBlockStyle {
         font_family: p.font_family.clone(),
         line_height: p.line_height,
         text_align: p.text_align.clone(),
+        font_size: p.font_size,
     }
 }
 

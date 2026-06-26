@@ -101,19 +101,18 @@ erDiagram
 
 ---
 
-## 4. 现状 vs 目标（诚实映射，2026-06-25）
+## 4. 现状 vs 目标（2026-06-26 更新）
 
-| 目标实体 | 现状近似 | 差距（Phase 4） |
-|----------|----------|-----------------|
-| ContentIR | pagination 已用；scroll 仍 plain/rich 段 | P4-1 scroll 统一 IR |
-| ChapterDocument.plainText | `chapterContent` + IR 投影 | 已对齐 ADR-001/008 |
-| PaginationView | `RustPaginationSession` + descriptors + 块渲染 | P4-2 块 CSS；P4-4 metrics 校准 |
-| ScrollView | `ScrollBoundaryCoordinator` + plain 段 | P4-1 IR 段 |
-| RichPayload | `RichParagraph[]` | 过渡；IR 就绪后降级为兼容层 |
-| StagingCache | `next/prevChapterStaging` | P4-3 硬保证无 spinner |
-| ReadingPosition | `chapterIndex` + `currentCharOffset` | 已对齐 |
-| Bilingual | in-tree 与 core 耦合 | P4-5 独立 feature 模块 |
-
+| 目标实体 | 现状 | 状态 |
+|----------|------|------|
+| ContentIR | scroll + pagination 均走 IR 主路径 | ✅ P4-1 |
+| ChapterDocument.plainText | `chapterContent` + IR 投影 | ✅ 对齐 ADR-001/008 |
+| PaginationView | `RustPaginationSession` + descriptors + 块渲染 | ✅ P4-2/P4-4 |
+| ScrollView | `ScrollBoundaryCoordinator` + IR 段 | ✅ P4-1 |
+| RichPayload | block `font_size` 贯穿 `RichParagraph` → IR → Flutter | ✅ G1+G2 |
+| StagingCache | `next/prevChapterStaging` 零 spinner | ✅ P4-3 |
+| ReadingPosition | `chapterIndex` + `currentCharOffset`，`pageIndex` 已从持久化移除 | ✅ I1 fixed |
+| Bilingual | 独立 `features/bilingual/` 模块，主链零 import | ✅ P4-5 |
 ---
 
 ## 5. 一句话（Phase 4 北极星）

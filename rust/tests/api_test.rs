@@ -131,9 +131,15 @@ async fn test_parse_book_invalid_file() {
 async fn test_parse_book_empty_content() {
     common::init_logger();
 
+    // 初始化临时存储
+    let temp_dir = tempfile::TempDir::new().expect("failed to create temp dir");
+    let data_dir = temp_dir.path().to_str().unwrap().to_string();
+    if let Err(e) = rust_lib_zephyr_reader::api::data::init::init_storage(data_dir.clone()).await {
+        println!("存储初始化失败（可接受）: {:?}", e);
+    }
+
     // 创建空文件
     let (_temp_dir, file_path) = common::create_temp_file("empty.txt", "");
-
 
     let book_id = api::parse_book(file_path).await;
     let parse_result = book_id.unwrap();
