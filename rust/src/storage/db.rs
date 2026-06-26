@@ -50,8 +50,10 @@ impl StorageManager {
 
     pub(crate) async fn create_pool(db_path: &Path) -> Result<SqlitePool, AppError> {
         SqlitePoolOptions::new()
-            .max_connections(1)
-            .acquire_timeout(std::time::Duration::from_secs(5))
+            // max_connections 提高至 8 以支持并行测试（WAL 模式支持并发读）。
+            // 生产环境为单用户，无负面影响。
+            .max_connections(8)
+            .acquire_timeout(std::time::Duration::from_secs(15))
             .connect_with(
                 SqliteConnectOptions::new()
                     .filename(db_path)

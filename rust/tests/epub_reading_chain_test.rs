@@ -494,11 +494,15 @@ async fn epub_block_session_with_image() {
 
     let data_dir = dir.path().join("storage");
     std::fs::create_dir_all(&data_dir).expect("create storage dir");
-    rust_lib_zephyr_reader::api::data::init::init_storage(
+    // 测试之间共享全局存储，使用 tolerant 方式初始化
+    if rust_lib_zephyr_reader::api::data::init::init_storage(
         data_dir.to_string_lossy().to_string(),
     )
     .await
-    .expect("init storage");
+    .is_err()
+    {
+        // 存储可能已被同一进程的其他测试初始化
+    }
 
     let file_path = out_path.to_string_lossy().to_string();
     let book_id = rust_lib_zephyr_reader::api::core::parse_book(file_path.clone())

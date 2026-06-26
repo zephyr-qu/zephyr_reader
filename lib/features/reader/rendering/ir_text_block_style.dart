@@ -89,6 +89,10 @@ abstract final class IrTextBlockStyle {
       }
       textStyle = textStyle.copyWith(fontWeight: FontWeight.bold);
     }
+    // G1+G2: CSS/EPUB block-level font-size 优先于全局用户设置
+    if (style.fontSize != null && style.fontSize! > 0) {
+      textStyle = textStyle.copyWith(fontSize: style.fontSize);
+    }
     return textStyle;
   }
 

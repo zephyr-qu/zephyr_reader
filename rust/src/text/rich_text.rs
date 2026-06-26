@@ -220,6 +220,7 @@ fn build_paragraph(
     margin_bottom_em: Option<f32>,
     font_family: Option<String>,
     text_indent_em: Option<f32>,
+    font_size: Option<f32>,
 ) -> RichParagraph {
     RichParagraph {
         spans,
@@ -233,6 +234,7 @@ fn build_paragraph(
         margin_bottom_em,
         font_family,
         text_indent_em,
+        font_size,
         ..Default::default()
     }
 }
@@ -419,6 +421,7 @@ fn flush_text_paragraph(
         parent_style.margin_bottom_em,
         parent_style.font_family.clone(),
         parent_style.text_indent_em,
+        parent_style.font_size,
     ));
 }
 
@@ -541,6 +544,7 @@ fn traverse_dom(
                         merged_style.margin_bottom_em,
                         merged_style.font_family.clone(),
                         Some(0.0),
+                        merged_style.font_size,
                     ));
                 }
 
@@ -572,6 +576,7 @@ fn traverse_dom(
                         merged_style.margin_bottom_em,
                         merged_style.font_family.clone(),
                         merged_style.text_indent_em,
+                        merged_style.font_size,
                     ));
                 }
 

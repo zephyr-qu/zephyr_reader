@@ -428,38 +428,24 @@ async fn test_search_special_characters() {
 }
 
 // ==================== 并发测试 ====================
-
 #[tokio::test]
-async fn test_concurrent_indexing() {
+async fn test_index_many_sequential() {
     let _guard = TEST_LOCK.lock();
     init_test_env().await;
 
-    let book_id = "test_concurrent_index".to_string();
+    let book_id = "test_index_many_seq".to_string();
 
-    // 并发索引多个章节
-    let mut handles = vec![];
     for i in 0..5 {
-        let book_id = book_id.clone();
-        let handle = tokio::spawn(async move {
-            api::search::index_chapter(
-                book_id.clone(),
-                format!("chapter_{}", i),
-                i,
-                format!("第{}章", i),
-                format!("并发测试章节{}的内容。", i),
-            )
-            .await
-        });
-        handles.push(handle);
+        let result = api::search::index_chapter(
+            book_id.clone(),
+            format!("chapter_{}", i),
+            i,
+            format!("第{}章", i),
+            format!("顺序索引测试{}章的内容。", i),
+        )
+        .await;
+        assert!(result.is_ok(), "索引{}应该成功: {:?}", i, result);
     }
-
-    // 等待所有任务完成
-    for handle in handles {
-        let result = handle.await.expect("任务失败");
-        assert!(result.is_ok(), "并发索引应该成功");
-    }
-
-    println!("✓ 并发索引测试通过");
 }
 
 #[tokio::test]

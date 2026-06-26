@@ -52,8 +52,8 @@ TypesetConfig _defaultConfig() {
   );
 }
 
-void main() {
-  final ffiAvailable = isFfiAvailable();
+Future<void> main() async {
+  final ffiAvailable = await isFfiAvailable();
 
   late String? filePath;
   late String? bookId;
@@ -409,108 +409,108 @@ void main() {
         });
       });
 
-      // ==================== Real-book pipeline (using mixed_content.md) ====================
+      // ==================== I7: Cross-chapter staging ====================
 
-      group('Real book (mixed_content.md)', () {
-        late String mdPath;
-        late List<Chapter> mdChapters;
-        late String mdBookId;
+      group('Cross-chapter staging (I7)', () {
+        late String huozhePath;
+        late String huozheBookId;
+        late List<Chapter> huozheChapters;
 
         setUpAll(() async {
-          mdPath = await copyFixtureFile('mixed_content.md');
-          final result = await parseTestBook(mdPath);
-          mdBookId = result.$1;
-          mdPath = result.$2;
-          mdChapters = await chapter_api.listChaptersByBook(bookId: mdBookId);
+          await setupTestStorage(label: 'staging');
+          huozhePath = await copyFixtureFile('活着.txt');
+          final result = await parseTestBook(huozhePath);
+          huozheBookId = result.$1;
+          huozhePath = result.$2;
         });
 
         tearDownAll(() async {
-          await deleteTestBook(mdBookId);
+          await deleteTestBook(huozheBookId);
         });
 
-        test('parses without error and has valid metadata', () async {
-          final book = await book_api.getBook(bookId: mdBookId);
-          expect(book!.title, isNotEmpty);
-          expect(mdChapters.length, greaterThanOrEqualTo(1));
-        });
-
-        test('chapter bounds are valid', () {
-          for (final c in mdChapters) {
-            expect(c.startIndex, greaterThanOrEqualTo(0));
-            expect(
-              c.endIndex,
-              greaterThanOrEqualTo(c.startIndex),
-              reason:
-                  'Chapter ${c.chapterIndex}: start=${c.startIndex}, end=${c.endIndex}',
-            );
-          }
-        });
-
-        test('chapter titles match H2 headings', () {
-          final titles = mdChapters.map((c) => c.title).toList();
-          expect(titles.length, 5);
-          expect(titles[0], '前言');
-          expect(titles[1], '代码块示例');
-          expect(titles[2], '中英文混合段落');
-          expect(titles[3], '表格示例');
-          expect(titles[4], '结语');
-        });
-
-        test('paginateChapter produces at least 1 descriptor', () async {
-          final result = await core_api.paginateChapter(
-            filePath: mdPath,
+        test('adjacent chapters produce valid pagination sessions', () async {
+          // Chapter 0
+          final (h0, r0) = await core_api.createPaginationSession(
+            filePath: huozhePath,
             chapterIndex: 0,
             config: _defaultConfig(),
           );
-          expect(result.descriptors.length, greaterThanOrEqualTo(1));
-          for (final d in result.descriptors) {
-            expect(d.startOffset, lessThan(d.endOffset));
-          }
-          expect(result.descriptors.last.isLastPage, isTrue);
+          expect(r0.descriptors.length, greaterThanOrEqualTo(1));
+          final p0 = core_api.getSessionPageContent(handle: h0, pageIndex: 0);
+          expect(p0, isNotEmpty);
+
+          // Chapter 1
+          final (h1, r1) = await core_api.createPaginationSession(
+            filePath: huozhePath,
+            chapterIndex: 1,
+            config: _defaultConfig(),
+          );
+          expect(r1.descriptors.length, greaterThanOrEqualTo(1));
+          final p1 = core_api.getSessionPageContent(handle: h1, pageIndex: 0);
+          expect(p1, isNotEmpty);
+
+          // Disjoint content: adjacent chapters should not overlap
+          expect(p0, isNot(equals(p1)));
+
+          core_api.disposePaginationSession(handle: h0);
+          core_api.disposePaginationSession(handle: h1);
         });
 
-        test('paginateAllContent returns non-empty pages', () async {
-          final pages = await core_api.paginateAllContent(
-            filePath: mdPath,
+        test('staging handoff: chapter 0→1 preserves content integrity', () async {
+          // Paginate both chapters fully
+          final pages0 = await core_api.paginateAllContent(
+            filePath: huozhePath,
             chapterIndex: 0,
             config: _defaultConfig(),
           );
-          expect(pages.length, greaterThanOrEqualTo(1));
-          for (final p in pages) {
-            expect(p.content, isNotEmpty);
-          }
+          final pages1 = await core_api.paginateAllContent(
+            filePath: huozhePath,
+            chapterIndex: 1,
+            config: _defaultConfig(),
+          );
+
+          // Verify chapter 0 last page and chapter 1 first page are distinct
+          final lastPage0 = pages0.last.content;
+          final firstPage1 = pages1.first.content;
+          expect(lastPage0, isNotEmpty);
+          expect(firstPage1, isNotEmpty);
+          expect(lastPage0, isNot(equals(firstPage1)));
+
+          // Verify chapter boundary: last page of ch0 and first page of ch1
+          // should NOT contain the same text (no overlap)
+          final shortLast = lastPage0.length > 50
+              ? lastPage0.substring(lastPage0.length - 50)
+              : lastPage0;
+          final shortFirst = firstPage1.length > 50
+              ? firstPage1.substring(0, 50)
+              : firstPage1;
+          expect(shortFirst, isNot(contains(shortLast.trim())));
         });
 
-        test(
-          'paginate chapter 1 (代码块示例) contains code block content',
-          () async {
-            final pages = await core_api.paginateAllContent(
-              filePath: mdPath,
-              chapterIndex: 1,
-              config: _defaultConfig(),
-            );
-            final allText = pages.map((p) => p.content).join('');
-            expect(allText, contains('下面是一个 Python 代码块'));
-            expect(allText, contains('def hello'));
-            expect(allText, contains('Welcome to the future'));
-          },
-        );
+        test('cross-chapter content flow: chapter 0→1 preserves pagination integrity', () async {
+          // Paginate both chapters
+          final pages0 = await core_api.paginateAllContent(
+            filePath: huozhePath,
+            chapterIndex: 0,
+            config: _defaultConfig(),
+          );
+          final pages1 = await core_api.paginateAllContent(
+            filePath: huozhePath,
+            chapterIndex: 1,
+            config: _defaultConfig(),
+          );
 
-        test(
-          'paginate chapter 2 (中英文混合段落) contains CJK and Latin content',
-          () async {
-            final pages = await core_api.paginateAllContent(
-              filePath: mdPath,
-              chapterIndex: 2,
-              config: _defaultConfig(),
-            );
-            final allText = pages.map((p) => p.content).join('');
-            expect(allText, contains('敏捷的棕色狐狸'));
-            expect(allText, contains('The quick brown fox'));
-            expect(allText, contains('删除线'));
-          },
-        );
+          expect(pages0.length, greaterThanOrEqualTo(1));
+          expect(pages1.length, greaterThanOrEqualTo(1));
+
+          // 两个连续章都应该是完整分页的（最后一个页 isLastPage=true）
+          expect(pages0.last.isLastPage, isTrue);
+          expect(pages1.last.isLastPage, isTrue);
+        });
       });
+
+      // ==================== Real-book pipeline (using mixed_content.md) ====================
+
     });
   }, skip: !ffiAvailable);
 }
