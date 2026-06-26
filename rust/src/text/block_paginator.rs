@@ -615,4 +615,12 @@ mod tests {
         c.merge(d);
         assert!(c.is_partial);
     }
+
+    #[test]
+    fn chunked_zero_blocks_produces_one_empty_page() {
+        let ir = ChapterContentIr::new(vec![], String::new());
+        assert_eq!(ir.block_count(), 0);
+        let result = paginate_chapter_ir_chunked(&ir, test_config());
+        assert_eq!(result.page_count(), 1, "0-block chapter should produce 1 placeholder page");
+    }
 }
