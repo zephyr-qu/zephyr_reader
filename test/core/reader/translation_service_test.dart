@@ -1,11 +1,11 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:zephyr_reader/features/reader/translation/data/providers/openai_translator.dart';
-import 'package:zephyr_reader/features/reader/translation/data/providers/custom_translator.dart';
-import 'package:zephyr_reader/features/reader/translation/domain/translation_service.dart';
-import 'package:zephyr_reader/features/reader/translation/application/translation_config.dart';
+import 'package:zephyr_reader/features/bilingual/data/providers/openai_translator.dart';
+import 'package:zephyr_reader/features/bilingual/data/providers/custom_translator.dart';
+import 'package:zephyr_reader/features/bilingual/domain/bilingual_service.dart';
+import 'package:zephyr_reader/features/bilingual/application/bilingual_config.dart';
 import 'package:zephyr_reader/core/local/shared_preferences_service.dart';
 
 class MockDio extends Mock implements Dio {}
@@ -13,18 +13,18 @@ class MockDio extends Mock implements Dio {}
 class MockCancelToken extends Mock implements CancelToken {}
 
 void main() {
-  late TranslationConfig config;
+  late BilingualConfig config;
   late MockDio mockDio;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
-    config = TranslationConfig(SharedPreferencesService(prefs));
+    config = BilingualConfig(SharedPreferencesService(prefs));
     config.apiKey.value = 'sk-test-key';
     mockDio = MockDio();
   });
 
-  group('OpenAITranslator', () {
+  group('OpenAIBilingualTranslator', () {
     test('translates text successfully', () async {
       when(
         () => mockDio.post<dynamic>(
@@ -47,7 +47,7 @@ void main() {
         ),
       );
 
-      final translator = OpenAITranslator(config, mockDio);
+      final translator = OpenAIBilingualTranslator(config, mockDio);
       final result = await translator.translate(
         text: 'Hello World',
         sourceLang: 'en',
@@ -57,7 +57,7 @@ void main() {
       expect(result.text, '你好世界');
     });
 
-    test('throws TranslationException when response is empty', () async {
+    test('throws BilingualException when response is empty', () async {
       when(
         () => mockDio.post<dynamic>(
           any(),
@@ -79,11 +79,11 @@ void main() {
         ),
       );
 
-      final translator = OpenAITranslator(config, mockDio);
+      final translator = OpenAIBilingualTranslator(config, mockDio);
 
       expect(
         () => translator.translate(text: 'Hi', targetLang: 'zh'),
-        throwsA(isA<TranslationException>()),
+        throwsA(isA<BilingualException>()),
       );
     });
 
@@ -110,7 +110,7 @@ void main() {
       );
 
       final cancelToken = CancelToken();
-      final translator = OpenAITranslator(config, mockDio);
+      final translator = OpenAIBilingualTranslator(config, mockDio);
       await translator.translate(
         text: 'Hi',
         targetLang: 'zh',
@@ -128,12 +128,12 @@ void main() {
     });
 
     test('name is OpenAI', () {
-      final translator = OpenAITranslator(config, mockDio);
+      final translator = OpenAIBilingualTranslator(config, mockDio);
       expect(translator.name, 'OpenAI');
     });
   });
 
-  group('CustomTranslator', () {
+  group('CustomBilingualTranslator', () {
     test('translates text with translated_text response', () async {
       when(
         () => mockDio.post<dynamic>(
@@ -150,7 +150,7 @@ void main() {
         ),
       );
 
-      final translator = CustomTranslator(config, mockDio);
+      final translator = CustomBilingualTranslator(config, mockDio);
       final result = await translator.translate(
         text: 'Hello World',
         targetLang: 'zh',
@@ -181,7 +181,7 @@ void main() {
         ),
       );
 
-      final translator = CustomTranslator(config, mockDio);
+      final translator = CustomBilingualTranslator(config, mockDio);
       final result = await translator.translate(
         text: 'Hello',
         sourceLang: 'en',
@@ -207,16 +207,16 @@ void main() {
         ),
       );
 
-      final translator = CustomTranslator(config, mockDio);
+      final translator = CustomBilingualTranslator(config, mockDio);
 
       expect(
         () => translator.translate(text: 'Hello', targetLang: 'zh'),
-        throwsA(isA<TranslationException>()),
+        throwsA(isA<BilingualException>()),
       );
     });
 
     test('name is Custom', () {
-      final translator = CustomTranslator(config, mockDio);
+      final translator = CustomBilingualTranslator(config, mockDio);
       expect(translator.name, 'Custom');
     });
   });

@@ -41,8 +41,19 @@ abstract class BilingualReaderDelegate {
     void Function(Offset?) onSelectionGlobalPosition,
   );
 
-  /// 创建双语对照高亮（同时高亮原文和译文中对应的文本）。
-  Future<void> createBilingualHighlight(BilingualHighlightParams params);
+  /// 是否有可用的对齐结果（可用于创建对照高亮）。
+  bool get hasAlignment;
+
+  /// 创建划词双语高亮（封装对齐段查找、语言检测、偏移计算）。
+  ///
+  /// 返回 true 表示成功创建高亮对，false 表示未找到对应译文段。
+  Future<bool> createHighlightFromSelection({
+    required String bookId,
+    required int chapterIndex,
+    required String selectedText,
+    required int selectionStart,
+    required int selectionEnd,
+  });
 
   /// 删除与指定笔记关联的双语高亮对（幂等）。
   Future<void> deleteBilingualPair({required String noteId});

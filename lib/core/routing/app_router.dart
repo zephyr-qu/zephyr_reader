@@ -20,7 +20,7 @@ import 'package:zephyr_reader/features/profile/page/tts/tts_settings_page.dart';
 import 'package:zephyr_reader/features/profile/page/typography/typography_settings_page.dart';
 import 'package:zephyr_reader/features/reader/annotations/presentation/bookmark_manage_page.dart';
 import 'package:zephyr_reader/features/reader/page/reader_page.dart';
-import 'package:zephyr_reader/features/reader/translation/presentation/translation_settings_page.dart';
+import 'package:zephyr_reader/features/bilingual/presentation/bilingual_settings_page.dart';
 import 'package:zephyr_reader/features/search/page/book_search_page.dart';
 import 'package:zephyr_reader/features/search/page/search_page.dart';
 import 'package:zephyr_reader/features/statistics/page/reading_sessions_page.dart';
@@ -142,7 +142,7 @@ final router = GoRouter(
     GoRoute(
       name: AppRoute.TranslationSettings.name,
       path: AppRoute.TranslationSettings.path,
-      builder: (_, _) => const TranslationSettingsPage(),
+      builder: (_, _) => const BilingualSettingsPage(),
     ),
 
     // 阅读器路由（独立页面，不使用 MainLayout）
