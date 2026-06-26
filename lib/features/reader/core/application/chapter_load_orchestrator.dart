@@ -528,12 +528,13 @@ class ChapterLoadOrchestrator {
     if (_isStale(gen)) return null;
     _pagination.calibration.value ??= calibResult;
 
-    // 释放旧 handle（不清除目标章 streamer cache）
-    _contentRepo.disposePagination();
     final result = await _pagination.paginateFirstScreenFromCache(
       request.chapterIndex,
     );
     if (_isStale(gen)) return null;
+
+    // 旧 session 在 promote 成功后释放（失败时保留，供 fallback normalLoad 使用）
+    _contentRepo.disposePagination();
 
     final preloadHit = !result.isPartial;
 
