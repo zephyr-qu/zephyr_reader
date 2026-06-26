@@ -894,9 +894,8 @@ async fn epub_switch_chapter_scroll_timing() {
     assert!(!ch0.is_empty(), "ch0 scroll pages");
     assert!(!ch1.is_empty(), "ch1 scroll pages");
 
-    // Scroll pagination per chapter should be fast (< 500ms per chapter)
-    assert!(t0.as_millis() < 500, "ch0 scroll too slow: {t0:?}");
-    assert!(t1.as_millis() < 500, "ch1 scroll too slow: {t1:?}");
+    assert!(t0.as_millis() < 50, "ch0 scroll too slow: {t0:?}");
+    assert!(t1.as_millis() < 50, "ch1 scroll too slow: {t1:?}");
     println!("scroll  ch0={t0:?}  ch1={t1:?}");
 }
 
@@ -921,10 +920,12 @@ async fn epub_switch_chapter_paginate_timing() {
     assert!(!result1.descriptors.is_empty(), "ch1 descriptors");
     dispose_pagination_session(handle1).expect("dispose ch1");
 
-    assert!(t0.as_millis() < 500, "ch0 session too slow: {t0:?}");
-    assert!(t1.as_millis() < 500, "ch1 session too slow: {t1:?}");
+    assert!(t0.as_millis() < 100, "ch0 session too slow: {t0:?}");
+    assert!(t1.as_millis() < 100, "ch1 session too slow: {t1:?}");
+    println!("paginate ch0={t0:?}  ch1={t1:?}");
 }
 
+#[tokio::test]
 async fn epub_switch_chapter_full_page_read_timing() {
     let Some(path) = require_fixture("活着.epub") else { return; };
     let (_dir, file_path, _book_id) = setup_parsed_epub(&path).await;
@@ -953,7 +954,7 @@ async fn epub_switch_chapter_full_page_read_timing() {
 
     assert!(!pages0.is_empty(), "ch0 has pages");
     assert!(!pages1.is_empty(), "ch1 has pages");
-    assert!(t0.as_millis() < 2000, "ch0 full read too slow: {t0:?}");
-    assert!(t1.as_millis() < 2000, "ch1 full read too slow: {t1:?}");
+    assert!(t0.as_millis() < 100, "ch0 full read too slow: {t0:?}");
+    assert!(t1.as_millis() < 100, "ch1 full read too slow: {t1:?}");
     println!("full ch0={t0:?}  ch1={t1:?}");
 }

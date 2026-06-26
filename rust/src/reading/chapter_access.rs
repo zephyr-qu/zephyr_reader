@@ -89,8 +89,6 @@ pub async fn get_chapter_bounds(
     Ok((chapter.start_index as i32, chapter.end_index as i32))
 }
 
-/// 提取章节原始文本内容（仅 TXT；EPUB 走 provider 路径）。
-#[allow(dead_code)]
 
 /// 构造 Pages 变体，当页数 > 100 时记录警告（防止偶发大章节 FFI 序列化瓶颈）
 fn chapter_content_pages(pages: Vec<PageContent>) -> ChapterContent {
