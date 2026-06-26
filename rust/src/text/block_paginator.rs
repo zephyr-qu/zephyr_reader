@@ -288,7 +288,15 @@ impl BlockPaginator {
     }
 
     fn paginate_text_block(&mut self, block_index: u32, block: &TextBlock) {
-        let top_spacing = block_top_spacing_px(&block.style, self.metrics.font_size_px);
+        // 块级 font_size / line_height 覆盖（G1+G2）；None 时回退到全局 config
+        let effective_font_size = block.style.font_size.unwrap_or(self.metrics.font_size_px);
+        let effective_line_height = block
+            .style
+            .line_height
+            .map(|lh| lh * effective_font_size)
+            .unwrap_or(self.metrics.line_height_px);
+
+        let top_spacing = block_top_spacing_px(&block.style, effective_font_size);
         if top_spacing > 0.0 {
             self.remaining_height = (self.remaining_height - top_spacing).max(0.0);
         }
@@ -298,7 +306,7 @@ impl BlockPaginator {
         let bottom_spacing = block_bottom_spacing_px(&block.style, &self.metrics);
 
         for (i, seg) in lines.iter().enumerate() {
-            if self.remaining_height < self.metrics.line_height_px {
+            if self.remaining_height < effective_line_height {
                 self.flush_page(false);
             }
 
@@ -306,7 +314,7 @@ impl BlockPaginator {
             let seg_plain_end = base_plain + seg.char_start + seg.char_len;
             self.begin_block_on_page(block_index, seg_plain_start);
             self.extend_plain_end(seg_plain_end);
-            self.remaining_height -= self.metrics.line_height_px;
+            self.remaining_height -= effective_line_height;
 
             if i + 1 == lines.len() && bottom_spacing > 0.0 {
                 self.remaining_height = (self.remaining_height - bottom_spacing).max(0.0);
