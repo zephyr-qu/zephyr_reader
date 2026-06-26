@@ -41,6 +41,9 @@ class _ImageCacheEntry {
 /// 请求宽度则直接命中（Flutter `BoxFit.contain` 可缩小显示），避免 margin /
 /// 旋转导致 cache miss。
 class EpubBlockImageCache {
+  /// 最大缓存图片数；超出时淘汰最久未访问条目。
+  static const _maxEntries = 50;
+
   EpubBlockImageCache({EpubImageLoader? loader})
     : _loader = loader ?? _defaultEpubImageLoader;
 
@@ -48,6 +51,7 @@ class EpubBlockImageCache {
 
   final Map<String, _ImageCacheEntry> _ready = {};
   final Map<String, Future<_ImageCacheEntry>> _inflight = {};
+  final List<String> _lru = []; // access-order list for eviction
 
   static String assetKey({required String filePath, required String assetId}) =>
       '$filePath\x00$assetId';
@@ -68,8 +72,10 @@ class EpubBlockImageCache {
     required String assetId,
     required int maxWidthPx,
   }) {
-    final entry = _ready[assetKey(filePath: filePath, assetId: assetId)];
+    final aKey = assetKey(filePath: filePath, assetId: assetId);
+    final entry = _ready[aKey];
     if (entry != null && entry.maxWidthPx >= maxWidthPx) {
+      _bumpLru(aKey);
       return entry.bytes;
     }
     return null;
@@ -115,7 +121,6 @@ class EpubBlockImageCache {
     return get(filePath: filePath, assetId: assetId, maxWidthPx: maxWidthPx) ??
         entry.bytes;
   }
-
   void _storeIfBetter({
     required String filePath,
     required String assetId,
@@ -124,10 +129,23 @@ class EpubBlockImageCache {
     final aKey = assetKey(filePath: filePath, assetId: assetId);
     final prev = _ready[aKey];
     if (prev == null || prev.maxWidthPx < entry.maxWidthPx) {
+      if (prev == null && _ready.length >= _maxEntries) {
+        _evictOne();
+      }
       _ready[aKey] = entry;
+      _bumpLru(aKey);
     }
   }
 
+  void _bumpLru(String key) {
+    _lru.remove(key);
+    _lru.add(key);
+  }
+
+  void _evictOne() {
+    if (_lru.isEmpty) return;
+    _ready.remove(_lru.removeAt(0));
+  }
   /// 页块列表中的 Image 切片后台预解码（与 session 滑动窗口同步触发）。
   void prefetchBlocks({
     required String filePath,
@@ -173,6 +191,7 @@ class EpubBlockImageCache {
   void clear() {
     _ready.clear();
     _inflight.clear();
+    _lru.clear();
   }
 }
 
