@@ -69,10 +69,9 @@ abstract final class IrTextBlockStyle {
     ReaderRenderConfig config,
   ) {
     var textStyle = config.buildTextStyle(
-      fontFamily:
-          style.fontFamily != null && style.fontFamily!.isNotEmpty
-              ? style.fontFamily
-              : null,
+      fontFamily: style.fontFamily != null && style.fontFamily!.isNotEmpty
+          ? style.fontFamily
+          : null,
     );
     if (style.lineHeight != null && style.lineHeight! > 0) {
       textStyle = textStyle.copyWith(height: style.lineHeight);

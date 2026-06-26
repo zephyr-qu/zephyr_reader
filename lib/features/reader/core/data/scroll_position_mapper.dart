@@ -45,8 +45,7 @@ class ScrollPositionMapper {
   static double _segmentScrollExtent(
     ScrollChapterSegment seg,
     ScrollLayoutParams layout,
-  ) =>
-      seg.metricsFor(layout).totalScrollExtent(
-            uniformFallback: layout.uniformTextExtent,
-          );
+  ) => seg
+      .metricsFor(layout)
+      .totalScrollExtent(uniformFallback: layout.uniformTextExtent);
 }

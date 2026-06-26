@@ -36,8 +36,8 @@ class PaginationCoordinator {
 
   PaginationParams buildPaginationParams() {
     // 减去渲染层上下 padding（与 PaginatedPageViewport / Rust page_height 对齐）。
-    final effectiveHeight = pageHeight -
-        2 * ReaderRenderConfig.pageContentVerticalPadding;
+    final effectiveHeight =
+        pageHeight - 2 * ReaderRenderConfig.pageContentVerticalPadding;
     return PaginationParams(
       fontSize: _config.fontSize.value,
       lineHeight: _config.lineHeight.value,
@@ -65,24 +65,26 @@ class PaginationCoordinator {
   /// 与 Rust 侧 `TypesetConfig::config_hash()` 算法一致。
   int computeConfigHash() {
     final p = buildPaginationParams();
-    return core_api.computeConfigHash(
-      config: buildTypesetConfig(
-        width: p.width,
-        height: p.height,
-        fontSize: p.fontSize,
-        lineHeight: p.lineHeight,
-        padding: p.padding,
-        devicePixelRatio: p.devicePixelRatio,
-        calibration: p.calibration,
-        fontFamily: p.fontFamily,
-        letterSpacing: p.letterSpacing,
-        paragraphSpacing: p.paragraphSpacing,
-        punctuationSqueeze: p.punctuationSqueeze,
-        firstLineIndent: p.firstLineIndent ? 2 : 0,
-        language: p.language,
-        autoSpaceRatio: p.autoSpaceRatio,
-      ),
-    ).toInt();
+    return core_api
+        .computeConfigHash(
+          config: buildTypesetConfig(
+            width: p.width,
+            height: p.height,
+            fontSize: p.fontSize,
+            lineHeight: p.lineHeight,
+            padding: p.padding,
+            devicePixelRatio: p.devicePixelRatio,
+            calibration: p.calibration,
+            fontFamily: p.fontFamily,
+            letterSpacing: p.letterSpacing,
+            paragraphSpacing: p.paragraphSpacing,
+            punctuationSqueeze: p.punctuationSqueeze,
+            firstLineIndent: p.firstLineIndent ? 2 : 0,
+            language: p.language,
+            autoSpaceRatio: p.autoSpaceRatio,
+          ),
+        )
+        .toInt();
   }
 
   /// 首屏分页（统一入口，maxChars=2000）。
@@ -144,7 +146,6 @@ class PaginationCoordinator {
     );
   }
 
-
   /// 应用完整 Rust 分页结果。
   ({int totalPages, int pageIndex}) applyFullResult({
     required int total,
@@ -178,10 +179,7 @@ class PaginationCoordinator {
     if (sessionPage != null) {
       return sessionPage.clamp(0, descriptors.length - 1);
     }
-    return PaginationEngine.resolvePageIndexForOffset(
-      descriptors,
-      charOffset,
-    );
+    return PaginationEngine.resolvePageIndexForOffset(descriptors, charOffset);
   }
 
   /// 释放 Rust 会话并清空本地缓存。

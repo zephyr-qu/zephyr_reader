@@ -74,9 +74,7 @@ class ScrollModeRenderer extends HookWidget {
       );
     }
 
-    if (!hasSegments &&
-        chapterIr != null &&
-        chapterIr.blocks.isNotEmpty) {
+    if (!hasSegments && chapterIr != null && chapterIr.blocks.isNotEmpty) {
       return buildScrollIrBlockList(
         context: context,
         scrollController: scrollController,
@@ -96,6 +94,11 @@ class ScrollModeRenderer extends HookWidget {
     }
 
     // Fallback: plain text content（IR 未命中时）
+    // IR 未命中——此路径在 Phase 4 后不应触发，出现则表示上游 IR 加载失败。
+    debugPrint(
+      '[ScrollModeRenderer] WARNING: IR unavailable, falling back to plain text. '
+      'hasSegments=$hasSegments chapterIr=${chapterIr != null} blocks=${chapterIr?.blocks.length ?? 0}',
+    );
     final paragraphList = content
         .split('\n\n')
         .where((p) => p.trim().isNotEmpty)
@@ -152,25 +155,29 @@ class ScrollModeRenderer extends HookWidget {
     );
   }
 
-
-  List<_GlobalPara> _flattenPlainParagraphs(List<ScrollChapterSegment> segments) {
+  List<_GlobalPara> _flattenPlainParagraphs(
+    List<ScrollChapterSegment> segments,
+  ) {
     final globalParagraphs = <_GlobalPara>[];
     for (var si = 0; si < segments.length; si++) {
       final seg = segments[si];
       for (var pi = 0; pi < seg.paragraphs.length; pi++) {
-        globalParagraphs.add(_GlobalPara(
-          segIdx: si,
-          localIdx: pi,
-          text: seg.paragraphs[pi],
-          startOffset: seg.paragraphCharOffsets[pi],
-          isSegmentBoundary:
-              pi == 0 && si > 0 && segments[si - 1].chapterIndex != seg.chapterIndex,
-        ));
+        globalParagraphs.add(
+          _GlobalPara(
+            segIdx: si,
+            localIdx: pi,
+            text: seg.paragraphs[pi],
+            startOffset: seg.paragraphCharOffsets[pi],
+            isSegmentBoundary:
+                pi == 0 &&
+                si > 0 &&
+                segments[si - 1].chapterIndex != seg.chapterIndex,
+          ),
+        );
       }
     }
     return globalParagraphs;
   }
-
 
   List<Note> _highlightsForParagraph(
     List<Note> segHighlights,
@@ -189,7 +196,6 @@ class ScrollModeRenderer extends HookWidget {
         .toList();
   }
 
-
   /// 多段拼接纯文本 ListView。遍历 [segments] 所有段落，按全局段落索引构建连续滚动列表。
   Widget _buildMultiSegmentPlainList(
     BuildContext context,
@@ -198,8 +204,9 @@ class ScrollModeRenderer extends HookWidget {
   ) {
     final globalParagraphs = _flattenPlainParagraphs(segments);
     final chapterIds = segments.map((s) => s.chapterIndex).toSet();
-    final segHighlights =
-        highlights.where((h) => chapterIds.contains(h.chapterIndex.toInt())).toList();
+    final segHighlights = highlights
+        .where((h) => chapterIds.contains(h.chapterIndex.toInt()))
+        .toList();
 
     return ListView.builder(
       controller: scrollController,
@@ -246,10 +253,7 @@ class ScrollModeRenderer extends HookWidget {
           children.add(
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Divider(
-                color: config.textColor.withAlpha(24),
-                height: 1,
-              ),
+              child: Divider(color: config.textColor.withAlpha(24), height: 1),
             ),
           );
         }
@@ -267,8 +271,6 @@ class ScrollModeRenderer extends HookWidget {
       },
     );
   }
-
-
 
   void _reportSelectionPosition(BuildContext context, TextSelection sel) {
     if (!sel.isValid || sel.isCollapsed) {
@@ -298,8 +300,6 @@ class ScrollModeRenderer extends HookWidget {
       _reportSelectionPosition(buildContext, sel);
     }
   }
-
-
 
   String _splitLongSentence(String text) {
     if (!showSentenceSplit || text.length < 80) return text;
@@ -343,4 +343,3 @@ class _GlobalPara {
     required this.isSegmentBoundary,
   });
 }
-

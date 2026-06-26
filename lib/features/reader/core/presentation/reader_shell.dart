@@ -32,12 +32,14 @@ class ReaderShell extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final session = useMemoized(() => ReaderSessionFactory(
-      getIt<ChapterContentRepository>(),
-      getIt<ProgressRepository>(),
-      getIt<PaginationSessionFactory>(),
-      getIt<ReaderConfig>(),
-    ).create());
+    final session = useMemoized(
+      () => ReaderSessionFactory(
+        getIt<ChapterContentRepository>(),
+        getIt<ProgressRepository>(),
+        getIt<PaginationSessionFactory>(),
+        getIt<ReaderConfig>(),
+      ).create(),
+    );
     final vm = session.vm;
     final fontRepo = useMemoized(() => getIt<FontRepository>());
     final readRepo = vm.repo as ReaderRepository;

@@ -21,24 +21,32 @@ List<ContentBlock> _makeIrBlocks({
   var plainStart = 0;
   for (var i = 0; i < paragraphCount; i++) {
     final text = 'Paragraph $i content.\n';
-    blocks.add(ContentBlock.text(TextBlock(
-      plain: BlockPlainRange(plainStart: plainStart, plainLen: text.length),
-      text: text,
-      style: TextBlockStyle(
-        isHeading: false,
-        headingLevel: 0,
-        textIndentEm: i == 0 ? 2.0 : null,
-        marginBottomEm: 1.0,
+    blocks.add(
+      ContentBlock.text(
+        TextBlock(
+          plain: BlockPlainRange(plainStart: plainStart, plainLen: text.length),
+          text: text,
+          style: TextBlockStyle(
+            isHeading: false,
+            headingLevel: 0,
+            textIndentEm: i == 0 ? 2.0 : null,
+            marginBottomEm: 1.0,
+          ),
+          spans: const [],
+        ),
       ),
-      spans: const [],
-    )));
+    );
     plainStart += text.length;
   }
   if (includeImage) {
-    blocks.add(ContentBlock.image(ImageBlock(
-      plain: BlockPlainRange(plainStart: plainStart, plainLen: 1),
-      assetId: 'img_cover',
-    )));
+    blocks.add(
+      ContentBlock.image(
+        ImageBlock(
+          plain: BlockPlainRange(plainStart: plainStart, plainLen: 1),
+          assetId: 'img_cover',
+        ),
+      ),
+    );
   }
   return blocks;
 }
@@ -52,10 +60,7 @@ ChapterContentIr _makeChapterIr({
     includeImage: includeImage,
   );
   final plainText = blocks
-      .map((b) => b.when(
-            text: (tb) => tb.text,
-            image: (_) => '\uFFFC',
-          ))
+      .map((b) => b.when(text: (tb) => tb.text, image: (_) => '\uFFFC'))
       .join();
   return ChapterContentIr(blocks: blocks, plainText: plainText);
 }
@@ -86,10 +91,12 @@ void main() {
       final seg = ScrollSegmentFactory.fromPayload(0, payload);
 
       expect(seg.isIr, isTrue);
-      expect(seg.irBlocks!.any((b) => b.when(
-            text: (_) => false,
-            image: (_) => true,
-          )), isTrue);
+      expect(
+        seg.irBlocks!.any(
+          (b) => b.when(text: (_) => false, image: (_) => true),
+        ),
+        isTrue,
+      );
     });
 
     test('plain payload 产生非 IR 非 rich 段', () {
@@ -142,10 +149,10 @@ void main() {
       expect(firstBlock!.style.textIndentEm, closeTo(2.0, 0.01));
 
       // 第二段无缩进
-      final secondBlock = seg.irBlocks!.skip(1).first.when(
-        text: (tb) => tb,
-        image: (_) => null,
-      );
+      final secondBlock = seg.irBlocks!
+          .skip(1)
+          .first
+          .when(text: (tb) => tb, image: (_) => null);
       expect(secondBlock, isNotNull);
       expect(secondBlock!.style.textIndentEm, isNull);
     });

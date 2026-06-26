@@ -20,10 +20,7 @@ void main() {
         scrollPlainPayload('AAAA\n\nBBBB\n\nCCCC'),
       );
 
-      expect(
-        ScrollPositionMapper.scrollOffsetForChar([seg], 1, 0, layout),
-        0,
-      );
+      expect(ScrollPositionMapper.scrollOffsetForChar([seg], 1, 0, layout), 0);
       expect(
         ScrollPositionMapper.scrollOffsetForChar([seg], 1, 6, layout),
         layout.uniformTextExtent,
@@ -52,9 +49,9 @@ void main() {
       );
       expect(
         offset,
-        seg0.metricsFor(layout).totalScrollExtent(
-              uniformFallback: layout.uniformTextExtent,
-            ),
+        seg0
+            .metricsFor(layout)
+            .totalScrollExtent(uniformFallback: layout.uniformTextExtent),
       );
     });
   });

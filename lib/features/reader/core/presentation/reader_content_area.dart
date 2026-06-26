@@ -51,8 +51,9 @@ class ReaderContentArea extends HookWidget {
     final int bPageindex = useSignalValue(vm.chapterManager.pageIndex);
     final int bTotalpages = useSignalValue(vm.chapterManager.totalPages);
     final ReadingMode bCurrentreadingmode = useSignalValue(vm.readingMode);
-    final PaginationSkin bPaginationSkin =
-        useSignalValue(vm.config.paginationSkin.signal);
+    final PaginationSkin bPaginationSkin = useSignalValue(
+      vm.config.paginationSkin.signal,
+    );
     final double bFontsize = useSignalValue(vm.config.fontSize.signal);
     final double bLineheight = useSignalValue(vm.config.lineHeight.signal);
     final AsyncState<String> chContent = useSignalValue(
@@ -86,8 +87,9 @@ class ReaderContentArea extends HookWidget {
     );
     final int bNumchapters = (chaptersState.value as List?)?.length ?? 0;
     final Set<String> vocabWordSet = useSignalValue(vocabWords);
-    final List<ScrollChapterSegment> scrollSegments =
-        useSignalValue(vm.chapterManager.scrollSegments);
+    final List<ScrollChapterSegment> scrollSegments = useSignalValue(
+      vm.chapterManager.scrollSegments,
+    );
     final paginationBoundaryTriggered = useRef(false);
     final fontFamily = fontRepo.currentFontFamily;
     void cycleBrightness() {
@@ -169,7 +171,8 @@ class ReaderContentArea extends HookWidget {
                 error: bError,
                 hasNextChapter: bChapterindex < bNumchapters - 1,
                 hasPreviousChapter: bChapterindex > 0,
-                showChapterTransition: vm.chapterManager.showChapterTransition.value,
+                showChapterTransition:
+                    vm.chapterManager.showChapterTransition.value,
                 scrollBuilder: (_, sc) => ScrollModeRenderer(
                   config: renderConfig,
                   scrollController: sc,

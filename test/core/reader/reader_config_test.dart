@@ -52,7 +52,10 @@ void main() {
       final config = ReaderConfig(SharedPreferencesService(prefs));
       expect(config.theme.value, equals(ReaderTheme.light));
       expect(config.fontSize.value, equals(ReaderTypographyDefaults.fontSize));
-      expect(config.lineHeight.value, equals(ReaderTypographyDefaults.lineHeight));
+      expect(
+        config.lineHeight.value,
+        equals(ReaderTypographyDefaults.lineHeight),
+      );
       expect(
         config.paragraphSpacing.value,
         equals(ReaderTypographyDefaults.paragraphSpacing),
@@ -212,7 +215,10 @@ void main() {
       await config.theme.saveImmediately();
       expect(prefs.getString('reader_theme'), equals('light'));
       await config.fontSize.saveImmediately();
-      expect(prefs.getDouble('reader_font_size'), equals(ReaderTypographyDefaults.fontSize));
+      expect(
+        prefs.getDouble('reader_font_size'),
+        equals(ReaderTypographyDefaults.fontSize),
+      );
       await config.autoScroll.saveImmediately();
       expect(prefs.getBool('reader_auto_scroll'), isFalse);
     });

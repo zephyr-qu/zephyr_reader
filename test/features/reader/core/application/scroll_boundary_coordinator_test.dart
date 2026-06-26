@@ -110,21 +110,13 @@ void main() {
           2,
           readingMode: any(named: 'readingMode'),
         ),
-      ).thenAnswer(
-        (_) async => scrollPlainPayload('Ch2\n\nPara2'),
-      );
+      ).thenAnswer((_) async => scrollPlainPayload('Ch2\n\nPara2'));
 
-      await coord.appendNext(
-        bookId: 'book',
-        readingMode: ReadingMode.scroll,
-      );
+      await coord.appendNext(bookId: 'book', readingMode: ReadingMode.scroll);
 
       verify(
-        () => repo.loadScrollSegment(
-          'book',
-          2,
-          readingMode: ReadingMode.scroll,
-        ),
+        () =>
+            repo.loadScrollSegment('book', 2, readingMode: ReadingMode.scroll),
       ).called(1);
       expect(emitted.last.chapterIndex, 2);
     });
@@ -145,21 +137,13 @@ void main() {
           0,
           readingMode: any(named: 'readingMode'),
         ),
-      ).thenAnswer(
-        (_) async => scrollPlainPayload('Ch0prev\n\nPara2'),
-      );
+      ).thenAnswer((_) async => scrollPlainPayload('Ch0prev\n\nPara2'));
 
-      await local.prependPrev(
-        bookId: 'book',
-        readingMode: ReadingMode.scroll,
-      );
+      await local.prependPrev(bookId: 'book', readingMode: ReadingMode.scroll);
 
       verify(
-        () => repo.loadScrollSegment(
-          'book',
-          0,
-          readingMode: ReadingMode.scroll,
-        ),
+        () =>
+            repo.loadScrollSegment('book', 0, readingMode: ReadingMode.scroll),
       ).called(1);
       expect(emitted.first.chapterIndex, 0);
     });
@@ -198,10 +182,7 @@ void main() {
       );
       local.init(0, 'Ch0\n\nPara2');
 
-      await local.appendNext(
-        bookId: 'book',
-        readingMode: ReadingMode.scroll,
-      );
+      await local.appendNext(bookId: 'book', readingMode: ReadingMode.scroll);
 
       expect(noticed, isNull);
       expect(emitted.last.isIr, isTrue);
@@ -256,10 +237,7 @@ void main() {
       );
       local.init(0, 'Ch0\n\nPara2');
 
-      await local.appendNext(
-        bookId: 'book',
-        readingMode: ReadingMode.scroll,
-      );
+      await local.appendNext(bookId: 'book', readingMode: ReadingMode.scroll);
 
       expect(noticed, isNull);
     });

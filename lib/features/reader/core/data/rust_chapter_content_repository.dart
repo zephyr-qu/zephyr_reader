@@ -38,6 +38,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
 
   NextChapterStaging? _nextChapterStaging;
   NextChapterStaging? _prevChapterStaging;
+
   /// staging 预加载 generation 计数器，用于丢弃过期结果。
   int _stagingGen = 0;
 
@@ -95,8 +96,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
     String bookId,
     int chapterId, {
     ReadingMode? readingMode,
-  }) =>
-      _loadChapterPayload(bookId, chapterId, readingMode: readingMode);
+  }) => _loadChapterPayload(bookId, chapterId, readingMode: readingMode);
 
   /// 仅双语模式需要 EPUB 富文本；scroll 走 IR；分页路径只用 plain。
   static bool _needsRichContent(ReadingMode? mode) =>

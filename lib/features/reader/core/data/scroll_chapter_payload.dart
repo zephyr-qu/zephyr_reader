@@ -18,27 +18,24 @@ ScrollChapterPayload scrollPlainPayload(
   bool epubRichSkipped = false,
   ChapterContentIr? chapterIr,
   String? chapterFilePath,
-}) =>
-    (
-      content: content,
-      richParagraphs: null,
-      richRootSpan: null,
-      epubRichSkipped: epubRichSkipped,
-      chapterIr: chapterIr,
-      chapterFilePath: chapterFilePath,
-    );
+}) => (
+  content: content,
+  richParagraphs: null,
+  richRootSpan: null,
+  epubRichSkipped: epubRichSkipped,
+  chapterIr: chapterIr,
+  chapterFilePath: chapterFilePath,
+);
 
 /// IR 章节 payload（scroll 主路径，ADR-009）。
 ScrollChapterPayload scrollIrPayload({
   required ChapterContentIr chapterIr,
   required String chapterFilePath,
-}) =>
-    (
-      content: chapterIr.plainText,
-      richParagraphs: null,
-      richRootSpan: null,
-      epubRichSkipped: false,
-      chapterIr: chapterIr,
-      chapterFilePath: chapterFilePath,
-    );
-
+}) => (
+  content: chapterIr.plainText,
+  richParagraphs: null,
+  richRootSpan: null,
+  epubRichSkipped: false,
+  chapterIr: chapterIr,
+  chapterFilePath: chapterFilePath,
+);

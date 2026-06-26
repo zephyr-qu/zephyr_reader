@@ -131,7 +131,6 @@ abstract class ReaderRepositoryInterface {
     String fontFamily = 'Noto Sans SC',
   });
 
-
   /// 预加载下一章 descriptors + 首页 content。
   Future<void> preloadNextChapterStaging(
     String bookId,
@@ -178,5 +177,4 @@ abstract class ReaderRepositoryInterface {
 
   /// 加载书籍的阅读进度。
   Future<ReadingProgressData?> loadReadingProgress(String bookId);
-
 }

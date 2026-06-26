@@ -32,19 +32,19 @@ class ScrollBoundaryCoordinator {
     required ReaderRepositoryInterface repo,
     required void Function(int chapterIndex, int charOffset) onPositionChanged,
     required void Function(int chapterIndex) onChapterChanged,
-    required void Function(List<ScrollChapterSegment> segments) onSegmentsChanged,
+    required void Function(List<ScrollChapterSegment> segments)
+    onSegmentsChanged,
     void Function(ReaderNotice notice)? onReaderNotice,
-  })  : _repo = repo,
-        _onPositionChanged = onPositionChanged,
-        _onChapterChanged = onChapterChanged,
-        _onSegmentsChanged = onSegmentsChanged,
-        _onReaderNotice = onReaderNotice;
+  }) : _repo = repo,
+       _onPositionChanged = onPositionChanged,
+       _onChapterChanged = onChapterChanged,
+       _onSegmentsChanged = onSegmentsChanged,
+       _onReaderNotice = onReaderNotice;
 
   ScrollDocumentComposer? get composer => _composer;
 
   /// 当前段列表。
-  List<ScrollChapterSegment> get segments =>
-      _composer?.segments ?? [];
+  List<ScrollChapterSegment> get segments => _composer?.segments ?? [];
 
   /// 初始化中心章节。
   void init(
@@ -57,17 +57,14 @@ class ScrollBoundaryCoordinator {
   }) {
     _composer = ScrollDocumentComposer(centerChapterIndex: chapterIndex);
     _composer!.reset(
-      ScrollSegmentFactory.fromPayload(
-        chapterIndex,
-        (
-          content: content,
-          richParagraphs: richParagraphs,
-          richRootSpan: richRootSpan,
-          epubRichSkipped: false,
-          chapterIr: chapterIr,
-          chapterFilePath: chapterFilePath,
-        ),
-      ),
+      ScrollSegmentFactory.fromPayload(chapterIndex, (
+        content: content,
+        richParagraphs: richParagraphs,
+        richRootSpan: richRootSpan,
+        epubRichSkipped: false,
+        chapterIr: chapterIr,
+        chapterFilePath: chapterFilePath,
+      )),
     );
     _emitSegments();
   }
@@ -95,13 +92,10 @@ class ScrollBoundaryCoordinator {
       if (gen != _loadingGen || _composer == null) return;
       _composer!.appendNext(ScrollSegmentFactory.fromPayload(nextIdx, payload));
       _emitSegments();
-      if (payload.epubRichSkipped &&
-          readingMode == ReadingMode.bilingual) {
+      if (payload.epubRichSkipped && readingMode == ReadingMode.bilingual) {
         _onReaderNotice?.call(ReaderNotice.epubRichSkipped);
       }
-      unawaited(
-        _repo.preloadChapter(bookId, nextIdx + 1).catchError((_) {}),
-      );
+      unawaited(_repo.preloadChapter(bookId, nextIdx + 1).catchError((_) {}));
     } catch (e) {
       Logging.debug('[ScrollCoord] appendNext failed: $e');
     } finally {
@@ -135,8 +129,7 @@ class ScrollBoundaryCoordinator {
         ScrollSegmentFactory.fromPayload(prevIdx, payload),
       );
       _emitSegments();
-      if (payload.epubRichSkipped &&
-          readingMode == ReadingMode.bilingual) {
+      if (payload.epubRichSkipped && readingMode == ReadingMode.bilingual) {
         _onReaderNotice?.call(ReaderNotice.epubRichSkipped);
       }
     } catch (e) {
@@ -155,10 +148,7 @@ class ScrollBoundaryCoordinator {
   }
 
   /// 根据滚动偏移映射进度；跨章时自动 [onSegmentChanged]。
-  void reportScrollPosition(
-    double scrollOffset,
-    ScrollLayoutParams layout,
-  ) {
+  void reportScrollPosition(double scrollOffset, ScrollLayoutParams layout) {
     if (_composer == null) return;
     final pos = _composer!.charOffsetAtOffset(scrollOffset, layout);
     if (pos.chapterIndex != _composer!.centerChapterIndex) {
@@ -183,17 +173,14 @@ class ScrollBoundaryCoordinator {
     _isLoadingPrev = false;
     _composer = ScrollDocumentComposer(centerChapterIndex: chapterIndex);
     _composer!.reset(
-      ScrollSegmentFactory.fromPayload(
-        chapterIndex,
-        (
-          content: content,
-          richParagraphs: richParagraphs,
-          richRootSpan: richRootSpan,
-          epubRichSkipped: false,
-          chapterIr: chapterIr,
-          chapterFilePath: chapterFilePath,
-        ),
-      ),
+      ScrollSegmentFactory.fromPayload(chapterIndex, (
+        content: content,
+        richParagraphs: richParagraphs,
+        richRootSpan: richRootSpan,
+        epubRichSkipped: false,
+        chapterIr: chapterIr,
+        chapterFilePath: chapterFilePath,
+      )),
     );
     _emitSegments();
   }

@@ -91,9 +91,8 @@ class BookDetailPage extends HookWidget {
                     annotationCount: detail.noteStats.annotationCount,
                     vocabCount: detail.vocabCount,
                   ),
-                  if (book.description != null) BookDetailDescSection(
-                    description: book.description!,
-                  ),
+                  if (book.description != null)
+                    BookDetailDescSection(description: book.description!),
                   BookDetailTocSection(
                     chapters: detail.chapters,
                     showAll: showAll.value,

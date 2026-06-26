@@ -12,39 +12,43 @@ void main() {
     setUp(() {
       loadCalls = 0;
       cache = EpubBlockImageCache(
-        loader: ({
-          required String filePath,
-          required String assetId,
-          required int maxWidthPx,
-        }) async {
-          loadCalls++;
-          return Uint8List.fromList([maxWidthPx & 0xFF]);
-        },
+        loader:
+            ({
+              required String filePath,
+              required String assetId,
+              required int maxWidthPx,
+            }) async {
+              loadCalls++;
+              return Uint8List.fromList([maxWidthPx & 0xFF]);
+            },
       );
     });
 
-    test('wider cached entry satisfies narrower request without reload', () async {
-      await cache.load(
-        filePath: '/book.epub',
-        assetId: 'img1',
-        maxWidthPx: 800,
-      );
-      expect(loadCalls, 1);
+    test(
+      'wider cached entry satisfies narrower request without reload',
+      () async {
+        await cache.load(
+          filePath: '/book.epub',
+          assetId: 'img1',
+          maxWidthPx: 800,
+        );
+        expect(loadCalls, 1);
 
-      final hit = cache.get(
-        filePath: '/book.epub',
-        assetId: 'img1',
-        maxWidthPx: 400,
-      );
-      expect(hit, isNotNull);
+        final hit = cache.get(
+          filePath: '/book.epub',
+          assetId: 'img1',
+          maxWidthPx: 400,
+        );
+        expect(hit, isNotNull);
 
-      await cache.load(
-        filePath: '/book.epub',
-        assetId: 'img1',
-        maxWidthPx: 400,
-      );
-      expect(loadCalls, 1);
-    });
+        await cache.load(
+          filePath: '/book.epub',
+          assetId: 'img1',
+          maxWidthPx: 400,
+        );
+        expect(loadCalls, 1);
+      },
+    );
 
     test('narrower cache triggers reload for wider request', () async {
       await cache.load(
@@ -67,30 +71,33 @@ void main() {
       );
     });
 
-    test('prefetchBlocks skips assets already covered by cache width', () async {
-      await cache.load(
-        filePath: '/book.epub',
-        assetId: 'img1',
-        maxWidthPx: 600,
-      );
-      loadCalls = 0;
+    test(
+      'prefetchBlocks skips assets already covered by cache width',
+      () async {
+        await cache.load(
+          filePath: '/book.epub',
+          assetId: 'img1',
+          maxWidthPx: 600,
+        );
+        loadCalls = 0;
 
-      cache.prefetchBlocks(
-        filePath: '/book.epub',
-        maxWidthPx: 400,
-        blocks: const [
-          PageBlockSlice.image(
-            PageImageBlockSlice(
-              blockIndex: 0,
-              assetId: 'img1',
-              layout: ImageBlockLayout.inlineContain,
+        cache.prefetchBlocks(
+          filePath: '/book.epub',
+          maxWidthPx: 400,
+          blocks: const [
+            PageBlockSlice.image(
+              PageImageBlockSlice(
+                blockIndex: 0,
+                assetId: 'img1',
+                layout: ImageBlockLayout.inlineContain,
+              ),
             ),
-          ),
-        ],
-      );
+          ],
+        );
 
-      await Future<void>.delayed(Duration.zero);
-      expect(loadCalls, 0);
-    });
+        await Future<void>.delayed(Duration.zero);
+        expect(loadCalls, 0);
+      },
+    );
   });
 }

@@ -10,12 +10,10 @@ enum PaginationSkin {
 }
 
 /// Rust 分页链路：仅 [ReadingMode.pagination]。
-bool needsRustPagination(ReadingMode mode) =>
-    mode == ReadingMode.pagination;
+bool needsRustPagination(ReadingMode mode) => mode == ReadingMode.pagination;
 
 /// 是否使用卷曲皮肤（pagination + curl）。
 bool usesPageCurlSkin({
   required ReadingMode mode,
   required PaginationSkin skin,
-}) =>
-    mode == ReadingMode.pagination && skin == PaginationSkin.curl;
+}) => mode == ReadingMode.pagination && skin == PaginationSkin.curl;

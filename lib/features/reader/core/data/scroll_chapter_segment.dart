@@ -28,19 +28,21 @@ class ScrollChapterSegment {
     this.irBlocks,
     this.chapterFilePath,
     ScrollListMetrics? listMetrics,
-  }) : listMetrics = listMetrics ??
-            (irBlocks != null && irBlocks.isNotEmpty
-                ? computeScrollIrListMetrics(blocks: irBlocks)
-                : computeScrollListMetrics(
-                    paragraphs: paragraphs,
-                    paragraphCharOffsets: paragraphCharOffsets,
-                    richParagraphs: richParagraphs,
-                    richRootSpan: richRootSpan,
-                  ));
+  }) : listMetrics =
+           listMetrics ??
+           (irBlocks != null && irBlocks.isNotEmpty
+               ? computeScrollIrListMetrics(blocks: irBlocks)
+               : computeScrollListMetrics(
+                   paragraphs: paragraphs,
+                   paragraphCharOffsets: paragraphCharOffsets,
+                   richParagraphs: richParagraphs,
+                   richRootSpan: richRootSpan,
+                 ));
 
   bool get isIr => irBlocks != null && irBlocks!.isNotEmpty;
 
-  bool get isRich => !isIr && richParagraphs != null && richParagraphs!.isNotEmpty;
+  bool get isRich =>
+      !isIr && richParagraphs != null && richParagraphs!.isNotEmpty;
 
   bool get hasImages => richParagraphs?.any((p) => p.isImage) ?? false;
 
@@ -60,10 +62,10 @@ class ScrollChapterSegment {
       return end;
     }
     return paragraphCharOffsets.isNotEmpty
-          ? paragraphCharOffsets.last +
+        ? paragraphCharOffsets.last +
               paragraphs.last.length +
               2 /* trailing newline pair */
-          : 0;
+        : 0;
   }
 
   /// 带排版参数的 ListView 度量（含图片项高度估算）。

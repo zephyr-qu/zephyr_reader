@@ -31,6 +31,7 @@ class ChapterNavigator {
     this._totalPages,
     this._pageIndex,
   );
+
   /// 后退到上一章时，用超大 offset 让 finalize 解析到末页。
   static const int preferLastPageCharOffset = 0x7FFFFFFF;
 
@@ -74,8 +75,6 @@ class ChapterNavigator {
     }
   }
 
-
-
   Future<void> jumpToChapter(int chapterIndex) async {
     _chapterVM.showChapterTransition.value = true;
     await _loader.loadChapter(
@@ -92,7 +91,6 @@ class ChapterNavigator {
       readingMode: _chapterVM.activeReadingMode,
     );
   }
-
 
   Future<void> previousPage() async {
     if (_pageIndex.value > 0) {
@@ -142,39 +140,44 @@ class ChapterNavigator {
   Future<void> preloadAdjacentFirstPages(int centerIndex) async {
     final chapterList = _chapters.value.value ?? [];
     if (chapterList.isEmpty) return;
-    final effectiveHeight = _pagination.pageHeight -
+    final effectiveHeight =
+        _pagination.pageHeight -
         2 * ReaderRenderConfig.pageContentVerticalPadding;
 
     // 预加载下一章
     if (centerIndex + 1 < chapterList.length) {
       final nextIdx = centerIndex + 1;
-      unawaited(_repo.preloadNextChapterStaging(
-        _chapterVM.bookId.value,
-        nextIdx,
-        fontSize: _config.fontSize.value,
-        lineHeight: _config.lineHeight.value,
-        width: _pagination.pageWidth,
-        height: effectiveHeight.clamp(100, _pagination.pageHeight),
-        padding: _config.padding.value,
-        devicePixelRatio: _pagination.devicePixelRatio,
-        fontFamily: _pagination.fontFamily,
-      ));
+      unawaited(
+        _repo.preloadNextChapterStaging(
+          _chapterVM.bookId.value,
+          nextIdx,
+          fontSize: _config.fontSize.value,
+          lineHeight: _config.lineHeight.value,
+          width: _pagination.pageWidth,
+          height: effectiveHeight.clamp(100, _pagination.pageHeight),
+          padding: _config.padding.value,
+          devicePixelRatio: _pagination.devicePixelRatio,
+          fontFamily: _pagination.fontFamily,
+        ),
+      );
     }
 
     // 预加载上一章（末页）
     if (centerIndex - 1 >= 0) {
       final prevIdx = centerIndex - 1;
-      unawaited(_repo.preloadPreviousChapterStaging(
-        _chapterVM.bookId.value,
-        prevIdx,
-        fontSize: _config.fontSize.value,
-        lineHeight: _config.lineHeight.value,
-        width: _pagination.pageWidth,
-        height: effectiveHeight.clamp(100, _pagination.pageHeight),
-        padding: _config.padding.value,
-        devicePixelRatio: _pagination.devicePixelRatio,
-        fontFamily: _pagination.fontFamily,
-      ));
+      unawaited(
+        _repo.preloadPreviousChapterStaging(
+          _chapterVM.bookId.value,
+          prevIdx,
+          fontSize: _config.fontSize.value,
+          lineHeight: _config.lineHeight.value,
+          width: _pagination.pageWidth,
+          height: effectiveHeight.clamp(100, _pagination.pageHeight),
+          padding: _config.padding.value,
+          devicePixelRatio: _pagination.devicePixelRatio,
+          fontFamily: _pagination.fontFamily,
+        ),
+      );
     }
   }
 
@@ -184,18 +187,21 @@ class ChapterNavigator {
     final centerIndex = _chapterVM.chapterIndex.value;
     if (centerIndex - 1 < 0) return;
     if (_repo.prevChapterStaging != null) return;
-    unawaited(_repo.preloadPreviousChapterStaging(
-      _chapterVM.bookId.value,
-      centerIndex - 1,
-      fontSize: _config.fontSize.value,
-      lineHeight: _config.lineHeight.value,
-      width: _pagination.pageWidth,
-      height: (_pagination.pageHeight -
-              2 * ReaderRenderConfig.pageContentVerticalPadding)
-          .clamp(100, _pagination.pageHeight),
-      padding: _config.padding.value,
-      devicePixelRatio: _pagination.devicePixelRatio,
-      fontFamily: _pagination.fontFamily,
-    ));
+    unawaited(
+      _repo.preloadPreviousChapterStaging(
+        _chapterVM.bookId.value,
+        centerIndex - 1,
+        fontSize: _config.fontSize.value,
+        lineHeight: _config.lineHeight.value,
+        width: _pagination.pageWidth,
+        height:
+            (_pagination.pageHeight -
+                    2 * ReaderRenderConfig.pageContentVerticalPadding)
+                .clamp(100, _pagination.pageHeight),
+        padding: _config.padding.value,
+        devicePixelRatio: _pagination.devicePixelRatio,
+        fontFamily: _pagination.fontFamily,
+      ),
+    );
   }
 }

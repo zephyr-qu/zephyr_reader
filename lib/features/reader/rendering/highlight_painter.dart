@@ -74,7 +74,9 @@ class HighlightPainter {
 
       if (localHEnd <= offset || localHStart >= content.length) continue;
       final overlapStart = localHStart > offset ? localHStart : offset;
-      final overlapEnd = localHEnd < content.length ? localHEnd : content.length;
+      final overlapEnd = localHEnd < content.length
+          ? localHEnd
+          : content.length;
       if (overlapStart > offset) {
         regions.add(
           _Region.text(content.substring(offset, overlapStart), baseStyle),

@@ -29,10 +29,10 @@ class ReaderRepository
     this._progress,
     PaginationSessionFactory sessionFactory,
   ) : _session = sessionFactory.create(
-          onCacheUpdated: () {
-            _chapterContent.preloadGeneration.value++;
-          },
-        );
+        onCacheUpdated: () {
+          _chapterContent.preloadGeneration.value++;
+        },
+      );
 
   final ChapterContentRepository _chapterContent;
   final ProgressRepository _progress;
@@ -64,7 +64,6 @@ class ReaderRepository
     Logging.debug('[Repo] pageBlocks MISS page=$pageIndex');
     return null;
   }
-
 
   @override
   void warmPageCache(int pageIndex, String content) {
@@ -114,12 +113,11 @@ class ReaderRepository
     String bookId,
     int chapterId, {
     ReadingMode? readingMode,
-  }) =>
-      _chapterContent.loadScrollSegment(
-        bookId,
-        chapterId,
-        readingMode: readingMode,
-      );
+  }) => _chapterContent.loadScrollSegment(
+    bookId,
+    chapterId,
+    readingMode: readingMode,
+  );
 
   @override
   void disposePagination() => _session.dispose();
@@ -229,7 +227,6 @@ class ReaderRepository
     devicePixelRatio: devicePixelRatio,
     fontFamily: fontFamily,
   );
-
 
   @override
   Future<void> preloadPreviousChapterStaging(
