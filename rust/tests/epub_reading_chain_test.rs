@@ -694,3 +694,266 @@ async fn epub_chapter_too_large() {
         result.as_ref().err(),
     );
 }
+
+// =========================================================================
+// P4 — Scroll mode (paginate_all_content)
+// =========================================================================
+
+#[tokio::test]
+async fn epub_scroll_full_content() {
+    let Some(path) = require_fixture("medium.epub") else { return; };
+    let (_dir, file_path, _book_id) = setup_parsed_epub(&path).await;
+    let config = test_typeset_config();
+
+    let pages = rust_lib_zephyr_reader::api::core::paginate_all_content(
+        file_path.clone(), 0, config.clone(),
+    )
+    .await
+    .expect("paginate_all_content should succeed");
+
+    assert!(!pages.is_empty(), "scroll mode should produce at least one page");
+
+    // Each page should have chapter_index and text content
+    for (i, page) in pages.iter().enumerate() {
+        assert_eq!(page.chapter_index, 0, "page {i} should belong to chapter 0");
+        assert!(!page.content.is_empty(), "page {i} should have non-empty content");
+    }
+
+    // Verify the concatenated text covers the chapter content
+    let full_text: String = pages.iter().map(|p| p.content.as_str()).collect();
+    assert!(!full_text.is_empty(), "concatenated scroll text should not be empty");
+    assert!(
+        full_text.len() > pages[0].content.len(),
+        "full scroll text should span multiple pages"
+    );
+}
+
+#[tokio::test]
+async fn epub_scroll_cjk_fixture() {
+    let Some(path) = require_fixture("活着.epub") else { return; };
+    let (_dir, file_path, _book_id) = setup_parsed_epub(&path).await;
+    let config = test_typeset_config();
+
+    let pages = rust_lib_zephyr_reader::api::core::paginate_all_content(
+        file_path.clone(), 0, config.clone(),
+    )
+    .await
+    .expect("paginate_all_content on CJK EPUB should succeed");
+
+    assert!(!pages.is_empty(), "CJK scroll should produce pages");
+    for (i, page) in pages.iter().enumerate() {
+        assert_eq!(page.chapter_index, 0, "page {i} should belong to chapter 0");
+        assert!(!page.content.is_empty(), "CJK page {i} should have content");
+    }
+}
+
+#[tokio::test]
+async fn epub_scroll_small_viewport_produces_more_pages() {
+    let Some(path) = require_fixture("medium.epub") else { return; };
+    let (_dir, file_path, _book_id) = setup_parsed_epub(&path).await;
+
+    // Small viewport: should produce more pages
+    let small_config = TypesetConfig {
+        page_width: 200,
+        page_height: 100,
+        font_size: 16,
+        line_spacing: 1.2,
+        ..Default::default()
+    }.validate_and_fix();
+
+    let small_pages = rust_lib_zephyr_reader::api::core::paginate_all_content(
+        file_path.clone(), 0, small_config,
+    )
+    .await
+    .expect("small viewport scroll should succeed");
+
+    // Large viewport: should produce fewer pages
+    let large_config = TypesetConfig {
+        page_width: 1600,
+        page_height: 1200,
+        font_size: 16,
+        line_spacing: 1.2,
+        ..Default::default()
+    }.validate_and_fix();
+
+    let large_pages = rust_lib_zephyr_reader::api::core::paginate_all_content(
+        file_path.clone(), 0, large_config,
+    )
+    .await
+    .expect("large viewport scroll should succeed");
+
+    assert!(
+        small_pages.len() > large_pages.len(),
+        "small viewport ({}) should produce more pages than large viewport ({})",
+        small_pages.len(), large_pages.len(),
+    );
+}
+
+#[tokio::test]
+async fn epub_scroll_rejects_unsupported_format() {
+    let result = rust_lib_zephyr_reader::api::core::paginate_all_content(
+        "/tmp/fake.pdf".to_string(), 0, test_typeset_config(),
+    )
+    .await;
+
+    assert!(result.is_err(), "unsupported format should return error");
+}
+
+// =========================================================================
+// P4 — Cross-chapter switching (scroll + pagination)
+// =========================================================================
+
+#[tokio::test]
+async fn epub_scroll_cross_chapter_content_distinct() {
+    let Some(path) = require_fixture("活着.epub") else { return; };
+    let (_dir, file_path, book_id) = setup_parsed_epub(&path).await;
+    let config = test_typeset_config();
+
+    // Verify multi-chapter EPUB
+    let pool = storage_pool().expect("storage_pool");
+    let chapters = ChapterRepository::find_by_book(&pool, &book_id).await.expect("chapters");
+    assert!(chapters.len() >= 2, "活着.epub should have ≥ 2 chapters");
+
+    // Scroll content for chapter 0
+    let ch0_pages = rust_lib_zephyr_reader::api::core::paginate_all_content(
+        file_path.clone(), 0, config.clone(),
+    )
+    .await
+    .expect("scroll ch0");
+    assert!(!ch0_pages.is_empty(), "ch0 should have scroll pages");
+    let ch0_text: String = ch0_pages.iter().map(|p| p.content.as_str()).collect();
+
+    // Scroll content for chapter 1
+    let ch1_pages = rust_lib_zephyr_reader::api::core::paginate_all_content(
+        file_path.clone(), 1, config,
+    )
+    .await
+    .expect("scroll ch1");
+    assert!(!ch1_pages.is_empty(), "ch1 should have scroll pages");
+    let ch1_text: String = ch1_pages.iter().map(|p| p.content.as_str()).collect();
+
+    // Content should differ — chapters are not identical
+    assert_ne!(ch0_text, ch1_text, "chapter 0 and 1 content must differ");
+}
+
+#[tokio::test]
+async fn epub_paginate_cross_chapter_content_distinct() {
+    let Some(path) = require_fixture("活着.epub") else { return; };
+    let (_dir, file_path, book_id) = setup_parsed_epub(&path).await;
+    let config = test_typeset_config();
+
+    let pool = storage_pool().expect("storage_pool");
+    let chapters = ChapterRepository::find_by_book(&pool, &book_id).await.expect("chapters");
+    assert!(chapters.len() >= 2, "活着.epub should have ≥ 2 chapters");
+
+    // Paginated session for chapter 0
+    let (handle0, result0) = create_pagination_session(file_path.clone(), 0, config.clone(), None)
+        .await
+        .expect("session ch0");
+    assert!(!result0.descriptors.is_empty(), "ch0 descriptors");
+    let ch0_page0 = get_session_page_content(handle0.clone(), 0)
+        .expect("ch0 page0 content");
+    assert!(!ch0_page0.is_empty(), "ch0 page0 text");
+    dispose_pagination_session(handle0).expect("dispose ch0");
+
+    // Paginated session for chapter 1
+    let (handle1, result1) = create_pagination_session(file_path.clone(), 1, config, None)
+        .await
+        .expect("session ch1");
+    assert!(!result1.descriptors.is_empty(), "ch1 descriptors");
+    let ch1_page0 = get_session_page_content(handle1.clone(), 0)
+        .expect("ch1 page0 content");
+    assert!(!ch1_page0.is_empty(), "ch1 page0 text");
+
+    // Page content must differ between chapters
+    assert_ne!(ch0_page0, ch1_page0, "chapter 0 and 1 page 0 content must differ");
+    dispose_pagination_session(handle1).expect("dispose ch1");
+}
+
+#[tokio::test]
+async fn epub_switch_chapter_scroll_timing() {
+    let Some(path) = require_fixture("活着.epub") else { return; };
+    let (_dir, file_path, _book_id) = setup_parsed_epub(&path).await;
+    let config = test_typeset_config();
+
+    let start = std::time::Instant::now();
+    let ch0 = rust_lib_zephyr_reader::api::core::paginate_all_content(
+        file_path.clone(), 0, config.clone(),
+    )
+    .await
+    .expect("scroll ch0");
+    let t0 = start.elapsed();
+
+    let ch1 = rust_lib_zephyr_reader::api::core::paginate_all_content(
+        file_path.clone(), 1, config,
+    )
+    .await
+    .expect("scroll ch1");
+    let t1 = start.elapsed() - t0;
+
+    assert!(!ch0.is_empty(), "ch0 scroll pages");
+    assert!(!ch1.is_empty(), "ch1 scroll pages");
+
+    // Scroll pagination per chapter should be fast (< 500ms per chapter)
+    assert!(t0.as_millis() < 500, "ch0 scroll too slow: {t0:?}");
+    assert!(t1.as_millis() < 500, "ch1 scroll too slow: {t1:?}");
+    println!("scroll  ch0={t0:?}  ch1={t1:?}");
+}
+
+#[tokio::test]
+async fn epub_switch_chapter_paginate_timing() {
+    let Some(path) = require_fixture("活着.epub") else { return; };
+    let (_dir, file_path, _book_id) = setup_parsed_epub(&path).await;
+    let config = test_typeset_config();
+
+    let start = std::time::Instant::now();
+    let (handle0, result0) = create_pagination_session(file_path.clone(), 0, config.clone(), None)
+        .await
+        .expect("session ch0");
+    let t0 = start.elapsed();
+    assert!(!result0.descriptors.is_empty(), "ch0 descriptors");
+    dispose_pagination_session(handle0).expect("dispose ch0");
+
+    let (handle1, result1) = create_pagination_session(file_path.clone(), 1, config, None)
+        .await
+        .expect("session ch1");
+    let t1 = start.elapsed() - t0;
+    assert!(!result1.descriptors.is_empty(), "ch1 descriptors");
+    dispose_pagination_session(handle1).expect("dispose ch1");
+
+    assert!(t0.as_millis() < 500, "ch0 session too slow: {t0:?}");
+    assert!(t1.as_millis() < 500, "ch1 session too slow: {t1:?}");
+}
+
+async fn epub_switch_chapter_full_page_read_timing() {
+    let Some(path) = require_fixture("活着.epub") else { return; };
+    let (_dir, file_path, _book_id) = setup_parsed_epub(&path).await;
+    let config = test_typeset_config();
+
+    // Session + read all pages for chapter 0
+    let start = std::time::Instant::now();
+    let (handle0, result0) = create_pagination_session(file_path.clone(), 0, config.clone(), None)
+        .await
+        .expect("session ch0");
+    let pages0: Vec<_> = (0..result0.descriptors.len())
+        .filter_map(|i| get_session_page_content(handle0.clone(), i as i32).ok())
+        .collect();
+    dispose_pagination_session(handle0).expect("dispose ch0");
+    let t0 = start.elapsed();
+
+    // Switch: session + read all pages for chapter 1
+    let (handle1, result1) = create_pagination_session(file_path.clone(), 1, config, None)
+        .await
+        .expect("session ch1");
+    let pages1: Vec<_> = (0..result1.descriptors.len())
+        .filter_map(|i| get_session_page_content(handle1.clone(), i as i32).ok())
+        .collect();
+    dispose_pagination_session(handle1).expect("dispose ch1");
+    let t1 = start.elapsed() - t0;
+
+    assert!(!pages0.is_empty(), "ch0 has pages");
+    assert!(!pages1.is_empty(), "ch1 has pages");
+    assert!(t0.as_millis() < 2000, "ch0 full read too slow: {t0:?}");
+    assert!(t1.as_millis() < 2000, "ch1 full read too slow: {t1:?}");
+    println!("full ch0={t0:?}  ch1={t1:?}");
+}

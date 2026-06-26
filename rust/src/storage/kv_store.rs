@@ -7,11 +7,12 @@ use std::path::Path;
 use crate::domain::AppError;
 
 use super::models::{
-    BlockLayoutCache, LAYOUT_CACHE_VERSION, LayoutCache, LayoutCacheKey,
+    BlockLayoutCache, LAYOUT_CACHE_VERSION, LayoutCache, LayoutCacheKey, ScrollIrCache,
 };
 
 const LAYOUT_TREE_NAME: &str = "layout_cache";
 const BLOCK_LAYOUT_TREE_NAME: &str = "block_layout_cache";
+const SCROLL_IR_TREE_NAME: &str = "scroll_ir_cache";
 
 /// KV 存储封装
 pub struct KvStore {
@@ -22,6 +23,7 @@ pub struct KvStore {
     db: sled::Db,
     layout_cache: sled::Tree,
     block_layout_cache: sled::Tree,
+    scroll_ir_cache: sled::Tree,
 }
 
 impl KvStore {
@@ -35,10 +37,14 @@ impl KvStore {
         let block_layout_cache = db
             .open_tree(BLOCK_LAYOUT_TREE_NAME)
             .map_err(|e| AppError::DatabaseError { reason: format!("Failed to open block layout tree: {e}").into() })?;
+        let scroll_ir_cache = db
+            .open_tree(SCROLL_IR_TREE_NAME)
+            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to open scroll ir tree: {e}").into() })?;
         Ok(Self {
             db,
             layout_cache,
             block_layout_cache,
+            scroll_ir_cache,
         })
     }
 
@@ -131,6 +137,49 @@ impl KvStore {
                 Ok(_) => Ok(None),
                 Err(e) => {
                     tracing::warn!("BlockLayoutCache deserialize failed (corrupted?): {}", e);
+                    Ok(None)
+                }
+            },
+            None => Ok(None),
+        }
+    }
+
+    /// 存储 Scroll IR 缓存（key = `{file_path}#{chapter_index}`）。
+    pub fn save_scroll_ir_cache(
+        &self,
+        file_path: &str,
+        chapter_index: i32,
+        value: &ScrollIrCache,
+    ) -> Result<(), AppError> {
+        let key = format!("{}#{}", file_path, chapter_index);
+        let bytes = bincode::encode_to_vec(value, bincode::config::standard())
+            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to serialize scroll ir: {e}").into() })?;
+        self.scroll_ir_cache
+            .insert(key, bytes)
+            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to insert scroll ir cache: {e}").into() })?;
+        Ok(())
+    }
+
+    /// 获取 Scroll IR 缓存；版本不匹配视为 miss。
+    pub fn get_scroll_ir_cache(
+        &self,
+        file_path: &str,
+        chapter_index: i32,
+    ) -> Result<Option<ScrollIrCache>, AppError> {
+        let key = format!("{}#{}", file_path, chapter_index);
+        match self
+            .scroll_ir_cache
+            .get(&key)
+            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to read scroll ir cache: {e}").into() })?
+        {
+            Some(bytes) => match bincode::decode_from_slice::<ScrollIrCache, _>(
+                &bytes,
+                bincode::config::standard(),
+            ) {
+                Ok((cache, _)) if cache.is_valid() => Ok(Some(cache)),
+                Ok(_) => Ok(None),
+                Err(e) => {
+                    tracing::warn!("ScrollIrCache deserialize failed (corrupted?): {}", e);
                     Ok(None)
                 }
             },

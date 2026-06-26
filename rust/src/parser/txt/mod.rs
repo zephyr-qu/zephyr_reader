@@ -10,7 +10,6 @@ use flutter_rust_bridge::frb;
 
 use crate::domain::{AppError, ParseResult};
 use crate::parser::book_parser::BookMetadata;
-use crate::text::chapter_detect::extract_chapters;
 
 pub use content_ir::{get_chapter_content_ir, txt_to_chapter_ir};
 pub use parse::parse_txt;
@@ -86,57 +85,6 @@ impl TxtParser {
         })
     }
 
-    /// 提取指定章节内容
-    ///
-    /// # 参数
-    ///
-    /// * `file_path` - TXT 文件路径
-    /// * `chapter_index` - 章节索引（从 0 开始）
-    ///
-    /// # 返回值
-    ///
-    /// * `Ok(String)` - 章节文本内容
-    /// * `Err(AppError)` - 提取失败
-    pub async fn extract_chapter(
-        &self,
-        file_path: &str,
-        chapter_index: i32,
-    ) -> Result<String, AppError> {
-        let fp = file_path.to_string();
-        tokio::task::spawn_blocking(move || {
-            let content = decode::decode_file(&fp)?;
-            let chapters = extract_chapters(&content, 1000, "");
-
-            let chapter = chapters
-                .iter()
-                .find(|c| c.chapter_index == chapter_index as i64)
-                .ok_or_else(|| {
-                    AppError::ChapterExtractError { index: chapter_index, reason: format!("chapter {} not found", chapter_index).into() }
-                })?;
-
-            let start = chapter.start_index as usize;
-            let end = chapter.end_index as usize;
-
-            if start >= content.len() {
-                return Ok(String::new());
-            }
-
-            let safe_end = end.min(content.len());
-
-            if !content.is_char_boundary(start) || !content.is_char_boundary(safe_end) {
-                tracing::warn!(
-                    "chapter boundary is not a valid UTF-8 char boundary: start={}, end={}",
-                    start,
-                    safe_end
-                );
-                return Err(AppError::ChapterExtractError { index: 0, reason: format!("invalid chapter boundary: {}-{}", start, safe_end).into() });
-            }
-
-            Ok(content[start..safe_end].to_string())
-        })
-        .await
-        .map_err(|e| AppError::InternalError { reason: format!("chapter extraction failed: {}", e).into() })?
-    }
 }
 
 impl Default for TxtParser {
@@ -216,20 +164,4 @@ mod tests {
         assert_eq!(metadata.chapter_count, 1);
     }
 
-    #[tokio::test]
-    async fn test_txt_parser_extract_chapter() {
-        let temp_dir = TempDir::new().unwrap();
-        let file_path = temp_dir.path().join("test.txt");
-        let content = "第一章 开始\n这是第一章的内容。\n\n第二章 结束\n这是第二章的内容。";
-        fs::write(&file_path, content).unwrap();
-
-        let parser = TxtParser::new();
-        let chapter_content = parser
-            .extract_chapter(file_path.to_str().unwrap(), 0)
-            .await
-            .unwrap();
-
-        assert!(chapter_content.contains("第一章"));
-        assert!(chapter_content.contains("这是第一章的内容"));
-    }
 }

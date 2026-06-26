@@ -91,10 +91,6 @@ pub async fn get_chapter_bounds(
 
 /// 提取章节原始文本内容（仅 TXT；EPUB 走 provider 路径）。
 #[allow(dead_code)]
-pub(crate) async fn extract_chapter_content(file_path: &str, chapter_index: i32) -> Result<String, AppError> {
-    let parser = registry::parser_for_file(file_path)?;
-    parser.extract_chapter(file_path, chapter_index).await
-}
 
 /// 构造 Pages 变体，当页数 > 100 时记录警告（防止偶发大章节 FFI 序列化瓶颈）
 fn chapter_content_pages(pages: Vec<PageContent>) -> ChapterContent {
