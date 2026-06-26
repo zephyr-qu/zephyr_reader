@@ -183,8 +183,78 @@ class BilingualViewModel implements BilingualReaderDelegate {
   }
 
   @override
-  Future<void> createBilingualHighlight(BilingualHighlightParams params) async {
-    await createBilingualHighlightPair(params: params);
+  bool get hasAlignment {
+    final a = alignment;
+    return a != null && a.segments.isNotEmpty;
+  }
+
+  @override
+  Future<bool> createHighlightFromSelection({
+    required String bookId,
+    required int chapterIndex,
+    required String selectedText,
+    required int selectionStart,
+    required int selectionEnd,
+  }) async {
+    final a = alignment;
+    if (a == null || a.segments.isEmpty) return false;
+
+    final length = selectionEnd - selectionStart;
+
+    int segmentIndex = -1;
+    String sourceLanguage = 'zh';
+    String targetLanguage = 'en';
+    int targetOffset = 0;
+
+    int cnAcc = 0;
+    int enAcc = 0;
+    for (int i = 0; i < a.segments.length; i++) {
+      final seg = a.segments[i];
+      final cnEnd = cnAcc + seg.chinese.length;
+      final enEnd = enAcc + seg.english.length;
+
+      if (selectionStart >= cnAcc && selectionStart < cnEnd) {
+        segmentIndex = i;
+        targetOffset = enAcc;
+        break;
+      }
+      if (selectionStart >= enAcc && selectionStart < enEnd) {
+        segmentIndex = i;
+        sourceLanguage = 'en';
+        targetLanguage = 'zh';
+        targetOffset = cnAcc;
+        break;
+      }
+
+      cnAcc += seg.chinese.length;
+      enAcc += seg.english.length;
+    }
+
+    if (segmentIndex == -1) return false;
+
+    final seg = a.segments[segmentIndex];
+    final targetText =
+        targetLanguage == 'zh' ? seg.chinese : seg.english;
+
+    await createBilingualHighlightPair(
+      params: BilingualHighlightParams(
+        sourceBookId: bookId,
+        sourceChapterIndex: chapterIndex,
+        sourceCharOffset: selectionStart,
+        sourceLength: length,
+        sourceSelectedText: selectedText,
+        sourceLanguage: sourceLanguage,
+        targetBookId: bookId,
+        targetChapterIndex: chapterIndex,
+        targetCharOffset: targetOffset,
+        targetLength: targetText.length,
+        targetSelectedText: targetText,
+        targetLanguage: targetLanguage,
+        highlightColor: 0xFFE91E63,
+      ),
+    );
+
+    return true;
   }
 
   /// 删除与指定笔记关联的双语高亮对（幂等）。

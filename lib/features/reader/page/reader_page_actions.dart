@@ -6,7 +6,6 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/api/dictionary.dart' as dict_api;
 import 'package:zephyr_reader/src/rust/api/data/vocabulary.dart' as vocab_api;
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_view_model.dart';
 
 String _stripHtml(String html) {
@@ -68,72 +67,30 @@ Future<void> onBilingualHighlight(
 
   final bilingual = vm.bilingual;
   if (bilingual == null) return;
-  final alignment = bilingual.alignment;
-  if (alignment == null || alignment.segments.isEmpty) {
+
+  if (!bilingual.hasAlignment) {
     vm.toastMessage.value = l10n.bilingualNoAlignment;
     return;
   }
 
   final startOffset = vm.annotations.selectionStart.value;
-  final length =
-      vm.annotations.selectionEnd.value - vm.annotations.selectionStart.value;
+  final endOffset = vm.annotations.selectionEnd.value;
 
-  int segmentIndex = -1;
-  String sourceLanguage = 'zh';
-  String targetLanguage = 'en';
-  int targetOffset = 0;
+  final bookId = vm.chapterManager.bookId.value;
+  final chapterIndex = vm.chapterManager.chapterIndex.value;
 
-  int cnAcc = 0;
-  int enAcc = 0;
-  for (int i = 0; i < alignment.segments.length; i++) {
-    final seg = alignment.segments[i];
-    final cnEnd = cnAcc + seg.chinese.length;
-    final enEnd = enAcc + seg.english.length;
-
-    if (startOffset >= cnAcc && startOffset < cnEnd) {
-      segmentIndex = i;
-      sourceLanguage = 'zh';
-      targetLanguage = 'en';
-      targetOffset = enAcc;
-      break;
-    }
-    if (startOffset >= enAcc && startOffset < enEnd) {
-      segmentIndex = i;
-      sourceLanguage = 'en';
-      targetLanguage = 'zh';
-      targetOffset = cnAcc;
-      break;
-    }
-
-    cnAcc += seg.chinese.length;
-    enAcc += seg.english.length;
-  }
-
-  if (segmentIndex == -1) {
-    vm.toastMessage.value = l10n.bilingualNoParagraph;
-    return;
-  }
-
-  final seg = alignment.segments[segmentIndex];
-  final targetText = targetLanguage == 'zh' ? seg.chinese : seg.english;
   try {
-    await bilingual.createBilingualHighlight(
-      BilingualHighlightParams(
-        sourceBookId: vm.chapterManager.bookId.value,
-        sourceChapterIndex: vm.chapterManager.chapterIndex.value,
-        sourceCharOffset: startOffset,
-        sourceLength: length,
-        sourceSelectedText: text,
-        sourceLanguage: sourceLanguage,
-        targetBookId: vm.chapterManager.bookId.value,
-        targetChapterIndex: vm.chapterManager.chapterIndex.value,
-        targetCharOffset: targetOffset,
-        targetLength: targetText.length,
-        targetSelectedText: targetText,
-        targetLanguage: targetLanguage,
-        highlightColor: 0xFFE91E63,
-      ),
+    final ok = await bilingual.createHighlightFromSelection(
+      bookId: bookId,
+      chapterIndex: chapterIndex,
+      selectedText: text,
+      selectionStart: startOffset,
+      selectionEnd: endOffset,
     );
+    if (!ok) {
+      vm.toastMessage.value = l10n.bilingualNoParagraph;
+      return;
+    }
   } catch (e, stack) {
     Logging.error('onBilingualHighlight', exception: e, stackTrace: stack);
     vm.toastMessage.value = l10n.bilingualHighlightFailed;

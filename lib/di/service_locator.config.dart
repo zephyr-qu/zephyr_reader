@@ -52,8 +52,6 @@ import 'package:zephyr_reader/features/reader/annotations/application/bookmark_v
     as _i474;
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart'
     as _i642;
-import 'package:zephyr_reader/features/reader/core/application/reader_session.dart'
-    as _i305;
 import 'package:zephyr_reader/features/reader/core/application/reading_session_manager.dart'
     as _i306;
 import 'package:zephyr_reader/features/reader/core/data/pagination_session_factory.dart'
@@ -78,14 +76,6 @@ import 'package:zephyr_reader/features/reader/domain/service/custom_font_service
     as _i693;
 import 'package:zephyr_reader/features/reader/domain/service/tts_service.dart'
     as _i1020;
-import 'package:zephyr_reader/features/reader/translation/application/translation_config.dart'
-    as _i466;
-import 'package:zephyr_reader/features/reader/translation/application/translation_view_model.dart'
-    as _i769;
-import 'package:zephyr_reader/features/reader/translation/data/translation_module.dart'
-    as _i401;
-import 'package:zephyr_reader/features/reader/translation/domain/translation_service.dart'
-    as _i877;
 import 'package:zephyr_reader/features/search/application/search_view_model.dart'
     as _i1;
 
@@ -99,7 +89,6 @@ extension GetItInjectableX on _i174.GetIt {
     final appModule = _$AppModule();
     final networkModule = _$NetworkModule();
     final bilingualModule = _$BilingualModule();
-    final translationModule = _$TranslationModule();
     await gh.factoryAsync<_i985.PreferencesService>(
       () => appModule.providePreferencesService(),
       preResolve: true,
@@ -137,17 +126,6 @@ extension GetItInjectableX on _i174.GetIt {
       _i421.ReaderRepositoryInterface,
       _i402.ReaderConfig
     >((repo, config) => _i642.ChapterViewModel(repo, config));
-    gh.factoryParam<
-      _i769.TranslationViewModel,
-      _i642.ChapterViewModel,
-      dynamic
-    >(
-      (chapterVM, _) => _i769.TranslationViewModel(
-        chapterVM,
-        config: gh<_i466.TranslationConfig>(),
-        service: gh<_i877.TranslationService>(),
-      ),
-    );
     gh.factoryParam<
       _i306.ReadingSessionManager,
       _i642.ChapterViewModel,
@@ -195,9 +173,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.singleton<_i402.ReaderConfig>(
       () => _i402.ReaderConfig(gh<_i985.PreferencesService>()),
     );
-    gh.singleton<_i466.TranslationConfig>(
-      () => _i466.TranslationConfig(gh<_i985.PreferencesService>()),
-    );
     gh.lazySingleton<_i884.BilingualService>(
       () => bilingualModule.bilingualService(
         gh<_i917.BilingualConfig>(),
@@ -207,25 +182,11 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i291.ChapterContentRepository>(
       () => _i109.RustChapterContentRepository(gh<_i402.ReaderConfig>()),
     );
-    gh.lazySingleton<_i877.TranslationService>(
-      () => translationModule.translationService(
-        gh<_i466.TranslationConfig>(),
-        gh<_i361.Dio>(),
-      ),
-    );
     gh.factory<_i421.ReaderRepositoryInterface>(
       () => _i1054.ReaderRepository(
         gh<_i291.ChapterContentRepository>(),
         gh<_i768.ProgressRepository>(),
         gh<_i693.PaginationSessionFactory>(),
-      ),
-    );
-    gh.factory<_i305.ReaderSessionFactory>(
-      () => _i305.ReaderSessionFactory(
-        gh<_i291.ChapterContentRepository>(),
-        gh<_i768.ProgressRepository>(),
-        gh<_i693.PaginationSessionFactory>(),
-        gh<_i402.ReaderConfig>(),
       ),
     );
     return this;
@@ -237,5 +198,3 @@ class _$AppModule extends _i431.AppModule {}
 class _$NetworkModule extends _i510.NetworkModule {}
 
 class _$BilingualModule extends _i984.BilingualModule {}
-
-class _$TranslationModule extends _i401.TranslationModule {}

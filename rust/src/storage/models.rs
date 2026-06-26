@@ -126,8 +126,8 @@ impl BlockLayoutCache {
 
 /// 单章阅读进度
 ///
-/// - `page_index` / `total_pages` 标记了 `#[sqlx(default)]`，
-///   仅在数据库迁移新增这两列的过渡期内使用，迁移完成后应移除。
+/// 进度只持久化 chapterIndex + charOffset（ADR-001 / I1）。
+/// page_index / total_pages 已于 Phase 4 移除——它们是分页视图的派生值，不属于持久化真理。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, sqlx::FromRow)]
 #[frb(dart_metadata = ("freezed"))]
 pub struct ReadingProgress {
@@ -136,8 +136,6 @@ pub struct ReadingProgress {
     pub chunk_index: i64,
     pub chapter_id: Option<String>,
     pub char_offset: i64,
-    pub page_index: i64,
-    pub total_pages: i64,
     pub progress: f32,
     pub reading_time_seconds: i64,
     pub last_read_at: DateTime<Utc>,
@@ -153,8 +151,6 @@ impl ReadingProgress {
         char_offset: i64,
         progress: f32,
         reading_time_seconds: i64,
-        page_index: i64,
-        total_pages: i64,
         is_completed: bool,
     ) -> Self {
         Self {
@@ -163,8 +159,6 @@ impl ReadingProgress {
             chunk_index,
             chapter_id: None,
             char_offset,
-            page_index,
-            total_pages,
             progress,
             reading_time_seconds,
             last_read_at: Utc::now(),

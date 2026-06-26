@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'highlight_painter.dart';
+import 'package:zephyr_reader/features/reader/rendering/highlight_painter.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-import 'reader_render_config.dart';
-import 'find_render_box.dart';
+import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
+import 'package:zephyr_reader/features/reader/rendering/find_render_box.dart';
 
 /// 双语对照模式渲染器。
 ///
