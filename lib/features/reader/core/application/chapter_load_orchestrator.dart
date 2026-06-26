@@ -331,6 +331,25 @@ class ChapterLoadOrchestrator {
       }
     });
 
+    // P4-3: scroll 模式预加载相邻章 IR 内容，避免跨章滚动时等待 FFI
+    if (request.readingMode == ReadingMode.scroll) {
+      final bookId = _chapterVM.bookId.value;
+      unawaited(
+        _contentRepo
+            .loadScrollSegment(bookId, request.chapterIndex + 1,
+                readingMode: ReadingMode.scroll)
+            .then((_) {}, onError: (_) {}),
+      );
+      if (request.chapterIndex > 0) {
+        unawaited(
+          _contentRepo
+              .loadScrollSegment(bookId, request.chapterIndex - 1,
+                  readingMode: ReadingMode.scroll)
+              .then((_) {}, onError: (_) {}),
+        );
+      }
+    }
+
     _setPhase(gen, ChapterLoadPhase.completed);
     _applyIfCurrent(gen, () {
       _loadPhase.value = ChapterLoadPhase.idle;
