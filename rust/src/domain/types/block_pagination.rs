@@ -134,6 +134,17 @@ impl BlockPaginateResult {
             .map(|d| d.page_index)
     }
 
+    /// 合并另一个 chunk 的 [BlockPaginateResult]。
+    /// 追加 descriptors 并调整 `page_index` 偏移。
+    pub fn merge(&mut self, other: BlockPaginateResult) {
+        let offset = self.page_count() as i32;
+        for mut desc in other.descriptors {
+            desc.page_index += offset;
+            self.descriptors.push(desc);
+        }
+        self.is_partial = self.is_partial || other.is_partial;
+    }
+
     pub fn to_legacy_paginate_result(&self, mode: super::pagination::ChapterPaginationMode) -> super::pagination::PaginateResult {
         super::pagination::PaginateResult {
             descriptors: self

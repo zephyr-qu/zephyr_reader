@@ -5,10 +5,11 @@
 use std::time::Instant;
 
 use crate::domain::{
-    AppError, ChapterPaginationMode, PageBlockSlice, PageContent, PaginateResult, TypesetConfig,
+    AppError, BlockPageDescriptor, BlockPaginateResult, ChapterContentIr,
+    ChapterPaginationMode, PageBlockSlice, PageContent, PaginateResult, TypesetConfig,
 };
 use crate::storage::models::BookFormat;
-use crate::text::{paginate_all, paginate_chapter_ir, PageStreamer};
+use crate::text::{paginate_all, PageStreamer};
 use crate::utils::security::validate_file_path;
 
 use super::block_state::BlockPaginationState;
@@ -67,6 +68,57 @@ pub(crate) async fn paginate_all_content(
 }
 
 /// 全章 + 含 Image 块时走 BlockPaginator；否则沿用 Phase 1 `PageStreamer`。
+
+/// 保存块分页缓存（透明 chunking：超过阈值时按 chunk 保存，否则单条目）。
+async fn save_block_caches_chunked(
+    validated_path: &str,
+    chapter_index: i32,
+    config_hash: u64,
+    ir: &ChapterContentIr,
+    result: &BlockPaginateResult,
+) {
+    use crate::text::block_paginator::CHUNK_BLOCK_COUNT;
+    if ir.blocks.len() > CHUNK_BLOCK_COUNT {
+        // Per-chunk save for large chapters
+        for (i, chunk) in ir.blocks.chunks(CHUNK_BLOCK_COUNT).enumerate() {
+            let sub_ir = ChapterContentIr::new(chunk.to_vec(), ir.plain_text.clone());
+            // Build per-chunk result: filter descriptors for this chunk's block range
+            let block_start = (i * CHUNK_BLOCK_COUNT) as u32;
+            let block_end = block_start + chunk.len() as u32;
+            let chunk_descriptors: Vec<BlockPageDescriptor> = result
+                .descriptors
+                .iter()
+                .filter(|d| d.first_block_index < block_end && d.last_block_index > block_start)
+                .cloned()
+                .collect();
+            if !chunk_descriptors.is_empty() {
+                let chunk_result = BlockPaginateResult::new(
+                    chunk_descriptors,
+                    config_hash,
+                    result.is_partial,
+                );
+                try_save_block_cached(
+                    validated_path,
+                    chapter_index,
+                    Some(i as u32),
+                    config_hash,
+                    sub_ir,
+                    chunk_result,
+                ).await;
+            }
+        }
+    } else {
+        // Single save for normal chapters
+        try_save_block_cached(
+            validated_path,
+            chapter_index,
+            None,
+            config_hash,
+            ir.clone(),
+            result.clone(),
+        ).await;
+    }
+}
 async fn try_paginate_chapter_blocks(
     validated_path: &str,
     chapter_index: i32,
@@ -90,8 +142,37 @@ async fn try_paginate_chapter_blocks(
         return Ok(Some(result));
     }
 
+    // Try chunked cache first (chunk_index=0 hit means all chunks should be cached)
+    if let Some((ir0, block_result0)) =
+        try_get_block_cached(validated_path, chapter_index, Some(0), config_hash).await
+    {
+        let mut merged_ir = ir0;
+        let mut merged_result = block_result0;
+        let mut next_chunk = 1u32;
+        loop {
+            if let Some((ir_n, block_result_n)) =
+                try_get_block_cached(validated_path, chapter_index, Some(next_chunk), config_hash).await
+            {
+                merged_ir.blocks.extend(ir_n.blocks);
+                merged_result.merge(block_result_n);
+                next_chunk += 1;
+            } else {
+                break;
+            }
+        }
+        let state = BlockPaginationState::new(merged_ir, merged_result.clone(), false);
+        let result = state.to_paginate_result(config_hash);
+        store.put(key, PaginationEngine::Block(state));
+        tracing::info!(
+            "[Timing] paginate_chapter block_path layout_cache=CHUNKED_HIT chunks={next_chunk} pages={}",
+            merged_result.page_count()
+        );
+        return Ok(Some(result));
+    }
+
+    // Fallback: non-chunked cache (backward compatibility)
     if let Some((ir, block_result)) =
-        try_get_block_cached(validated_path, chapter_index, config_hash).await
+        try_get_block_cached(validated_path, chapter_index, None, config_hash).await
     {
         let state = BlockPaginationState::new(ir, block_result, false);
         let result = state.to_paginate_result(config_hash);
@@ -105,6 +186,7 @@ async fn try_paginate_chapter_blocks(
         return Ok(Some(result));
     }
 
+    // Cache miss: load IR and paginate (chunked if large)
     let ir = load_chapter_content_ir(validated_path, chapter_index).await?;
     if ir.image_block_count() == 0 {
         return Ok(None);
@@ -112,26 +194,28 @@ async fn try_paginate_chapter_blocks(
 
     let config = config.clone();
     let ir_for_paginate = ir.clone();
-    let block_result =
-        tokio::task::spawn_blocking(move || paginate_chapter_ir(&ir_for_paginate, config))
-        .await
-        .map_err(|e| AppError::TaskPanic {
-            task_name: "block_paginate".into(),
-            details: e.to_string().into(),
-        })?;
+    let block_result = tokio::task::spawn_blocking(move || {
+        // Use chunked paginator — transparently splits large chapters
+        crate::text::block_paginator::paginate_chapter_ir_chunked(&ir_for_paginate, config)
+    })
+    .await
+    .map_err(|e| AppError::TaskPanic {
+        task_name: "block_paginate".into(),
+        details: e.to_string().into(),
+    })?;
 
     let state = BlockPaginationState::new(ir.clone(), block_result.clone(), false);
     let result = state.to_paginate_result(config_hash);
     store.put(key, PaginationEngine::Block(state));
 
-    try_save_block_cached(
+    // Save caches: if blocks > CHUNK_BLOCK_COUNT, save per-chunk; else single
+    save_block_caches_chunked(
         validated_path,
         chapter_index,
         config_hash,
-        ir,
-        block_result,
-    )
-    .await;
+        &ir,
+        &block_result,
+    ).await;
 
     tracing::info!(
         "[Timing] paginate_chapter block_path config_hash={:016x} chapter={} pages={}",
