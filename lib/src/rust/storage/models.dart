@@ -8,79 +8,93 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'models.freezed.dart';
 
-            
-
-            
-
-            /// 书籍元数据
+/// 书籍元数据
 @freezed
-sealed class Book with _$Book  {
-                
-                const factory Book({ required  String bookId, required  String filePath,  String? fileHash, required  PlatformInt64 fileSize,  PlatformInt64? fileMtime, required  String title,  String? author,  String? coverPath, required  PlatformInt64 chapterCount, required  PlatformInt64 totalCharacters, required  BookFormat format, required  DateTime addedAt,  DateTime? lastOpenedAt, required  BookStatus status, required  bool isPinned,  String? description,  String? publisher,  String? translator,  String? isbn,}) = _Book;
-                
-                
-                
-            }
+sealed class Book with _$Book {
+  const factory Book({
+    required String bookId,
+    required String filePath,
+    String? fileHash,
+    required PlatformInt64 fileSize,
+    PlatformInt64? fileMtime,
+    required String title,
+    String? author,
+    String? coverPath,
+    required PlatformInt64 chapterCount,
+    required PlatformInt64 totalCharacters,
+    required BookFormat format,
+    required DateTime addedAt,
+    DateTime? lastOpenedAt,
+    required BookStatus status,
+    required bool isPinned,
+    String? description,
+    String? publisher,
+    String? translator,
+    String? isbn,
+  }) = _Book;
+}
 
 /// 书籍文件格式
 ///
 /// 数据库中存储为小写文本。`FromStr` 额外兼容 markdown 别名。
-enum BookFormat {
-                    txt,
-epub,
-                    ;
-                    
-                }
+enum BookFormat { txt, epub }
 
 /// 书籍阅读状态
-enum BookStatus {
-                    reading,
-completed,
-dropped,
-planned,
-                    ;
-                    
-                }
+enum BookStatus { reading, completed, dropped, planned }
 
 /// 书籍+阅读进度聚合（LEFT JOIN 查询结果）
 @freezed
-sealed class BookWithProgress with _$BookWithProgress  {
-                
-                const factory BookWithProgress({ required  Book book,  ReadingProgress? progress,}) = _BookWithProgress;
-                
-                
-                
-            }
+sealed class BookWithProgress with _$BookWithProgress {
+  const factory BookWithProgress({
+    required Book book,
+    ReadingProgress? progress,
+  }) = _BookWithProgress;
+}
 
 /// 章节内书签
 @freezed
-sealed class Bookmark with _$Bookmark  {
-                
-                const factory Bookmark({ required  String id, required  String bookId, required  PlatformInt64 chapterIndex,  String? chapterId, required  PlatformInt64 charOffset, required  String title, required  DateTime createdAt,}) = _Bookmark;
-                
-                
-                
-            }
+sealed class Bookmark with _$Bookmark {
+  const factory Bookmark({
+    required String id,
+    required String bookId,
+    required PlatformInt64 chapterIndex,
+    String? chapterId,
+    required PlatformInt64 charOffset,
+    required String title,
+    required DateTime createdAt,
+  }) = _Bookmark;
+}
 
 /// 书架展示用书籍摘要（含进度）
 @freezed
-sealed class BookshelfBook with _$BookshelfBook  {
-                
-                const factory BookshelfBook({ required  String bookId, required  String filePath, required  String title,  String? author,  String? coverPath, required  bool isPinned, required  BookStatus status, required  PlatformInt64 chapterCount,  DateTime? lastOpenedAt, required  DateTime addedAt,  double? progress,}) = _BookshelfBook;
-                
-                
-                
-            }
+sealed class BookshelfBook with _$BookshelfBook {
+  const factory BookshelfBook({
+    required String bookId,
+    required String filePath,
+    required String title,
+    String? author,
+    String? coverPath,
+    required bool isPinned,
+    required BookStatus status,
+    required PlatformInt64 chapterCount,
+    DateTime? lastOpenedAt,
+    required DateTime addedAt,
+    double? progress,
+  }) = _BookshelfBook;
+}
 
 /// 书籍分类标签
 @freezed
-sealed class Category with _$Category  {
-                
-                const factory Category({ required  String id, required  String name,  String? description, required  String color, required  PlatformInt64 sortOrder, required  bool isSystem,}) = _Category;
-                
-                
-                
-            }
+sealed class Category with _$Category {
+  const factory Category({
+    required String id,
+    required String name,
+    String? description,
+    required String color,
+    required PlatformInt64 sortOrder,
+    required bool isSystem,
+  }) = _Category;
+}
 
 /// 章节信息
 /// 章节在书籍文件中的位置边界。
@@ -95,142 +109,192 @@ sealed class Category with _$Category  {
 /// 消费方必须根据 `Book.format` 判断如何解释这两个字段。
 /// 直接将其视为「字符索引」是错误的。
 @freezed
-sealed class Chapter with _$Chapter  {
-                
-                const factory Chapter({ required  String id, required  String bookId, required  String title, required  PlatformInt64 chapterIndex, required  DateTime cachedAt, required  PlatformInt64 level, required  PlatformInt64 startIndex, required  PlatformInt64 endIndex,}) = _Chapter;
-                
-                
-                
-            }
+sealed class Chapter with _$Chapter {
+  const factory Chapter({
+    required String id,
+    required String bookId,
+    required String title,
+    required PlatformInt64 chapterIndex,
+    required DateTime cachedAt,
+    required PlatformInt64 level,
+    required PlatformInt64 startIndex,
+    required PlatformInt64 endIndex,
+  }) = _Chapter;
+}
 
 /// 词典
 @freezed
-sealed class Dictionary with _$Dictionary  {
-                
-                const factory Dictionary({ required  String id, required  String name, required  String filePath, required  String dictType,  String? langFrom,  String? langTo, required  bool isEnabled, required  PlatformInt64 wordCount, required  DateTime addedAt,}) = _Dictionary;
-                
-                
-                
-            }
+sealed class Dictionary with _$Dictionary {
+  const factory Dictionary({
+    required String id,
+    required String name,
+    required String filePath,
+    required String dictType,
+    String? langFrom,
+    String? langTo,
+    required bool isEnabled,
+    required PlatformInt64 wordCount,
+    required DateTime addedAt,
+  }) = _Dictionary;
+}
 
 /// 全局阅读统计汇总（应用层计算，非直接 DB 映射）
 @freezed
-sealed class GlobalStats with _$GlobalStats  {
-                
-                const factory GlobalStats({ required  PlatformInt64 totalReadingTimeSeconds, required  PlatformInt64 totalCharactersRead, required  PlatformInt64 booksReadCount, required  PlatformInt64 booksCompletedCount, required  PlatformInt64 consecutiveReadingDays, required  PlatformInt64 todayReadingTimeSeconds, required  PlatformInt64 todayCharactersRead, required  double averageReadingSpeed, required  PlatformInt64 totalBooksCount, required  PlatformInt64 totalNotesCount, required  PlatformInt64 totalBookmarksCount,}) = _GlobalStats;
-                
-                
-                
-            }
+sealed class GlobalStats with _$GlobalStats {
+  const factory GlobalStats({
+    required PlatformInt64 totalReadingTimeSeconds,
+    required PlatformInt64 totalCharactersRead,
+    required PlatformInt64 booksReadCount,
+    required PlatformInt64 booksCompletedCount,
+    required PlatformInt64 consecutiveReadingDays,
+    required PlatformInt64 todayReadingTimeSeconds,
+    required PlatformInt64 todayCharactersRead,
+    required double averageReadingSpeed,
+    required PlatformInt64 totalBooksCount,
+    required PlatformInt64 totalNotesCount,
+    required PlatformInt64 totalBookmarksCount,
+  }) = _GlobalStats;
+}
 
 /// 高亮或批注笔记
 @freezed
-sealed class Note with _$Note  {
-                
-                const factory Note({ required  String id, required  String bookId, required  PlatformInt64 chapterIndex,  String? chapterId, required  PlatformInt64 charOffset, required  PlatformInt64 length, required  NoteType noteType, required  String content,  String? selectedText,  PlatformInt64? highlightColor,  String? pairedNoteId,  String? language, required  DateTime createdAt, required  DateTime updatedAt,}) = _Note;
-                
-                
-                
-            }
+sealed class Note with _$Note {
+  const factory Note({
+    required String id,
+    required String bookId,
+    required PlatformInt64 chapterIndex,
+    String? chapterId,
+    required PlatformInt64 charOffset,
+    required PlatformInt64 length,
+    required NoteType noteType,
+    required String content,
+    String? selectedText,
+    PlatformInt64? highlightColor,
+    String? pairedNoteId,
+    String? language,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+  }) = _Note;
+}
 
 /// 笔记统计摘要（可直接从聚合查询映射）
 @freezed
-sealed class NoteStats with _$NoteStats  {
-                
-                const factory NoteStats({ required  PlatformInt64 totalCount, required  PlatformInt64 highlightCount, required  PlatformInt64 annotationCount,}) = _NoteStats;
-                
-                
-                
-            }
+sealed class NoteStats with _$NoteStats {
+  const factory NoteStats({
+    required PlatformInt64 totalCount,
+    required PlatformInt64 highlightCount,
+    required PlatformInt64 annotationCount,
+  }) = _NoteStats;
+}
 
 ///
 /// 数据库中存储为小写文本（`highlight` / `annotation`）。
-enum NoteType {
-                    highlight,
-annotation,
-                    ;
-                    
-                }
+enum NoteType { highlight, annotation }
 
 /// 笔记与书名组合（查询笔记列表时一并带回书名）
 @freezed
-sealed class NoteWithBook with _$NoteWithBook  {
-                
-                const factory NoteWithBook({ required  Note note, required  String bookTitle,}) = _NoteWithBook;
-                
-                
-                
-            }
+sealed class NoteWithBook with _$NoteWithBook {
+  const factory NoteWithBook({required Note note, required String bookTitle}) =
+      _NoteWithBook;
+}
 
 /// 单章阅读进度
 ///
 /// 进度只持久化 chapterIndex + charOffset（ADR-001 / I1）。
 /// page_index / total_pages 已于 Phase 4 移除——它们是分页视图的派生值，不属于持久化真理。
 @freezed
-sealed class ReadingProgress with _$ReadingProgress  {
-                
-                const factory ReadingProgress({ required  String bookId, required  PlatformInt64 chapterIndex, required  PlatformInt64 chunkIndex,  String? chapterId, required  PlatformInt64 charOffset, required  double progress, required  PlatformInt64 readingTimeSeconds, required  DateTime lastReadAt, required  bool isCompleted,}) = _ReadingProgress;
-                
-                
-                
-            }
+sealed class ReadingProgress with _$ReadingProgress {
+  const factory ReadingProgress({
+    required String bookId,
+    required PlatformInt64 chapterIndex,
+    required PlatformInt64 chunkIndex,
+    String? chapterId,
+    required PlatformInt64 charOffset,
+    required double progress,
+    required PlatformInt64 readingTimeSeconds,
+    required DateTime lastReadAt,
+    required bool isCompleted,
+  }) = _ReadingProgress;
+}
 
 /// 单次连续阅读会话记录
 @freezed
-sealed class ReadingSession with _$ReadingSession  {
-                
-                const factory ReadingSession({ required  String id, required  String bookId, required  PlatformInt64 chapterIndex, required  PlatformInt64 startCharOffset, required  PlatformInt64 endCharOffset, required  DateTime startedAt, required  DateTime endedAt, required  PlatformInt64 durationSeconds,}) = _ReadingSession;
-                
-                
-                
-            }
+sealed class ReadingSession with _$ReadingSession {
+  const factory ReadingSession({
+    required String id,
+    required String bookId,
+    required PlatformInt64 chapterIndex,
+    required PlatformInt64 startCharOffset,
+    required PlatformInt64 endCharOffset,
+    required DateTime startedAt,
+    required DateTime endedAt,
+    required PlatformInt64 durationSeconds,
+  }) = _ReadingSession;
+}
 
 /// 每日阅读统计
 @freezed
-sealed class ReadingStats with _$ReadingStats  {
-                
-                const factory ReadingStats({ required  String bookId, required  String date, required  PlatformInt64 readingTimeSeconds, required  PlatformInt64 charactersRead, required  PlatformInt64 sessionCount,  String? lastSessionId,}) = _ReadingStats;
-                
-                
-                
-            }
+sealed class ReadingStats with _$ReadingStats {
+  const factory ReadingStats({
+    required String bookId,
+    required String date,
+    required PlatformInt64 readingTimeSeconds,
+    required PlatformInt64 charactersRead,
+    required PlatformInt64 sessionCount,
+    String? lastSessionId,
+  }) = _ReadingStats;
+}
 
 /// 生词条目
 ///
 /// `status` 字段通过 `#[sqlx(try_from)]` 自动从 SQLite TEXT 解码为 `VocabStatus`，
 /// 非法值会导致 `FromRow` 解析失败（Fail visibly）。
 @freezed
-sealed class Vocab with _$Vocab  {
-                
-                const factory Vocab({ required  String id, required  String word, required  String pinyin, required  String translation,  String? contextSentence,  String? bookId,  PlatformInt64? chapterIndex,  PlatformInt64? charOffset, required  DateTime createdAt, required  PlatformInt64 reviewCount,  DateTime? lastReviewedAt, required  VocabStatus status,  String? wordList,  String? dictSource,  String? dictEntryHash,}) = _Vocab;
-                
-                
-                
-            }
+sealed class Vocab with _$Vocab {
+  const factory Vocab({
+    required String id,
+    required String word,
+    required String pinyin,
+    required String translation,
+    String? contextSentence,
+    String? bookId,
+    PlatformInt64? chapterIndex,
+    PlatformInt64? charOffset,
+    required DateTime createdAt,
+    required PlatformInt64 reviewCount,
+    DateTime? lastReviewedAt,
+    required VocabStatus status,
+    String? wordList,
+    String? dictSource,
+    String? dictEntryHash,
+  }) = _Vocab;
+}
 
 /// 生词本统计摘要（应用层计算，非直接 DB 映射）
 @freezed
-sealed class VocabStats with _$VocabStats  {
-                
-                const factory VocabStats({ required  PlatformInt64 totalWords, required  PlatformInt64 unstartedCount, required  PlatformInt64 learningCount, required  PlatformInt64 masteredCount, required  PlatformInt64 ignoredCount,}) = _VocabStats;
-                
-                
-                
-            }
+sealed class VocabStats with _$VocabStats {
+  const factory VocabStats({
+    required PlatformInt64 totalWords,
+    required PlatformInt64 unstartedCount,
+    required PlatformInt64 learningCount,
+    required PlatformInt64 masteredCount,
+    required PlatformInt64 ignoredCount,
+  }) = _VocabStats;
+}
 
 /// 生词学习状态
 ///
 /// 数据库中存储为小写文本（`new` / `learning` / `mastered` / `ignored`）。
 enum VocabStatus {
-                    /// 新词，尚未开始学习
-unstarted,
-/// 学习中，正在复习周期内
-learning,
-/// 已掌握，通过所有复习阶段
-mastered,
-/// 已忽略/移除出学习队列
-ignored,
-                    ;
-                    
-                }
-            
+  /// 新词，尚未开始学习
+  unstarted,
+
+  /// 学习中，正在复习周期内
+  learning,
+
+  /// 已掌握，通过所有复习阶段
+  mastered,
+
+  /// 已忽略/移除出学习队列
+  ignored,
+}

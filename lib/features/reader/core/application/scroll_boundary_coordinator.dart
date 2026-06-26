@@ -29,17 +29,12 @@ class ScrollBoundaryCoordinator {
   bool _isLoadingPrev = false;
 
   ScrollBoundaryCoordinator({
-    required ReaderRepositoryInterface repo,
-    required void Function(int chapterIndex, int charOffset) onPositionChanged,
-    required void Function(int chapterIndex) onChapterChanged,
-    required void Function(List<ScrollChapterSegment> segments)
-    onSegmentsChanged,
-    void Function(ReaderNotice notice)? onReaderNotice,
-  }) : _repo = repo,
-       _onPositionChanged = onPositionChanged,
-       _onChapterChanged = onChapterChanged,
-       _onSegmentsChanged = onSegmentsChanged,
-       _onReaderNotice = onReaderNotice;
+    required this._repo,
+    required this._onPositionChanged,
+    required this._onChapterChanged,
+    required this._onSegmentsChanged,
+    this._onReaderNotice,
+  });
 
   ScrollDocumentComposer? get composer => _composer;
 
