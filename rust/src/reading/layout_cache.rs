@@ -131,32 +131,36 @@ fn layout_cache_key(
 }
 
 /// 尝试从 sled 加载块分页索引（IR + descriptors）。
+/// `chunk_index` 为 `None` 时查询非 chunked 缓存；为 `Some(n)` 时查询第 n 个 chunk。
 pub(crate) async fn try_get_block_cached(
     validated_path: &str,
     chapter_index: i32,
+    chunk_index: Option<u32>,
     config_hash: u64,
 ) -> Option<(ChapterContentIr, BlockPaginateResult)> {
-    let book_id = resolve_book_id(validated_path, None).await?;
-    let cache_key = layout_cache_key(&book_id, chapter_index, None, config_hash);
+    let book_id = resolve_book_id(validated_path, chunk_index).await?;
+    let cache_key = layout_cache_key(&book_id, chapter_index, chunk_index, config_hash);
     let storage = crate::storage::storage()?;
     let cache_repo = LayoutCacheRepository::new(storage.kv());
     match cache_repo.get_block_layout_cache(&cache_key) {
         Ok(Some(cache)) => {
-            tracing::debug!("block_cache HIT: {}", cache_key);
+            tracing::debug!("block_cache[{}] HIT: {}", chunk_index.map_or("full".into(), |c| c.to_string()), cache_key);
             Some((cache.ir, cache.result))
         }
         Ok(None) => None,
         Err(e) => {
-            tracing::warn!("block_cache read failed: {}", e);
+            tracing::warn!("block_cache[{}] read failed: {}", chunk_index.map_or("full".into(), |c| c.to_string()), e);
             None
         }
     }
 }
 
 /// 保存块分页索引到 sled（partial 或写入失败不影响阅读）。
+/// `chunk_index` 为 `None` 时作为非 chunked 缓存保存；为 `Some(n)` 时保存第 n 个 chunk。
 pub(crate) async fn try_save_block_cached(
     validated_path: &str,
     chapter_index: i32,
+    chunk_index: Option<u32>,
     config_hash: u64,
     ir: ChapterContentIr,
     result: BlockPaginateResult,
@@ -164,17 +168,17 @@ pub(crate) async fn try_save_block_cached(
     if result.is_partial {
         return;
     }
-    let Some(book_id) = resolve_book_id(validated_path, None).await else {
+    let Some(book_id) = resolve_book_id(validated_path, chunk_index).await else {
         return;
     };
     let Some(storage) = crate::storage::storage() else {
         return;
     };
-    let cache_key = layout_cache_key(&book_id, chapter_index, None, config_hash);
+    let cache_key = layout_cache_key(&book_id, chapter_index, chunk_index, config_hash);
     let cache = BlockLayoutCache::new(config_hash, ir, result);
     let cache_repo = LayoutCacheRepository::new(storage.kv());
     if let Err(e) = cache_repo.save_block_layout_cache(&cache_key, &cache) {
-        tracing::warn!("block_cache save failed: {}", e);
+        tracing::warn!("block_cache[{}] save failed: {}", chunk_index.map_or("full".into(), |c| c.to_string()), e);
     }
 }
 

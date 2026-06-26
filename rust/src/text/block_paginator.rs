@@ -404,6 +404,34 @@ pub fn paginate_chapter_ir(
     result
 }
 
+/// 块数阈值：超过此值时分 chunk 独立分页，避免单次 `BlockPaginator` O(pathological_size)。
+pub const CHUNK_BLOCK_COUNT: usize = 200;
+
+/// 分 chunk 块分页：将 `ir.blocks` 按 [CHUNK_BLOCK_COUNT] 拆分，
+/// 每 chunk 独立分页后合并 page descriptors。
+///
+/// 每个 chunk 的 [BlockPaginateResult] 可独立存入 sled 缓存（`chunk_index`）。
+/// chunks ≤ 1 时委托给 [`paginate_chapter_ir`] 零开销。
+pub fn paginate_chapter_ir_chunked(
+    ir: &ChapterContentIr,
+    config: TypesetConfig,
+) -> BlockPaginateResult {
+    if ir.blocks.len() <= CHUNK_BLOCK_COUNT {
+        return paginate_chapter_ir(ir, config);
+    }
+
+    let config_hash = config.config_hash();
+    let mut merged = BlockPaginateResult::new(vec![], config_hash, false);
+
+    for chunk in ir.blocks.chunks(CHUNK_BLOCK_COUNT) {
+        let sub_ir = ChapterContentIr::new(chunk.to_vec(), ir.plain_text.clone());
+        let result = paginate_chapter_ir(&sub_ir, config.clone());
+        merged.merge(result);
+    }
+
+    merged
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -504,5 +532,87 @@ mod tests {
             assert!(d.plain.plain_start >= prev_end.saturating_sub(1));
             prev_end = d.plain_end_exclusive();
         }
+    }
+
+    // === Chunked pagination tests ===
+
+    #[test]
+    fn chunked_small_chapter_delegates_to_plain() {
+        // Chapter with ≤ CHUNK_BLOCK_COUNT blocks → identical to non-chunked
+        let mut b = BlockJoinedPlainBuilder::new();
+        for i in 0..10 {
+            b.push_text(format!("Block {i} text here."), TextBlockStyle::default());
+        }
+        let ir = b.finish();
+        assert!(ir.block_count() <= CHUNK_BLOCK_COUNT);
+
+        let plain = paginate_chapter_ir(&ir, test_config());
+        let chunked = paginate_chapter_ir_chunked(&ir, test_config());
+
+        assert_eq!(plain.page_count(), chunked.page_count());
+        assert_eq!(plain.descriptors, chunked.descriptors);
+    }
+
+    #[test]
+    fn chunked_large_chapter_produces_valid_descriptors() {
+        // Large chapter (>200 blocks) — should chunk and merge
+        let mut b = BlockJoinedPlainBuilder::new();
+        for i in 0..(CHUNK_BLOCK_COUNT + 50) {
+            b.push_text(format!("Block {i}: some text to paginate."), TextBlockStyle::default());
+        }
+        let ir = b.finish();
+        assert!(ir.block_count() > CHUNK_BLOCK_COUNT);
+
+        let result = paginate_chapter_ir_chunked(&ir, test_config());
+        assert!(result.page_count() > 1, "expected {} pages, got {}", result.page_count(), result.page_count());
+
+        // Verify monotonic plain ranges across all descriptors
+        let mut prev_end = 0u32;
+        for d in &result.descriptors {
+            assert!(
+                d.plain.plain_start >= prev_end.saturating_sub(1),
+                "descriptor page={} plain_start={} < prev_end={}",
+                d.page_index, d.plain.plain_start, prev_end
+            );
+            prev_end = d.plain_end_exclusive();
+        }
+
+        // Verify page_index is sequential
+        for (i, d) in result.descriptors.iter().enumerate() {
+            assert_eq!(d.page_index as usize, i, "page_index mismatch at descriptor {}", i);
+        }
+    }
+
+    #[test]
+    fn merge_preserves_page_continuity() {
+        let mut a = BlockPaginateResult::new(vec![], 0x1234, false);
+        let d0 = BlockPageDescriptor::new(0, 0, 1, BlockPlainRange::new(0, 100), false);
+        let d1 = BlockPageDescriptor::new(1, 1, 2, BlockPlainRange::new(100, 80), false);
+        let b = BlockPaginateResult::new(vec![d0, d1], 0x1234, false);
+        a.merge(b);
+        assert_eq!(a.page_count(), 2);
+        assert_eq!(a.descriptors[0].page_index, 0);
+        assert_eq!(a.descriptors[1].page_index, 1);
+
+        let d2 = BlockPageDescriptor::new(0, 0, 2, BlockPlainRange::new(180, 50), false);
+        let c = BlockPaginateResult::new(vec![d2], 0x1234, false);
+        a.merge(c);
+        assert_eq!(a.page_count(), 3);
+        // Third page should have page_index shifted to 2
+        assert_eq!(a.descriptors[2].page_index, 2);
+        assert_eq!(a.descriptors[2].plain.plain_start, 180);
+    }
+
+    #[test]
+    fn merge_partial_propagation() {
+        let mut a = BlockPaginateResult::new(vec![], 0, false);
+        let b = BlockPaginateResult::new(vec![], 0, true);
+        a.merge(b);
+        assert!(a.is_partial);
+
+        let mut c = BlockPaginateResult::new(vec![], 0, true);
+        let d = BlockPaginateResult::new(vec![], 0, false);
+        c.merge(d);
+        assert!(c.is_partial);
     }
 }
