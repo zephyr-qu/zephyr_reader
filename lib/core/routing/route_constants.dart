@@ -25,7 +25,7 @@ enum AppRoute {
   themeBrightness('/settings/theme'),
   otherSettings('/settings/other'),
   wifiTransfer('/wifi-transfer'),
-  BilingualSettings('/settings/translation-api');
+  bilingualSettings('/settings/translation-api');
 
   /// 路径模式字符串（如 `/books/:id`）。
   final String path;

@@ -49,21 +49,21 @@ void main() {
       final p = _p(text: '世界', textIndentEm: 2.0);
       final converter = const RichTextConverter();
       final (_, plain) = converter.toTextSpan([p]);
-      expect(plain, '${_cjFullwidth}${_cjFullwidth}世界');
+      expect(plain, '$_cjFullwidth$_cjFullwidth世界');
     });
 
     test('textIndentEm 1.5 → 2 spaces (ceil)', () {
       final p = _p(text: '测试', textIndentEm: 1.5);
       final converter = const RichTextConverter();
       final (_, plain) = converter.toTextSpan([p]);
-      expect(plain, '${_cjFullwidth}${_cjFullwidth}测试');
+      expect(plain, '$_cjFullwidth$_cjFullwidth测试');
     });
 
     test('textIndentEm 0.5 → 1 space (clamp min 1)', () {
       final p = _p(text: '文本', textIndentEm: 0.5);
       final converter = const RichTextConverter();
       final (_, plain) = converter.toTextSpan([p]);
-      expect(plain, '${_cjFullwidth}文本');
+      expect(plain, '$_cjFullwidth文本');
     });
 
     test('textIndentEm 0 → no indent', () {
@@ -78,7 +78,7 @@ void main() {
       final p2 = _p(text: 'Second');
       final converter = const RichTextConverter();
       final (_, plain) = converter.toTextSpan([p1, p2]);
-      expect(plain, '${_cjFullwidth}${_cjFullwidth}First\n\nSecond');
+      expect(plain, '$_cjFullwidth${_cjFullwidth}First\n\nSecond');
     });
   });
 
@@ -86,11 +86,11 @@ void main() {
     test('bold first span keeps bold after indent injection', () {
       final p = _p(
         spans: [
-          RichTextSpan.styled(
+          const RichTextSpan.styled(
             SpanStyle.bold,
             RichTextSpanData(text: 'Bold start'),
           ),
-          RichTextSpan.styled(
+          const RichTextSpan.styled(
             SpanStyle.plain,
             RichTextSpanData(text: ' normal rest'),
           ),
@@ -102,7 +102,7 @@ void main() {
       // Plain text should have indent
       expect(
         plain,
-        '${_cjFullwidth}${_cjFullwidth}Bold start normal rest',
+        '$_cjFullwidth${_cjFullwidth}Bold start normal rest',
       );
       // The first span child should still have bold style
       final children = span.children;

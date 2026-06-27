@@ -115,7 +115,7 @@ Future<void> main() async {
         );
         expect(pageText, isNotEmpty);
 
-        core_api.disposePaginationSession(handle: handle);
+        await core_api.disposePaginationSession(handle: handle);
       });
 
       test('partial session upgrades via paginateSessionFull', () async {
@@ -140,7 +140,7 @@ Future<void> main() async {
         );
         expect(pageText, isNotEmpty);
 
-        core_api.disposePaginationSession(handle: handle);
+        await core_api.disposePaginationSession(handle: handle);
       });
     });
 
@@ -452,8 +452,8 @@ Future<void> main() async {
           // Disjoint content: adjacent chapters should not overlap
           expect(p0, isNot(equals(p1)));
 
-          core_api.disposePaginationSession(handle: h0);
-          core_api.disposePaginationSession(handle: h1);
+          await core_api.disposePaginationSession(handle: h0);
+          await core_api.disposePaginationSession(handle: h1);
         });
 
         test('staging handoff: chapter 0→1 preserves content integrity', () async {
