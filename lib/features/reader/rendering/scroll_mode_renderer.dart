@@ -231,6 +231,7 @@ class ScrollModeRenderer extends HookWidget {
           paraHighlights,
           onHighlightTap: onHighlightTap,
           vocabularyWords: config.effectiveVocabWords,
+          contentStart: gp.startOffset,
         );
         final children = <Widget>[
           RepaintBoundary(

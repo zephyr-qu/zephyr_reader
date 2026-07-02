@@ -322,16 +322,16 @@ pub(crate) fn session_char_offset_to_page_index(
 pub(crate) fn dispose_pagination_session(
     handle: PaginationSessionHandle,
 ) -> Result<(), AppError> {
-    let entry = SESSION_MAP
-        .lock()
-        .get(&handle.session_id)
-        .cloned()
+    let mut session_map = SESSION_MAP.lock();
+    let session_id = handle.session_id;
+    let cache_key = session_map
+        .get(&session_id)
+        .map(|e| e.cache_key())
         .ok_or_else(|| AppError::NotFound {
-            entity: format!("pagination session {}", handle.session_id),
+            entity: format!("pagination session {}", session_id),
         })?;
 
-    PaginationStore::global().evict(&entry.cache_key());
-    SESSION_MAP.lock().remove(&handle.session_id);
-    let _ = &entry;
+    PaginationStore::global().evict(&cache_key);
+    session_map.remove(&session_id);
     Ok(())
 }

@@ -264,8 +264,7 @@ pub(crate) async fn paginate_chapter(
             return Ok(result);
         }
         if let Some(pages) = try_get_cached(&validated_path, chapter_index, None, config_hash).await {
-            let mut streamer = PageStreamer::from_pages(pages);
-            streamer.is_partial = false;
+            let streamer = PageStreamer::from_pages(pages, false);
             let descriptors = streamer.get_descriptors();
             store.put(
                 engine_key.clone(),

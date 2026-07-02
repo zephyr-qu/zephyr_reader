@@ -156,7 +156,10 @@ impl PageStreamer {
 
     /// Create a PageStreamer from pre-computed page content (KV cache hit).
     /// Skips CPU-intensive typesetting — pages are served directly.
-    pub fn from_pages(pages: Vec<PageContent>) -> Self {
+    ///
+    /// `is_partial` should be set to `true` if the cached pages originated
+    /// from a partial (lazy) pagination session; otherwise `false`.
+    pub fn from_pages(pages: Vec<PageContent>, is_partial: bool) -> Self {
         let total_pages = pages.len();
         Self {
             cached_pages: Some(pages),
@@ -170,7 +173,7 @@ impl PageStreamer {
             first_of_paragraph: Vec::new(),
             indent_str: String::new(),
             line_paragraph_indices: Vec::new(),
-            is_partial: false,
+            is_partial,
         }
     }
 
