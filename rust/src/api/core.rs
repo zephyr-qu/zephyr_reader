@@ -219,6 +219,7 @@ pub fn session_char_offset_to_page_index(
         .session_char_offset_to_page_index(handle, char_offset)
 }
 /// Dispose pagination session.
+#[frb(sync)]
 pub fn dispose_pagination_session(
     handle: PaginationSessionHandle,
 ) -> Result<(), AppError> {

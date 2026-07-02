@@ -120,11 +120,15 @@ class ChapterLoadOrchestrator {
         return;
       }
 
-      final chapterPlainFuture = _contentRepo.loadChapterContent(
-        _chapterVM.bookId.value,
-        request.chapterIndex,
-        readingMode: request.readingMode,
-      );
+      // P3 (Bug A) 修复：stagingPromote 路径不需要冗余 loadChapterContent，
+      // 内容已由 staging 缓存提供。提前跳过，避免无谓 IO 和未处理 Future 错误。
+      final chapterPlainFuture = isStagingPromote
+          ? Future<String>.value('')
+          : _contentRepo.loadChapterContent(
+              _chapterVM.bookId.value,
+              request.chapterIndex,
+              readingMode: request.readingMode,
+            );
 
       final calibFuture = _pagination.calibration.value != null
           ? Future<CalibrationData?>.value(_pagination.calibration.value)
@@ -280,9 +284,20 @@ class ChapterLoadOrchestrator {
       });
     } catch (e) {
       _applyIfCurrent(gen, () {
-        _chapterVM.chapterContent.value = AsyncState.error(e);
-        _error.value = AppErrorMapper.humanReadable(e);
-        _loadPhase.value = ChapterLoadPhase.failed;
+        // P3 (Bug A) 修复：stagingPromote 已成功设置信号后，
+        // 后续错误（如 clearAdjacentStaging）不应覆盖已可见的内容。
+        // 非 stagingPromote 路径正常显示错误。
+        if (isStagingPromote &&
+            _chapterVM.chapterContent.value.value != null) {
+          Logging.warning(
+            '[ChapterLoad] stagingPromote error after content visible: $e',
+          );
+          // 保持内容可见，不覆盖为错误
+        } else {
+          _chapterVM.chapterContent.value = AsyncState.error(e);
+          _error.value = AppErrorMapper.humanReadable(e);
+          _loadPhase.value = ChapterLoadPhase.failed;
+        }
       });
       Logging.error('ChapterLoadOrchestrator.run error', exception: e);
     } finally {
@@ -737,6 +752,10 @@ class ChapterLoadOrchestrator {
   static bool _needsPagination(ReadingMode mode) => needsRustPagination(mode);
 
   /// descriptors 变更后立即同步页码信号，避免 finalize 前 UI 与 Rust 脱节。
+  ///
+  /// P4 (Bug B) 修复：使用当前 charOffset（而非 request.initialCharOffset）
+  /// 重新映射 pageIndex，确保 partial→full 转换时用户停留在同一文本位置，
+  /// 即使页边界发生变化页码也可能改变，但内容连续不跳变。
   void _syncPaginationSignalsAfterRepaginate(
     int gen,
     ChapterLoadRequest request, {
@@ -746,14 +765,16 @@ class ChapterLoadOrchestrator {
     if (_isStale(gen)) return;
     if (!_pagination.isPaginationValid(totalPages)) return;
 
+    final currentCharOffset = _chapterVM.currentCharOffset.value;
     final applied = _pagination.applyFullResult(
       total: totalPages,
-      initialCharOffset: request.initialCharOffset,
+      initialCharOffset: currentCharOffset,
       content: content,
     );
     _applyIfCurrent(gen, () {
       _totalPages.value = applied.totalPages;
       _pageIndex.value = applied.pageIndex;
+      _chapterVM.currentCharOffset.value = currentCharOffset;
     });
   }
 
