@@ -21,6 +21,9 @@ use crate::reading::block_state::BlockPaginationState;
 use crate::text::PageStreamer;
 
 /// Session / 内存 LRU 持有的分页引擎。
+///
+/// P1: `Plain(PageStreamer)` 仅用于 `max_chars` partial 首屏路径（in-memory，不持久化到 sled）。
+/// 全章分页统一走 `Block(BlockPaginationState)`，sled 唯一真理源 = `BlockLayoutCache`。
 #[derive(Clone)]
 pub(crate) enum PaginationEngine {
     Plain(PageStreamer),
@@ -139,25 +142,6 @@ impl PaginationStore {
             PaginationEngine::Block(state) if !state.is_partial => {
                 let result = state.to_paginate_result(key.config_hash);
                 (PaginationEngine::Block(state), Some(result))
-            }
-            other => (other, None),
-        })
-    }
-
-    /// 全章 plain 引擎 cache hit（非 partial）。
-    pub(crate) fn try_plain_full_hit(&self, key: &PaginationKey) -> Option<PaginateResult> {
-        self.with_popped(key, |engine| match engine {
-            PaginationEngine::Plain(streamer) if !streamer.is_partial => {
-                let descriptors = streamer.get_descriptors();
-                (
-                    PaginationEngine::Plain(streamer),
-                    Some(PaginateResult {
-                        descriptors,
-                        config_hash: key.config_hash,
-                        is_partial: false,
-                        mode: ChapterPaginationMode::PlainText,
-                    }),
-                )
             }
             other => (other, None),
         })

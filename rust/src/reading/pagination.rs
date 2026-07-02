@@ -18,9 +18,7 @@ use crate::utils::security::validate_file_path;
 use super::block_state::BlockPaginationState;
 use super::chapter_access::{format_from_file_path, get_chapter_bounds};
 use super::chapter_ir::load_chapter_content_ir;
-use super::layout_cache::{
-    try_get_block_cached, try_get_cached, try_save_block_cached, try_save_cached,
-};
+use super::layout_cache::{try_get_block_cached, try_save_block_cached};
 use super::pagination_store::PaginationEngine;
 use super::pagination_store::{PaginationKey, PaginationStore};
 use super::provider_cache::get_or_create_provider;
@@ -251,10 +249,9 @@ pub(crate) async fn paginate_chapter(
     let config_hash = config.config_hash();
     let start = Instant::now();
     let store = PaginationStore::global();
-    let engine_key = PaginationKey::new(&validated_path, chapter_index, config_hash);
 
     // 全章（max_chars=None）：P0 — 所有章节统一走 block 路径。
-    // Plain fallback 仅兼容旧 sled 缓存（P1 合并双缓存后移除）。
+    // P1: plain sled 缓存已移除，不再有 fallback 到 PageStreamer 的路径。
     if max_chars.is_none() {
         if let Some(result) =
             try_paginate_chapter_blocks(&validated_path, chapter_index, &config, None).await?
@@ -264,32 +261,6 @@ pub(crate) async fn paginate_chapter(
                 config_hash, chapter_index, start.elapsed()
             );
             return Ok(result);
-        }
-
-        if let Some(result) = store.try_plain_full_hit(&engine_key) {
-            tracing::info!(
-                "[Timing] paginate_chapter engine_cache=HIT config_hash={:016x} chapter={} elapsed={:?}",
-                config_hash, chapter_index, start.elapsed()
-            );
-            return Ok(result);
-        }
-        if let Some(pages) = try_get_cached(&validated_path, chapter_index, None, config_hash).await {
-            let streamer = PageStreamer::from_pages(pages, false);
-            let descriptors = streamer.get_descriptors();
-            store.put(
-                engine_key.clone(),
-                PaginationEngine::Plain(streamer),
-            );
-            tracing::info!(
-                "[Timing] paginate_chapter layout_cache=HIT config_hash={:016x} chapter={} elapsed={:?}",
-                config_hash, chapter_index, start.elapsed()
-            );
-            return Ok(PaginateResult {
-                descriptors,
-                config_hash,
-                is_partial: false,
-                mode: ChapterPaginationMode::PlainText,
-            });
         }
     }
 
@@ -351,27 +322,13 @@ pub(crate) async fn paginate_chapter(
     let mut streamer = PageStreamer::new(content, config);
     streamer.is_partial = is_partial;
     let descriptors = streamer.get_descriptors();
-    // 提取全页内容用于 KV 缓存保存（在 engine 移入 LRU 之前完成）
-    let cached_pages = if !is_partial {
-        let total = descriptors.len();
-        Some(
-            (0..total)
-                .filter_map(|i| streamer.get_page(i, chapter_index))
-                .collect::<Vec<PageContent>>(),
-        )
-    } else {
-        None
-    };
 
     store.put(
         PaginationKey::new(&validated_path, chapter_index, config_hash),
         PaginationEngine::Plain(streamer),
     );
 
-    // 全章分页完成后写入持久化 KV 缓存
-    if let Some(pages) = cached_pages {
-        try_save_cached(&validated_path, chapter_index, None, config_hash, pages).await;
-    }
+    // P1: plain sled 缓存已移除。Partial 引擎不持久化到 sled（全章应走 block 路径）。
 
     tracing::info!(
         "[Timing] paginate_chapter cache=MISS config_hash={:016x} chapter={} elapsed={:?}",

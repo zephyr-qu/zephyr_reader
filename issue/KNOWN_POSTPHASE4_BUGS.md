@@ -4,6 +4,7 @@
 > 2026-07-02 更新：Bug A、Bug B 已修复；追加 P1–P5 新确认的 bug 和风险项。
 > 2026-07-02 第三轮：P1-1、P1-2、P1-3、P2-6、P2-7 已修复。
 > 2026-07-02 第四轮：P0 架构统一（纯文本书分页走 IR + BlockPaginator）+ P3-13 部分解决。
+> 2026-07-02 第五轮：P1 合并 sled 双缓存（plain sled → block sled 唯一真理源）。
 
 ---
 
@@ -130,3 +131,15 @@
 | P0 chapter_has_image_blocks deprecated | 标记 deprecated，P5 移除 | `rust/src/reading/pagination.rs` |
 | P0 Dart staging 统一 maxChars:null | 移除 `chapterHasImageBlocks` 分支，staging 始终全章 block 分页 | `rust_chapter_content_repository.dart` |
 | P0 Dart session adopt 检查统一 | 移除 `_chapterNeedsBlockPath`，任何 stale plain-full → recreate block | `rust_pagination_session.dart` |
+
+## ✅ P1 合并 sled 双缓存（2026-07-02 第五轮）
+
+| # | 修复 | 改动文件 |
+|---|------|----------|
+| P1 移除 LayoutCache sled | `LayoutCache` 结构体 + `LAYOUT_CACHE_VERSION` + sled `layout_cache` tree 全部移除 | `models.rs`, `kv_store.rs`, `layout_cache.rs` |
+| P1 移除 try_get_cached/try_save_cached | plain sled 缓存读写函数移除，block sled 为唯一真理源 | `layout_cache.rs` |
+| P1 移除 plain fallback 路径 | `paginate_chapter()` 全章模式不再 fallback 到 PageStreamer + plain sled | `pagination.rs` |
+| P1 get_chapter(config) 走 block | 改为 IR → `paginate_chapter_ir_chunked` + block sled cache | `chapter_access.rs` |
+| P1 移除 try_plain_full_hit | `PaginationStore` 不再探测 plain 全章命中 | `pagination_store.rs` |
+| P1 PaginationEngine::Plain 标注 in-memory | 仅用于 partial 首屏路径（不持久化到 sled） | `pagination_store.rs` |
+| P1 kv_store 测试更新 | 移除所有 plain sled 测试，保留 block sled 测试 | `kv_store.rs`, `layout_cache_repo.rs` |
