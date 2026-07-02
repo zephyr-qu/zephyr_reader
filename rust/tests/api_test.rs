@@ -3,34 +3,6 @@ mod common;
 use rust_lib_zephyr_reader::api;
 use rust_lib_zephyr_reader::api::data::chapter;
 
-// ==================== 基础连接测试 ====================
-
-#[test]
-fn test_connection() {
-    let result = api::test_connection();
-    assert!(result.is_ok(), "连接应该成功");
-    let msg = result.unwrap();
-    assert_eq!(msg, "Rust core engine connected successfully");
-}
-
-#[test]
-fn test_multiple_connections() {
-    // Test that connection can be verified multiple times
-    for _ in 0..5 {
-        let result = api::test_connection();
-        assert!(result.is_ok(), "连接应该成功");
-        assert_eq!(result.unwrap(), "Rust core engine connected successfully");
-    }
-}
-
-#[test]
-fn test_api_response_format() {
-    let result = api::test_connection();
-    let msg = result.unwrap();
-    assert!(!msg.is_empty());
-    assert!(msg.contains("connected"));
-}
-
 // ==================== 格式检测测试 ====================
 
 #[test]

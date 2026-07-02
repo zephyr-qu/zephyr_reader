@@ -199,3 +199,13 @@ IR 路径已将 scroll 和 block 分页统一到 `TextBlockStyle`（8 字段全�
 - [FINE\_TYPESETTING\_GAP.md](./FINE_TYPESETTING_GAP.md) — 精细排版差距
 - [doc/archive/plan-unify-typeset-truth.md](../doc/archive/plan-unify-typeset-truth.md) — 统一排版真理源计划
 
+
+
+## 五、Phase 4 遗留已知 Bug
+
+详见 [`KNOWN_POSTPHASE4_BUGS.md`](./KNOWN_POSTPHASE4_BUGS.md)：
+
+| Bug | 现象 | 根因 |
+|-----|------|------|
+| **A — 跨章错误重试** | stagingPromote 后冗余 `loadChapterContent` 出现「加载失败」提示 | `orchestrator.run()` line 123 的冗余 FFI 在 line 167 后置覆盖 error 信号 |
+| **B — 翻页排版跳变** | `expandToFullChapter` / `repaginateAfterMetricsBackfeed` 改变已渲染页边界 | 首屏 partial 分页后全章重分页改变字符分布；calibration 回传后所有页偏移 |

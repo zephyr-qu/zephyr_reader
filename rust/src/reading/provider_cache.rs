@@ -37,6 +37,7 @@ pub(crate) static PROVIDER_CACHE: LazyLock<Mutex<LruCache<CacheKey, Arc<dyn Chap
 
 
 /// 清空 provider LRU（仅供测试使用）。
+#[cfg(test)]
 pub(crate) fn clear_for_test() {
     PROVIDER_CACHE.lock().clear();
 }

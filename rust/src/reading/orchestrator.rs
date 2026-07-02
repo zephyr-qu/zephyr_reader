@@ -218,9 +218,10 @@ impl ReadingOrchestrator {
     }
 
     /// 清理 PROVIDER_CACHE + BOOK_ID_CACHE + 分页内存 LRU（测试用）。
+#[cfg(test)]
     pub fn clear_caches_for_test(&self) {
         super::provider_cache::clear_for_test();
-        super::book_id_cache::clear_for_test();
+        super::clear_for_test();
         super::pagination_store::PaginationStore::global().clear_lru_for_test();
     }
 }

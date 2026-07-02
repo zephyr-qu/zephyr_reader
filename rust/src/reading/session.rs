@@ -13,7 +13,7 @@ use crate::domain::{
     AppError, ChapterPaginationMode, PageBlockSlice, PaginateResult, TypesetConfig,
 };
 use crate::reading::pagination::paginate_chapter;
-use crate::reading::pagination_engine::PaginationEngine;
+use crate::reading::pagination_store::PaginationEngine;
 use crate::reading::pagination_store::{PaginationKey, PaginationStore};
 use crate::reading::types::PaginationSessionHandle;
 use crate::utils::security::validate_file_path;

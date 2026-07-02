@@ -1,5 +1,4 @@
 //! Rust 核心引擎 API
-use flutter_rust_bridge::frb;
 pub mod backup;
 pub mod bilingual;
 pub mod core;
@@ -17,7 +16,6 @@ pub use core::{ChapterContent, parse_book};
 pub use epub::{EpubImageInfo, ImageFormat};
 
 pub use crate::dictionary::{DictEntry, DictSearchResult};
-use crate::domain::AppError;
 pub use dictionary::{
     close_dictionary, extract_audio, init_dictionary, lookup_mdict, segment_text, suggest_mdict,
 };
@@ -28,15 +26,9 @@ pub use bilingual::{
     delete_bilingual_highlight_pair, get_bilingual_highlight_pairs,
 };
 
-/// 测试 Rust 引擎连接是否正常。
-///
-/// 返回成功连接信息，用于 Dart 侧启动时验证 FFI 通道可用性。
-// Reserved: FRB binding exists for binary compatibility.
-// Currently unused — Dart goes through StorageSyncViewModel.testConnection.
-#[frb(sync)]
-// DEAD CODE: Dart 侧走 StorageSyncViewModel.testConnection 不经过 FFI
+use crate::domain::AppError;
+
+// Reserved: FRB binding exists for binary compatibility (frb_generated.rs).
 pub fn test_connection() -> Result<String, AppError> {
-
-
     Ok("Rust core engine connected successfully".to_string())
 }

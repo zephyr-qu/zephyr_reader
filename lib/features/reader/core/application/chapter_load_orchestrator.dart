@@ -148,6 +148,15 @@ class ChapterLoadOrchestrator {
         return;
       }
 
+      // stagingPromote 路径：_runStagingPromote 已设置所有信号，跳过冗余后继处理。
+      // 见 issue/KNOWN_POSTPHASE4_BUGS.md Bug A
+      if (intent == ChapterPaginationIntent.stagingPromoteForward ||
+          intent == ChapterPaginationIntent.stagingPromoteBackward) {
+        _setPhase(gen, ChapterLoadPhase.completed);
+        _applyIfCurrent(gen, () { _loadPhase.value = ChapterLoadPhase.idle; });
+        return;
+      }
+
 
       Logging.info(
         '[Timing] gen=$gen phase=quickPaginate quickPaginate: '
@@ -176,17 +185,15 @@ class ChapterLoadOrchestrator {
       });
 
       final refinedCalibration = await backfeedFuture;
-      if (refinedCalibration != null && !_isStale(gen)) {
-        _pagination.calibration.value = refinedCalibration;
-      }
 
-      final tConcurrent = sw.elapsedMilliseconds;
-      Logging.info(
-        '[Timing] gen=$gen phase=awaitingConcurrent '
-        '(content+calibration): ${tConcurrent}ms cumulative',
-      );
+      // Bug B fix: refinedCalibration 暂不更新到 calibration.value，
+      // 避免 expandToFullChapter / repaginate 使用不同校准改变已显示页边界。
+      // 延后到所有分页操作完成后更新（仅用于后续新 session）。
+      // 见 issue/KNOWN_POSTPHASE4_BUGS.md Bug B
 
       int total;
+      final bool isNormalLoad =
+          intent == ChapterPaginationIntent.normalLoad;
       if (quickResult!.isPartial) {
         _setPhase(gen, ChapterLoadPhase.fullPaginate);
         final fullPaginateFuture = _pagination.expandToFullChapter(
@@ -211,7 +218,8 @@ class ChapterLoadOrchestrator {
         );
       } else {
         total = quickResult.totalPages;
-        if (refinedCalibration != null) {
+        if (refinedCalibration != null && !isNormalLoad) {
+          // configReload: 用户已预期视觉变化，inline repaginate
           final repaginated = await _pagination.repaginateAfterMetricsBackfeed(
             maxChars: null,
           );
@@ -230,11 +238,23 @@ class ChapterLoadOrchestrator {
             '[Timing] gen=$gen phase=metricsBackfeed repaginate: '
             'pages=$total',
           );
+        } else if (refinedCalibration != null && isNormalLoad) {
+          // Bug B fix: normalLoad 不 repaginate，避免排版跳变。
+          // 回传校准值已推迟到所有分页操作后更新 calibration.value 信号，
+          // 供后续新 session（下一章 / configReload）使用。
+          Logging.info(
+            '[Timing] gen=$gen phase=metricsBackfeed deferred (normalLoad)',
+          );
         }
         Logging.info(
           '[Timing] gen=$gen phase=fullPaginate skipped '
           '(partial covered full content, ${quickResult.totalPages} pages)',
         );
+      }
+
+      // 所有分页操作完成后，更新校准信号供后续新 session 使用
+      if (refinedCalibration != null && !_isStale(gen)) {
+        _pagination.calibration.value = refinedCalibration;
       }
 
       await _runFinalize(gen, request, content: content, total: total);
