@@ -512,17 +512,13 @@ class RustChapterContentRepository implements ChapterContentRepository {
         firstLineIndent: p.firstLineIndent ? 2 : 0,
       );
 
-      final hasImages = await core_api.chapterHasImageBlocks(
-        filePath: book.filePath,
-        chapterIndex: chapterIndex,
-      );
-      if (gen != _stagingGen) return;
-
+      // P0: all chapters now use block pagination (maxChars=null → full chapter).
+      // No longer need chapterHasImageBlocks branch — unified IR path.
       final result = await core_api.paginateChapter(
         filePath: book.filePath,
         chapterIndex: chapterIndex,
         config: config,
-        maxChars: hasImages ? null : BigInt.from(2000),
+        maxChars: null,
       );
       if (gen != _stagingGen) return;
 
