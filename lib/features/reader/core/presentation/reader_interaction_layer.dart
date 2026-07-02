@@ -50,6 +50,9 @@ class ReaderSelectionToolbarLayer extends HookWidget {
       return const SizedBox.shrink();
     }
 
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final toolbarCenterX = selectionGlobalPos?.dx ?? screenWidth / 2;
+
     return Positioned(
       top: readerSelectionToolbarTop(
         MediaQuery.sizeOf(context).height,
@@ -57,7 +60,12 @@ class ReaderSelectionToolbarLayer extends HookWidget {
       ),
       left: 0,
       right: 0,
-      child: SelectionToolbar(
+      child: Align(
+        alignment: Alignment(
+          ((toolbarCenterX / screenWidth) * 2 - 1).clamp(-1.0, 1.0),
+          0,
+        ),
+        child: SelectionToolbar(
         selectedText: bSelectedtext,
         onHighlight: () => vm.saveHighlight(l10n),
         onAnnotate: () => showDialog<void>(
@@ -80,6 +88,7 @@ class ReaderSelectionToolbarLayer extends HookWidget {
             ? () => onBilingualHighlight(context, vm)
             : null,
         onDismiss: () => vm.annotations.clearSelection(),
+      ),
       ),
     );
   }

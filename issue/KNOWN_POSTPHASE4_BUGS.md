@@ -2,6 +2,7 @@
 
 > 2026-06-27 代码审阅 + 动态分析确认。
 > 2026-07-02 更新：Bug A、Bug B 已修复；追加 P1–P5 新确认的 bug 和风险项。
+> 2026-07-02 第三轮：P1-1、P1-2、P1-3、P2-6、P2-7 已修复。
 
 ---
 
@@ -55,9 +56,9 @@
 
 | # | Bug | 位置 | 现象 | 状态 |
 |---|-----|------|------|------|
-| 1 | **TOC href fallback 导致章节边界偏移** | `rust/src/parser/epub/toc.rs:81-97` | 部分 EPUB 的 TOC href 未匹配 spine → 均匀分配到剩余 spine | ❌ 仍开放 |
-| 2 | **滚动跨章高亮 offset 冲突** | `scroll_mode_renderer.dart` + `highlight_painter.dart` | 多段拼接时相邻章高亮的 charOffset 指向错误位置 | ❌ 仍开放 |
-| 3 | **选区工具栏定位不准** | `reader_interaction_layer.dart:53-58` | 左右仍铺满全屏而非跟随选区 X | ❌ 仍开放（Y 已改善） |
+| 1 | **TOC href fallback 导致章节边界偏移** | `rust/src/parser/epub/unzip.rs:367-393` | 部分 EPUB 的 TOC href 未匹配 spine → 均匀分配到剩余 spine | ✅ 已修复（增加文件名模糊匹配策略） |
+| 2 | **滚动跨章高亮 offset 冲突** | `scroll_mode_renderer.dart` + `highlight_painter.dart` | 多段拼接时相邻章高亮的 charOffset 指向错误位置 | ✅ 已修复（paintPlain 传 contentStart: gp.startOffset） |
+| 3 | **选区工具栏定位不准** | `reader_interaction_layer.dart:53-60` | X 轴铺满全屏而非跟随选区 | ✅ 已修复（Align + toolbarCenterX 居中定位） |
 | 4 | **WidgetSpan height: double.infinity** | `highlight_painter.dart` | 高亮竖条在某些 TextSpan 上下文引发布局错误 | ✅ 已修复（改为 finite barHeight） |
 
 ### P2 — 不直接影响主路径，但存在隐患
@@ -65,8 +66,8 @@
 | # | Bug | 位置 | 现象 | 状态 |
 |---|-----|------|------|------|
 | 5 | **Doc 注释与常量不一致** | `rust/src/text/pagination.rs:125-127` | 注释说「50K 字符阈值」，实际 `200_000` | ✅ 已修复（注释更新为 200K） |
-| 6 | **`PageStreamer.from_pages()` 硬编码 `is_partial = false`** | `rust/src/text/pagination.rs:173` | 接口语义上调用方无法表达 partial-from-cache | ❌ 仍开放 |
-| 7 | **Session dispose 后 store 残留语义不精确** | `rust/src/api/core.rs:333` | LRU 覆盖场景下 evict 的不是原 engine | ❌ 仍开放（已改善） |
+| 6 | **`PageStreamer.from_pages()` 硬编码 `is_partial = false`** | `rust/src/text/pagination.rs:162` | 接口语义上调用方无法表达 partial-from-cache | ✅ 已修复（from_pages 接收 is_partial 参数） |
+| 7 | **Session dispose 后 store 残留语义不精确** | `rust/src/reading/session.rs:322-337` | 双锁竞态窗口 + let _ = &entry 无意义 | ✅ 已修复（合并为单次锁 + 消除空操作） |
 | 8 | **End-avoid 标点仅在预处理阶段** | `rust/src/text/typeset.rs` | 行断计算不处理避头尾标点 | ❌ 仍开放 |
 | 9 | **HighlightPainter 静态缓存 stale** | `highlight_painter.dart:13-32` | baseStyle 不参与缓存键，样式变更后返回旧缓存 | ✅ 已修复（加入 styleHash） |
 | 10 | **Scroll 预加载错误被静默吞掉** | `scroll_boundary_coordinator.dart:93` | `catchError((_) {})` 丧失诊断信息 | ✅ 已修复（添加 Logging） |
@@ -107,3 +108,13 @@
 | P2-5 Doc comment | 注释 50K → 200K | `pagination.rs` |
 | P2-9 缓存 stale | `styleHash` 加入缓存键 | `highlight_painter.dart` |
 | P2-10/11 静默 catchError | 添加 `Logging.debug` | `scroll_boundary_coordinator.dart`, `chapter_load_orchestrator.dart` |
+
+## ✅ 本次手动修复的问题（2026-07-02 第三轮）
+
+| # | 修复 | 改动文件 |
+|---|------|----------|
+| P1-1 TOC href fallback | `find_spine_index_by_toc_href` 增加文件名模糊匹配策略 | `rust/src/parser/epub/unzip.rs` |
+| P1-2 滚动跨章高亮 offset | `paintPlain` 传 `contentStart: gp.startOffset` | `scroll_mode_renderer.dart` |
+| P1-3 选区工具栏 X 定位 | `Align` + `toolbarCenterX` 居中定位替代 `left:0, right:0` 全宽 | `reader_interaction_layer.dart` |
+| P2-6 from_pages is_partial | `from_pages` 接收 `is_partial: bool` 参数替代硬编码 | `rust/src/text/pagination.rs`, `rust/src/reading/pagination.rs` |
+| P2-7 session dispose 双锁竞态 | 合并为单次 `SESSION_MAP.lock()` + 消除 `let _ = &entry` | `rust/src/reading/session.rs` |
