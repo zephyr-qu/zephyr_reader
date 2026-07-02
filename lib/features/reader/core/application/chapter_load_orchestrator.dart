@@ -143,15 +143,22 @@ class ChapterLoadOrchestrator {
         calibFuture: calibFuture,
         preloadAdjacentFirstPages: preloadAdjacentFirstPages,
       );
+      if (_isStale(gen)) {
+        _setPhase(gen, ChapterLoadPhase.cancelled);
+        return;
+      }
+
 
       Logging.info(
         '[Timing] gen=$gen phase=quickPaginate quickPaginate: '
         '${sw.elapsedMilliseconds}ms cumulative',
       );
 
+      // 仅 initial load / config 变更时回传 metrics；expandOnly 校准已稳定，
+      // 重复回传会导致章内翻页时重分页 → 已渲染页面排版跳变（Bug #2）。
       final shouldBackfeed =
-          intent != ChapterPaginationIntent.stagingPromoteForward &&
-          intent != ChapterPaginationIntent.stagingPromoteBackward;
+          intent == ChapterPaginationIntent.normalLoad ||
+          intent == ChapterPaginationIntent.configReload;
       final backfeedFuture = shouldBackfeed
           ? _captureMetricsBackfeed(gen, _pageIndex.value)
           : Future<CalibrationData?>.value(null);
