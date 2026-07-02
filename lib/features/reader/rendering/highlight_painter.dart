@@ -18,6 +18,7 @@ class HighlightPainter {
   }
 
   static int _lastPlainVersion = -1;
+  static int _lastPlainStyleHash = 0;
   static String _lastPlainContent = '';
   static List<Note> _lastPlainHighlights = [];
   static Set<String> _lastPlainVocab = const {};
@@ -25,6 +26,7 @@ class HighlightPainter {
   static TextSpan? _cachedPlainResult;
 
   static int _lastRichVersion = -1;
+  static int _lastRichStyleHash = 0;
   static TextSpan? _lastRichSpan;
   static int _lastRichContentStart = 0;
   static List<Note> _lastRichHighlights = [];
@@ -46,7 +48,9 @@ class HighlightPainter {
     if ((highlights.isEmpty && vocabularyWords.isEmpty) || content.isEmpty) {
       return TextSpan(text: content, style: baseStyle);
     }
+    final styleHash = baseStyle.hashCode;
     if (_paintVersion == _lastPlainVersion &&
+        _lastPlainStyleHash == styleHash &&
         _lastPlainContent == content &&
         _listEquals(_lastPlainHighlights, highlights) &&
         _setEquals(_lastPlainVocab, vocabularyWords) &&
@@ -106,13 +110,17 @@ class HighlightPainter {
       regions.add(_Region.text(content, baseStyle));
     }
 
+    // 高亮竖条高度：使用 baseStyle 的 fontSize × height(lineHeight multiplier)。
+    // 修复 P1-4：double.infinity 在部分 TextSpan 上下文引发布局错误。
+    final barHeight = (baseStyle.fontSize ?? 16.0) * (baseStyle.height ?? 1.2);
+
     for (final r in regions) {
       if (r.isHighlight) {
         spans.add(
           WidgetSpan(
             child: Container(
               width: 2,
-              height: double.infinity,
+              height: barHeight,
               color: r.highlightBarColor,
             ),
           ),
@@ -131,6 +139,7 @@ class HighlightPainter {
       result = _paintVocabulary(content, result, vocabularyWords);
     }
     _lastPlainVersion = _paintVersion;
+    _lastPlainStyleHash = styleHash;
     _lastPlainContent = content;
     _lastPlainHighlights = List.from(highlights);
     _lastPlainVocab = Set.from(vocabularyWords);
@@ -227,7 +236,9 @@ class HighlightPainter {
     void Function(Note)? onHighlightTap,
     Set<String> vocabularyWords = const {},
   }) {
+    final styleHash = span.style.hashCode;
     if (_paintVersion == _lastRichVersion &&
+        _lastRichStyleHash == styleHash &&
         _lastRichSpan == span &&
         _lastRichContentStart == contentStart &&
         _listEquals(_lastRichHighlights, highlights) &&
@@ -237,6 +248,7 @@ class HighlightPainter {
     if (highlights.isEmpty) {
       if (vocabularyWords.isNotEmpty && span.text != null) {
         _lastRichVersion = _paintVersion;
+        _lastRichStyleHash = styleHash;
         _lastRichSpan = span;
         _lastRichContentStart = contentStart;
         _lastRichHighlights = List.from(highlights);
@@ -245,6 +257,7 @@ class HighlightPainter {
         return _cachedRichResult!;
       }
       _lastRichVersion = _paintVersion;
+      _lastRichStyleHash = styleHash;
       _lastRichSpan = span;
       _lastRichContentStart = contentStart;
       _lastRichHighlights = List.from(highlights);
@@ -273,6 +286,7 @@ class HighlightPainter {
         }
       }
       _lastRichVersion = _paintVersion;
+      _lastRichStyleHash = styleHash;
       _lastRichSpan = span;
       _lastRichContentStart = contentStart;
       _lastRichHighlights = List.from(highlights);
@@ -323,6 +337,7 @@ class HighlightPainter {
     if (regions.isEmpty) {
       if (vocabularyWords.isNotEmpty) {
         _lastRichVersion = _paintVersion;
+        _lastRichStyleHash = styleHash;
         _lastRichSpan = span;
         _lastRichContentStart = contentStart;
         _lastRichHighlights = List.from(highlights);
@@ -331,6 +346,7 @@ class HighlightPainter {
         return _cachedRichResult!;
       }
       _lastRichVersion = _paintVersion;
+      _lastRichStyleHash = styleHash;
       _lastRichSpan = span;
       _lastRichContentStart = contentStart;
       _lastRichHighlights = List.from(highlights);
@@ -339,13 +355,17 @@ class HighlightPainter {
       return span;
     }
 
+    // 高亮竖条高度：使用 baseStyle 的 fontSize × height(lineHeight multiplier)。
+    // 修复 P1-4：double.infinity 在部分 TextSpan 上下文引发布局错误。
+    final barHeight = (baseStyle.fontSize ?? 16.0) * (baseStyle.height ?? 1.2);
+
     for (final r in regions) {
       if (r.isHighlight) {
         result.add(
           WidgetSpan(
             child: Container(
               width: 2,
-              height: double.infinity,
+              height: barHeight,
               color: r.highlightBarColor,
             ),
           ),
@@ -364,6 +384,7 @@ class HighlightPainter {
       finalSpan = _paintVocabulary(text, finalSpan, vocabularyWords);
     }
     _lastRichVersion = _paintVersion;
+    _lastRichStyleHash = styleHash;
     _lastRichSpan = span;
     _lastRichContentStart = contentStart;
     _lastRichHighlights = List.from(highlights);

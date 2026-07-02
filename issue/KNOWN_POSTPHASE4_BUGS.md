@@ -1,128 +1,109 @@
-# Phase 4 遗留已知 Bug（2026-06-27）
+# Phase 4 遗留已知 Bug（2026-07-02 更新）
 
 > 2026-06-27 代码审阅 + 动态分析确认。
-> 两个 Bug 均不在 Phase 4 当前退出标准阻塞范围内，但影响阅读体验。
+> 2026-07-02 更新：Bug A、Bug B 已修复；追加 P1–P5 新确认的 bug 和风险项。
 
 ---
 
-## Bug A — 跨章导航偶尔弹出「加载失败，重试」
+## ✅ Bug A — 跨章导航偶尔弹出「加载失败，重试」 — 已修复
 
-### 现象
+### 修复内容（2026-07-02）
 
-跨章节翻页（forward/backward）时，已正常显示的章节内容突然被 **「加载失败，重试」** 错误页覆盖。点击重试后章节恢复正常。
+1. **stagingPromote 路径跳过冗余 `loadChapterContent`**：用 `Future.value('')` 替代真实 IO 调用，避免无谓双重请求。
+2. **catch 块增加 `isStagingPromote` 保护**：stagingPromote 已成功设置信号后，后续错误不再覆盖 `chapterContent` / `_error`。
 
-### 根因
+### 原根因回顾
 
-**冗余 `loadChapterContent` 调用在后置阶段覆盖信号。**
+`ChapterLoadOrchestrator.run()` 中 stagingPromote 路径同时发起了 `loadChapterContent` 冗余 IO；当该 IO 失败时 catch 块覆盖已可见的内容信号。
 
-`ChapterLoadOrchestrator.run()`（`chapter_load_orchestrator.dart`）的编排顺序：
+### 关键改动
 
-```
-line 123  chapterPlainFuture = _contentRepo.loadChapterContent(...)    ← 发起冗余加载
-line 139  quickResult = _runQuickPaginateForIntent(...)                ← stagingPromote→UI显示
-line 167  await Future.wait([chapterPlainFuture, calibFuture])         ← 等待冗余Future
-line 262  catch(e) → _error.value = ... + chapterContent=AsyncState.error  ← 冗余加载失败→覆盖信号
-```
-
-**问题细节**：
-
-1. 对于 `stagingPromoteForward/Backward` 意图，`_runStagingPromote` 已通过 Rust session adopt 完成分页并设置 `_error = null`、`_isLoading = false` —— **用户已看到新章内容**。
-2. 但 line 123 发起的 `chapterPlainFuture`（`loadChapterContent` → Rust `getChapter`）仍在后台运行。
-3. line 167 用 `Future.wait` 等待此冗余请求。若此时 `getChapter` 异常（文件 IO 错误、大章 OOM 等），catch 块**覆盖** `chapterContent` 和 `_error` 信号。
-4. 同样是 stagingPromote 路径中，`_runFinalize` line 607-611 的 `isPaginationValid` 检查若因 content 为空而失败，也会触发错误覆盖。
-
-### 影响范围
-
-- 仅 Pagination 模式（`ReadingMode.pagination`）的跨章 adjacent 导航受此影响。
-- Scroll/Bilingual 模式走 `_runScrollOrBilingualMode`，其流程无此冗余问题。
-- 复现条件：后台 `getChapter` 调用抛异常时触发。在真机上可能因大章文件读取争用、系统 IO 压力大等场景出现。
-- 即使冗余调用成功，也存在**不必要的双重 IO**（一次是 session paginate，一次是 getChapter）。
-
-### 关键代码
-
-| 位置 | 行 | 说明 |
-|------|----|------|
-| `chapter_load_orchestrator.dart` | 123 | 冗余 `loadChapterContent` 发起 |
-| `chapter_load_orchestrator.dart` | 139 | stagingPromote 立即成功→用户见内容 |
-| `chapter_load_orchestrator.dart` | 167 | 冗余 future 完成（或失败） |
-| `chapter_load_orchestrator.dart` | 261-267 | catch 块覆盖 error 信号 |
-| `chapter_load_orchestrator.dart` | 607-611 | pagination 验证失败→错误覆盖 |
+| 位置 | 改动 |
+|------|------|
+| `chapter_load_orchestrator.dart` | `chapterPlainFuture` 对 stagingPromote 使用 `Future.value('')` |
+| `chapter_load_orchestrator.dart` | catch 块增加 `isStagingPromote && content.value != null` 保护 |
 
 ---
 
-## Bug B — 翻页后当前页排版跳变
+## ✅ Bug B — 翻页后当前页排版跳变 — 已修复
 
-### 现象
+### 修复内容（2026-07-02）
 
-打开章节阅读后，翻几页（1-5 页），当前页的文本排版突然 **「跳变」**—— 字体大小、行高、每行字数发生变化，页面布局产生可见突变。
+`_syncPaginationSignalsAfterRepaginate` 使用 `_chapterVM.currentCharOffset.value`（当前实际位置）替代 `request.initialCharOffset`（请求时的初始位置），确保 `expandToFullChapter` / `repaginateAfterMetricsBackfeed` 后用户停留在同一文本位置，页码随页边界变化重映射但不跳变内容。
 
-### 根因
+### 关键改动
 
-**分页 `expandToFullChapter` / `repaginateAfterMetricsBackfeed` 在用户可见内容后修改 session 页边界。**
-
-`ChapterLoadOrchestrator.run()` 的时序：
-
-```
-line 139  _runCalibratedPartialPaginate → paginateFirstScreen(maxChars=2000)    ← 仅分页前2000字符
-          → _isLoading = false, _pageIndex = 0, user sees page 0
-line 167  await Future.wait([chapterPlainFuture, calibFuture])                ← 等待内容+校准
-line 178   backfeedFuture → _captureMetricsBackfeed                            ← TextPainter采样
-line 192   expandToFullChapter (if partial)                                    ← ⚠️ 全章分页
-line 215   repaginateAfterMetricsBackfeed (if calibration refined)             ← ⚠️ 用新校准重分页
-```
-
-**问题细节**：
-
-1. **首屏快速分页**（line 139）仅分前 2000 字符。`_runCalibratedPartialPaginate` 设置 signals 后用户即看到第 0 页，此时 page descriptors 只覆盖章节开头部分。
-2. line 167-168 的 `Future.wait` 是 await 点，**Dart 在此 yield 给事件循环**。若内容加载耗时较长（大章 EPUB rich 转换、DB 读取等），用户可以在这段时间内翻页操作（因为 UI 线程未被 `run()` 完全占用）。
-3. line 192 `expandToFullChapter` 调用 `paginate_session_full` 对**整个章节**重新分页。新分页的字符密度/页边界与初始的 2000-char 局部分页不同，导致已渲染页的文本内容改变。
-4. line 215 `repaginateAfterMetricsBackfeed` 在 `applySessionCalibration` 后重新分页。校准的 CJK 字符宽度变化使每一页的字符数变化，所有页边界偏移——**排版跳变**。
-
-### 触发条件
-
-- **分页模式**（`ReadingMode.pagination`）下 `normalLoad` 意图（新章打开、进度恢复）。
-- 初始分页为 `isPartial = true`（首屏 < 2000 字符）时最明显。
-- 若 `_captureMetricsBackfeed` 检测到校准漂移（`calibrationDriftExceeds`），`repaginateAfterMetricsBackfeed` 会改变所有页边界。
-
-### 影响范围
-
-- 分页模式下所有章节首次加载（`normalLoad`）。
-- 配置变更（`configReload`）也会触发 backfeed + repaginate，但此时用户已主动感知设置变化。
-- 同章内翻页（`expandOnly` intent）不受直接影响（backfeed 已通过 `shouldBackfeed` 门闸隔离）。
-
-### 关键代码
-
-| 位置 | 行 | 说明 |
-|------|----|------|
-| `chapter_load_orchestrator.dart` | 139 | 仅分页 2000 字符就让用户可见 |
-| `chapter_load_orchestrator.dart` | 158 | 注释承认 expandOnly backfeed 导致 Bug B |
-| `chapter_load_orchestrator.dart` | 159-164 | `shouldBackfeed` 门闸（已限 normalLoad/configReload） |
-| `chapter_load_orchestrator.dart` | 192 | `expandToFullChapter` 全章重分页 |
-| `chapter_load_orchestrator.dart` | 215 | `repaginateAfterMetricsBackfeed` 用新校准重分页 |
-| `pagination_coordinator.dart` | 138-147 | `repaginateAfterMetricsBackfeed` 实现 |
+| 位置 | 改动 |
+|------|------|
+| `chapter_load_orchestrator.dart` `_syncPaginationSignalsAfterRepaginate` | `currentCharOffset` 替代 `request.initialCharOffset` |
 
 ---
 
-## 修复方向（草案，不承诺实施）
+## ✅ P1 — `dispose_pagination_session` 缺少 `#[frb(sync)]` — 已修复
 
-### Bug A
+`dispose_pagination_session` 添加 `#[frb(sync)]` 标注，FRB 绑定从 `Future<void>` 变为 `void`，Dart 侧调用从异步变为同步。
 
-**方案 A**：stagingPromote 路径跳过 `chapterPlainFuture`（或改为只用于搜索索引等非关键路径，且失败不覆盖 error）。
+## ✅ P2 — 模式切换时 session 未 dispose — 已修复
 
-```dart
-// 在 Future.wait 前判断：
-if (intent == stagingPromoteForward || intent == stagingPromoteBackward) {
-  // 不等待 chapterPlainFuture，仅等待 calibFuture
-  // 内容已通过 session 可用
-}
-```
+`setReadingMode()` 中非 pagination 模式前调用 `_repo.disposePagination()`，避免 PaginationSession 和 LRU engine 悬空占用内存。
 
-**方案 B**：catch 块增加 intent 判断，stagingPromote 路径忽略 `loadChapterContent` 失败。
+---
 
-### Bug B
+## 仍开放的 Bug（2026-07-02 确认，部分已修复）
 
-**方案 A**：`expandToFullChapter` 和 `repaginateAfterMetricsBackfeed` 完成后保持当前页视觉稳定——记录当前的 `charOffset`，重新映射到新页编号，不做视觉跳跃。
+### P1 — 影响用户可见行为
 
-**方案 B**：首屏分页后暂缓 repaginate，**首次翻页时**再进行全章分页+校准回传（此时用户已在翻页过渡中，跳变感知降低）。
+| # | Bug | 位置 | 现象 | 状态 |
+|---|-----|------|------|------|
+| 1 | **TOC href fallback 导致章节边界偏移** | `rust/src/parser/epub/toc.rs:81-97` | 部分 EPUB 的 TOC href 未匹配 spine → 均匀分配到剩余 spine | ❌ 仍开放 |
+| 2 | **滚动跨章高亮 offset 冲突** | `scroll_mode_renderer.dart` + `highlight_painter.dart` | 多段拼接时相邻章高亮的 charOffset 指向错误位置 | ❌ 仍开放 |
+| 3 | **选区工具栏定位不准** | `reader_interaction_layer.dart:53-58` | 左右仍铺满全屏而非跟随选区 X | ❌ 仍开放（Y 已改善） |
+| 4 | **WidgetSpan height: double.infinity** | `highlight_painter.dart` | 高亮竖条在某些 TextSpan 上下文引发布局错误 | ✅ 已修复（改为 finite barHeight） |
 
-**方案 C**：在 `normalLoad` 中先完成内容加载和校准，再做分页，但牺牲首屏速度（与 ADR-013 设计目标冲突）。
+### P2 — 不直接影响主路径，但存在隐患
+
+| # | Bug | 位置 | 现象 | 状态 |
+|---|-----|------|------|------|
+| 5 | **Doc 注释与常量不一致** | `rust/src/text/pagination.rs:125-127` | 注释说「50K 字符阈值」，实际 `200_000` | ✅ 已修复（注释更新为 200K） |
+| 6 | **`PageStreamer.from_pages()` 硬编码 `is_partial = false`** | `rust/src/text/pagination.rs:173` | 接口语义上调用方无法表达 partial-from-cache | ❌ 仍开放 |
+| 7 | **Session dispose 后 store 残留语义不精确** | `rust/src/api/core.rs:333` | LRU 覆盖场景下 evict 的不是原 engine | ❌ 仍开放（已改善） |
+| 8 | **End-avoid 标点仅在预处理阶段** | `rust/src/text/typeset.rs` | 行断计算不处理避头尾标点 | ❌ 仍开放 |
+| 9 | **HighlightPainter 静态缓存 stale** | `highlight_painter.dart:13-32` | baseStyle 不参与缓存键，样式变更后返回旧缓存 | ✅ 已修复（加入 styleHash） |
+| 10 | **Scroll 预加载错误被静默吞掉** | `scroll_boundary_coordinator.dart:93` | `catchError((_) {})` 丧失诊断信息 | ✅ 已修复（添加 Logging） |
+| 11 | **Orchestrator preload 错误被静默吞掉** | `chapter_load_orchestrator.dart:738` | `catchError((_) {})` 丧失诊断信息 | ✅ 已修复（添加 Logging） |
+
+### P3 — 代码异味 / 架构债务（当前安全但脆弱）
+
+| # | 问题 | 位置 | 说明 |
+|---|------|------|------|
+| 12 | **u64 config_hash 截断为 Dart int** | Dart 侧 `toInt()` | 50% 概率 MSB=1 → 负数；同类比较安全但跨系统持久化会 miss |
+| 13 | **两套分页 API 路径不统一** | path-based vs handle-based | `PaginationStore` 已统一存储，但 path-based `paginate_chapter` + `get_page_content` 仍存在 |
+| 14 | **Block Paginator chunk 边界不考虑图片跨 chunk** | `block_paginator.rs:416` | `CHUNK_BLOCK_COUNT=200` 机械分块，大图片在边界附近时 merge 仅调 page_index 不重排版 |
+
+---
+
+## ✅ 已在代码演进中解决的问题（无需手动修复）
+
+| # | 原问题 | 现状 |
+|---|--------|------|
+| EPUB 导入 `file_size: 0` | `rust/src/parser/epub/parse.rs:78` 现使用 `std::fs::metadata` 获取真实大小 |
+| STREAMER_CACHE 容量=4 | `PaginationStore` 容量已升为 16 (`PAGINATION_ENGINE_CACHE_CAPACITY`) |
+| `PaginationEngine.paginateApproximate` 后备路径 | 已从代码库移除，`ReaderRepositoryInterface` 无此方法 |
+| `dispose_pagination_session` async → sync | 已添加 `#[frb(sync)]`，FRB 绑定为同步调用 |
+| WidgetSpan height: infinity | 高亮竖条改为 `(fontSize × lineHeightMultiplier)` 的有限高度 |
+| Doc 注释 50K vs 200K | 注释已更新为「200K 字符」 |
+| HighlightPainter 缓存不含 style | `baseStyle.hashCode` / `span.style.hashCode` 加入缓存键 |
+| Scroll/Orc preload 静默 catchError | 添加 `Logging.debug` 日志输出 |
+
+## ✅ 本次手动修复的问题（2026-07-02 第二轮）
+
+| # | 修复 | 改动文件 |
+|---|------|----------|
+| Bug A 跨章错误重试 | stagingPromote 路径跳过冗余 IO + catch 块保护 | `chapter_load_orchestrator.dart` |
+| Bug B 翻页跳变 | `_syncPaginationSignalsAfterRepaginate` 用当前 charOffset | `chapter_load_orchestrator.dart` |
+| P1 dispose sync | `#[frb(sync)]` + FRB 重新生成 | `rust/src/api/core.rs` |
+| P2 mode switch dispose | `setReadingMode` 非 pagination 前调 `disposePagination()` | `reader_view_model.dart` |
+| P1-4 WidgetSpan infinity | `barHeight = fontSize × height` 替代 `double.infinity` | `highlight_painter.dart` |
+| P2-5 Doc comment | 注释 50K → 200K | `pagination.rs` |
+| P2-9 缓存 stale | `styleHash` 加入缓存键 | `highlight_painter.dart` |
+| P2-10/11 静默 catchError | 添加 `Logging.debug` | `scroll_boundary_coordinator.dart`, `chapter_load_orchestrator.dart` |

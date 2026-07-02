@@ -122,7 +122,7 @@ pub struct PageStreamer {
 
 /// 主动模式内存阈值（100 MB），超过此大小记录警告
 const PAGE_STREAMER_MEMORY_THRESHOLD: usize = 100 * 1024 * 1024;
-/// 懒加载模式字符数阈值（50K 字符）
+/// 懒加载模式字符数阈值（200K 字符）
 /// 当内容字符数超过此值时使用懒加载分页，避免预计算所有行偏移
 const LAZY_PAGINATION_CHAR_THRESHOLD: usize = 200_000;
 
