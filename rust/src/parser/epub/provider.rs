@@ -4,7 +4,7 @@
 //! 每个 spine 的纯文本在其内容首次被请求时才加载和缓存，
 //! 避免首次访问时加载整章所有 spine item 的内存浪费。
 
-use once_cell::sync::OnceCell as OnceLock;
+use std::sync::OnceLock as OnceLock;
 
 use parking_lot::Mutex;
 

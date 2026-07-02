@@ -18,7 +18,7 @@ use super::chapter_ir::load_chapter_content_ir;
 use super::layout_cache::{
     try_get_block_cached, try_get_cached, try_save_block_cached, try_save_cached,
 };
-use super::pagination_engine::PaginationEngine;
+use super::pagination_store::PaginationEngine;
 use super::pagination_store::{PaginationKey, PaginationStore};
 use super::provider_cache::get_or_create_provider;
 

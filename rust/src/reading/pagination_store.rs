@@ -17,7 +17,16 @@ use parking_lot::Mutex;
 
 use crate::domain::{AppError, ChapterPaginationMode, PaginateResult};
 
-use super::pagination_engine::PaginationEngine;
+use crate::reading::block_state::BlockPaginationState;
+use crate::text::PageStreamer;
+
+/// Session / 内存 LRU 持有的分页引擎。
+#[derive(Clone)]
+pub(crate) enum PaginationEngine {
+    Plain(PageStreamer),
+    Block(BlockPaginationState),
+}
+
 
 const PAGINATION_ENGINE_CACHE_CAPACITY: NonZeroUsize = match NonZeroUsize::new(16) {
     Some(v) => v,
@@ -84,6 +93,7 @@ impl PaginationStore {
     }
 
     /// 清空内存 LRU（测试用：验证 sled 跨 session 命中）。
+#[cfg(test)]
     pub fn clear_lru_for_test(&self) {
         PAGINATION_ENGINE_CACHE.lock().clear();
     }

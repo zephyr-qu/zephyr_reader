@@ -10,7 +10,7 @@ use crate::storage::models::BookFormat;
 use crate::storage::repos::{BookRepository, ChapterRepository};
 use crate::storage::storage_pool;
 
-use super::book_id_cache::BOOK_ID_CACHE;
+use super::BOOK_ID_CACHE;
 use crate::api::core::{ChapterContent, FirstSpineResult};
 use crate::domain::PageContent;
 use crate::reading::layout_cache::{try_get_cached, try_save_cached};
