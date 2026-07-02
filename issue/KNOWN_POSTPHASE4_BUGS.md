@@ -3,6 +3,7 @@
 > 2026-06-27 代码审阅 + 动态分析确认。
 > 2026-07-02 更新：Bug A、Bug B 已修复；追加 P1–P5 新确认的 bug 和风险项。
 > 2026-07-02 第三轮：P1-1、P1-2、P1-3、P2-6、P2-7 已修复。
+> 2026-07-02 第四轮：P0 架构统一（纯文本书分页走 IR + BlockPaginator）+ P3-13 部分解决。
 
 ---
 
@@ -78,7 +79,7 @@
 | # | 问题 | 位置 | 说明 |
 |---|------|------|------|
 | 12 | **u64 config_hash 截断为 Dart int** | Dart 侧 `toInt()` | 50% 概率 MSB=1 → 负数；同类比较安全但跨系统持久化会 miss |
-| 13 | **两套分页 API 路径不统一** | path-based vs handle-based | `PaginationStore` 已统一存储，但 path-based `paginate_chapter` + `get_page_content` 仍存在 |
+| 13 | **两套分页 API 路径不统一** | path-based vs handle-based | ⚡ 部分解决：P0 消除了 block/plain 双真理源，所有章节统一走 IR → BlockPaginator；handle-based 统一见 ADR-014 |
 | 14 | **Block Paginator chunk 边界不考虑图片跨 chunk** | `block_paginator.rs:416` | `CHUNK_BLOCK_COUNT=200` 机械分块，大图片在边界附近时 merge 仅调 page_index 不重排版 |
 
 ---
@@ -118,3 +119,14 @@
 | P1-3 选区工具栏 X 定位 | `Align` + `toolbarCenterX` 居中定位替代 `left:0, right:0` 全宽 | `reader_interaction_layer.dart` |
 | P2-6 from_pages is_partial | `from_pages` 接收 `is_partial: bool` 参数替代硬编码 | `rust/src/text/pagination.rs`, `rust/src/reading/pagination.rs` |
 | P2-7 session dispose 双锁竞态 | 合并为单次 `SESSION_MAP.lock()` + 消除 `let _ = &entry` | `rust/src/reading/session.rs` |
+
+## ✅ P0 架构统一修复（2026-07-02 第四轮）
+
+| # | 修复 | 改动文件 |
+|---|------|----------|
+| P0 纯文本书分页走 IR | `try_paginate_chapter_blocks` 移除 `image_block_count() == 0` guard，所有章节统一走 BlockPaginator | `rust/src/reading/pagination.rs` |
+| P0 paginate_all_content 走 block | 改为 IR → `paginate_chapter_ir_chunked`，不再走 `PageStreamer::paginate_all` | `rust/src/reading/pagination.rs` |
+| P0 BlockPaginationState.to_page_content_list | 新增方法，从 block state 构造 `Vec<PageContent>` | `rust/src/reading/block_state.rs` |
+| P0 chapter_has_image_blocks deprecated | 标记 deprecated，P5 移除 | `rust/src/reading/pagination.rs` |
+| P0 Dart staging 统一 maxChars:null | 移除 `chapterHasImageBlocks` 分支，staging 始终全章 block 分页 | `rust_chapter_content_repository.dart` |
+| P0 Dart session adopt 检查统一 | 移除 `_chapterNeedsBlockPath`，任何 stale plain-full → recreate block | `rust_pagination_session.dart` |

@@ -239,15 +239,12 @@ class RustPaginationSession implements PaginationSession {
         '(pages=${result.descriptors.length}, isPartial=${result.isPartial}, mode=${result.mode})',
       );
 
-      final needsBlockPath = await _chapterNeedsBlockPath(
-        filePath: book.filePath,
-        chapterIndex: chapterIndex,
-      );
-      if (needsBlockPath &&
-          result.mode != ChapterPaginationMode.contentBlocks &&
+      // P0: all chapters now require block path. If adopt returns
+      // stale plain-full cache (from pre-P0 sled), recreate as block session.
+      if (result.mode != ChapterPaginationMode.contentBlocks &&
           !result.isPartial) {
         Logging.info(
-          '[Session] adopt stale plain-full cache for image chapter ch=$chapterIndex → recreate block session',
+          '[Session] adopt stale plain-full cache ch=$chapterIndex → recreate block session (P0)',
         );
         _releaseHandle();
         return beginPaginate(
@@ -276,23 +273,6 @@ class RustPaginationSession implements PaginationSession {
         params: params,
         maxChars: maxChars,
       );
-    }
-  }
-
-  Future<bool> _chapterNeedsBlockPath({
-    required String filePath,
-    required int chapterIndex,
-  }) async {
-    try {
-      return await core_api.chapterHasImageBlocks(
-        filePath: filePath,
-        chapterIndex: chapterIndex,
-      );
-    } catch (e) {
-      Logging.warning(
-        '[Session] chapterHasImageBlocks failed ch=$chapterIndex: $e',
-      );
-      return false;
     }
   }
 
