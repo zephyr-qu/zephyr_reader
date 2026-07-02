@@ -1,6 +1,7 @@
 # 核心链路审查报告：解析 → 排版 → 渲染
 
-> 审查日期: 2026-06-26
+> 初版日期: 2026-06-26
+> **复核日期: 2026-07-02** — Bug A/B 已修复，标注已改善项和仍开放 bug
 > 范围: `rust/src/` + `lib/features/reader/`
 > 方法: 动态代码审查 + `cargo test --lib` + `dart analyze`
 
@@ -54,14 +55,14 @@ flowchart LR
 - 路径安全校验（`validate_file_path` canonicalize）
 - SVG `<svg>` → `<svg>` 重复导入：`parse_book` 先 `find_by_file_path` 预检去重
 
-### 1.2 待解决问题
+### 1.2 待解决问题（2026-07-02 复核）
 
-| 问题                                      | 位置                                                                              | 影响                           |
-| --------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------- |
-| **EPUB 内容提取两套活跃路径**                     | Scroll 已统一到 IR（`get_chapter_content_ir`），双语仍走 `getEpubChapterRichContent`（Rich） | 剩余 Rich 路径仅双语使用，维护面已大幅收敛     |
-| **TOC href 映射失败 distributing fallback** | `toc.rs` 提取 TOC 时 href 未匹配 spine → 按失败条目数均匀分配到剩余 spine                          | 部分 EPUB 章节边界偏移，边界字符可能跨章节归属错误 |
-| **错误被 Dart 吞掉**                         | `BookImportService` 只返回 bool；`catchError((_) => [])` 静默丢弃 rich content 失败       | 导入/加载失败无反馈                   |
-| **EPUB 导入时** **`file_size: 0`**         | TXT 设置真实大小，EPUB 留 0                                                             | 书架文件大小显示异常                   |
+| 问题                                      | 位置                                                                              | 影响                           | 状态 |
+| --------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------- | ---- |
+| **EPUB 内容提取两套活跃路径**                     | Scroll 已统一到 IR（`get_chapter_content_ir`），双语仍走 `getEpubChapterRichContent`（Rich） | 剩余 Rich 路径仅双语使用，维护面已大幅收敛     | 缓解 |
+| **TOC href 映射失败 distributing fallback** | `toc.rs` 提取 TOC 时 href 未匹配 spine → 按失败条目数均匀分配到剩余 spine                          | 部分 EPUB 章节边界偏移，边界字符可能跨章节归属错误 | ❌ 仍开放 |
+| **错误被 Dart 吞掉**                         | `catchError((_) => [])` 在 rich content fallback 处已有 `Logging.warning`；但 scroll 预加载 / orchestrator preload 仍用 `catchError((_) {})`  | 部分 preload 失败无诊断信息 | ⚠️ 部分改善 |
+| **EPUB 导入时 `file_size: 0`**            | ✅ **已修复** — `parse.rs:78` 现使用 `std::fs::metadata` 获取真实大小                         | 原书架文件大小显示异常已解决             | ✅ 已修复 |
 
 ### 1.3 并发 / 缓存
 
@@ -121,12 +122,13 @@ Book file
 4. 从 `PageDescriptor.startOffset/endOffset` 解析 `pageIndex`
 5. 预加载当前页 ±3
 
-### 2.3 待解决问题
+### 2.3 待解决问题（2026-07-02 复核）
 
 - ~~首行缩进~~ ✅ IR 路径用 `WidgetSpan` 像素精确缩进，Rich 路径用 CJK 全角空格（2026-06-26）
-- **End-avoid 标点只在预处理**：`optimize_punctuation` 处理，`compute_line_breaks_from_indices` 不处理
-- **分页/滚动内容分裂**：IR 路径已统一（分页/滚动同走 `TextBlockStyle`），plain 回退仅 TXT 无样式时触发
-- **全章 materialize 开销**：cache miss 时 `paginate_chapter` 构建全部 `PageContent` 字符串再写 KV
+- **End-avoid 标点只在预处理**：`optimize_punctuation` 处理，`compute_line_breaks_from_indices` 不处理 ❌ 仍开放
+- **分页/滚动内容分裂**：IR 路径已统一（分页/滚动同走 `TextBlockStyle`），plain 回退仅 TXT 无样式时触发 ✅
+- **全章 materialize 开销**：cache miss 时 `paginate_chapter` 构建全部 `PageContent` 字符串再写 KV ❌ 仍开放
+- ~~Bug B 翻页排版跳变~~ ✅ 已修复（`_syncPaginationSignalsAfterRepaginate` 使用当前 charOffset）
 
 ### 2.4 关键文件
 
@@ -157,15 +159,15 @@ Book file
 
 入口：`lib/features/reader/core/presentation/reader_content_area.dart` → `ReaderContent` → 模式 Renderer。
 
-### 3.2 功能缺口
+### 3.2 功能缺口（2026-07-02 复核）
 
-| 缺口                                           | 说明                                                                                    |
-| -------------------------------------------- | ------------------------------------------------------------------------------------- |
-| **分页模式无图片**                                  | `isPaginated` 时跳过 rich content 加载；Renderer 只处理 plain text                             |
-| **上一章衔接页用 hold frame**                       | staging 命中时显示上一章末页内容，miss 时显示当前章首页（`_buildHoldFrame`）；descriptor 不可用时才降级为 skeleton 占位 |
-| **每页内嵌 ScrollView**                          | 内容超出 viewport 时在页内滚动，而非重新分页                                                           |
-| **选区工具栏定位**                                  | 用 widget 左上角而非选区 caret 位置                                                             |
-| **`WidgetSpan`** **height: double.infinity** | 高亮竖条可能在部分 TextSpan 上下文引发布局错误                                                          |
+| 缺口                                           | 说明                                                                                    | 状态 |
+| -------------------------------------------- | ------------------------------------------------------------------------------------- | ---- |
+| **分页模式无图片**                                  | `isPaginated` 时跳过 rich content 加载；Renderer 只处理 plain text                             | ❌ 仍开放 |
+| **上一章衔接页用 hold frame**                       | staging 命中时显示上一章末页内容，miss 时显示当前章首页（`_buildHoldFrame`）；descriptor 不可用时才降级为 skeleton 占位 | 缓解 |
+| **每页内嵌 ScrollView**                          | 内容超出 viewport 时在页内滚动，而非重新分页                                                           | ❌ 仍开放 |
+| **选区工具栏定位**                                  | 上下定位已用 caret Y 坐标（改善）；左右仍铺满全屏而非跟随选区 X                                                | ⚠️ 部分改善 |
+| **`WidgetSpan`** **height: double.infinity** | 高亮竖条可能在部分 TextSpan 上下文引发布局错误                                                          | ❌ 仍开放 |
 
 ### 3.3 性能 / 内存
 
@@ -201,11 +203,15 @@ IR 路径已将 scroll 和 block 分页统一到 `TextBlockStyle`（8 字段全�
 
 
 
-## 五、Phase 4 遗留已知 Bug
+## 五、Phase 4 遗留已知 Bug（2026-07-02 更新）
 
 详见 [`KNOWN_POSTPHASE4_BUGS.md`](./KNOWN_POSTPHASE4_BUGS.md)：
 
-| Bug | 现象 | 根因 |
+| Bug | 状态 | 现象 / 根因 |
 |-----|------|------|
-| **A — 跨章错误重试** | stagingPromote 后冗余 `loadChapterContent` 出现「加载失败」提示 | `orchestrator.run()` line 123 的冗余 FFI 在 line 167 后置覆盖 error 信号 |
-| **B — 翻页排版跳变** | `expandToFullChapter` / `repaginateAfterMetricsBackfeed` 改变已渲染页边界 | 首屏 partial 分页后全章重分页改变字符分布；calibration 回传后所有页偏移 |
+| **A — 跨章错误重试** | ✅ 已修复 | stagingPromote 路径跳过冗余 `loadChapterContent`；catch 块增加保护 |
+| **B — 翻页排版跳变** | ✅ 已修复 | `_syncPaginationSignalsAfterRepaginate` 使用当前 charOffset 替代 request.initialCharOffset |
+| **TOC href fallback 偏移** | ❌ 仍开放 | 部分 EPUB TOC href 未匹配 spine → 均匀分布，章节边界可能偏移 |
+| **滚动跨章高亮 offset 冲突** | ❌ 仍开放 | 多段拼接时相邻章高亮的 charOffset 指向错误位置 |
+| **WidgetSpan height: infinity** | ❌ 仍开放 | 高亮竖条在某些 TextSpan 上下文引发布局错误 |
+| **Doc 注释 50K vs 实际 200K** | ❌ 仍开放 | `LAZY_PAGINATION_CHAR_THRESHOLD` 注释与常量不一致 |

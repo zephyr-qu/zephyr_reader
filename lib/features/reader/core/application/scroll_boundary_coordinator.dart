@@ -90,7 +90,9 @@ class ScrollBoundaryCoordinator {
       if (payload.epubRichSkipped && readingMode == ReadingMode.bilingual) {
         _onReaderNotice?.call(ReaderNotice.epubRichSkipped);
       }
-      unawaited(_repo.preloadChapter(bookId, nextIdx + 1).catchError((_) {}));
+      unawaited(_repo.preloadChapter(bookId, nextIdx + 1).catchError((Object e) {
+        Logging.debug('[ScrollCoord] preloadChapter(nextIdx+1) failed: $e');
+      }));
     } catch (e) {
       Logging.debug('[ScrollCoord] appendNext failed: $e');
     } finally {

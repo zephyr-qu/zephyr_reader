@@ -735,7 +735,9 @@ class ChapterLoadOrchestrator {
         batch.map(
           (i) => _contentRepo
               .preloadChapter(_chapterVM.bookId.value, i)
-              .catchError((_) {}),
+              .catchError((Object e) {
+            Logging.debug('[Orchestrator] preloadChapter($i) failed: $e');
+          }),
         ),
       );
     }
