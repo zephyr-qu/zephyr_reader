@@ -5,6 +5,7 @@
 > 2026-07-02 第三轮：P1-1、P1-2、P1-3、P2-6、P2-7 已修复。
 > 2026-07-02 第四轮：P0 架构统一（纯文本书分页走 IR + BlockPaginator）+ P3-13 部分解决。
 > 2026-07-02 第五轮：P1 合并 sled 双缓存（plain sled → block sled 唯一真理源）。
+> 2026-07-02 第六轮：P2 避尾标点行断逻辑（end-avoid punctuation + start-avoid 回拉）。
 
 ---
 
@@ -70,7 +71,7 @@
 | 5 | **Doc 注释与常量不一致** | `rust/src/text/pagination.rs:125-127` | 注释说「50K 字符阈值」，实际 `200_000` | ✅ 已修复（注释更新为 200K） |
 | 6 | **`PageStreamer.from_pages()` 硬编码 `is_partial = false`** | `rust/src/text/pagination.rs:162` | 接口语义上调用方无法表达 partial-from-cache | ✅ 已修复（from_pages 接收 is_partial 参数） |
 | 7 | **Session dispose 后 store 残留语义不精确** | `rust/src/reading/session.rs:322-337` | 双锁竞态窗口 + let _ = &entry 无意义 | ✅ 已修复（合并为单次锁 + 消除空操作） |
-| 8 | **End-avoid 标点仅在预处理阶段** | `rust/src/text/typeset.rs` | 行断计算不处理避头尾标点 | ❌ 仍开放 |
+| 8 | **End-avoid 标点仅在预处理阶段** | `rust/src/text/typeset.rs` | 行断计算不处理避头尾标点 | ✅ 已修复（行断计算增加避尾 while 循环 + 避头回拉） |
 | 9 | **HighlightPainter 静态缓存 stale** | `highlight_painter.dart:13-32` | baseStyle 不参与缓存键，样式变更后返回旧缓存 | ✅ 已修复（加入 styleHash） |
 | 10 | **Scroll 预加载错误被静默吞掉** | `scroll_boundary_coordinator.dart:93` | `catchError((_) {})` 丧失诊断信息 | ✅ 已修复（添加 Logging） |
 | 11 | **Orchestrator preload 错误被静默吞掉** | `chapter_load_orchestrator.dart:738` | `catchError((_) {})` 丧失诊断信息 | ✅ 已修复（添加 Logging） |
@@ -143,3 +144,11 @@
 | P1 移除 try_plain_full_hit | `PaginationStore` 不再探测 plain 全章命中 | `pagination_store.rs` |
 | P1 PaginationEngine::Plain 标注 in-memory | 仅用于 partial 首屏路径（不持久化到 sled） | `pagination_store.rs` |
 | P1 kv_store 测试更新 | 移除所有 plain sled 测试，保留 block sled 测试 | `kv_store.rs`, `layout_cache_repo.rs` |
+
+## ✅ P2 避尾标点行断逻辑（2026-07-02 第六轮）
+
+| # | 修复 | 改动文件 |
+|---|------|----------|
+| P2-8 避尾标点行断 | `compute_line_breaks_from_indices` 增加 end-avoid while 循环，开括号不再出现在行尾 | `pagination.rs` |
+| P2-8 避头标点回拉 | 避尾处理后仍保留避头回拉（start-avoid），顺序：先避尾再避头 | `pagination.rs` |
+| P2-8 测试 | 3 个新测试：end-avoid 不出现在行尾、start-avoid 不出现在行首、直接测试 `compute_line_breaks_from_indices` | `pagination.rs` |
