@@ -6,6 +6,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 
 /// 富文本转换器
@@ -197,8 +198,8 @@ class RichTextConverter {
         final b = int.parse(h[2] * 2, radix: 16);
         return Color.fromARGB(255, r, g, b);
       }
-    } catch (_) {
-      // hex 格式无效，返回 null
+    } catch (e) {
+      Logging.debug('CSS 颜色解析失败(hex=$hex): $e');
     }
     return null;
   }

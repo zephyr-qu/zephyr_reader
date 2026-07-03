@@ -41,7 +41,8 @@ class CategoryViewModel {
     try {
       final cats = await category_api.listCategoriesByBook(bookId: bookId);
       return cats.map((c) => c.id).toSet();
-    } catch (_) {
+    } catch (e) {
+      Logging.warning('获取书籍分类失败(bookId=$bookId): $e');
       return {};
     }
   }

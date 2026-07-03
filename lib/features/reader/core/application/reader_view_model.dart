@@ -163,7 +163,8 @@ class ReaderViewModel {
   Future<void> saveHighlight(AppLocalizations l10n) async {
     try {
       await annotations.saveHighlight();
-    } catch (_) {
+    } catch (e) {
+      Logging.error('保存高亮失败', exception: e);
       toastMessage.value = l10n.saveHighlightFailed;
     }
   }
@@ -174,7 +175,8 @@ class ReaderViewModel {
   ) async {
     try {
       await annotations.saveAnnotation(annotationContent);
-    } catch (_) {
+    } catch (e) {
+      Logging.error('保存批注失败', exception: e);
       toastMessage.value = l10n.saveAnnotationFailed;
     }
   }
@@ -184,7 +186,8 @@ class ReaderViewModel {
       await bilingual?.deleteBilingualPair(noteId: noteId);
       await HapticFeedback.heavyImpact();
       await annotations.loadHighlights(forceRefresh: true);
-    } catch (_) {
+    } catch (e) {
+      Logging.error('删除笔记失败(noteId=$noteId)', exception: e);
       toastMessage.value = l10n.deleteHighlightFailed;
     }
   }
@@ -192,7 +195,8 @@ class ReaderViewModel {
   Future<void> updateNote(Note note, AppLocalizations l10n) async {
     try {
       await annotations.updateNote(note);
-    } catch (_) {
+    } catch (e) {
+      Logging.error('更新笔记失败', exception: e);
       toastMessage.value = l10n.updateNoteFailed;
     }
   }

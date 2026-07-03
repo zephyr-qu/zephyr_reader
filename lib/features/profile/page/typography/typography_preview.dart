@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:signals_hooks/signals_hooks.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/domain/service/custom_font_service.dart';
 import 'package:zephyr_reader/features/reader/domain/model/font_info.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
@@ -14,7 +15,8 @@ String _fontFamily(FontRepository fontRepo, String fontId) {
       (f) => f.id == fontId,
     );
     return fontRepo.familyNameFor(font);
-  } catch (_) {
+  } catch (e) {
+    Logging.debug('字体查找失败(fontId=$fontId)，回退到系统默认: $e');
     return 'system-ui, sans-serif';
   }
 }

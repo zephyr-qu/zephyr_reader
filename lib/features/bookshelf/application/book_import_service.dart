@@ -125,8 +125,8 @@ class BookImportService {
         filePath: filePath,
         outputDir: coverDir,
       );
-    } catch (_) {
-      // 封面提取失败不影响导入结果
+    } catch (e) {
+      Logging.warning('封面提取失败(不影响导入): $e');
     }
   }
 }

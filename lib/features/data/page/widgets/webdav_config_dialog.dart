@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/data/application/services/sync_models.dart';
 import 'package:zephyr_reader/features/data/application/services/webdav_config_service.dart';
 import 'package:zephyr_reader/features/data/application/data_management_view_model.dart';
@@ -178,7 +179,8 @@ Future<void> showWebDavConfigDialog(
                 Navigator.of(context).pop(true);
                 if (!context.mounted) return;
                 showSuccessSnack(context, l10n.configSaved);
-              } catch (_) {
+              } catch (e) {
+                Logging.error('WebDAV 配置保存失败', exception: e);
                 if (!context.mounted) return;
                 showErrorSnack(context, l10n.saveConfigFailed);
               }

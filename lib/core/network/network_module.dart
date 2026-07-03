@@ -72,7 +72,8 @@ class _SimpleRetryInterceptor extends Interceptor {
     try {
       final response = await Dio().fetch<dynamic>(err.requestOptions);
       return handler.resolve(response);
-    } catch (_) {
+    } catch (e) {
+      Logging.warning('HTTP 重试仍失败，传递给下一个处理器: $e');
       return handler.next(err);
     }
   }

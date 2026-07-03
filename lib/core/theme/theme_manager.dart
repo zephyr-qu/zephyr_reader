@@ -4,6 +4,7 @@ import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 
 /// App主题类型枚举
@@ -37,7 +38,9 @@ class ThemeManager {
       if (str != null) {
         try {
           return AppThemeType.values.byName(str);
-        } catch (_) {}
+        } catch (e) {
+          Logging.debug('主题类型解析失败，回退到索引方式: $e');
+        }
       }
       final idx = p.getIntOrNull(k);
       if (idx != null && idx >= 0 && idx < AppThemeType.values.length) {
