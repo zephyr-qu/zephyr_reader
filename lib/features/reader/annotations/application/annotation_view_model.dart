@@ -44,7 +44,7 @@ class AnnotationViewModel {
       highlights.value = AsyncState.data(notes);
     } catch (e) {
       Logging.warning('加载章节批注失败(chapter=$idx): $e');
-      highlights.value = AsyncState.data([]);
+      highlights.value = AsyncState.error(e);
     }
   }
 

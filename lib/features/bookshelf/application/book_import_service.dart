@@ -74,6 +74,7 @@ class BookImportService {
             success++;
           } catch (e, stack) {
             fail++;
+            errors.add(file);
             Logging.error(
               'scanFolder error: $file',
               exception: e,
