@@ -247,7 +247,9 @@ class WifiTransferService {
       try {
         final file = File(savePath);
         if (await file.exists()) await file.delete();
-      } catch (_) {} // 清理失败不影响上传流程
+      } catch (e) {
+        Logging.warning('清理临时文件失败: $e');
+      }
     } catch (e) {
       _log('上传失败: $e', isError: true);
       try {

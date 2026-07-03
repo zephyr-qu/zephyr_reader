@@ -37,7 +37,9 @@ class DictionarySettingsViewModel {
     loading.value = true;
     try {
       dictionaries.value = await dict_api.listDictionaries();
-    } catch (_) {}
+    } catch (e) {
+      Logging.warning('加载词典列表失败: $e');
+    }
     loading.value = false;
   }
 

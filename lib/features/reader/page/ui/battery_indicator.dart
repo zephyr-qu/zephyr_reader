@@ -5,6 +5,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/battery/battery_state_service.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 
 /// 阅读页右下角电量和阅读进度指示器。
 ///
@@ -88,7 +89,8 @@ class BatteryIndicator extends HookWidget {
       final state = await BatteryStateService.instance.getBatteryState();
       level.value = state.batteryLevel;
       isCharging.value = state.isCharging;
-    } catch (_) {
+    } catch (e) {
+      Logging.debug('获取电池状态失败，标记不支持: $e');
       supported.value = false;
     }
   }

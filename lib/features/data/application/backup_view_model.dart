@@ -149,8 +149,8 @@ class BackupViewModel {
                 .millisecondsSinceEpoch ~/
             1000;
         await backup_api.cleanupAutoSnapshots(olderThanUnix: cutoff);
-      } catch (_) {
-        // 快照清理失败不影响还原结果
+      } catch (e) {
+        Logging.warning('快照清理失败(不影响还原结果): $e');
       }
 
       // 更新元信息

@@ -262,7 +262,9 @@ PersistedSignal<T> persistedEnumCustom<T extends Enum>(
       if (stored == null) return defaultValue;
       try {
         return reader(stored);
-      } catch (_) {}
+      } catch (e) {
+        Logging.debug('PersistedSignal[$key] 反序列化失败，回退到默认值: $e');
+      }
       return defaultValue;
     },
     writer: (s, k, v) => s.setString(k, writer(v)),

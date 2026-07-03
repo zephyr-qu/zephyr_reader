@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/bilingual/application/bilingual_config.dart';
 import 'package:zephyr_reader/features/bilingual/domain/bilingual_service.dart';
 
@@ -83,7 +84,8 @@ class OpenAIBilingualTranslator implements BilingualService {
   String? _extractContent(dynamic data) {
     try {
       return data['choices']?[0]?['message']?['content'] as String?;
-    } catch (_) {
+    } catch (e) {
+      Logging.warning('翻译响应内容提取失败: $e');
       return null;
     }
   }

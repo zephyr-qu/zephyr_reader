@@ -51,7 +51,8 @@ class WebDavConfigService {
         password: password,
         remotePath: config.remotePath,
       );
-    } catch (_) {
+    } catch (e) {
+      Logging.warning('WebDAV 配置构建失败: $e');
       return null;
     }
   }
