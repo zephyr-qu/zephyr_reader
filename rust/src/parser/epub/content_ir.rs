@@ -6,7 +6,7 @@
 use super::asset_registry::{canonicalize_chapter_image_assets, normalize_asset_id};
 use crate::domain::{
     append_chapter_ir_to_builder, AppError, BlockJoinedPlainBuilder, ChapterContentIr,
-    PlainProjectionStyle, RichParagraph, TextBlockStyle,
+    ContentBlock, PlainProjectionStyle, RichParagraph, TextBlockStyle,
 };
 use crate::text::rich_text;
 
@@ -149,9 +149,22 @@ fn append_spine_html_to_builder(
 }
 
 fn rich_paragraph_style(p: &RichParagraph) -> TextBlockStyle {
+    // text_indent_em：仅 EPUB/CSS 显式值；None → Flutter/Rust 侧用用户首行缩进设置。
+    let text_indent_em = if p.is_heading {
+        Some(0.0)
+    } else {
+        p.text_indent_em
+    };
     TextBlockStyle {
         is_heading: p.is_heading,
         heading_level: p.heading_level,
+        text_indent_em,
+        margin_top_em: p.margin_top_em,
+        margin_bottom_em: p.margin_bottom_em,
+        font_family: p.font_family.clone(),
+        line_height: p.line_height,
+        text_align: p.text_align.clone(),
+        font_size: p.font_size,
     }
 }
 
@@ -180,7 +193,7 @@ pub fn chapter_ir_from_rich_paragraphs(paragraphs: &[RichParagraph]) -> ChapterC
         if text.trim().is_empty() {
             continue;
         }
-        builder.push_text(text, rich_paragraph_style(p));
+        builder.push_text_spans(text, rich_paragraph_style(p), p.spans.clone());
     }
 
     builder.finish()
@@ -192,6 +205,83 @@ pub fn html_to_chapter_ir(html: &str) -> Result<ChapterContentIr, AppError> {
     Ok(chapter_ir_from_rich_paragraphs(&paragraphs))
 }
 
+
+/// 从 PNG/JPEG 头部读取 intrinsic 尺寸（轻量，无完整解码）。
+///
+/// 移植自 Dart `scroll_list_metrics.dart:readImageDimensions`。
+fn read_image_dimensions(bytes: &[u8]) -> Option<(u32, u32)> {
+    // PNG: 检查 8-byte signature + IHDR chunk
+    if bytes.len() >= 24
+        && bytes[0] == 0x89
+        && bytes[1] == 0x50
+        && bytes[2] == 0x4E
+        && bytes[3] == 0x47
+    {
+        let w = u32::from_be_bytes([bytes[16], bytes[17], bytes[18], bytes[19]]);
+        let h = u32::from_be_bytes([bytes[20], bytes[21], bytes[22], bytes[23]]);
+        if w > 0 && h > 0 {
+            return Some((w, h));
+        }
+    }
+
+    // JPEG: 扫描 SOF0/SOF1/SOF2 marker
+    if bytes.len() >= 4 && bytes[0] == 0xFF && bytes[1] == 0xD8 {
+        let mut i = 2usize;
+        while i + 9 < bytes.len() {
+            if bytes[i] != 0xFF {
+                i += 1;
+                continue;
+            }
+            let marker = bytes[i + 1];
+            if marker == 0xD9 || marker == 0xDA {
+                break;
+            }
+            if i + 3 > bytes.len() {
+                break;
+            }
+            let len = ((bytes[i + 2] as usize) << 8) | (bytes[i + 3] as usize);
+            if len < 2 {
+                break;
+            }
+            if matches!(marker, 0xC0 | 0xC1 | 0xC2) {
+                if i + 9 > bytes.len() {
+                    break;
+                }
+                let h = ((bytes[i + 5] as u32) << 8) | (bytes[i + 6] as u32);
+                let w = ((bytes[i + 7] as u32) << 8) | (bytes[i + 8] as u32);
+                if w > 0 && h > 0 {
+                    return Some((w, h));
+                }
+            }
+            i += 2 + len;
+        }
+    }
+
+    None
+}
+
+/// 遍历章 IR 中所有 [ImageBlock]，从 EPUB 读取原始字节并解析 intrinsic 尺寸。
+///
+/// 解析失败时静默跳过（保留 None），分页器会回退到 `DEFAULT_IMAGE_HEIGHT_RATIO`。
+fn resolve_image_dimensions(ir: &mut ChapterContentIr, provider: &EpubContentProvider) {
+    for block in &mut ir.blocks {
+        if let ContentBlock::Image(img) = block {
+            if img.intrinsic_width.is_some() && img.intrinsic_height.is_some() {
+                continue; // 已有尺寸，跳过
+            }
+            if let Some(data) = provider.read_resource_bytes(&img.asset_id) {
+                if let Some((w, h)) = read_image_dimensions(&data) {
+                    img.intrinsic_width = Some(w);
+                    img.intrinsic_height = Some(h);
+                    tracing::debug!(
+                        "[get_chapter_content_ir] image {} intrinsic={}×{}",
+                        img.asset_id, w, h
+                    );
+                }
+            }
+        }
+    }
+}
 /// 获取 EPUB 章节 IR（spine 范围与 `get_chapter_content_rich` 一致）。
 pub fn get_chapter_content_ir(
     file_path: &str,
@@ -217,7 +307,8 @@ pub fn get_chapter_content_ir(
         append_spine_html_to_builder(&mut builder, &html, &registry, &base)?;
     }
 
-    let ir = builder.finish();
+    let mut ir = builder.finish();
+    resolve_image_dimensions(&mut ir, &provider);
     ir.validate_plain(PlainProjectionStyle::BlockJoined)
         .map_err(|e| AppError::EpubParseError {
             reason: format!("IR plain validation failed: {e}").into(),
@@ -323,6 +414,66 @@ mod tests {
         };
         assert_eq!(img.asset_id, "img_spine_b");
     }
+
+    #[test]
+    fn html_inline_bold_spans_preserved() {
+        use crate::domain::{RichTextSpan, SpanStyle};
+
+        let ir = html_to_chapter_ir("<p>Hello <b>bold</b> world</p>").unwrap();
+        assert_eq!(ir.block_count(), 1);
+        let ContentBlock::Text(t) = &ir.blocks[0] else {
+            panic!("expected Text block");
+        };
+        assert!(!t.spans.is_empty());
+        assert_eq!(t.text, "Hello bold world");
+        assert!(
+            t.spans
+                .iter()
+                .any(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Bold, _)))
+        );
+        assert_ir_invariants(&ir);
+    }
+
+    #[test]
+    fn html_plain_paragraph_has_no_explicit_text_indent() {
+        let ir = html_to_chapter_ir("<p>Plain</p>").unwrap();
+        let ContentBlock::Text(t) = &ir.blocks[0] else {
+            panic!("expected Text");
+        };
+        assert!(t.style.text_indent_em.is_none());
+        assert_ir_invariants(&ir);
+    }
+
+    #[test]
+    fn html_css_span_font_weight_in_spans() {
+        use crate::domain::{RichTextSpan, SpanStyle};
+
+        let ir = html_to_chapter_ir(r#"<p><span style="font-weight: bold">bold</span></p>"#).unwrap();
+        let ContentBlock::Text(t) = &ir.blocks[0] else {
+            panic!("expected Text");
+        };
+        assert!(
+            t.spans
+                .iter()
+                .any(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Bold, _)))
+        );
+        assert_ir_invariants(&ir);
+    }
+
+    #[test]
+    fn html_text_indent_style_preserved() {
+        let html = r#"<style>p { text-indent: 2em; margin-top: 0.5em; margin-bottom: 1em; }</style><p>Indented</p>"#;
+        let ir = html_to_chapter_ir(html).unwrap();
+        assert_eq!(ir.block_count(), 1);
+        let ContentBlock::Text(t) = &ir.blocks[0] else {
+            panic!("expected Text block");
+        };
+        assert_eq!(t.style.text_indent_em, Some(2.0));
+        assert_eq!(t.style.margin_top_em, Some(0.5));
+        assert_eq!(t.style.margin_bottom_em, Some(1.0));
+        assert_ir_invariants(&ir);
+    }
+
 
     #[test]
     fn html_heading_style_preserved() {

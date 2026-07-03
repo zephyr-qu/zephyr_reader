@@ -1,0 +1,42 @@
+﻿cargo :    Compiling rust_lib_zephyr_reader v0.1.0 (F:\App\zephyr_reader\rust)
+所在位置 行:1 字符: 194
++ ... eader\rust; cargo test --lib text::block_paginator::tests 2>&1 | Out- ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (   Compiling ru...yr_reader\rust):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+warning: use of deprecated function `reading::pagination::chapter_has_image_blocks`: P0: all chapters use block paginat
+ion now; image-block check is no longer needed for branching
+  --> src\reading\orchestrator.rs:94:28
+   |
+94 |         super::pagination::chapter_has_image_blocks(file_path, chapter_index).await
+   |                            ^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(deprecated)]` on by default
+
+warning: function `truncate_snippet` is never used
+   --> src\search\engine.rs:299:4
+    |
+299 | fn truncate_snippet(text: &str, max_len: usize) -> String {
+    |    ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `rust_lib_zephyr_reader` (lib test) generated 2 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 15.29s
+     Running unittests src\lib.rs (target\debug\deps\rust_lib_zephyr_reader-00eb7359ef616698.exe)
+
+running 10 tests
+test text::block_paginator::tests::merge_partial_propagation ... ok
+test text::block_paginator::tests::merge_preserves_page_continuity ... ok
+test text::block_paginator::tests::chunked_zero_blocks_produces_one_empty_page ... ok
+test text::block_paginator::tests::descriptors_cover_plain_monotonically ... ok
+test text::block_paginator::tests::large_image_gets_full_page ... ok
+test text::block_paginator::tests::small_image_inline_with_text ... ok
+test text::block_paginator::tests::paragraph_spacing_increases_page_count ... ok
+test text::block_paginator::tests::chunked_small_chapter_delegates_to_plain ... ok
+test text::block_paginator::tests::pure_text_splits_across_pages ... ok
+test text::block_paginator::tests::chunked_large_chapter_produces_valid_descriptors ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 222 filtered out; finished in 0.01s
+

@@ -62,7 +62,7 @@ class ProfileMenuSections extends StatelessWidget {
             icon: PhosphorIconsRegular.translate,
             title: l10n.translationApi,
             semantic: MenuItemSemantic.info,
-            onTap: () => context.push(AppRoute.TranslationSettings.path),
+            onTap: () => context.push(AppRoute.bilingualSettings.path),
           ),
         ],
       ),

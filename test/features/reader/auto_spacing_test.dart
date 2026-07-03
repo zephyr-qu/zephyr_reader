@@ -47,8 +47,8 @@ TypesetConfig _cjkCompareConfig() {
   return _makeConfig(fontSize: 18, width: 600, height: 500);
 }
 
-void main() {
-  final ffiAvailable = isFfiAvailable();
+Future<void> main() async {
+  final ffiAvailable = await isFfiAvailable();
 
   late String mixedFilePath;
   late String pureFilePath;

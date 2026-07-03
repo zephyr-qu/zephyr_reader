@@ -4,9 +4,11 @@
 //! `TxtContentProvider::read_text_range` 章内字节/字符内容 **完全一致**。
 
 use crate::domain::{
-    AppError, ChapterContentIr, ContentBlock, PlainProjectionStyle, TextBlock, TextBlockStyle,
+    AppError, ChapterContentIr, ContentBlock, TextBlock, TextBlockStyle,
     slice_by_char_range,
 };
+#[cfg(test)]
+use crate::domain::PlainProjectionStyle;
 
 use super::provider::TxtContentProvider;
 use crate::parser::provider::ChapterContentProvider;
@@ -144,5 +146,49 @@ mod tests {
         assert_eq!(ir.block_index_at_offset(0), Some(0));
         assert_eq!(ir.block_index_at_offset(2), None);
         assert_eq!(ir.block_index_at_offset(3), Some(1));
+    }
+    #[test]
+    fn whitespace_only_paragraphs() {
+        let ir = txt_to_chapter_ir("  \n\n  ");
+        // whitespace-only lines do not produce content blocks
+        assert_eq!(ir.block_count(), 0);
+        assert_ir_invariants(&ir);
+    }
+
+    #[test]
+    fn cjk_paragraph_boundaries() {
+        let raw = "第一段内容。\n\n第二段内容。";
+        let ir = txt_to_chapter_ir(raw);
+        assert_eq!(ir.block_count(), 2);
+        assert_ir_invariants(&ir);
+    }
+
+    #[test]
+    fn trailing_newline_does_not_create_empty_block() {
+        let ir = txt_to_chapter_ir("Hello\n");
+        assert_eq!(ir.block_count(), 1);
+        assert_ir_invariants(&ir);
+    }
+
+    #[test]
+    fn multiple_newlines_treated_as_single_separator() {
+        let ir = txt_to_chapter_ir("A\n\n\n\nB");
+        assert_eq!(ir.block_count(), 2);
+        assert_ir_invariants(&ir);
+    }
+
+    #[test]
+    fn all_newlines_no_text() {
+        let ir = txt_to_chapter_ir("\n\n\n");
+        assert_eq!(ir.block_count(), 0);
+        assert_ir_invariants(&ir);
+    }
+
+    #[test]
+    fn long_single_line_cjk() {
+        let line = "你好世界".repeat(200);
+        let ir = txt_to_chapter_ir(&line);
+        assert_eq!(ir.block_count(), 1);
+        assert_ir_invariants(&ir);
     }
 }

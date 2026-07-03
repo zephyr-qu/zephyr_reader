@@ -18,6 +18,9 @@ class ReaderRenderConfig {
   final double pageMargin;
   final bool showVocabularyMark;
 
+  /// 用户首行缩进开关；IR 无显式 `textIndentEm` 时生效（ADR-010）。
+  final bool firstLineIndent;
+
   /// 一行文本的像素高度（fontSize × lineHeight）。
   double get textRowHeight => fontSize * lineHeight;
   final bool baselineAlign;
@@ -35,6 +38,7 @@ class ReaderRenderConfig {
     required this.pageMargin,
     required this.showVocabularyMark,
     required this.vocabularyWords,
+    this.firstLineIndent = true,
     this.textAlign = TextAlign.justify,
     this.baselineAlign = true,
   });

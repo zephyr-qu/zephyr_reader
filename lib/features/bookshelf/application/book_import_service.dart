@@ -15,19 +15,21 @@ import 'package:zephyr_reader/src/rust/api/cover.dart' as cover_api;
 @lazySingleton
 class BookImportService {
   /// 从文件导入书籍（解析并存入数据库）。
-  Future<bool> importBook(String filePath) async {
+  ///
+  /// 返回 `(true, null)` 表示成功，`(false, errorMessage)` 表示失败。
+  Future<(bool, String?)> importBook(String filePath) async {
     try {
       final bookId = await core_api.parseBook(filePath: filePath);
       // 导入后自动提取封面到磁盘
       await _extractCover(bookId, filePath);
-      return true;
+      return (true, null);
     } catch (e, stack) {
       Logging.error(
         'BookImportService.importBook error',
         exception: e,
         stackTrace: stack,
       );
-      return false;
+      return (false, e.toString());
     }
   }
 
@@ -37,8 +39,8 @@ class BookImportService {
   /// 扫描文件夹并将发现的书籍文件导入数据库。
   ///
   /// [onProgress] 可选进度回调，接收 (done, total) 用于 UI 展示。
-  /// 返回 (successCount, failCount)。
-  Future<(int, int)> scanFolder(
+  /// 返回 (successCount, failCount, errors)。
+  Future<(int, int, List<String>)> scanFolder(
     String folderPath, {
     void Function(int done, int total)? onProgress,
   }) async {
@@ -52,13 +54,14 @@ class BookImportService {
         .map((f) => f.path)
         .toList();
     if (files.isEmpty) {
-      return (0, 0);
+      return (0, 0, <String>[]);
     }
 
     final total = files.length;
     var done = 0;
     var success = 0;
     var fail = 0;
+    final errors = <String>[];
     onProgress?.call(0, total);
 
     final sem = _Semaphore(_scanConcurrency);
@@ -84,13 +87,13 @@ class BookImportService {
       ),
     );
 
-    return (success, fail);
+    return (success, fail, errors);
   }
 
   /// 重新提取并保存书籍封面。
-  Future<bool> reExtractCover(String bookId, String filePath) async {
+  Future<(bool, String?)> reExtractCover(String bookId, String filePath) async {
     if (!cover_api.supportsCoverExtraction(filePath: filePath)) {
-      return false;
+      return (false, null);
     }
     try {
       final appDir = await getApplicationDocumentsDirectory();
@@ -100,14 +103,14 @@ class BookImportService {
         filePath: filePath,
         outputDir: coverDir,
       );
-      return coverPath.isNotEmpty;
+      return (coverPath.isNotEmpty, null);
     } catch (e, stack) {
       Logging.error(
         'BookImportService.reExtractCover error',
         exception: e,
         stackTrace: stack,
       );
-      return false;
+      return (false, e.toString());
     }
   }
 

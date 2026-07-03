@@ -18,6 +18,8 @@ import 'package:zephyr_reader/features/reader/settings/reader_settings_overlay.d
 import 'package:zephyr_reader/features/reader/page/toolbar/animated_toolbar_panel.dart';
 import 'package:zephyr_reader/features/reader/page/toolbar/reader_toolbar.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
+import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 /// Top toolbar positioned outside [SafeArea].
 class ReaderTopChrome extends HookWidget {
   const ReaderTopChrome({
@@ -42,9 +44,9 @@ class ReaderTopChrome extends HookWidget {
       vm.chapterManager.currentChapterTitle,
     );
     final String bProgresstext = useSignalValue(vm.chapterManager.progressText);
-    final chapterIdx = useSignalValue(vm.chapterManager.chapterIndex);
-    final charOff = useSignalValue(vm.chapterManager.currentCharOffset);
-    final bookmarkMap = useSignalValue(vm.bookmarks.bookmarkIndex);
+    final int chapterIdx = useSignalValue(vm.chapterManager.chapterIndex);
+    final int charOff = useSignalValue(vm.chapterManager.currentCharOffset);
+    final Map<String, Bookmark> bookmarkMap = useSignalValue(vm.bookmarks.bookmarkIndex);
     final hasBookmarkAtCurrent = bookmarkMap['$chapterIdx:$charOff'] != null;
 
     Future<void> toggleBookmark() async {

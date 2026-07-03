@@ -1,4 +1,4 @@
-pub(crate) use crate::domain::{AppError, PageBlockSlice, TypesetConfig};
+pub(crate) use crate::domain::{AppError, ChapterContentIr, PageBlockSlice, TypesetConfig};
 use crate::domain::{PageContent, PaginateResult};
 use crate::parser::registry::parser_for_file;
 use crate::reading::chapter_access::format_from_file_path;
@@ -169,6 +169,18 @@ pub async fn repaginate_session(
         .repaginate_session(handle, config, max_chars)
         .await
 }
+
+/// Apply Flutter TextPainter metrics to an existing session (P4-4 / ADR-013).
+#[frb]
+pub async fn apply_session_calibration(
+    handle: PaginationSessionHandle,
+    calibration: crate::domain::types::typeset::TypesetCalibration,
+    max_chars: Option<u64>,
+) -> Result<PaginateResult, AppError> {
+    ReadingOrchestrator::global()
+        .apply_session_calibration(handle, calibration, max_chars)
+        .await
+}
 /// Expand session to full chapter.
 #[frb]
 pub async fn paginate_session_full(
@@ -207,6 +219,7 @@ pub fn session_char_offset_to_page_index(
         .session_char_offset_to_page_index(handle, char_offset)
 }
 /// Dispose pagination session.
+#[frb(sync)]
 pub fn dispose_pagination_session(
     handle: PaginationSessionHandle,
 ) -> Result<(), AppError> {
@@ -225,4 +238,15 @@ pub fn supports_chunked_pagination(file_path: String) -> bool {
         format_from_file_path(&file_path),
         Ok(BookFormat::Txt | BookFormat::Epub)
     )
+}
+
+/// P4-1：加载整章 ContentBlock IR + plain 投影（scroll 路径；不创建 session）。
+#[frb]
+pub async fn get_chapter_content_ir(
+    file_path: String,
+    chapter_index: i32,
+) -> Result<ChapterContentIr, AppError> {
+    ReadingOrchestrator::global()
+        .get_chapter_content_ir(file_path, chapter_index)
+        .await
 }

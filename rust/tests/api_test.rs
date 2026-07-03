@@ -3,40 +3,12 @@ mod common;
 use rust_lib_zephyr_reader::api;
 use rust_lib_zephyr_reader::api::data::chapter;
 
-// ==================== 基础连接测试 ====================
-
-#[test]
-fn test_connection() {
-    let result = api::test_connection();
-    assert!(result.is_ok(), "连接应该成功");
-    let msg = result.unwrap();
-    assert_eq!(msg, "Rust core engine connected successfully");
-}
-
-#[test]
-fn test_multiple_connections() {
-    // Test that connection can be verified multiple times
-    for _ in 0..5 {
-        let result = api::test_connection();
-        assert!(result.is_ok(), "连接应该成功");
-        assert_eq!(result.unwrap(), "Rust core engine connected successfully");
-    }
-}
-
-#[test]
-fn test_api_response_format() {
-    let result = api::test_connection();
-    let msg = result.unwrap();
-    assert!(!msg.is_empty());
-    assert!(msg.contains("connected"));
-}
-
 // ==================== 格式检测测试 ====================
 
 #[test]
 fn test_get_supported_formats() {
     // 应该至少支持常见格式
-    let known_formats = ["txt", "epub", "pdf", "md"];
+    let known_formats = ["txt", "epub"];
     for fmt in &known_formats {
         assert!(
             rust_lib_zephyr_reader::parser::registry::format_from_extension(fmt).is_ok(),
@@ -131,9 +103,15 @@ async fn test_parse_book_invalid_file() {
 async fn test_parse_book_empty_content() {
     common::init_logger();
 
+    // 初始化临时存储
+    let temp_dir = tempfile::TempDir::new().expect("failed to create temp dir");
+    let data_dir = temp_dir.path().to_str().unwrap().to_string();
+    if let Err(e) = rust_lib_zephyr_reader::api::data::init::init_storage(data_dir.clone()).await {
+        println!("存储初始化失败（可接受）: {:?}", e);
+    }
+
     // 创建空文件
     let (_temp_dir, file_path) = common::create_temp_file("empty.txt", "");
-
 
     let book_id = api::parse_book(file_path).await;
     let parse_result = book_id.unwrap();
@@ -259,7 +237,7 @@ async fn test_concurrent_format_checks() {
     common::init_logger();
 
     // 测试并发格式检测
-    let formats = vec!["epub", "txt", "pdf", "md"];
+    let formats = vec!["epub", "txt"];
 
     let mut handles = vec![];
     for format in formats {

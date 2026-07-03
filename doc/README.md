@@ -6,11 +6,9 @@
 
 | 顺序 | 文档                                                               | 主题                                                                                  | 优先级 |
 | -- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------- | --- |
-| 1  | [pland.md](pland.md)                                             | pageContent fetch-on-miss + 自动推导 `ChapterPaginationIntent`                          | P0  |
-| 2  | [plane-cross-chapter-preload.md](plane-cross-chapter-preload.md) | 跨章无缝翻页（pageTurn 预分页）                                                                | P1  |
-| 3  | [planf-layout-kv-cache.md](planf-layout-kv-cache.md)             | Layout KV 与 `paginate_chapter` / session 路径对齐                                       | P1  |
-| 4  | [planf.md](planf.md)                                             | 滚动跨章接缝修复（ScrollChapterSegment + ScrollDocumentComposer + ScrollBoundaryCoordinator） | P1  |
-| 5  | [plang.md](plang.md)                                             | 核心阅读链状态审计与修复计划（P0/P1/P2 分阶段路线图）                                                     | P2  |
+| 1  | [discuss/PHASE4_SCOPE.md](../discuss/PHASE4_SCOPE.md)             | Phase 4 引擎完善（活跃主线）                                                              | P0  |
+| 2  | [discuss/plans/PHASE4_PARTICIPANT_INDEX.md](../discuss/plans/PHASE4_PARTICIPANT_INDEX.md) | 可并行参与任务（文档/测试/staging）                                                    | P0  |
+| 3  | [plan-p4-1-scroll-ir-unification.md](plan-p4-1-scroll-ir-unification.md) | P4-1 Scroll→IR（Agent 主线程）                                                         | P0  |
 
 ## 已完成（归档）
 
@@ -24,20 +22,15 @@
 
 ```mermaid
 flowchart TD
-  planc[planc config hot reload DONE]
-  pland[pland fetch-on-miss + auto intent]
-  plane[plane cross-chapter preload]
-  planf[planf layout KV]
-  plang[plang reading chain audit + P2 cleanup DONE]
+  p4_1[p4-1 Scroll→IR 🚧]
+  p4_2[p4-2 IR 块 CSS ⬜]
+  p4_4[p4-4 Metrics 回传 ⬜]
 
-  planc --> pland
-  pland --> plane
-  pland --> planf
-  pland --> plang
-  plane -.->|可选共享| planf
+  p4_1 --> p4_2
+  p4_1 --> p4_4
 ```
 
-`plane` 与 `planf` 可并行；均建议在 `pland` PR2（auto intent + session 元数据）之后启动。
+历史规划（已全部完成/归档）见 [archive/README.md](archive/README.md)。
 
 ## P2 清理清单（2026-06-17）
 

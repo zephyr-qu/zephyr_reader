@@ -96,4 +96,32 @@ mod tests {
         let encoding = detect_encoding_from_bytes(utf8_bytes).unwrap();
         assert_eq!(encoding, UTF_8);
     }
+    #[test]
+    fn utf8_bom_detected() {
+        let bytes = [0xEF, 0xBB, 0xBF, b'H', b'i'];
+        assert_eq!(detect_encoding_from_bytes(&bytes).unwrap(), UTF_8);
+    }
+
+    #[test]
+    fn utf16le_bom_detected() {
+        let bytes = [0xFF, 0xFE, 0x48, 0x00, 0x69, 0x00];
+        assert_eq!(detect_encoding_from_bytes(&bytes).unwrap(), UTF_16LE);
+    }
+
+    #[test]
+    fn utf16be_bom_detected() {
+        let bytes = [0xFE, 0xFF, 0x00, 0x48, 0x00, 0x69];
+        assert_eq!(detect_encoding_from_bytes(&bytes).unwrap(), UTF_16BE);
+    }
+
+    #[test]
+    fn empty_buffer_returns_utf8() {
+        assert_eq!(detect_encoding_from_bytes(b"").unwrap(), UTF_8);
+    }
+
+    #[test]
+    fn utf8_chinese_content() {
+        let bytes = "你好世界".as_bytes();
+        assert_eq!(detect_encoding_from_bytes(bytes).unwrap(), UTF_8);
+    }
 }

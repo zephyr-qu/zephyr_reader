@@ -6,7 +6,6 @@ import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.d
 import 'package:zephyr_reader/features/reader/data/pagination_viewport_index.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 import '../../core/data/reader_render_data_source.dart';
@@ -49,18 +48,14 @@ class ReaderContent extends HookWidget {
   final Future<void> Function()? onScrollAppendNext;
   final Future<int> Function()? onScrollPrependPrev;
   final void Function(double scrollOffset, ScrollLayoutParams layout)?
-      onScrollSegmentPosition;
+  onScrollSegmentPosition;
   final VoidCallback? onPaginationBoundaryReset;
   final Widget Function(BuildContext context, ScrollController scrollController)
-      scrollBuilder;
-  final Widget Function(
-    BuildContext context,
-    ScrollController scrollController,
-    List<BilingualHighlightPair> bilingualPairs,
-  )
-      bilingualBuilder;
+  scrollBuilder;
+  final Widget Function(BuildContext context, ScrollController scrollController)
+  bilingualBuilder;
   final Widget Function(BuildContext context, PageController pageController)
-      paginatedBuilder;
+  paginatedBuilder;
 
   const ReaderContent({
     super.key,
@@ -110,11 +105,11 @@ class ReaderContent extends HookWidget {
       [],
     );
     final scrollController = useScrollController();
-    final bilingualPairs = useState<List<BilingualHighlightPair>>([]);
     final disableAnim = MediaQuery.disableAnimationsOf(context);
     final viewportHeight = MediaQuery.sizeOf(context).height;
     final nextStaging = dataSource.nextChapterStaging;
-    final nextStagingReady = hasNextChapter &&
+    final nextStagingReady =
+        hasNextChapter &&
         nextStaging != null &&
         nextStaging.chapterIndex == chapterId + 1;
     final maxPhysicalPageIndex = () {
@@ -126,77 +121,69 @@ class ReaderContent extends HookWidget {
       );
     }();
     int physicalPage(int logicalPage) => paginationPhysicalPageIndex(
-          logicalPageIndex: logicalPage,
-          hasPreviousChapter: hasPreviousChapter,
-        );
+      logicalPageIndex: logicalPage,
+      hasPreviousChapter: hasPreviousChapter,
+    );
 
-    final usePaginationSlide = readingMode == ReadingMode.pagination &&
+    final usePaginationSlide =
+        readingMode == ReadingMode.pagination &&
         paginationSkin == PaginationSkin.slide;
 
     // 跨章时跳转目标页；adjacent promote 同步 pageIndex（slide 皮肤）
-    useEffect(() {
-      if (!usePaginationSlide) return null;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!pageController.hasClients) return;
-        final target = physicalPage(
-          pageIndex.clamp(0, totalPages > 0 ? totalPages - 1 : 0),
-        ).clamp(0, maxPhysicalPageIndex);
-        final current = pageController.page?.round();
-        if (current != null && current != target) {
-          pageController.jumpToPage(target);
-        }
-      });
-      return null;
-    }, [
-      chapterId,
-      pageIndex,
-      showChapterTransition,
-      readingMode,
-      totalPages,
-      hasPreviousChapter,
-      nextStagingReady,
-    ]);
-    // 章内翻页动画同步（仅手动翻页，跨章 promote 已在上方 jumpToPage）
-    useEffect(() {
-      if (!usePaginationSlide || !showChapterTransition) {
-        return null;
-      }
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (pageController.hasClients) {
-          final target = physicalPage(pageIndex);
-          final currentPage = pageController.page?.round();
-          if (currentPage != null && currentPage != target) {
-            pageController.animateToPage(
-              target,
-              duration: disableAnim ? Duration.zero : AnimTokens.medium,
-              curve: Curves.easeInOut,
-            );
+    useEffect(
+      () {
+        if (!usePaginationSlide) return null;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!pageController.hasClients) return;
+          final target = physicalPage(
+            pageIndex.clamp(0, totalPages > 0 ? totalPages - 1 : 0),
+          ).clamp(0, maxPhysicalPageIndex);
+          final current = pageController.page?.round();
+          if (current != null && current != target) {
+            pageController.jumpToPage(target);
           }
-        }
-      });
-      return null;
-    }, [
-      pageIndex,
-      readingMode,
-      disableAnim,
-      showChapterTransition,
-      hasPreviousChapter,
-    ]);
-
-    useEffect(() {
-      if (readingMode != ReadingMode.bilingual) {
-        bilingualPairs.value = [];
+        });
         return null;
-      }
-      () async {
-        final pairs = await getBilingualHighlightPairs(
-          bookId: bookId,
-          chapterIndex: chapterId,
-        );
-        bilingualPairs.value = pairs;
-      }();
-      return null;
-    }, [bookId, chapterId, readingMode]);
+      },
+      [
+        chapterId,
+        pageIndex,
+        showChapterTransition,
+        readingMode,
+        totalPages,
+        hasPreviousChapter,
+        nextStagingReady,
+      ],
+    );
+    // 章内翻页动画同步（仅手动翻页，跨章 promote 已在上方 jumpToPage）
+    useEffect(
+      () {
+        if (!usePaginationSlide || !showChapterTransition) {
+          return null;
+        }
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (pageController.hasClients) {
+            final target = physicalPage(pageIndex);
+            final currentPage = pageController.page?.round();
+            if (currentPage != null && currentPage != target) {
+              pageController.animateToPage(
+                target,
+                duration: disableAnim ? Duration.zero : AnimTokens.medium,
+                curve: Curves.easeInOut,
+              );
+            }
+          }
+        });
+        return null;
+      },
+      [
+        pageIndex,
+        readingMode,
+        disableAnim,
+        showChapterTransition,
+        hasPreviousChapter,
+      ],
+    );
 
     // Guard against repeated reach-end/start triggers (auto chapter change)
     final reachEndTriggered = useRef(false);
@@ -228,8 +215,7 @@ class ReaderContent extends HookWidget {
           reachEndTriggered.value = true;
           onReachEnd?.call();
         }
-      } else if (usePaginationSlide &&
-          pageController.hasClients) {
+      } else if (usePaginationSlide && pageController.hasClients) {
         final nextPage = pageIndex + 1;
         if (nextPage < totalPages) {
           pageController.animateToPage(
@@ -245,166 +231,172 @@ class ReaderContent extends HookWidget {
 
     final useScrollSegments = scrollSegments.isNotEmpty;
 
-    useEffect(() {
-      if (usePaginationSlide) {
-        return null;
-      }
-      void handleScroll() {
-        if (!scrollController.hasClients) {
-          return;
+    useEffect(
+      () {
+        if (usePaginationSlide) {
+          return null;
         }
-        final maxExtent = scrollController.position.maxScrollExtent;
-        final threshold = renderConfig.textRowHeight * 1.5;
-        final preloadLead = viewportHeight * 1.5;
-        if (scrollController.offset > threshold) {
-          hasScrolledBelowTop.value = true;
-        }
+        void handleScroll() {
+          if (!scrollController.hasClients) {
+            return;
+          }
+          final maxExtent = scrollController.position.maxScrollExtent;
+          final threshold = renderConfig.textRowHeight * 1.5;
+          final preloadLead = viewportHeight * 1.5;
+          if (scrollController.offset > threshold) {
+            hasScrolledBelowTop.value = true;
+          }
 
-        if (useScrollSegments && !isLoading) {
-          final layout = ScrollLayoutParams.fromRenderConfig(
-            renderConfig,
-            viewportWidth: MediaQuery.sizeOf(context).width,
-          );
-          onScrollSegmentPosition?.call(
-            scrollController.offset,
-            layout,
-          );
+          if (useScrollSegments && !isLoading) {
+            final layout = ScrollLayoutParams.fromRenderConfig(
+              renderConfig,
+              viewportWidth: MediaQuery.sizeOf(context).width,
+            );
+            onScrollSegmentPosition?.call(scrollController.offset, layout);
 
-          final nearBottom =
-              maxExtent - scrollController.offset <= preloadLead;
-          if (hasNextChapter && nearBottom) {
-            if (!reachEndTriggered.value) {
-              reachEndTriggered.value = true;
-              onScrollAppendNext?.call().whenComplete(() {
-                reachEndTriggered.value = false;
-              });
+            final nearBottom =
+                maxExtent - scrollController.offset <= preloadLead;
+            if (hasNextChapter && nearBottom) {
+              if (!reachEndTriggered.value) {
+                reachEndTriggered.value = true;
+                onScrollAppendNext?.call().whenComplete(() {
+                  reachEndTriggered.value = false;
+                });
+              }
+            }
+            if (hasPreviousChapter &&
+                hasScrolledBelowTop.value &&
+                scrollController.offset <= threshold) {
+              if (!reachStartTriggered.value) {
+                reachStartTriggered.value = true;
+                final beforeMax = scrollController.position.maxScrollExtent;
+                final beforeOffset = scrollController.offset;
+                onScrollPrependPrev
+                    ?.call()
+                    .then((added) {
+                      if (added <= 0 || !scrollController.hasClients) {
+                        reachStartTriggered.value = false;
+                        return;
+                      }
+                      _compensateScrollAfterPrepend(
+                        scrollController,
+                        beforeMaxExtent: beforeMax,
+                        beforeOffset: beforeOffset,
+                        onDone: () => reachStartTriggered.value = false,
+                      );
+                    })
+                    .catchError((_) {
+                      reachStartTriggered.value = false;
+                    });
+              }
+            }
+            return;
+          }
+
+          final ratio = maxExtent <= 0
+              ? 0.0
+              : (scrollController.offset / maxExtent);
+          final offset = (ratio * content.length).round().clamp(
+            0,
+            content.length,
+          );
+          onPositionChanged?.call(offset);
+
+          if (onReachEnd != null && !isLoading) {
+            if (scrollController.offset >= maxExtent - threshold) {
+              if (!reachEndTriggered.value) {
+                reachEndTriggered.value = true;
+                onReachEnd?.call();
+              }
             }
           }
-          if (hasPreviousChapter &&
+
+          if (onReachStart != null &&
+              !isLoading &&
               hasScrolledBelowTop.value &&
               scrollController.offset <= threshold) {
             if (!reachStartTriggered.value) {
               reachStartTriggered.value = true;
-              final beforeMax = scrollController.position.maxScrollExtent;
-              final beforeOffset = scrollController.offset;
-              onScrollPrependPrev?.call().then((added) {
-                if (added <= 0 || !scrollController.hasClients) {
-                  reachStartTriggered.value = false;
-                  return;
-                }
-                _compensateScrollAfterPrepend(
-                  scrollController,
-                  beforeMaxExtent: beforeMax,
-                  beforeOffset: beforeOffset,
-                  onDone: () => reachStartTriggered.value = false,
-                );
-              }).catchError((_) {
-                reachStartTriggered.value = false;
-              });
-            }
-          }
-          return;
-        }
-
-        final ratio = maxExtent <= 0
-            ? 0.0
-            : (scrollController.offset / maxExtent);
-        final offset = (ratio * content.length).round().clamp(
-          0,
-          content.length,
-        );
-        onPositionChanged?.call(offset);
-
-        if (onReachEnd != null && !isLoading) {
-          if (scrollController.offset >= maxExtent - threshold) {
-            if (!reachEndTriggered.value) {
-              reachEndTriggered.value = true;
-              onReachEnd?.call();
+              onReachStart?.call();
             }
           }
         }
 
-        if (onReachStart != null &&
-            !isLoading &&
-            hasScrolledBelowTop.value &&
-            scrollController.offset <= threshold) {
-          if (!reachStartTriggered.value) {
-            reachStartTriggered.value = true;
-            onReachStart?.call();
-          }
+        scrollController.addListener(handleScroll);
+        return () => scrollController.removeListener(handleScroll);
+      },
+      [
+        scrollController,
+        readingMode,
+        content,
+        isLoading,
+        onReachEnd,
+        onReachStart,
+        useScrollSegments,
+        hasNextChapter,
+        hasPreviousChapter,
+        onScrollAppendNext,
+        onScrollPrependPrev,
+        onScrollSegmentPosition,
+        viewportHeight,
+      ],
+    );
+
+    useEffect(
+      () {
+        if (jumpToCharOffset == null) {
+          return null;
         }
-      }
-
-      scrollController.addListener(handleScroll);
-      return () => scrollController.removeListener(handleScroll);
-    }, [
-      scrollController,
-      readingMode,
-      content,
-      isLoading,
-      onReachEnd,
-      onReachStart,
-      useScrollSegments,
-      hasNextChapter,
-      hasPreviousChapter,
-      onScrollAppendNext,
-      onScrollPrependPrev,
-      onScrollSegmentPosition,
-      viewportHeight,
-    ]);
-
-    useEffect(() {
-      if (jumpToCharOffset == null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (usePaginationSlide) {
+            // 页码由 orchestrator 解析；此处只同步 PageController，避免 partial
+            // descriptors 下二次推算导致 loadPage 落到上一页。
+            final targetIndex = pageIndex.clamp(
+              0,
+              totalPages > 0 ? totalPages - 1 : 0,
+            );
+            if (pageController.hasClients) {
+              pageController.jumpToPage(physicalPage(targetIndex));
+            }
+          } else if (scrollController.hasClients) {
+            final layout = ScrollLayoutParams.fromRenderConfig(
+              renderConfig,
+              viewportWidth: MediaQuery.sizeOf(context).width,
+            );
+            final target = useScrollSegments && scrollSegments.isNotEmpty
+                ? ScrollPositionMapper.scrollOffsetForChar(
+                    scrollSegments,
+                    chapterId,
+                    jumpToCharOffset!,
+                    layout,
+                  )
+                : (content.isEmpty
+                      ? 0.0
+                      : (scrollController.position.maxScrollExtent *
+                            (jumpToCharOffset! / content.length)));
+            final maxExtent = scrollController.position.maxScrollExtent;
+            scrollController.animateTo(
+              target.clamp(0.0, maxExtent),
+              duration: AnimTokens.normal,
+              curve: Curves.easeInOut,
+            );
+            onPositionChanged?.call(jumpToCharOffset!.clamp(0, content.length));
+          }
+          onJumpHandled?.call();
+        });
         return null;
-      }
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (usePaginationSlide) {
-          // 页码由 orchestrator 解析；此处只同步 PageController，避免 partial
-          // descriptors 下二次推算导致 loadPage 落到上一页。
-          final targetIndex = pageIndex.clamp(
-            0,
-            totalPages > 0 ? totalPages - 1 : 0,
-          );
-          if (pageController.hasClients) {
-            pageController.jumpToPage(physicalPage(targetIndex));
-          }
-        } else if (scrollController.hasClients) {
-          final layout = ScrollLayoutParams.fromRenderConfig(
-            renderConfig,
-            viewportWidth: MediaQuery.sizeOf(context).width,
-          );
-          final target = useScrollSegments && scrollSegments.isNotEmpty
-              ? ScrollPositionMapper.scrollOffsetForChar(
-                  scrollSegments,
-                  chapterId,
-                  jumpToCharOffset!,
-                  layout,
-                )
-              : (content.isEmpty
-                  ? 0.0
-                  : (scrollController.position.maxScrollExtent *
-                      (jumpToCharOffset! / content.length)));
-          final maxExtent = scrollController.position.maxScrollExtent;
-          scrollController.animateTo(
-            target.clamp(0.0, maxExtent),
-            duration: AnimTokens.normal,
-            curve: Curves.easeInOut,
-          );
-          onPositionChanged?.call(jumpToCharOffset!.clamp(0, content.length));
-        }
-        onJumpHandled?.call();
-      });
-      return null;
-    }, [
-      jumpToCharOffset,
-      pageIndex,
-      totalPages,
-      readingMode,
-      bookId,
-      chapterId,
-      content,
-      scrollSegments,
-    ]);
+      },
+      [
+        jumpToCharOffset,
+        pageIndex,
+        totalPages,
+        readingMode,
+        bookId,
+        chapterId,
+        content,
+        scrollSegments,
+      ],
+    );
     // 跨章节 slide 方向追踪（在 pageTurn/pagination 条件返回前声明）
     final prevChapterId = useRef<int?>(null);
     final isForward =
@@ -419,7 +411,6 @@ class ReaderContent extends HookWidget {
       context,
       pageController,
       scrollController,
-      bilingualPairs.value,
     );
 
     if (usePaginationSlide) {
@@ -458,7 +449,6 @@ class ReaderContent extends HookWidget {
     BuildContext context,
     PageController pageController,
     ScrollController scrollController,
-    List<BilingualHighlightPair> bilingualPairs,
   ) {
     final l10n = AppLocalizations.of(context)!;
     final error = this.error;
@@ -487,15 +477,12 @@ class ReaderContent extends HookWidget {
         ),
       );
     }
-    if (content.isEmpty) {
-      return Center(child: Text(l10n.contentEmpty));
-    }
     switch (readingMode) {
       case ReadingMode.scroll:
         return RepaintBoundary(child: scrollBuilder(context, scrollController));
       case ReadingMode.bilingual:
         return RepaintBoundary(
-          child: bilingualBuilder(context, scrollController, bilingualPairs),
+          child: bilingualBuilder(context, scrollController),
         );
       case ReadingMode.pagination:
         return RepaintBoundary(
@@ -551,9 +538,7 @@ class ReaderContent extends HookWidget {
         return;
       }
       if (delta > 0) {
-        controller.jumpTo(
-          (beforeOffset + delta).clamp(0.0, afterMax),
-        );
+        controller.jumpTo((beforeOffset + delta).clamp(0.0, afterMax));
       }
       onDone();
     });

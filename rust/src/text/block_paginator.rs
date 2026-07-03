@@ -16,6 +16,7 @@ const DEFAULT_IMAGE_HEIGHT_RATIO: f32 = 0.55;
 
 /// 排版度量（由 [`TypesetConfig`] 派生）。
 struct BlockLayoutMetrics {
+    font_size_px: f32,
     line_height_px: f32,
     page_height_px: f32,
     page_width_px: f32,
@@ -42,6 +43,7 @@ impl BlockLayoutMetrics {
             (config.paragraph_spacing * font_size).max(0.0);
 
         Self {
+            font_size_px: font_size,
             line_height_px,
             page_height_px,
             page_width_px,
@@ -71,13 +73,48 @@ fn char_index_at_byte(text: &str, byte: usize) -> u32 {
         .count() as u32
 }
 
+/// 块级首行缩进（ADR-010）：IR 字段优先，否则 TypesetConfig。
+fn effective_first_line_indent(
+    style: &TextBlockStyle,
+    metrics: &BlockLayoutMetrics,
+) -> (bool, f32) {
+    if style.is_heading {
+        return (false, 0.0);
+    }
+    match style.text_indent_em {
+        Some(em) if em <= 0.0 => (false, 0.0),
+        Some(em) => (true, em * metrics.font_size_px),
+        None if metrics.first_line_indent_chars > 0 => (
+            true,
+            metrics.first_line_indent_width_px,
+        ),
+        None => (false, 0.0),
+    }
+}
+
+fn block_top_spacing_px(style: &TextBlockStyle, font_size_px: f32) -> f32 {
+    style
+        .margin_top_em
+        .map(|em| em * font_size_px)
+        .unwrap_or(0.0)
+        .max(0.0)
+}
+
+fn block_bottom_spacing_px(style: &TextBlockStyle, metrics: &BlockLayoutMetrics) -> f32 {
+    style
+        .margin_bottom_em
+        .map(|em| em * metrics.font_size_px)
+        .unwrap_or(metrics.paragraph_spacing_extra_px)
+        .max(0.0)
+}
+
 /// 将 Text 块拆成视觉行（含块内 `\n` 硬换行）。
 fn layout_text_block_lines(
     text: &str,
     metrics: &BlockLayoutMetrics,
     style: &TextBlockStyle,
 ) -> Vec<TextLineSegment> {
-    let indent_first = !style.is_heading && metrics.first_line_indent_chars > 0;
+    let (indent_first, indent_width_px) = effective_first_line_indent(style, metrics);
     let char_indices: Vec<(usize, char)> = text.char_indices().collect();
     let mut segments = Vec::new();
     let mut global_char = 0u32;
@@ -116,7 +153,7 @@ fn layout_text_block_lines(
 
         let is_first_line_in_block = segments.is_empty();
         let max_width = if is_first_line_in_block && indent_first {
-            (metrics.max_line_width_px - metrics.first_line_indent_width_px)
+            (metrics.max_line_width_px - indent_width_px)
                 .max(metrics.width_table.char_width('A'))
         } else {
             metrics.max_line_width_px
@@ -251,11 +288,25 @@ impl BlockPaginator {
     }
 
     fn paginate_text_block(&mut self, block_index: u32, block: &TextBlock) {
+        // 块级 font_size / line_height 覆盖（G1+G2）；None 时回退到全局 config
+        let effective_font_size = block.style.font_size.unwrap_or(self.metrics.font_size_px);
+        let effective_line_height = block
+            .style
+            .line_height
+            .map(|lh| lh * effective_font_size)
+            .unwrap_or(self.metrics.line_height_px);
+
+        let top_spacing = block_top_spacing_px(&block.style, effective_font_size);
+        if top_spacing > 0.0 {
+            self.remaining_height = (self.remaining_height - top_spacing).max(0.0);
+        }
+
         let lines = layout_text_block_lines(&block.text, &self.metrics, &block.style);
         let base_plain = block.plain.plain_start;
+        let bottom_spacing = block_bottom_spacing_px(&block.style, &self.metrics);
 
         for (i, seg) in lines.iter().enumerate() {
-            if self.remaining_height < self.metrics.line_height_px {
+            if self.remaining_height < effective_line_height {
                 self.flush_page(false);
             }
 
@@ -263,12 +314,10 @@ impl BlockPaginator {
             let seg_plain_end = base_plain + seg.char_start + seg.char_len;
             self.begin_block_on_page(block_index, seg_plain_start);
             self.extend_plain_end(seg_plain_end);
-            self.remaining_height -= self.metrics.line_height_px;
+            self.remaining_height -= effective_line_height;
 
-            if i + 1 == lines.len() && self.metrics.paragraph_spacing_extra_px > 0.0 {
-                self.remaining_height = (self.remaining_height
-                    - self.metrics.paragraph_spacing_extra_px)
-                    .max(0.0);
+            if i + 1 == lines.len() && bottom_spacing > 0.0 {
+                self.remaining_height = (self.remaining_height - bottom_spacing).max(0.0);
             }
         }
     }
@@ -361,6 +410,68 @@ pub fn paginate_chapter_ir(
     let mut result = paginator.finish();
     result.config_hash = config_hash;
     result
+}
+
+/// 块数阈值：超过此值时分 chunk 独立分页，避免单次 `BlockPaginator` O(pathological_size)。
+pub const CHUNK_BLOCK_COUNT: usize = 200;
+
+/// 边界保护窗口：chunk 末尾 N 个块内如果出现 ImageBlock，扩展 chunk 使图片完整留在当前 chunk。
+const CHUNK_BOUNDARY_GUARD: usize = 5;
+
+/// 分 chunk 块分页：将 `ir.blocks` 按 [CHUNK_BLOCK_COUNT] 拆分，
+/// 每 chunk 独立分页后合并 page descriptors。
+///
+/// 每个 chunk 的 [BlockPaginateResult] 可独立存入 sled 缓存（`chunk_index`）。
+/// chunks ≤ 1 时委托给 [`paginate_chapter_ir`] 零开销。
+///
+/// **边界保护**：当 chunk 切割点附近（末尾 [CHUNK_BOUNDARY_GUARD] 个块内）有图片块时，
+/// 将切割点向前推移，使图片完整归入当前 chunk，避免图片孤立在下一个 chunk 首部。
+pub fn paginate_chapter_ir_chunked(
+    ir: &ChapterContentIr,
+    config: TypesetConfig,
+) -> BlockPaginateResult {
+    if ir.blocks.len() <= CHUNK_BLOCK_COUNT {
+        return paginate_chapter_ir(ir, config);
+    }
+
+    let config_hash = config.config_hash();
+    let mut merged = BlockPaginateResult::new(vec![], config_hash, false);
+
+    let mut offset = 0;
+    while offset < ir.blocks.len() {
+        let mut end = (offset + CHUNK_BLOCK_COUNT).min(ir.blocks.len());
+
+        // 边界保护：如果切割点 end 之前的 guard 区域内有图片，向前扩展切割点
+        // 把图片完整归入当前 chunk（但不超过整个剩余 blocks）
+        if end < ir.blocks.len() {
+            let guard_start = end.saturating_sub(CHUNK_BOUNDARY_GUARD);
+            for i in guard_start..end {
+                if matches!(ir.blocks[i], ContentBlock::Image(_)) {
+                    // 找到最近图片块，将切割点扩展到该图片之后
+                    // 但需继续扫描到下一个非图片块，避免连续图片仍被切断
+                    let mut new_end = i + 1;
+                    while new_end < ir.blocks.len()
+                        && matches!(ir.blocks[new_end], ContentBlock::Image(_))
+                    {
+                        new_end += 1;
+                    }
+                    // 仅在扩展不超过原切割点 + guard 时生效（防止 chunk 过大）
+                    if new_end <= offset + CHUNK_BLOCK_COUNT + CHUNK_BOUNDARY_GUARD {
+                        end = new_end;
+                    }
+                    break; // 只需找到第一个图片即可触发扩展
+                }
+            }
+        }
+
+        let chunk = &ir.blocks[offset..end];
+        let sub_ir = ChapterContentIr::new(chunk.to_vec(), ir.plain_text.clone());
+        let result = paginate_chapter_ir(&sub_ir, config.clone());
+        merged.merge(result);
+        offset = end;
+    }
+
+    merged
 }
 
 #[cfg(test)]
@@ -461,6 +572,130 @@ mod tests {
         let mut prev_end = 0u32;
         for d in &result.descriptors {
             assert!(d.plain.plain_start >= prev_end.saturating_sub(1));
+            prev_end = d.plain_end_exclusive();
+        }
+    }
+
+    // === Chunked pagination tests ===
+
+    #[test]
+    fn chunked_small_chapter_delegates_to_plain() {
+        // Chapter with ≤ CHUNK_BLOCK_COUNT blocks → identical to non-chunked
+        let mut b = BlockJoinedPlainBuilder::new();
+        for i in 0..10 {
+            b.push_text(format!("Block {i} text here."), TextBlockStyle::default());
+        }
+        let ir = b.finish();
+        assert!(ir.block_count() <= CHUNK_BLOCK_COUNT);
+
+        let plain = paginate_chapter_ir(&ir, test_config());
+        let chunked = paginate_chapter_ir_chunked(&ir, test_config());
+
+        assert_eq!(plain.page_count(), chunked.page_count());
+        assert_eq!(plain.descriptors, chunked.descriptors);
+    }
+
+    #[test]
+    fn chunked_large_chapter_produces_valid_descriptors() {
+        // Large chapter (>200 blocks) — should chunk and merge
+        let mut b = BlockJoinedPlainBuilder::new();
+        for i in 0..(CHUNK_BLOCK_COUNT + 50) {
+            b.push_text(format!("Block {i}: some text to paginate."), TextBlockStyle::default());
+        }
+        let ir = b.finish();
+        assert!(ir.block_count() > CHUNK_BLOCK_COUNT);
+
+        let result = paginate_chapter_ir_chunked(&ir, test_config());
+        assert!(result.page_count() > 1, "expected {} pages, got {}", result.page_count(), result.page_count());
+
+        // Verify monotonic plain ranges across all descriptors
+        let mut prev_end = 0u32;
+        for d in &result.descriptors {
+            assert!(
+                d.plain.plain_start >= prev_end.saturating_sub(1),
+                "descriptor page={} plain_start={} < prev_end={}",
+                d.page_index, d.plain.plain_start, prev_end
+            );
+            prev_end = d.plain_end_exclusive();
+        }
+
+        // Verify page_index is sequential
+        for (i, d) in result.descriptors.iter().enumerate() {
+            assert_eq!(d.page_index as usize, i, "page_index mismatch at descriptor {}", i);
+        }
+    }
+
+    #[test]
+    fn merge_preserves_page_continuity() {
+        let mut a = BlockPaginateResult::new(vec![], 0x1234, false);
+        let d0 = BlockPageDescriptor::new(0, 0, 1, BlockPlainRange::new(0, 100), false);
+        let d1 = BlockPageDescriptor::new(1, 1, 2, BlockPlainRange::new(100, 80), false);
+        let b = BlockPaginateResult::new(vec![d0, d1], 0x1234, false);
+        a.merge(b);
+        assert_eq!(a.page_count(), 2);
+        assert_eq!(a.descriptors[0].page_index, 0);
+        assert_eq!(a.descriptors[1].page_index, 1);
+
+        let d2 = BlockPageDescriptor::new(0, 0, 2, BlockPlainRange::new(180, 50), false);
+        let c = BlockPaginateResult::new(vec![d2], 0x1234, false);
+        a.merge(c);
+        assert_eq!(a.page_count(), 3);
+        // Third page should have page_index shifted to 2
+        assert_eq!(a.descriptors[2].page_index, 2);
+        assert_eq!(a.descriptors[2].plain.plain_start, 180);
+    }
+
+    #[test]
+    fn merge_partial_propagation() {
+        let mut a = BlockPaginateResult::new(vec![], 0, false);
+        let b = BlockPaginateResult::new(vec![], 0, true);
+        a.merge(b);
+        assert!(a.is_partial);
+
+        let mut c = BlockPaginateResult::new(vec![], 0, true);
+        let d = BlockPaginateResult::new(vec![], 0, false);
+        c.merge(d);
+        assert!(c.is_partial);
+    }
+
+    #[test]
+    fn chunked_zero_blocks_produces_one_empty_page() {
+        let ir = ChapterContentIr::new(vec![], String::new());
+        assert_eq!(ir.block_count(), 0);
+        let result = paginate_chapter_ir_chunked(&ir, test_config());
+        assert_eq!(result.page_count(), 1, "0-block chapter should produce 1 placeholder page");
+    }
+
+    #[test]
+    fn chunked_boundary_guard_keeps_image_in_current_chunk() {
+        // 构造 >200 blocks 的 IR，在 chunk 边界附近插入图片
+        // 验证图片不会被孤零零地推到下一个 chunk 开头
+        let mut b = BlockJoinedPlainBuilder::new();
+        // 前 197 个文本块
+        for i in 0..197 {
+            b.push_text(format!("Text block {i}."), TextBlockStyle::default());
+        }
+        // 在边界附近插入图片块（块索引 197，恰好在 200 块切割点附近）
+        b.push_image("test_image.png".into(), None);
+        // 后续文本块使总 block 数 > CHUNK_BLOCK_COUNT
+        for i in 0..50 {
+            b.push_text(format!("After image block {i}."), TextBlockStyle::default());
+        }
+        let ir = b.finish();
+        assert!(ir.block_count() > CHUNK_BLOCK_COUNT);
+
+        let result = paginate_chapter_ir_chunked(&ir, test_config());
+        // 验证分页结果有效
+        assert!(result.page_count() > 1);
+
+        // 验证 plain range 单调递增
+        let mut prev_end = 0u32;
+        for d in &result.descriptors {
+            assert!(
+                d.plain.plain_start >= prev_end.saturating_sub(1),
+                "descriptor page={} plain_start={} < prev_end={}",
+                d.page_index, d.plain.plain_start, prev_end
+            );
             prev_end = d.plain_end_exclusive();
         }
     }

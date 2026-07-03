@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
@@ -30,14 +31,17 @@ class ChapterNavigator {
     this._totalPages,
     this._pageIndex,
   );
+
   /// 后退到上一章时，用超大 offset 让 finalize 解析到末页。
   static const int preferLastPageCharOffset = 0x7FFFFFFF;
 
   Future<void> previousChapter() async {
     if (_loader.isLoading.value) return;
-    if (_chapterVM.chapterIndex.value > 0) {
-      final newChapterIndex = _chapterVM.chapterIndex.value - 1;
+    final fromChapter = _chapterVM.chapterIndex.value;
+    if (fromChapter > 0) {
+      final newChapterIndex = fromChapter - 1;
       _chapterVM.showChapterTransition.value = false;
+      final sw = Stopwatch()..start();
       await _loader.loadChapter(
         newChapterIndex,
         preserveContent: true,
@@ -45,25 +49,31 @@ class ChapterNavigator {
         navigationKind: ChapterNavigationKind.adjacentCrossChapter,
         initialCharOffset: preferLastPageCharOffset,
       );
+      Logging.info(
+        '[Timing] cross-chapter backward: chapter_from=$fromChapter chapter_to=$newChapterIndex total_ms=${sw.elapsedMilliseconds}',
+      );
     }
   }
 
   Future<void> nextChapter() async {
     if (_loader.isLoading.value) return;
     final chapterList = _chapters.value.value ?? [];
-    if (_chapterVM.chapterIndex.value < chapterList.length - 1) {
-      final newChapterIndex = _chapterVM.chapterIndex.value + 1;
+    final fromChapter = _chapterVM.chapterIndex.value;
+    if (fromChapter < chapterList.length - 1) {
+      final newChapterIndex = fromChapter + 1;
       _chapterVM.showChapterTransition.value = false;
+      final sw = Stopwatch()..start();
       await _loader.loadChapter(
         newChapterIndex,
         preserveContent: true,
         readingMode: _chapterVM.activeReadingMode,
         navigationKind: ChapterNavigationKind.adjacentCrossChapter,
       );
+      Logging.info(
+        '[Timing] cross-chapter forward: chapter_from=$fromChapter chapter_to=$newChapterIndex total_ms=${sw.elapsedMilliseconds}',
+      );
     }
   }
-
-
 
   Future<void> jumpToChapter(int chapterIndex) async {
     _chapterVM.showChapterTransition.value = true;
@@ -81,7 +91,6 @@ class ChapterNavigator {
       readingMode: _chapterVM.activeReadingMode,
     );
   }
-
 
   Future<void> previousPage() async {
     if (_pageIndex.value > 0) {
@@ -131,60 +140,68 @@ class ChapterNavigator {
   Future<void> preloadAdjacentFirstPages(int centerIndex) async {
     final chapterList = _chapters.value.value ?? [];
     if (chapterList.isEmpty) return;
-    final effectiveHeight = _pagination.pageHeight -
+    final effectiveHeight =
+        _pagination.pageHeight -
         2 * ReaderRenderConfig.pageContentVerticalPadding;
 
     // 预加载下一章
     if (centerIndex + 1 < chapterList.length) {
       final nextIdx = centerIndex + 1;
-      unawaited(_repo.preloadNextChapterStaging(
-        _chapterVM.bookId.value,
-        nextIdx,
-        fontSize: _config.fontSize.value,
-        lineHeight: _config.lineHeight.value,
-        width: _pagination.pageWidth,
-        height: effectiveHeight.clamp(100, _pagination.pageHeight),
-        padding: _config.padding.value,
-        devicePixelRatio: _pagination.devicePixelRatio,
-        fontFamily: _pagination.fontFamily,
-      ));
+      unawaited(
+        _repo.preloadNextChapterStaging(
+          _chapterVM.bookId.value,
+          nextIdx,
+          fontSize: _config.fontSize.value,
+          lineHeight: _config.lineHeight.value,
+          width: _pagination.pageWidth,
+          height: effectiveHeight.clamp(100, _pagination.pageHeight),
+          padding: _config.padding.value,
+          devicePixelRatio: _pagination.devicePixelRatio,
+          fontFamily: _pagination.fontFamily,
+        ),
+      );
     }
 
     // 预加载上一章（末页）
     if (centerIndex - 1 >= 0) {
       final prevIdx = centerIndex - 1;
-      unawaited(_repo.preloadPreviousChapterStaging(
-        _chapterVM.bookId.value,
-        prevIdx,
-        fontSize: _config.fontSize.value,
-        lineHeight: _config.lineHeight.value,
-        width: _pagination.pageWidth,
-        height: effectiveHeight.clamp(100, _pagination.pageHeight),
-        padding: _config.padding.value,
-        devicePixelRatio: _pagination.devicePixelRatio,
-        fontFamily: _pagination.fontFamily,
-      ));
+      unawaited(
+        _repo.preloadPreviousChapterStaging(
+          _chapterVM.bookId.value,
+          prevIdx,
+          fontSize: _config.fontSize.value,
+          lineHeight: _config.lineHeight.value,
+          width: _pagination.pageWidth,
+          height: effectiveHeight.clamp(100, _pagination.pageHeight),
+          padding: _config.padding.value,
+          devicePixelRatio: _pagination.devicePixelRatio,
+          fontFamily: _pagination.fontFamily,
+        ),
+      );
     }
   }
 
-  /// 条件触发上一章 staging 预加载（pageIndex <= 1 时加速）。
+  /// 条件触发上一章 staging 预加载（pageIndex <= 2 时提前触发）。
   void ensurePrevChapterStaging(int pageIndex) {
-    if (pageIndex > 1) return;
+    if (pageIndex > 2) return;
     final centerIndex = _chapterVM.chapterIndex.value;
     if (centerIndex - 1 < 0) return;
     if (_repo.prevChapterStaging != null) return;
-    unawaited(_repo.preloadPreviousChapterStaging(
-      _chapterVM.bookId.value,
-      centerIndex - 1,
-      fontSize: _config.fontSize.value,
-      lineHeight: _config.lineHeight.value,
-      width: _pagination.pageWidth,
-      height: (_pagination.pageHeight -
-              2 * ReaderRenderConfig.pageContentVerticalPadding)
-          .clamp(100, _pagination.pageHeight),
-      padding: _config.padding.value,
-      devicePixelRatio: _pagination.devicePixelRatio,
-      fontFamily: _pagination.fontFamily,
-    ));
+    unawaited(
+      _repo.preloadPreviousChapterStaging(
+        _chapterVM.bookId.value,
+        centerIndex - 1,
+        fontSize: _config.fontSize.value,
+        lineHeight: _config.lineHeight.value,
+        width: _pagination.pageWidth,
+        height:
+            (_pagination.pageHeight -
+                    2 * ReaderRenderConfig.pageContentVerticalPadding)
+                .clamp(100, _pagination.pageHeight),
+        padding: _config.padding.value,
+        devicePixelRatio: _pagination.devicePixelRatio,
+        fontFamily: _pagination.fontFamily,
+      ),
+    );
   }
 }

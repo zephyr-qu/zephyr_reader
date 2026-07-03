@@ -3548,18 +3548,6 @@ abstract class AppLocalizations {
   /// **'实验性功能'**
   String get otherExperimental;
 
-  /// No description provided for @otherMarkdownPreview.
-  ///
-  /// In zh, this message translates to:
-  /// **'Markdown 笔记预览'**
-  String get otherMarkdownPreview;
-
-  /// No description provided for @otherMarkdownPreviewDesc.
-  ///
-  /// In zh, this message translates to:
-  /// **'在笔记列表中渲染 Markdown 格式'**
-  String get otherMarkdownPreviewDesc;
-
   /// No description provided for @otherLegal.
   ///
   /// In zh, this message translates to:

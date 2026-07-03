@@ -36,9 +36,10 @@ async fn ensure_shared_storage() {
         return;
     }
     *done = true;
-    init_storage(SHARED_DIR.path().to_string_lossy().to_string())
-        .await
-        .expect("init_storage should succeed");
+    if let Err(e) = init_storage(SHARED_DIR.path().to_string_lossy().to_string()).await {
+        // 存储可能已被同一进程的其他测试共享全局初始化
+        eprintln!("init_storage note (tolerated): {e}");
+    }
 }
 
 #[test]
@@ -343,7 +344,7 @@ async fn test_get_chapter_epub_returns_full_chapter_content() {
 }
 
 /// Regression test for CRITICAL BUG #2 (audited 2026-06-17):
-/// `paginate_chapter` partial mode for TXT/MD must read from the chapter's
+/// `paginate_chapter` partial mode for TXT must read from the chapter's
 /// start byte offset, not from byte 0. Before the fix, partial pagination
 /// for chapter_index > 0 returned the first 100 chars of the FILE (i.e.
 /// chapter 0), regardless of the requested chapter.
@@ -434,7 +435,7 @@ async fn test_paginate_chapter_partial_txt_uses_chapter_bounds() {
 /// the next call refetches via `find_by_file_path` automatically.
 #[tokio::test]
 async fn test_book_id_cache_invalidation_on_stale_miss() {
-    use rust_lib_zephyr_reader::reading::book_id_cache;
+    use rust_lib_zephyr_reader::reading;
     ensure_shared_storage().await;
 
     // Create a 2-chapter TXT file so the test has a meaningful chapter
@@ -473,12 +474,12 @@ async fn test_book_id_cache_invalidation_on_stale_miss() {
     }
     let bounds1 = get_bounds(&file_path, first_chapter_idx).await
         .expect("first get_chapter_bounds should succeed");
-    assert!(book_id_cache::BOOK_ID_CACHE.lock().contains(&canonical_path),
+    assert!(reading::BOOK_ID_CACHE.lock().contains(&canonical_path),
         "BOOK_ID_CACHE should be populated after successful lookup");
 
     // 2. Inject a STALE book_id into the cache (simulates reimport).
     let stale_book_id = "stale-book-id-does-not-exist-in-db";
-    book_id_cache::BOOK_ID_CACHE.lock().put(canonical_path.clone(), stale_book_id.to_string());
+    reading::BOOK_ID_CACHE.lock().put(canonical_path.clone(), stale_book_id.to_string());
 
     // 3. Call get_chapter_bounds again. Before the fix, this would
     // return `ChapterExtractError` (find_by_index("stale-book-id", 0)
@@ -490,7 +491,7 @@ async fn test_book_id_cache_invalidation_on_stale_miss() {
         "bounds should match after cache invalidation refetch");
 
     // 4. Verify the cache now holds the FRESH book_id, not the stale one.
-    let cached = book_id_cache::BOOK_ID_CACHE.lock().get(&canonical_path).cloned();
+    let cached = reading::BOOK_ID_CACHE.lock().get(&canonical_path).cloned();
     assert_eq!(cached.as_deref(), Some(book_id.as_str()),
         "cache should be refilled with fresh book_id after invalidation");
     assert_ne!(cached.as_deref(), Some(stale_book_id),

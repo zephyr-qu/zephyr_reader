@@ -9,9 +9,11 @@
 
 use std::sync::LazyLock;
 
-use crate::domain::{AppError, PageBlockSlice, PageContent, PaginateResult, TypesetConfig};
+use crate::domain::{AppError, ChapterContentIr, PageBlockSlice, PageContent, PaginateResult, TypesetConfig};
 use crate::reading::types::PaginationSessionHandle;
 use crate::api::core::{ChapterContent, FirstSpineResult};
+
+use crate::utils::security::validate_file_path;
 
 use super::chapter_access;
 
@@ -24,7 +26,6 @@ pub struct ReadingOrchestrator {
 
 impl ReadingOrchestrator {
     /// 获取全局单例。
-    #[allow(dead_code)] // Phase 2+ 接入
     pub fn global() -> &'static Self {
         static INSTANCE: LazyLock<ReadingOrchestrator> = LazyLock::new(|| ReadingOrchestrator {
             _marker: std::marker::PhantomData,
@@ -33,7 +34,6 @@ impl ReadingOrchestrator {
     }
 
     /// 从 DB 获取章节边界信息（TXT 的文件字节偏移，EPUB 的 spine 索引）。
-    #[allow(dead_code)] // Phase 2+ 接入
     pub async fn get_chapter_bounds(
         &self,
         validated_path: &str,
@@ -95,7 +95,6 @@ impl ReadingOrchestrator {
     }
 
     /// Create a pagination session and run initial pagination for the chapter.
-    #[allow(dead_code)] // Phase 3 — FFI delegates in api/core.rs bridge usage
     pub async fn create_pagination_session(
         &self,
         file_path: String,
@@ -107,7 +106,6 @@ impl ReadingOrchestrator {
     }
 
     /// Create a pagination session by adopting an existing streamer from cache.
-    #[allow(dead_code)] // Phase 3 — FFI delegates in api/core.rs bridge usage
     pub async fn create_pagination_session_adopt(
         &self,
         file_path: String,
@@ -118,7 +116,6 @@ impl ReadingOrchestrator {
     }
 
     /// Re-paginate an existing session with a new config in-place.
-    #[allow(dead_code)] // Phase 3 — FFI delegates in api/core.rs bridge usage
     pub async fn repaginate_session(
         &self,
         handle: PaginationSessionHandle,
@@ -128,8 +125,17 @@ impl ReadingOrchestrator {
         super::session::repaginate_session(handle, config, max_chars).await
     }
 
+    /// Apply Flutter TextPainter calibration to an existing session.
+    pub async fn apply_session_calibration(
+        &self,
+        handle: PaginationSessionHandle,
+        calibration: crate::domain::types::typeset::TypesetCalibration,
+        max_chars: Option<u64>,
+    ) -> Result<PaginateResult, AppError> {
+        super::session::apply_session_calibration(handle, calibration, max_chars).await
+    }
+
     /// Expand session to full chapter.
-    #[allow(dead_code)] // Phase 3 — FFI delegates in api/core.rs bridge usage
     pub async fn paginate_session_full(
         &self,
         handle: PaginationSessionHandle,
@@ -139,7 +145,6 @@ impl ReadingOrchestrator {
     }
 
     /// Get page content by session handle (sync).
-    #[allow(dead_code)] // Phase 3 — FFI delegates in api/core.rs bridge usage
     pub fn get_session_page_content(
         &self,
         handle: PaginationSessionHandle,
@@ -167,7 +172,6 @@ impl ReadingOrchestrator {
     }
 
     /// Dispose pagination session.
-    #[allow(dead_code)] // Phase 3 — FFI delegates in api/core.rs bridge usage
     pub fn dispose_pagination_session(
         &self,
         handle: PaginationSessionHandle,
@@ -203,10 +207,21 @@ impl ReadingOrchestrator {
         super::chapter_access::get_chapter(file_path, chapter_index, config).await
     }
 
+    /// P4-1：加载整章 IR（scroll / 块渲染；不创建 pagination session）。
+    pub async fn get_chapter_content_ir(
+        &self,
+        file_path: String,
+        chapter_index: i32,
+    ) -> Result<ChapterContentIr, AppError> {
+        let validated_path = validate_file_path(&file_path)?;
+        super::chapter_ir::load_chapter_content_ir(&validated_path, chapter_index).await
+    }
+
     /// 清理 PROVIDER_CACHE + BOOK_ID_CACHE + 分页内存 LRU（测试用）。
+#[cfg(test)]
     pub fn clear_caches_for_test(&self) {
         super::provider_cache::clear_for_test();
-        super::book_id_cache::clear_for_test();
+        super::clear_for_test();
         super::pagination_store::PaginationStore::global().clear_lru_for_test();
     }
 }

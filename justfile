@@ -28,8 +28,10 @@ fmt:
 
 # ── Test ──
 
+## OOM workaround: --jobs 4 + codegen-units=1
+## Windows page file insufficient for 16-way parallel test compilation
 test:
-    cd rust && cargo test
+    cd rust && RUSTFLAGS="-C codegen-units=1" cargo test --jobs 4
     flutter test
 
 # ── Build ──

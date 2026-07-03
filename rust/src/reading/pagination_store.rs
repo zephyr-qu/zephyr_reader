@@ -17,7 +17,19 @@ use parking_lot::Mutex;
 
 use crate::domain::{AppError, ChapterPaginationMode, PaginateResult};
 
-use super::pagination_engine::PaginationEngine;
+use crate::reading::block_state::BlockPaginationState;
+use crate::text::PageStreamer;
+
+/// Session / 内存 LRU 持有的分页引擎。
+///
+/// P1: `Plain(PageStreamer)` 仅用于 `max_chars` partial 首屏路径（in-memory，不持久化到 sled）。
+/// 全章分页统一走 `Block(BlockPaginationState)`，sled 唯一真理源 = `BlockLayoutCache`。
+#[derive(Clone)]
+pub(crate) enum PaginationEngine {
+    Plain(PageStreamer),
+    Block(BlockPaginationState),
+}
+
 
 const PAGINATION_ENGINE_CACHE_CAPACITY: NonZeroUsize = match NonZeroUsize::new(16) {
     Some(v) => v,
@@ -84,6 +96,7 @@ impl PaginationStore {
     }
 
     /// 清空内存 LRU（测试用：验证 sled 跨 session 命中）。
+#[cfg(test)]
     pub fn clear_lru_for_test(&self) {
         PAGINATION_ENGINE_CACHE.lock().clear();
     }
@@ -134,25 +147,6 @@ impl PaginationStore {
         })
     }
 
-    /// 全章 plain 引擎 cache hit（非 partial）。
-    pub(crate) fn try_plain_full_hit(&self, key: &PaginationKey) -> Option<PaginateResult> {
-        self.with_popped(key, |engine| match engine {
-            PaginationEngine::Plain(streamer) if !streamer.is_partial => {
-                let descriptors = streamer.get_descriptors();
-                (
-                    PaginationEngine::Plain(streamer),
-                    Some(PaginateResult {
-                        descriptors,
-                        config_hash: key.config_hash,
-                        is_partial: false,
-                        mode: ChapterPaginationMode::PlainText,
-                    }),
-                )
-            }
-            other => (other, None),
-        })
-    }
-
     /// Session 绑定：从 LRU pop 引擎，校验 mode，clone 回 LRU 供 path API / adopt。
     pub(crate) fn attach_for_session(
         &self,
@@ -186,5 +180,217 @@ impl PaginationStore {
 
         self.put(key.clone(), engine.clone());
         Ok(engine)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::reading::block_state::BlockPaginationState;
+    use crate::domain::TextBlockStyle;
+    use crate::domain::{BlockJoinedPlainBuilder, TypesetConfig};
+    use crate::text::paginate_chapter_ir;
+
+    fn make_key(file_path: &str, chapter_index: i32, config_hash: u64) -> PaginationKey {
+        PaginationKey::new(file_path, chapter_index, config_hash)
+    }
+
+    fn make_block_engine() -> PaginationEngine {
+        let mut b = BlockJoinedPlainBuilder::new();
+        b.push_text("Hello World".into(), TextBlockStyle::default());
+        let ir = b.finish();
+        let config = TypesetConfig::default();
+        let result = paginate_chapter_ir(&ir, config);
+        let state = BlockPaginationState::new(ir, result, false);
+        PaginationEngine::Block(state)
+    }
+
+    fn make_partial_block_engine() -> PaginationEngine {
+        let mut b = BlockJoinedPlainBuilder::new();
+        b.push_text("Partial".into(), TextBlockStyle::default());
+        let ir = b.finish();
+        let config = TypesetConfig::default();
+        let result = paginate_chapter_ir(&ir, config);
+        let state = BlockPaginationState::new(ir, result, true);
+        PaginationEngine::Block(state)
+    }
+
+    fn setup() {
+        PaginationStore::global().clear_lru_for_test();
+    }
+
+    #[test]
+    fn put_and_pop_roundtrip() {
+        setup();
+        let store = PaginationStore::global();
+        let key = make_key("/test/book.txt", 0, 0xABCD);
+        let engine = make_block_engine();
+
+        store.put(key.clone(), engine.clone());
+        let popped = store.pop(&key);
+
+        assert!(popped.is_some());
+        // After pop, cache should be empty
+        assert!(store.pop(&key).is_none());
+    }
+
+    #[test]
+    fn pop_nonexistent_returns_none() {
+        setup();
+        let store = PaginationStore::global();
+        let key = make_key("/no/such.txt", 99, 0);
+
+        assert!(store.pop(&key).is_none());
+    }
+
+    #[test]
+    fn evict_removes_entry() {
+        setup();
+        let store = PaginationStore::global();
+        let key = make_key("/test/evict.txt", 0, 0x1234);
+        store.put(key.clone(), make_block_engine());
+
+        store.evict(&key);
+        assert!(store.pop(&key).is_none());
+    }
+
+    #[test]
+    fn clone_for_adopt_does_not_remove() {
+        setup();
+        let store = PaginationStore::global();
+        let key = make_key("/test/adopt.txt", 0, 0x5678);
+        store.put(key.clone(), make_block_engine());
+
+        let cloned = store.clone_for_adopt(&key);
+        assert!(cloned.is_some());
+        // Engine should still be in cache after clone_for_adopt
+        assert!(store.pop(&key).is_some());
+    }
+
+    #[test]
+    fn evict_if_replaced_different_key() {
+        setup();
+        let store = PaginationStore::global();
+        let old_key = make_key("/test/old.txt", 0, 0x1111);
+        let new_key = make_key("/test/new.txt", 0, 0x2222);
+        store.put(old_key.clone(), make_block_engine());
+
+        store.evict_if_replaced(Some(&old_key), &new_key);
+        assert!(store.pop(&old_key).is_none());
+    }
+
+    #[test]
+    fn evict_if_replaced_same_key_keeps() {
+        setup();
+        let store = PaginationStore::global();
+        let key = make_key("/test/same.txt", 0, 0x3333);
+        store.put(key.clone(), make_block_engine());
+
+        store.evict_if_replaced(Some(&key), &key);
+        assert!(store.pop(&key).is_some());
+    }
+
+    #[test]
+    fn try_block_full_hit_returns_result() {
+        setup();
+        let store = PaginationStore::global();
+        let key = make_key("/test/full.txt", 0, 0x4444);
+        store.put(key.clone(), make_block_engine());
+
+        let hit = store.try_block_full_hit(&key);
+        assert!(hit.is_some(), "complete block engine should be a full hit");
+        let result = hit.unwrap();
+        assert!(!result.is_partial);
+        assert_eq!(result.mode, ChapterPaginationMode::ContentBlocks);
+    }
+
+    #[test]
+    fn try_block_full_hit_partial_returns_none() {
+        setup();
+        let store = PaginationStore::global();
+        let key = make_key("/test/partial.txt", 0, 0x5555);
+        store.put(key.clone(), make_partial_block_engine());
+
+        let hit = store.try_block_full_hit(&key);
+        assert!(hit.is_none(), "partial engine should not be a full hit");
+    }
+
+    #[test]
+    fn try_block_full_hit_nonexistent_returns_none() {
+        setup();
+        let store = PaginationStore::global();
+        let key = make_key("/test/miss.txt", 0, 0x6666);
+
+        assert!(store.try_block_full_hit(&key).is_none());
+    }
+
+    #[test]
+    fn with_engine_reads_then_restores() {
+        setup();
+        let store = PaginationStore::global();
+        let key = make_key("/test/with_eng.txt", 0, 0x7777);
+        store.put(key.clone(), make_block_engine());
+
+        let result = store.with_engine(&key, |_engine| Ok::<_, AppError>(42));
+        assert_eq!(result.unwrap(), 42);
+
+        // Engine should be restored to cache
+        assert!(store.pop(&key).is_some());
+    }
+
+    #[test]
+    fn with_engine_nonexistent_returns_not_found() {
+        setup();
+        let store = PaginationStore::global();
+        let key = make_key("/test/no_eng.txt", 0, 0x8888);
+
+        let result: Result<i32, AppError> = store.with_engine(&key, |_| Ok(42));
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), AppError::NotFound { .. }));
+    }
+
+    #[test]
+    fn attach_for_session_block_mode_ok() {
+        setup();
+        let store = PaginationStore::global();
+        let key = make_key("/test/session.txt", 0, 0x9999);
+        store.put(key.clone(), make_block_engine());
+
+        let engine = store.attach_for_session(&key, ChapterPaginationMode::ContentBlocks, None);
+        assert!(engine.is_ok());
+        // Engine should be cloned back for path API use
+        assert!(store.pop(&key).is_some());
+    }
+
+    #[test]
+    fn attach_for_session_mode_mismatch_returns_error() {
+        setup();
+        let store = PaginationStore::global();
+        let key = make_key("/test/mismatch.txt", 0, 0xAAAA);
+        store.put(key.clone(), make_block_engine());
+
+        let engine = store.attach_for_session(&key, ChapterPaginationMode::PlainText, None);
+        assert!(engine.is_err());
+        // Engine should be restored on mismatch
+        assert!(store.pop(&key).is_some());
+    }
+
+    #[test]
+    fn lru_evicts_oldest_when_full() {
+        setup();
+        let store = PaginationStore::global();
+        // Fill cache to capacity (16) and then add one more
+        for i in 0..=16 {
+            let key = make_key(&format!("/test/lru_{}.txt", i), 0, 0xBBBB);
+            store.put(key, make_block_engine());
+        }
+
+        // The first entry (i=0) should be evicted
+        let first_key = make_key("/test/lru_0.txt", 0, 0xBBBB);
+        assert!(store.pop(&first_key).is_none());
+
+        // The most recent entry (i=16) should still be present
+        let last_key = make_key("/test/lru_16.txt", 0, 0xBBBB);
+        assert!(store.pop(&last_key).is_some());
     }
 }

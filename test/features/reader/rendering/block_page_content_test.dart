@@ -3,6 +3,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/reader/rendering/block_page_content.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
+import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
+import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
+
+const _defaultStyle = TextBlockStyle(
+  isHeading: false,
+  headingLevel: 0,
+  textIndentEm: null,
+  marginTopEm: null,
+  marginBottomEm: null,
+  fontFamily: null,
+  lineHeight: null,
+  textAlign: null,
+);
+
+const _emptySpans = <RichTextSpan>[];
 
 ReaderRenderConfig _config({double paragraphSpacing = 12}) {
   return ReaderRenderConfig(
@@ -20,17 +35,13 @@ ReaderRenderConfig _config({double paragraphSpacing = 12}) {
 }
 
 Widget _wrap(Widget child) => MaterialApp(
-  home: Scaffold(
-    body: SizedBox(
-      width: 400,
-      height: 600,
-      child: child,
-    ),
-  ),
+  home: Scaffold(body: SizedBox(width: 400, height: 600, child: child)),
 );
 
 void main() {
-  testWidgets('isBlockEnd 为 true 时在 Text 块后插入 paragraphSpacing', (tester) async {
+  testWidgets('isBlockEnd 为 true 时在 Text 块后插入 paragraphSpacing', (
+    tester,
+  ) async {
     const spacing = 12.0;
     await tester.pumpWidget(
       _wrap(
@@ -42,14 +53,20 @@ void main() {
                 PageTextBlockSlice(
                   blockIndex: 0,
                   text: 'First paragraph.',
+                  isBlockStart: true,
                   isBlockEnd: true,
+                  style: _defaultStyle,
+                  spans: _emptySpans,
                 ),
               ),
               PageBlockSlice.text(
                 PageTextBlockSlice(
                   blockIndex: 1,
                   text: 'Second paragraph.',
+                  isBlockStart: true,
                   isBlockEnd: true,
+                  style: _defaultStyle,
+                  spans: _emptySpans,
                 ),
               ),
             ],
@@ -83,7 +100,10 @@ void main() {
                 PageTextBlockSlice(
                   blockIndex: 0,
                   text: 'Continuation slice.',
+                  isBlockStart: false,
                   isBlockEnd: false,
+                  style: _defaultStyle,
+                  spans: _emptySpans,
                 ),
               ),
             ],

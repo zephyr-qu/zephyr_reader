@@ -1,29 +1,32 @@
 //! 分页 API（`paginate_chapter` / `paginate_all_content` / `get_page_content`）。
 //!
 //! Phase 2 实施：迁自 `api/core.rs` 的分页 + layout cache + provider cache 相关代码。
+//!
+//! P0: 所有章节（包括纯文本书）统一走 IR → BlockPaginator 路径。
+//! PageStreamer 仅用于 `max_chars` partial 分页（首屏快速分页），不再作为全章主路径。
 
 use std::time::Instant;
 
 use crate::domain::{
-    AppError, ChapterPaginationMode, PageBlockSlice, PageContent, PaginateResult, TypesetConfig,
+    AppError, BlockPageDescriptor, BlockPaginateResult, ChapterContentIr,
+    ChapterPaginationMode, PageBlockSlice, PageContent, PaginateResult, TypesetConfig,
 };
 use crate::storage::models::BookFormat;
-use crate::text::{paginate_all, paginate_chapter_ir, PageStreamer};
+use crate::text::PageStreamer;
 use crate::utils::security::validate_file_path;
 
 use super::block_state::BlockPaginationState;
 use super::chapter_access::{format_from_file_path, get_chapter_bounds};
 use super::chapter_ir::load_chapter_content_ir;
-use super::layout_cache::{
-    try_get_block_cached, try_get_cached, try_save_block_cached, try_save_cached,
-};
-use super::pagination_engine::PaginationEngine;
+use super::layout_cache::{try_get_block_cached, try_save_block_cached};
+use super::pagination_store::PaginationEngine;
 use super::pagination_store::{PaginationKey, PaginationStore};
 use super::provider_cache::get_or_create_provider;
 
 /// 分页排版指定文件的所有章节。
 ///
 /// 返回完整的分页结果，适用于全量排版场景。
+/// P0: 统一走 IR → BlockPaginator 路径（"分页引擎只认 IR"）。
 pub(crate) async fn paginate_all_content(
     file_path: String,
     chapter_index: i32,
@@ -33,40 +36,96 @@ pub(crate) async fn paginate_all_content(
     let config = config.validate_and_fix();
     let config_hash = config.config_hash();
 
-    // 查缓存
-    if let Some(pages) = try_get_cached(&validated_path, chapter_index, None, config_hash).await {
+    // Try block cache first
+    if let Some((ir, block_result)) =
+        try_get_block_cached(&validated_path, chapter_index, None, config_hash).await
+    {
+        let state = BlockPaginationState::new(ir, block_result, false);
+        let pages = state.to_page_content_list(chapter_index);
         return Ok(pages);
     }
 
-    // 优先使用 Provider LRU 路径（与 getChapter 共享解析器缓存，避免重复 I/O）
-    let format = format_from_file_path(&validated_path)?;
-    let content = if matches!(format, BookFormat::Txt | BookFormat::Epub) {
-        let provider = get_or_create_provider(&validated_path, chapter_index, &format).await?;
-        let content_len = provider.content_length();
-        let (start, end) = if format == BookFormat::Epub {
-            (0u64, content_len)
-        } else {
-            let (cs, ce) = get_chapter_bounds(&validated_path, chapter_index).await?;
-            (cs.max(0) as u64, (ce.max(0) as u64).min(content_len))
-        };
-        provider.read_text_range(start, end)?
-    } else {
-        return Err(AppError::UnsupportedFormat {
-            format: format!("unsupported format for pagination: {:?}", format).into(),
-        });
-    };
+    // Cache miss: load IR and paginate via BlockPaginator
+    let ir = load_chapter_content_ir(&validated_path, chapter_index).await?;
+    let config_clone = config.clone();
+    let ir_for_paginate = ir.clone();
+    let block_result = tokio::task::spawn_blocking(move || {
+        crate::text::block_paginator::paginate_chapter_ir_chunked(&ir_for_paginate, config_clone)
+    })
+    .await
+    .map_err(|e| AppError::TaskPanic {
+        task_name: "block_paginate_all".into(),
+        details: e.to_string().into(),
+    })?;
 
-    let chapter_idx = chapter_index;
-    let pages = tokio::task::spawn_blocking(move || paginate_all(content, chapter_idx, config))
-        .await
-        .map_err(|e| AppError::TaskPanic { task_name: "pagination".into(), details: e.to_string().into() })?;
+    let state = BlockPaginationState::new(ir.clone(), block_result.clone(), false);
+    let pages = state.to_page_content_list(chapter_index);
 
-    try_save_cached(&validated_path, chapter_index, None, config_hash, pages.clone()).await;
+    // Save to block cache
+    try_save_block_cached(
+        &validated_path,
+        chapter_index,
+        None,
+        config_hash,
+        ir,
+        block_result,
+    ).await;
 
     Ok(pages)
 }
 
 /// 全章 + 含 Image 块时走 BlockPaginator；否则沿用 Phase 1 `PageStreamer`。
+
+/// 保存块分页缓存（透明 chunking：超过阈值时按 chunk 保存，否则单条目）。
+async fn save_block_caches_chunked(
+    validated_path: &str,
+    chapter_index: i32,
+    config_hash: u64,
+    ir: &ChapterContentIr,
+    result: &BlockPaginateResult,
+) {
+    use crate::text::block_paginator::CHUNK_BLOCK_COUNT;
+    if ir.blocks.len() > CHUNK_BLOCK_COUNT {
+        // Per-chunk save for large chapters
+        for (i, chunk) in ir.blocks.chunks(CHUNK_BLOCK_COUNT).enumerate() {
+            let sub_ir = ChapterContentIr::new(chunk.to_vec(), ir.plain_text.clone());
+            // Build per-chunk result: filter descriptors for this chunk's block range
+            let block_start = (i * CHUNK_BLOCK_COUNT) as u32;
+            let block_end = block_start + chunk.len() as u32;
+            let chunk_descriptors: Vec<BlockPageDescriptor> = result
+                .descriptors
+                .iter()
+                .filter(|d| d.first_block_index < block_end && d.last_block_index > block_start)
+                .cloned()
+                .collect();
+            if !chunk_descriptors.is_empty() {
+                let chunk_result = BlockPaginateResult::new(
+                    chunk_descriptors,
+                    config_hash,
+                    result.is_partial,
+                );
+                try_save_block_cached(
+                    validated_path,
+                    chapter_index,
+                    Some(i as u32),
+                    config_hash,
+                    sub_ir,
+                    chunk_result,
+                ).await;
+            }
+        }
+    } else {
+        // Single save for normal chapters
+        try_save_block_cached(
+            validated_path,
+            chapter_index,
+            None,
+            config_hash,
+            ir.clone(),
+            result.clone(),
+        ).await;
+    }
+}
 async fn try_paginate_chapter_blocks(
     validated_path: &str,
     chapter_index: i32,
@@ -90,8 +149,37 @@ async fn try_paginate_chapter_blocks(
         return Ok(Some(result));
     }
 
+    // Try chunked cache first (chunk_index=0 hit means all chunks should be cached)
+    if let Some((ir0, block_result0)) =
+        try_get_block_cached(validated_path, chapter_index, Some(0), config_hash).await
+    {
+        let mut merged_ir = ir0;
+        let mut merged_result = block_result0;
+        let mut next_chunk = 1u32;
+        loop {
+            if let Some((ir_n, block_result_n)) =
+                try_get_block_cached(validated_path, chapter_index, Some(next_chunk), config_hash).await
+            {
+                merged_ir.blocks.extend(ir_n.blocks);
+                merged_result.merge(block_result_n);
+                next_chunk += 1;
+            } else {
+                break;
+            }
+        }
+        let state = BlockPaginationState::new(merged_ir, merged_result.clone(), false);
+        let result = state.to_paginate_result(config_hash);
+        store.put(key, PaginationEngine::Block(state));
+        tracing::info!(
+            "[Timing] paginate_chapter block_path layout_cache=CHUNKED_HIT chunks={next_chunk} pages={}",
+            merged_result.page_count()
+        );
+        return Ok(Some(result));
+    }
+
+    // Fallback: non-chunked cache (backward compatibility)
     if let Some((ir, block_result)) =
-        try_get_block_cached(validated_path, chapter_index, config_hash).await
+        try_get_block_cached(validated_path, chapter_index, None, config_hash).await
     {
         let state = BlockPaginationState::new(ir, block_result, false);
         let result = state.to_paginate_result(config_hash);
@@ -105,33 +193,36 @@ async fn try_paginate_chapter_blocks(
         return Ok(Some(result));
     }
 
+    // Cache miss: load IR and paginate (chunked if large)
+    // P0: ALL chapters now go through block pagination, regardless of
+    // image content. This eliminates the dual truth source (PageStreamer
+    // vs BlockPaginator) — "分页引擎只认 IR" (TARGET_ARCHITECTURE §4).
     let ir = load_chapter_content_ir(validated_path, chapter_index).await?;
-    if ir.image_block_count() == 0 {
-        return Ok(None);
-    }
 
     let config = config.clone();
     let ir_for_paginate = ir.clone();
-    let block_result =
-        tokio::task::spawn_blocking(move || paginate_chapter_ir(&ir_for_paginate, config))
-        .await
-        .map_err(|e| AppError::TaskPanic {
-            task_name: "block_paginate".into(),
-            details: e.to_string().into(),
-        })?;
+    let block_result = tokio::task::spawn_blocking(move || {
+        // Use chunked paginator — transparently splits large chapters
+        crate::text::block_paginator::paginate_chapter_ir_chunked(&ir_for_paginate, config)
+    })
+    .await
+    .map_err(|e| AppError::TaskPanic {
+        task_name: "block_paginate".into(),
+        details: e.to_string().into(),
+    })?;
 
     let state = BlockPaginationState::new(ir.clone(), block_result.clone(), false);
     let result = state.to_paginate_result(config_hash);
     store.put(key, PaginationEngine::Block(state));
 
-    try_save_block_cached(
+    // Save caches: if blocks > CHUNK_BLOCK_COUNT, save per-chunk; else single
+    save_block_caches_chunked(
         validated_path,
         chapter_index,
         config_hash,
-        ir,
-        block_result,
-    )
-    .await;
+        &ir,
+        &block_result,
+    ).await;
 
     tracing::info!(
         "[Timing] paginate_chapter block_path config_hash={:016x} chapter={} pages={}",
@@ -158,9 +249,9 @@ pub(crate) async fn paginate_chapter(
     let config_hash = config.config_hash();
     let start = Instant::now();
     let store = PaginationStore::global();
-    let engine_key = PaginationKey::new(&validated_path, chapter_index, config_hash);
 
-    // 全章（max_chars=None）：含图章优先 block 路径，避免 stale plain streamer/layout 缓存抢先返回。
+    // 全章（max_chars=None）：P0 — 所有章节统一走 block 路径。
+    // P1: plain sled 缓存已移除，不再有 fallback 到 PageStreamer 的路径。
     if max_chars.is_none() {
         if let Some(result) =
             try_paginate_chapter_blocks(&validated_path, chapter_index, &config, None).await?
@@ -170,33 +261,6 @@ pub(crate) async fn paginate_chapter(
                 config_hash, chapter_index, start.elapsed()
             );
             return Ok(result);
-        }
-
-        if let Some(result) = store.try_plain_full_hit(&engine_key) {
-            tracing::info!(
-                "[Timing] paginate_chapter engine_cache=HIT config_hash={:016x} chapter={} elapsed={:?}",
-                config_hash, chapter_index, start.elapsed()
-            );
-            return Ok(result);
-        }
-        if let Some(pages) = try_get_cached(&validated_path, chapter_index, None, config_hash).await {
-            let mut streamer = PageStreamer::from_pages(pages);
-            streamer.is_partial = false;
-            let descriptors = streamer.get_descriptors();
-            store.put(
-                engine_key.clone(),
-                PaginationEngine::Plain(streamer),
-            );
-            tracing::info!(
-                "[Timing] paginate_chapter layout_cache=HIT config_hash={:016x} chapter={} elapsed={:?}",
-                config_hash, chapter_index, start.elapsed()
-            );
-            return Ok(PaginateResult {
-                descriptors,
-                config_hash,
-                is_partial: false,
-                mode: ChapterPaginationMode::PlainText,
-            });
         }
     }
 
@@ -258,27 +322,13 @@ pub(crate) async fn paginate_chapter(
     let mut streamer = PageStreamer::new(content, config);
     streamer.is_partial = is_partial;
     let descriptors = streamer.get_descriptors();
-    // 提取全页内容用于 KV 缓存保存（在 engine 移入 LRU 之前完成）
-    let cached_pages = if !is_partial {
-        let total = descriptors.len();
-        Some(
-            (0..total)
-                .filter_map(|i| streamer.get_page(i, chapter_index))
-                .collect::<Vec<PageContent>>(),
-        )
-    } else {
-        None
-    };
 
     store.put(
         PaginationKey::new(&validated_path, chapter_index, config_hash),
         PaginationEngine::Plain(streamer),
     );
 
-    // 全章分页完成后写入持久化 KV 缓存
-    if let Some(pages) = cached_pages {
-        try_save_cached(&validated_path, chapter_index, None, config_hash, pages).await;
-    }
+    // P1: plain sled 缓存已移除。Partial 引擎不持久化到 sled（全章应走 block 路径）。
 
     tracing::info!(
         "[Timing] paginate_chapter cache=MISS config_hash={:016x} chapter={} elapsed={:?}",
@@ -331,7 +381,11 @@ pub(crate) fn get_page_blocks(
     })
 }
 
-/// 章 IR 是否含 Image 块（staging 预加载分支用）。
+/// 章 IR 是否含 Image 块。
+///
+/// P0 后此 API 仅作向后兼容保留——所有章节统一走 block 分页，
+/// 不再依据 `image_block_count` 做分支选择。标记 deprecated，P5 移除。
+#[deprecated(note = "P0: all chapters use block pagination now; image-block check is no longer needed for branching")]
 pub(crate) async fn chapter_has_image_blocks(
     file_path: String,
     chapter_index: i32,

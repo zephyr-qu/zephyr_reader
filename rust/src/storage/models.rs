@@ -3,19 +3,15 @@
 //! 本模块定义了阅读器的所有持久化实体与业务枚举。
 //! 所有带 `#[frb]` 的类型会自动暴露给 Dart 侧；
 //! 所有带 `#[derive(sqlx::FromRow)]` 的类型支持从 SQLite 自动映射。
+//!
+//! P1: `LayoutCache`（plain sled 缓存）已移除，`BlockLayoutCache` 为唯一 sled 真理源。
 
-use crate::domain::PageContent;
 use chrono::{DateTime, Utc};
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 // ==================== 排版缓存 ====================
-
-/// 当前排版缓存版本号
-///
-/// 每次破坏性变更时递增，旧版本数据在读取时静默丢弃。
-pub const LAYOUT_CACHE_VERSION: u8 = 2;
 
 /// 排版缓存键（内部使用，不暴露给 Dart）
 ///
@@ -29,66 +25,34 @@ pub struct LayoutCacheKey {
     pub config_hash: u64,
 }
 
+/// 块分页 sled 缓存格式版本号。
+/// P1: `LayoutCache` plain sled 已移除，此版本号仅用于 block 缓存键格式。
+pub const BLOCK_LAYOUT_CACHE_VERSION: u8 = 2;
+
+/// 排版缓存键 Display impl — 使用 BLOCK_LAYOUT_CACHE_VERSION。
 impl std::fmt::Display for LayoutCacheKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.chunk_index {
             Some(chunk) => write!(
                 f,
                 "v{}:chunk:{}:{}:{}:{:016x}",
-                LAYOUT_CACHE_VERSION, self.book_id, self.chapter_index, chunk, self.config_hash
+                BLOCK_LAYOUT_CACHE_VERSION, self.book_id, self.chapter_index, chunk, self.config_hash
             ),
             None => write!(
                 f,
                 "v{}:{}:{}:{:016x}",
-                LAYOUT_CACHE_VERSION, self.book_id, self.chapter_index, self.config_hash
+                BLOCK_LAYOUT_CACHE_VERSION, self.book_id, self.chapter_index, self.config_hash
             ),
         }
     }
 }
 
-/// 排版分页结果缓存（仅用于序列化存储，不以行形式入 DB）
-///
-/// 此结构体未实现 `FromRow`，仅通过 serde 以 JSON/Blob 形式存取。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
-pub struct LayoutCache {
-    /// 缓存格式版本号，用于向后兼容校验
-    pub version: u8,
-    /// 生成此缓存时使用的 TypesetConfig 哈希值
-    pub config_hash: u64,
-    /// 缓存的分页结果
-    pub pages: Vec<PageContent>,
-    /// 总页数
-    pub total_pages: i64,
-    /// 缓存创建时间
-    pub created_at: i64,
-}
-
-impl LayoutCache {
-    /// 创建新缓存（自动填充当前版本号）
-    pub fn new(config_hash: u64, pages: Vec<PageContent>) -> Self {
-        let total_pages = pages.len() as i64;
-        Self {
-            version: LAYOUT_CACHE_VERSION,
-            config_hash,
-            pages,
-            total_pages,
-            created_at: Utc::now().timestamp(),
-        }
-    }
-
-    /// 校验缓存的版本和配置哈希是否与预期一致
-    pub fn is_valid(&self, expected_hash: u64) -> bool {
-        self.version == LAYOUT_CACHE_VERSION && self.config_hash == expected_hash
-    }
-}
-
-// ==================== 块分页持久化缓存（Phase 3 P3-6） ====================
-
-/// 块分页 sled 缓存格式版本（与 plain `LayoutCache` 独立演进）。
-pub const BLOCK_LAYOUT_CACHE_VERSION: u8 = 1;
+// ==================== 块分页持久化缓存（唯一 sled 真理源，P1） ====================
 
 /// 块路径分页索引 + 章 IR（跨 session 复用，避免重复 IR 解析与 BlockPaginator CPU）。
-#[derive(Debug, Clone, PartialEq, Eq, bincode::Encode, bincode::Decode)]
+
+/// 块路径分页索引 + 章 IR（跨 session 复用，避免重复 IR 解析与 BlockPaginator CPU）。
+#[derive(Debug, Clone, PartialEq, bincode::Encode, bincode::Decode)]
 pub struct BlockLayoutCache {
     pub version: u8,
     pub config_hash: u64,
@@ -122,12 +86,39 @@ impl BlockLayoutCache {
     }
 }
 
+// ==================== Scroll IR 持久化缓存 ====================
+
+/// Scroll IR sled 缓存格式版本。
+pub const SCROLL_IR_CACHE_VERSION: u8 = 1;
+
+/// Scroll 路径章 IR 缓存（无 config_hash 依赖；跨 session 复用 HTML 解析）。
+#[derive(Debug, Clone, PartialEq, bincode::Encode, bincode::Decode)]
+pub struct ScrollIrCache {
+    pub version: u8,
+    pub ir: crate::domain::ChapterContentIr,
+    pub created_at: i64,
+}
+
+impl ScrollIrCache {
+    pub fn new(ir: crate::domain::ChapterContentIr) -> Self {
+        Self {
+            version: SCROLL_IR_CACHE_VERSION,
+            ir,
+            created_at: chrono::Utc::now().timestamp(),
+        }
+    }
+
+    pub fn is_valid(&self) -> bool {
+        self.version == SCROLL_IR_CACHE_VERSION
+    }
+}
+
 // ==================== 阅读进度 ====================
 
 /// 单章阅读进度
 ///
-/// - `page_index` / `total_pages` 标记了 `#[sqlx(default)]`，
-///   仅在数据库迁移新增这两列的过渡期内使用，迁移完成后应移除。
+/// 进度只持久化 chapterIndex + charOffset（ADR-001 / I1）。
+/// page_index / total_pages 已于 Phase 4 移除——它们是分页视图的派生值，不属于持久化真理。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, sqlx::FromRow)]
 #[frb(dart_metadata = ("freezed"))]
 pub struct ReadingProgress {
@@ -136,8 +127,6 @@ pub struct ReadingProgress {
     pub chunk_index: i64,
     pub chapter_id: Option<String>,
     pub char_offset: i64,
-    pub page_index: i64,
-    pub total_pages: i64,
     pub progress: f32,
     pub reading_time_seconds: i64,
     pub last_read_at: DateTime<Utc>,
@@ -153,8 +142,6 @@ impl ReadingProgress {
         char_offset: i64,
         progress: f32,
         reading_time_seconds: i64,
-        page_index: i64,
-        total_pages: i64,
         is_completed: bool,
     ) -> Self {
         Self {
@@ -163,8 +150,6 @@ impl ReadingProgress {
             chunk_index,
             chapter_id: None,
             char_offset,
-            page_index,
-            total_pages,
             progress,
             reading_time_seconds,
             last_read_at: Utc::now(),
@@ -419,7 +404,7 @@ pub struct GlobalStats {
 
 /// 书籍文件格式
 ///
-/// 数据库中存储为小写文本。`FromStr` 额外兼容 markdown 别名。
+/// 数据库中存储为小写文本。仅支持 txt 和 epub。
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize,
     strum::AsRefStr, strum::EnumString,

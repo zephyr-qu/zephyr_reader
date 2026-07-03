@@ -3,6 +3,8 @@
 //! Phase 1 只迁出 `format_from_file_path` + `get_chapter_bounds`。
 //! 章节读取函数（`get_chapter_first_spine_only` / `get_chapter_partial` / `get_chapter`）
 //! 留到 Phase 4。
+//!
+//! P1: `get_chapter(config)` 改走 block 路径（IR → BlockPaginator），不再走 PageStreamer + plain sled。
 
 use crate::domain::{AppError, TypesetConfig};
 use crate::parser::registry;
@@ -10,12 +12,14 @@ use crate::storage::models::BookFormat;
 use crate::storage::repos::{BookRepository, ChapterRepository};
 use crate::storage::storage_pool;
 
-use super::book_id_cache::BOOK_ID_CACHE;
+use super::BOOK_ID_CACHE;
 use crate::api::core::{ChapterContent, FirstSpineResult};
 use crate::domain::PageContent;
-use crate::reading::layout_cache::{try_get_cached, try_save_cached};
+use crate::reading::block_state::BlockPaginationState;
+use crate::reading::chapter_ir::load_chapter_content_ir;
+use crate::reading::layout_cache::{try_get_block_cached, try_save_block_cached};
 use crate::reading::provider_cache::get_or_create_provider;
-use crate::text::paginate_all;
+use crate::text::block_paginator::paginate_chapter_ir_chunked;
 use crate::utils::security::validate_file_path;
 
 /// 从文件路径推断格式
@@ -89,12 +93,6 @@ pub async fn get_chapter_bounds(
     Ok((chapter.start_index as i32, chapter.end_index as i32))
 }
 
-/// 提取章节原始文本内容（仅 TXT；EPUB 走 provider 路径）。
-#[allow(dead_code)]
-pub(crate) async fn extract_chapter_content(file_path: &str, chapter_index: i32) -> Result<String, AppError> {
-    let parser = registry::parser_for_file(file_path)?;
-    parser.extract_chapter(file_path, chapter_index).await
-}
 
 /// 构造 Pages 变体，当页数 > 100 时记录警告（防止偶发大章节 FFI 序列化瓶颈）
 fn chapter_content_pages(pages: Vec<PageContent>) -> ChapterContent {
@@ -233,22 +231,38 @@ pub(crate) async fn get_chapter(
                 let cfg = cfg.validate_and_fix();
                 let config_hash = cfg.config_hash();
 
-                // 查缓存
-                if let Some(pages) =
-                    try_get_cached(&validated_path, chapter_index, None, config_hash).await
+                // P1: 查 block sled 缓存（唯一真理源）
+                if let Some((ir, block_result)) =
+                    try_get_block_cached(&validated_path, chapter_index, None, config_hash).await
                 {
-                    return Ok(chapter_content_pages(pages));
+                    let state = BlockPaginationState::new(ir, block_result, false);
+                    return Ok(chapter_content_pages(state.to_page_content_list(chapter_index)));
                 }
 
-                let chapter_idx = chapter_index;
-                let pages =
-                    tokio::task::spawn_blocking(move || paginate_all(text, chapter_idx, cfg))
-                        .await
-                        .map_err(|e| AppError::TaskPanic { task_name: "pagination".into(), details: e.to_string().into() })?;
+                // Cache miss: load IR and paginate via BlockPaginator
+                let ir = load_chapter_content_ir(&validated_path, chapter_index).await?;
+                let ir_for_paginate = ir.clone();
+                let block_result = tokio::task::spawn_blocking(move || {
+                    paginate_chapter_ir_chunked(&ir_for_paginate, cfg)
+                })
+                .await
+                .map_err(|e| AppError::TaskPanic {
+                    task_name: "block_paginate_chapter".into(),
+                    details: e.to_string().into(),
+                })?;
 
-                // 写缓存
-                try_save_cached(&validated_path, chapter_index, None, config_hash, pages.clone())
-                    .await;
+                let state = BlockPaginationState::new(ir.clone(), block_result.clone(), false);
+                let pages = state.to_page_content_list(chapter_index);
+
+                // Save to block sled cache
+                try_save_block_cached(
+                    &validated_path,
+                    chapter_index,
+                    None,
+                    config_hash,
+                    ir,
+                    block_result,
+                ).await;
 
                 Ok(chapter_content_pages(pages))
             }

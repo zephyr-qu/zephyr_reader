@@ -12,13 +12,13 @@ import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_phase.dart';
-import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
+import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.dart';
 import '../../helpers/fixtures.dart';
 
 // ===== Mocks =====
@@ -398,7 +398,7 @@ void main() {
     ).thenAnswer((invocation) async {
       final chapterId = invocation.positionalArguments[1] as int;
       final content = 'Chapter$chapterId ${'X' * 80}';
-      return (content: content, richParagraphs: null, richRootSpan: null, epubRichSkipped: false);
+      return scrollPlainPayload(content);
     });
 
     manager = createManager(repo: repo, config: config);
@@ -552,18 +552,17 @@ void main() {
       });
 
       test('loadChapter 走 beginPaginate 首屏路径', () async {
-          await manager.loadChapter(0);
+        await manager.loadChapter(0);
 
-          verify(
-            () => repo.beginPaginate(
-              bookId: any(named: 'bookId'),
-              chapterIndex: any(named: 'chapterIndex'),
-              params: any(named: 'params'),
-              maxChars: any(named: 'maxChars'),
-            ),
-          ).called(1);
-        },
-      );
+        verify(
+          () => repo.beginPaginate(
+            bookId: any(named: 'bookId'),
+            chapterIndex: any(named: 'chapterIndex'),
+            params: any(named: 'params'),
+            maxChars: any(named: 'maxChars'),
+          ),
+        ).called(1);
+      });
     });
 
     group('loadChapter 竞态', () {

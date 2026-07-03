@@ -29,6 +29,16 @@ pub struct RichParagraph {
     pub text_align: Option<String>,
     /// 行高
     pub line_height: Option<f32>,
+    /// CSS 块上边距（em）
+    pub margin_top_em: Option<f32>,
+    /// CSS 块下边距（em）
+    pub margin_bottom_em: Option<f32>,
+    /// CSS font-family 提示
+    pub font_family: Option<String>,
+    /// CSS text-indent（em）；`None` 表示未指定
+    pub text_indent_em: Option<f32>,
+    /// CSS font-size（px）；`None` 表示未指定，回退到 TypesetConfig。
+    pub font_size: Option<f32>,
     /// 是否为图片
     pub is_image: bool,
     /// 图片源路径
@@ -104,7 +114,7 @@ impl RichParagraph {
 // ==================== 样式枚举 ====================
 
 /// 文本样式
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 pub enum SpanStyle {
     /// 普通文本
     Plain,
@@ -125,7 +135,7 @@ pub enum SpanStyle {
 // ==================== 富文本段数据 ====================
 
 /// 富文本段的公共数据
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 #[frb(non_opaque)]
 pub struct RichTextSpanData {
     /// 文本内容
@@ -140,7 +150,7 @@ pub struct RichTextSpanData {
 
 /// 富文本段
 /// 表示段落中的一个连续文本片段，带有格式
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 #[frb(non_opaque)]
 pub enum RichTextSpan {
     /// 带样式的文本段

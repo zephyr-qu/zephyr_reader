@@ -52,14 +52,4 @@ impl Parser {
         }
     }
 
-    pub async fn extract_chapter(
-        self,
-        file_path: &str,
-        chapter_index: i32,
-    ) -> Result<String, AppError> {
-        match self {
-            Parser::Txt(p) => p.extract_chapter(file_path, chapter_index).await,
-            Parser::Epub(_) => Err(AppError::UnsupportedFormat { format: "epub".into() }),
-        }
-    }
 }

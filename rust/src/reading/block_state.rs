@@ -4,8 +4,8 @@ use std::collections::HashMap;
 
 use crate::domain::{
     BlockPaginateResult, ChapterContentIr, ChapterPaginationMode, ContentBlock,
-    ImageBlockLayout, PageBlockSlice, PageImageBlockSlice, PageTextBlockSlice, PaginateResult,
-    slice_by_char_range,
+    ImageBlockLayout, PageBlockSlice, PageContent, PageImageBlockSlice, PageTextBlockSlice, PaginateResult,
+    slice_by_char_range, slice_rich_spans,
 };
 
 /// 块路径分页状态（session / `PAGINATION_ENGINE_CACHE` 持有）。
@@ -45,6 +45,26 @@ impl BlockPaginationState {
         ))
     }
 
+    /// P0: 将所有页面展开为 `Vec<PageContent>`（对标 `paginate_all_content` 的全量输出）。
+    pub fn to_page_content_list(&self, chapter_index: i32) -> Vec<PageContent> {
+        let total = self.result.page_count();
+        (0..total)
+            .filter_map(|i| {
+                let desc = self.result.descriptors.get(i)?;
+                self.page_plain_text(i).map(|content| PageContent {
+                    chapter_index,
+                    page_index: desc.page_index,
+                    content,
+                    is_last_page: desc.is_last_page,
+                    start_offset: desc.plain.plain_start as i32,
+                    end_offset: desc.plain_end_exclusive() as i32,
+                    first_paragraph_index: desc.first_block_index as i32,
+                    last_paragraph_index: desc.last_block_index.saturating_sub(1) as i32,
+                })
+            })
+            .collect()
+    }
+
     /// M3.2：页内块切片（Text 裁剪 + Image asset_id/layout）。
     pub fn page_blocks(&self, page_index: usize) -> Option<Vec<PageBlockSlice>> {
         let desc = self.result.descriptors.get(page_index)?;
@@ -72,11 +92,15 @@ impl BlockPaginationState {
                     let local_start = slice_start - block_start;
                     let local_len = slice_end - slice_start;
                     let text = slice_by_char_range(&t.text, local_start, local_len);
+                    let spans = slice_rich_spans(&t.spans, local_start, local_len);
                     if !text.is_empty() {
                         slices.push(PageBlockSlice::Text(PageTextBlockSlice {
                             block_index: bi,
                             text,
+                            is_block_start: local_start == 0,
                             is_block_end: slice_end == block_end,
+                            style: t.style.clone(),
+                            spans,
                         }));
                     }
                 }

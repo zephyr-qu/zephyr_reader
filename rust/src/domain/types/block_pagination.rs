@@ -5,7 +5,8 @@
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
 
-use super::content_ir::BlockPlainRange;
+use super::content_ir::{BlockPlainRange, TextBlockStyle};
+use super::rich_text::RichTextSpan;
 
 /// 页内 Image 块的排版方式（ADR-003）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
@@ -133,6 +134,17 @@ impl BlockPaginateResult {
             .map(|d| d.page_index)
     }
 
+    /// 合并另一个 chunk 的 [BlockPaginateResult]。
+    /// 追加 descriptors 并调整 `page_index` 偏移。
+    pub fn merge(&mut self, other: BlockPaginateResult) {
+        let offset = self.page_count() as i32;
+        for mut desc in other.descriptors {
+            desc.page_index += offset;
+            self.descriptors.push(desc);
+        }
+        self.is_partial = self.is_partial || other.is_partial;
+    }
+
     pub fn to_legacy_paginate_result(&self, mode: super::pagination::ChapterPaginationMode) -> super::pagination::PaginateResult {
         super::pagination::PaginateResult {
             descriptors: self
@@ -148,13 +160,19 @@ impl BlockPaginateResult {
 }
 
 /// 页内 Text 块切片（相对页 plain 范围裁剪后的 UTF-8 文本）。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[frb(non_opaque)]
 pub struct PageTextBlockSlice {
     pub block_index: u32,
     pub text: String,
+    /// 本切片是否为 IR Text 块的开头（跨页续排时为 false）。
+    pub is_block_start: bool,
     /// 本切片是否为 IR Text 块的末尾（跨页续排时为 false）。
     pub is_block_end: bool,
+    /// 源 IR 块样式（ADR-010）。
+    pub style: TextBlockStyle,
+    /// 页内行内格式段（ADR-010）；空 → 按 [text] plain 渲染。
+    pub spans: Vec<RichTextSpan>,
 }
 
 /// 页内 Image 块切片。
@@ -168,7 +186,7 @@ pub struct PageImageBlockSlice {
 }
 
 /// 单页块列表项（M3.2 `get_page_blocks` 输出）。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[frb]
 pub enum PageBlockSlice {
     Text(PageTextBlockSlice),

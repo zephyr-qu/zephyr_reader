@@ -86,6 +86,9 @@ struct ComputedStyle {
     font_weight: Option<i32>,
     font_style: Option<String>,
     text_decoration: Option<String>,
+    text_indent_em: Option<f32>,
+    margin_top_em: Option<f32>,
+    margin_bottom_em: Option<f32>,
 }
 
 impl ComputedStyle {
@@ -181,6 +184,24 @@ impl ComputedStyle {
                     self.text_decoration = Some(v);
                 }
             }
+            "text-indent" => {
+                let parent_px = self.font_size.unwrap_or(16.0);
+                if let Some(em) = css::resolve_length_to_em(value, parent_px) {
+                    self.text_indent_em = Some(em);
+                }
+            }
+            "margin-top" => {
+                let parent_px = self.font_size.unwrap_or(16.0);
+                if let Some(em) = css::resolve_length_to_em(value, parent_px) {
+                    self.margin_top_em = Some(em);
+                }
+            }
+            "margin-bottom" => {
+                let parent_px = self.font_size.unwrap_or(16.0);
+                if let Some(em) = css::resolve_length_to_em(value, parent_px) {
+                    self.margin_bottom_em = Some(em);
+                }
+            }
             _ => {}
         }
     }
@@ -195,6 +216,11 @@ fn build_paragraph(
     class_name: Option<String>,
     text_align: Option<String>,
     line_height: Option<f32>,
+    margin_top_em: Option<f32>,
+    margin_bottom_em: Option<f32>,
+    font_family: Option<String>,
+    text_indent_em: Option<f32>,
+    font_size: Option<f32>,
 ) -> RichParagraph {
     RichParagraph {
         spans,
@@ -204,6 +230,11 @@ fn build_paragraph(
         class_name,
         text_align,
         line_height,
+        margin_top_em,
+        margin_bottom_em,
+        font_family,
+        text_indent_em,
+        font_size,
         ..Default::default()
     }
 }
@@ -299,6 +330,9 @@ fn walk_inline_subtree(
                     color: None,
                 }));
             }
+            "b" | "strong" | "i" | "em" | "u" | "s" | "strike" | "del" | "code" | "a" | "span" => {
+                collect_text_spans(handle, spans, parent_style, style_map);
+            }
             "p" | "div" | "section" | "article" | "h1" | "h2" | "h3" | "h4"
             | "h5" | "h6" | "ul" | "ol" | "li" | "blockquote" | "table" | "pre" => {
                 flush_text_paragraph(spans, paragraphs, inherited_class.clone(), parent_style);
@@ -319,14 +353,51 @@ fn walk_inline_subtree(
         }
     } else if let NodeData::Text { ref contents } = handle.data {
         let text = contents.borrow().to_string();
-        if !text.trim().is_empty() {
-            spans.push(RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
-                text,
-                font_size: parent_style.font_size,
-                color: parent_style.color.clone(),
-            }));
+        if !text.is_empty() {
+            push_styled_text_span(spans, text, parent_style);
         }
     }
+}
+
+/// 将 CSS 计算样式映射为行内 [SpanStyle]（`<span style="font-weight:bold">` 等）。
+fn span_style_from_computed(style: &ComputedStyle) -> SpanStyle {
+    let bold = style.font_weight.unwrap_or(400) >= 700;
+    let italic = style.font_style.as_deref() == Some("italic");
+    let deco = style.text_decoration.as_deref().unwrap_or("");
+
+    if deco.contains("line-through") {
+        return SpanStyle::Strikethrough;
+    }
+    if deco.contains("underline") {
+        return SpanStyle::Underline;
+    }
+    match (bold, italic) {
+        (true, true) => SpanStyle::BoldItalic,
+        (true, false) => SpanStyle::Bold,
+        (false, true) => SpanStyle::Italic,
+        _ => SpanStyle::Plain,
+    }
+}
+
+fn push_styled_text_span(spans: &mut Vec<RichTextSpan>, text: String, style: &ComputedStyle) {
+    if text.is_empty() {
+        return;
+    }
+    spans.push(RichTextSpan::Styled(
+        span_style_from_computed(style),
+        RichTextSpanData {
+            text,
+            font_size: style.font_size,
+            color: style.color.clone(),
+        },
+    ));
+}
+
+fn paragraph_indent_chars(style: &ComputedStyle) -> u8 {
+    if let Some(em) = style.text_indent_em {
+        return em.round().clamp(0.0, 12.0) as u8;
+    }
+    2
 }
 
 fn flush_text_paragraph(
@@ -340,12 +411,17 @@ fn flush_text_paragraph(
     }
     paragraphs.push(build_paragraph(
         std::mem::take(spans),
-        2,
+        paragraph_indent_chars(parent_style),
         false,
         0,
         inherited_class,
         parent_style.text_align.clone(),
         parent_style.line_height,
+        parent_style.margin_top_em,
+        parent_style.margin_bottom_em,
+        parent_style.font_family.clone(),
+        parent_style.text_indent_em,
+        parent_style.font_size,
     ));
 }
 
@@ -464,6 +540,11 @@ fn traverse_dom(
                         if current_class.is_empty() { inherited_class } else { Some(current_class) },
                         merged_style.text_align.clone().or(Some("left".to_string())),
                         merged_style.line_height,
+                        merged_style.margin_top_em,
+                        merged_style.margin_bottom_em,
+                        merged_style.font_family.clone(),
+                        Some(0.0),
+                        merged_style.font_size,
                     ));
                 }
 
@@ -491,6 +572,11 @@ fn traverse_dom(
                         if current_class.is_empty() { inherited_class } else { Some(current_class) },
                         merged_style.text_align.clone(),
                         merged_style.line_height,
+                        merged_style.margin_top_em,
+                        merged_style.margin_bottom_em,
+                        merged_style.font_family.clone(),
+                        merged_style.text_indent_em,
+                        merged_style.font_size,
                     ));
                 }
 
@@ -653,12 +739,8 @@ fn collect_text_spans(
         }
     } else if let NodeData::Text { ref contents } = node.data {
         let text = contents.borrow().to_string();
-        if !text.trim().is_empty() {
-            spans.push(RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
-                text,
-                font_size: parent_style.font_size,
-                color: parent_style.color.clone(),
-            }));
+        if !text.is_empty() {
+            push_styled_text_span(spans, text, parent_style);
         }
     }
 }
@@ -779,6 +861,32 @@ mod tests {
         assert!(
             result.iter().any(|p| p.is_image && p.image_src.as_deref() == Some("nested.jpg")),
             "nested img should produce image paragraph: {result:?}"
+        );
+    }
+
+    #[test]
+    fn test_parse_html_css_font_weight_on_span() {
+        let html = r#"<p><span style="font-weight: bold">bold</span> plain</p>"#;
+        let result = parse_html_to_rich_text(html).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(
+            result[0]
+                .spans
+                .iter()
+                .any(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Bold, _)))
+        );
+    }
+
+    #[test]
+    fn test_parse_html_css_font_style_italic_on_span() {
+        let html = r#"<p><span style="font-style: italic">em</span></p>"#;
+        let result = parse_html_to_rich_text(html).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(
+            result[0]
+                .spans
+                .iter()
+                .any(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Italic, _)))
         );
     }
 

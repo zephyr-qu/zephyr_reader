@@ -9,6 +9,9 @@ import 'package:zephyr_reader/features/reader/domain/service/tts_service.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_session.dart';
+import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
+import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart';
+import 'package:zephyr_reader/features/reader/core/data/pagination_session_factory.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_notice.dart';
 import 'package:zephyr_reader/features/reader/core/presentation/reader_scaffold.dart';
 import 'package:zephyr_reader/features/reader/core/presentation/reader_ui_state.dart';
@@ -29,7 +32,14 @@ class ReaderShell extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final session = useMemoized(() => getIt<ReaderSessionFactory>().create());
+    final session = useMemoized(
+      () => ReaderSessionFactory(
+        getIt<ChapterContentRepository>(),
+        getIt<ProgressRepository>(),
+        getIt<PaginationSessionFactory>(),
+        getIt<ReaderConfig>(),
+      ).create(),
+    );
     final vm = session.vm;
     final fontRepo = useMemoized(() => getIt<FontRepository>());
     final readRepo = vm.repo as ReaderRepository;

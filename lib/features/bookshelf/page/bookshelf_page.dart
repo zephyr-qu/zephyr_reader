@@ -343,7 +343,7 @@ class BookshelfPage extends HookWidget {
       await vm.toggleBookStatus(book.bookId, book.status);
     } else if (result == 'cover') {
       if (!context.mounted) return;
-      final ok = await getIt<BookImportService>().reExtractCover(
+      final (ok, _) = await getIt<BookImportService>().reExtractCover(
         book.bookId,
         book.filePath,
       );
@@ -366,7 +366,7 @@ class BookshelfPage extends HookWidget {
     if (result == null || !context.mounted) return;
     final filePath = result.path;
     if (filePath == null || !context.mounted) return;
-    final ok = await importService.importBook(filePath);
+    final (ok, err) = await importService.importBook(filePath);
     if (ok) await vm.loadBooks();
     if (!context.mounted) return;
     final fileName = result.name;
@@ -374,6 +374,9 @@ class BookshelfPage extends HookWidget {
       showInfoSnack(context, l10n.bookImported(fileName));
     } else {
       showInfoSnack(context, l10n.importFailed(fileName));
+      if (err != null && err.isNotEmpty) {
+        showInfoSnack(context, err);
+      }
     }
   }
 
@@ -386,7 +389,7 @@ class BookshelfPage extends HookWidget {
     final folder = await FilePicker.getDirectoryPath();
     if (folder == null || !context.mounted) return;
     showInfoSnack(context, l10n.scanningFolder);
-    final (success, fail) = await importService.scanFolder(
+    final (success, fail, _) = await importService.scanFolder(
       folder,
       onProgress: (done, total) {
         showInfoSnack(context, l10n.scanProgress(done, total));

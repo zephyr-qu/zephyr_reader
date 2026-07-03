@@ -194,10 +194,7 @@ void main() {
 
       final c = ScrollDocumentComposer(centerChapterIndex: 0);
       c.reset(seg);
-      expect(
-        () => c.charOffsetAtOffset(1050, layout),
-        returnsNormally,
-      );
+      expect(() => c.charOffsetAtOffset(1050, layout), returnsNormally);
       final result = c.charOffsetAtOffset(1050, layout);
       expect(result.chapterIndex, 0);
     });

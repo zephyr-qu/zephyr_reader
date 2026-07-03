@@ -120,8 +120,6 @@ class ReadingSessionManager {
           chapterIndex: _chapterManager.chapterIndex.value,
           chunkIndex: 0,
           charOffset: _chapterManager.currentCharOffset.value,
-          pageIndex: cm.pageIndex.value,
-          totalPages: totalPages,
           progress: pct,
           readingTimeSeconds: _readingDuration.value,
           lastReadAt: now,

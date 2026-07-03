@@ -1852,12 +1852,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get otherExperimental => 'Experimental';
 
   @override
-  String get otherMarkdownPreview => 'Markdown Preview';
-
-  @override
-  String get otherMarkdownPreviewDesc => 'Render Markdown in notes list';
-
-  @override
   String get otherLegal => 'Legal & Compliance';
 
   @override

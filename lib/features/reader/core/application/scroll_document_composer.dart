@@ -70,8 +70,9 @@ class ScrollDocumentComposer {
 
   /// 移除距中心超过 1 章的段（即窗口外 cleanup），保持最多 3 段。
   void _trim() {
-    final centerIdx = _segments
-        .indexWhere((s) => s.chapterIndex == _centerChapterIndex);
+    final centerIdx = _segments.indexWhere(
+      (s) => s.chapterIndex == _centerChapterIndex,
+    );
     if (centerIdx < 0) return;
 
     final keepStart = (centerIdx - 1).clamp(0, _segments.length);
@@ -109,8 +110,8 @@ class ScrollDocumentComposer {
         if (remaining <= ext) {
           final ratio = ext <= 0 ? 0.0 : (remaining / ext).clamp(0.0, 1.0);
           final charLen = metrics.charLengthAt(li);
-          final charOffset = metrics.charOffsetAt(li) +
-              (charLen * ratio).round();
+          final charOffset =
+              metrics.charOffsetAt(li) + (charLen * ratio).round();
           return (chapterIndex: seg.chapterIndex, charOffset: charOffset);
         }
         remaining -= ext;

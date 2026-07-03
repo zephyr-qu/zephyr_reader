@@ -17,8 +17,6 @@ class RustProgressRepository implements ProgressRepository {
       bookId: bookId,
       chapterIndex: rp.chapterIndex,
       charOffset: rp.charOffset.toInt(),
-      pageIndex: rp.pageIndex,
-      totalPages: rp.totalPages,
       readingTimeSeconds: rp.readingTimeSeconds.toInt(),
       lastReadAt: rp.lastReadAt,
     );

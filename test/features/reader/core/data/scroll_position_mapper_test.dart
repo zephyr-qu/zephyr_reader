@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_position_mapper.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_segment_factory.dart';
+import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.dart';
 
 void main() {
   const layout = ScrollLayoutParams(
@@ -16,18 +16,10 @@ void main() {
     test('scrollOffsetForChar 映射到正确段落区间', () {
       final seg = ScrollSegmentFactory.fromPayload(
         1,
-        (
-          content: 'AAAA\n\nBBBB\n\nCCCC',
-          richParagraphs: null,
-          richRootSpan: null,
-          epubRichSkipped: false,
-        ),
+        scrollPlainPayload('AAAA\n\nBBBB\n\nCCCC'),
       );
 
-      expect(
-        ScrollPositionMapper.scrollOffsetForChar([seg], 1, 0, layout),
-        0,
-      );
+      expect(ScrollPositionMapper.scrollOffsetForChar([seg], 1, 0, layout), 0);
       expect(
         ScrollPositionMapper.scrollOffsetForChar([seg], 1, 6, layout),
         layout.uniformTextExtent,
@@ -41,21 +33,11 @@ void main() {
     test('多段时累加前序段落高度', () {
       final seg0 = ScrollSegmentFactory.fromPayload(
         0,
-        (
-          content: 'Ch0\n\nP2',
-          richParagraphs: null,
-          richRootSpan: null,
-          epubRichSkipped: false,
-        ),
+        scrollPlainPayload('Ch0\n\nP2'),
       );
       final seg1 = ScrollSegmentFactory.fromPayload(
         1,
-        (
-          content: 'Ch1\n\nP2',
-          richParagraphs: null,
-          richRootSpan: null,
-          epubRichSkipped: false,
-        ),
+        scrollPlainPayload('Ch1\n\nP2'),
       );
 
       final offset = ScrollPositionMapper.scrollOffsetForChar(
@@ -66,9 +48,9 @@ void main() {
       );
       expect(
         offset,
-        seg0.metricsFor(layout).totalScrollExtent(
-              uniformFallback: layout.uniformTextExtent,
-            ),
+        seg0
+            .metricsFor(layout)
+            .totalScrollExtent(uniformFallback: layout.uniformTextExtent),
       );
     });
   });
