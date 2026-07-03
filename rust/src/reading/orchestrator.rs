@@ -9,7 +9,7 @@
 
 use std::sync::LazyLock;
 
-use crate::domain::{AppError, ChapterContentIr, PageBlockSlice, PageContent, PaginateResult, TypesetConfig};
+use crate::domain::{AppError, ChapterContentIr, PageBlockSlice, PaginateResult, TypesetConfig};
 use crate::reading::types::PaginationSessionHandle;
 use crate::api::core::{ChapterContent, FirstSpineResult};
 
@@ -40,16 +40,6 @@ impl ReadingOrchestrator {
         chapter_index: i32,
     ) -> Result<(i32, i32), AppError> {
         chapter_access::get_chapter_bounds(validated_path, chapter_index).await
-    }
-
-    /// 分页排版指定文件的所有章节。
-    pub async fn paginate_all_content(
-        &self,
-        file_path: String,
-        chapter_index: i32,
-        config: TypesetConfig,
-    ) -> Result<Vec<PageContent>, AppError> {
-        super::pagination::paginate_all_content(file_path, chapter_index, config).await
     }
 
     /// 轻量级分页排版（只获取页面描述符，文本按需加载）。
@@ -83,15 +73,6 @@ impl ReadingOrchestrator {
         page_index: i32,
     ) -> Result<Vec<PageBlockSlice>, AppError> {
         super::pagination::get_page_blocks(file_path, chapter_index, config_hash, page_index)
-    }
-
-    /// 章 IR 是否含 Image 块。
-    pub async fn chapter_has_image_blocks(
-        &self,
-        file_path: String,
-        chapter_index: i32,
-    ) -> Result<bool, AppError> {
-        super::pagination::chapter_has_image_blocks(file_path, chapter_index).await
     }
 
     /// Create a pagination session and run initial pagination for the chapter.

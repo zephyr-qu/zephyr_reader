@@ -3,7 +3,7 @@
 //! Phase 2.5：合并原 `STREAMER_CACHE` + `BLOCK_CACHE`；本模块提供统一协调 API。
 //!
 //! 所有权契约：
-//! - `paginate_chapter`：`put` 留副本供 path API / staging
+//! - `paginate_chapter`：`put` 留副本供 session/staging
 //! - `create_pagination_session`：`attach_for_session`（pop → session 持有，clone 回 LRU）
 //! - `create_pagination_session_adopt`：`clone_for_adopt`，session + LRU 各一份
 //! - `dispose`：`evict` 移除 LRU 条目

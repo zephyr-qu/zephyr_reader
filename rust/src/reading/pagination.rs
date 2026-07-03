@@ -1,4 +1,4 @@
-//! 分页 API（`paginate_chapter` / `paginate_all_content` / `get_page_content`）。
+//! 分页 API（`paginate_chapter` / `get_page_content`）。
 //!
 //! Phase 2 实施：迁自 `api/core.rs` 的分页 + layout cache + provider cache 相关代码。
 //!
@@ -9,7 +9,7 @@ use std::time::Instant;
 
 use crate::domain::{
     AppError, BlockPageDescriptor, BlockPaginateResult, ChapterContentIr,
-    ChapterPaginationMode, PageBlockSlice, PageContent, PaginateResult, TypesetConfig,
+    ChapterPaginationMode, PageBlockSlice, PaginateResult, TypesetConfig,
 };
 use crate::storage::models::BookFormat;
 use crate::text::PageStreamer;
@@ -22,57 +22,6 @@ use super::layout_cache::{try_get_block_cached, try_save_block_cached};
 use super::pagination_store::PaginationEngine;
 use super::pagination_store::{PaginationKey, PaginationStore};
 use super::provider_cache::get_or_create_provider;
-
-/// 分页排版指定文件的所有章节。
-///
-/// 返回完整的分页结果，适用于全量排版场景。
-/// P0: 统一走 IR → BlockPaginator 路径（"分页引擎只认 IR"）。
-pub(crate) async fn paginate_all_content(
-    file_path: String,
-    chapter_index: i32,
-    config: TypesetConfig,
-) -> Result<Vec<PageContent>, AppError> {
-    let validated_path = validate_file_path(&file_path)?;
-    let config = config.validate_and_fix();
-    let config_hash = config.config_hash();
-
-    // Try block cache first
-    if let Some((ir, block_result)) =
-        try_get_block_cached(&validated_path, chapter_index, None, config_hash).await
-    {
-        let state = BlockPaginationState::new(ir, block_result, false);
-        let pages = state.to_page_content_list(chapter_index);
-        return Ok(pages);
-    }
-
-    // Cache miss: load IR and paginate via BlockPaginator
-    let ir = load_chapter_content_ir(&validated_path, chapter_index).await?;
-    let config_clone = config.clone();
-    let ir_for_paginate = ir.clone();
-    let block_result = tokio::task::spawn_blocking(move || {
-        crate::text::block_paginator::paginate_chapter_ir_chunked(&ir_for_paginate, config_clone)
-    })
-    .await
-    .map_err(|e| AppError::TaskPanic {
-        task_name: "block_paginate_all".into(),
-        details: e.to_string().into(),
-    })?;
-
-    let state = BlockPaginationState::new(ir.clone(), block_result.clone(), false);
-    let pages = state.to_page_content_list(chapter_index);
-
-    // Save to block cache
-    try_save_block_cached(
-        &validated_path,
-        chapter_index,
-        None,
-        config_hash,
-        ir,
-        block_result,
-    ).await;
-
-    Ok(pages)
-}
 
 /// 全章 + 含 Image 块时走 BlockPaginator；否则沿用 Phase 1 `PageStreamer`。
 
@@ -379,20 +328,6 @@ pub(crate) fn get_page_blocks(
             }),
         }
     })
-}
-
-/// 章 IR 是否含 Image 块。
-///
-/// P0 后此 API 仅作向后兼容保留——所有章节统一走 block 分页，
-/// 不再依据 `image_block_count` 做分支选择。标记 deprecated，P5 移除。
-#[deprecated(note = "P0: all chapters use block pagination now; image-block check is no longer needed for branching")]
-pub(crate) async fn chapter_has_image_blocks(
-    file_path: String,
-    chapter_index: i32,
-) -> Result<bool, AppError> {
-    let validated_path = validate_file_path(&file_path)?;
-    let ir = load_chapter_content_ir(&validated_path, chapter_index).await?;
-    Ok(ir.image_block_count() > 0)
 }
 
 /// 按需获取单页内容（同步，纯内存操作）。

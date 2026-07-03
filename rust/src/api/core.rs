@@ -80,17 +80,6 @@ pub async fn get_chapter(
         .get_chapter(file_path, chapter_index, config)
         .await
 }
-/// 分页排版指定文件的所有章节（完整排版结果）。
-#[frb]
-pub async fn paginate_all_content(
-    file_path: String,
-    chapter_index: i32,
-    config: TypesetConfig,
-) -> Result<Vec<PageContent>, AppError> {
-    ReadingOrchestrator::global()
-        .paginate_all_content(file_path, chapter_index, config)
-        .await
-}
 /// Lightweight pagination — descriptor-only, text on demand via [get_page_content].
 #[frb]
 pub async fn paginate_chapter(
@@ -124,16 +113,6 @@ pub fn get_page_blocks(
 ) -> Result<Vec<PageBlockSlice>, AppError> {
     ReadingOrchestrator::global()
         .get_page_blocks(file_path, chapter_index, config_hash, page_index)
-}
-/// M5.1：章是否含 Image 块（决定 staging 全章 vs partial 分页）。
-#[frb]
-pub async fn chapter_has_image_blocks(
-    file_path: String,
-    chapter_index: i32,
-) -> Result<bool, AppError> {
-    ReadingOrchestrator::global()
-        .chapter_has_image_blocks(file_path, chapter_index)
-        .await
 }
 /// Create pagination session with initial pagination.
 #[frb]
