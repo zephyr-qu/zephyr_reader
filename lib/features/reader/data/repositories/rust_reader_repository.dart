@@ -122,7 +122,7 @@ class ReaderRepository
   @override
   void disposePagination() => _session.dispose();
   @override
-  int? get sessionConfigHash => _session.sessionConfigHash;
+  BigInt? get sessionConfigHash => _session.sessionConfigHash;
   @override
   int? get sessionChapterIndex => _session.sessionChapterIndex;
   @override

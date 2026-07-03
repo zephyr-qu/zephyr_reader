@@ -63,7 +63,8 @@ class PaginationCoordinator {
 
   /// 计算当前排版配置的哈希值，用于检测配置变更。
   /// 与 Rust 侧 `TypesetConfig::config_hash()` 算法一致。
-  int computeConfigHash() {
+  /// 返回 BigInt（Rust u64 → Dart BigInt），不做截断。
+  BigInt computeConfigHash() {
     final p = buildPaginationParams();
     return core_api
         .computeConfigHash(
@@ -83,8 +84,7 @@ class PaginationCoordinator {
             language: p.language,
             autoSpaceRatio: p.autoSpaceRatio,
           ),
-        )
-        .toInt();
+        );
   }
 
   /// 首屏分页（统一入口，maxChars=2000）。

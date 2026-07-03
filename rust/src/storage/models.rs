@@ -404,7 +404,7 @@ pub struct GlobalStats {
 
 /// 书籍文件格式
 ///
-/// 数据库中存储为小写文本。`FromStr` 额外兼容 markdown 别名。
+/// 数据库中存储为小写文本。仅支持 txt 和 epub。
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize,
     strum::AsRefStr, strum::EnumString,

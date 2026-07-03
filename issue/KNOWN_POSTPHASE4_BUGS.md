@@ -6,6 +6,7 @@
 > 2026-07-02 第四轮：P0 架构统一（纯文本书分页走 IR + BlockPaginator）+ P3-13 部分解决。
 > 2026-07-02 第五轮：P1 合并 sled 双缓存（plain sled → block sled 唯一真理源）。
 > 2026-07-02 第六轮：P2 避尾标点行断逻辑（end-avoid punctuation + start-avoid 回拉）。
+> 2026-07-02 第七轮：P3 configHash 截断修复 + chunk 边界图片保护 + P3-13 推迟标注。
 
 ---
 
@@ -80,9 +81,9 @@
 
 | # | 问题 | 位置 | 说明 |
 |---|------|------|------|
-| 12 | **u64 config_hash 截断为 Dart int** | Dart 侧 `toInt()` | 50% 概率 MSB=1 → 负数；同类比较安全但跨系统持久化会 miss |
-| 13 | **两套分页 API 路径不统一** | path-based vs handle-based | ⚡ 部分解决：P0 消除了 block/plain 双真理源，所有章节统一走 IR → BlockPaginator；handle-based 统一见 ADR-014 |
-| 14 | **Block Paginator chunk 边界不考虑图片跨 chunk** | `block_paginator.rs:416` | `CHUNK_BLOCK_COUNT=200` 机械分块，大图片在边界附近时 merge 仅调 page_index 不重排版 |
+| 12 | **u64 config_hash 截断为 Dart int** | Dart 侧 `toInt()` | ✅ 已修复（configHash 全链路改 BigInt，消除 toInt() 截断） |
+| 13 | **两套分页 API 路径不统一** | path-based vs handle-based | 📋 ADR-014 推迟至 Phase 5，当前 Phase 不插队；P0 已消除 block/plain 双真理源 |
+| 14 | **Block Paginator chunk 边界不考虑图片跨 chunk** | `block_paginator.rs:416` | ✅ 已修复（CHUNK_BOUNDARY_GUARD=5，切割点向前扩展使图片完整归入当前 chunk） |
 
 ---
 
@@ -144,6 +145,15 @@
 | P1 移除 try_plain_full_hit | `PaginationStore` 不再探测 plain 全章命中 | `pagination_store.rs` |
 | P1 PaginationEngine::Plain 标注 in-memory | 仅用于 partial 首屏路径（不持久化到 sled） | `pagination_store.rs` |
 | P1 kv_store 测试更新 | 移除所有 plain sled 测试，保留 block sled 测试 | `kv_store.rs`, `layout_cache_repo.rs` |
+
+## ✅ P3 代码异味修复（2026-07-02 第七轮）
+
+| # | 修复 | 改动文件 |
+|---|------|----------|
+| P3-12 configHash 截断 | `configHash` 全链路从 `int` 改为 `BigInt`，消除 4 处 `.toInt()` 截断（FRB u64→BigInt 不截断） | `pagination_session.dart`, `rust_pagination_session.dart`, `reader_repository_interface.dart`, `rust_reader_repository.dart`, `pagination_coordinator.dart`, `next_chapter_staging.dart`, `rust_chapter_content_repository.dart` |
+| P3-14 chunk 边界图片保护 | `CHUNK_BOUNDARY_GUARD=5`：切割点前 5 块内有 ImageBlock 时，扩展 chunk 使图片完整归入当前 chunk（连续图片也保护） | `block_paginator.rs` |
+| P3-14 测试 | 新增 `chunked_boundary_guard_keeps_image_in_current_chunk` 测试 | `block_paginator.rs` |
+| P3-13 API 路径不统一 | 📋 ADR-014 推迟至 Phase 5，不插队；标注现状 | `KNOWN_POSTPHASE4_BUGS.md` |
 
 ## ✅ P2 避尾标点行断逻辑（2026-07-02 第六轮）
 
