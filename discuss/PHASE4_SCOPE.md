@@ -1,6 +1,6 @@
 # Phase 4 范围 — 引擎完善（Grilling 第五轮，2026-06-25）
 
-> **状态**：✅ 代码交付完毕；真机签退推迟至 Phase 5 M1。
+> **状态**：✅ 已关闭（2026-07-03）。代码交付完毕；真机签退推迟至 Phase 5 M5 收尾。
 > **来源**：`/grill-with-docs` 会话；决策归档 [xinxi-round5.md](./xinxi-round5.md)  
 > **绑定**：[READING_BOUNDARIES.md](./READING_BOUNDARIES.md) v1.2 · [ROADMAP.md](./ROADMAP.md) Phase 4
 
@@ -58,7 +58,7 @@
 
 ---
 
-## 退出标准（草案）
+## 退出标准（✅ 已签退）
 
 - [x] P4-1～P4-4 代码 + 对应 Rust/Dart 测试（P4-1 完成，P4-2/P4-3/P4-4 已交付）
 - [x] P4-5 双语 feature 模块（旧 `reader/translation/` 已删除，DI codegen 完成，真机待验收）
