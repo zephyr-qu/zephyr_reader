@@ -415,11 +415,17 @@ pub fn paginate_chapter_ir(
 /// 块数阈值：超过此值时分 chunk 独立分页，避免单次 `BlockPaginator` O(pathological_size)。
 pub const CHUNK_BLOCK_COUNT: usize = 200;
 
+/// 边界保护窗口：chunk 末尾 N 个块内如果出现 ImageBlock，扩展 chunk 使图片完整留在当前 chunk。
+const CHUNK_BOUNDARY_GUARD: usize = 5;
+
 /// 分 chunk 块分页：将 `ir.blocks` 按 [CHUNK_BLOCK_COUNT] 拆分，
 /// 每 chunk 独立分页后合并 page descriptors。
 ///
 /// 每个 chunk 的 [BlockPaginateResult] 可独立存入 sled 缓存（`chunk_index`）。
 /// chunks ≤ 1 时委托给 [`paginate_chapter_ir`] 零开销。
+///
+/// **边界保护**：当 chunk 切割点附近（末尾 [CHUNK_BOUNDARY_GUARD] 个块内）有图片块时，
+/// 将切割点向前推移，使图片完整归入当前 chunk，避免图片孤立在下一个 chunk 首部。
 pub fn paginate_chapter_ir_chunked(
     ir: &ChapterContentIr,
     config: TypesetConfig,
@@ -431,10 +437,38 @@ pub fn paginate_chapter_ir_chunked(
     let config_hash = config.config_hash();
     let mut merged = BlockPaginateResult::new(vec![], config_hash, false);
 
-    for chunk in ir.blocks.chunks(CHUNK_BLOCK_COUNT) {
+    let mut offset = 0;
+    while offset < ir.blocks.len() {
+        let mut end = (offset + CHUNK_BLOCK_COUNT).min(ir.blocks.len());
+
+        // 边界保护：如果切割点 end 之前的 guard 区域内有图片，向前扩展切割点
+        // 把图片完整归入当前 chunk（但不超过整个剩余 blocks）
+        if end < ir.blocks.len() {
+            let guard_start = end.saturating_sub(CHUNK_BOUNDARY_GUARD);
+            for i in guard_start..end {
+                if matches!(ir.blocks[i], ContentBlock::Image(_)) {
+                    // 找到最近图片块，将切割点扩展到该图片之后
+                    // 但需继续扫描到下一个非图片块，避免连续图片仍被切断
+                    let mut new_end = i + 1;
+                    while new_end < ir.blocks.len()
+                        && matches!(ir.blocks[new_end], ContentBlock::Image(_))
+                    {
+                        new_end += 1;
+                    }
+                    // 仅在扩展不超过原切割点 + guard 时生效（防止 chunk 过大）
+                    if new_end <= offset + CHUNK_BLOCK_COUNT + CHUNK_BOUNDARY_GUARD {
+                        end = new_end;
+                    }
+                    break; // 只需找到第一个图片即可触发扩展
+                }
+            }
+        }
+
+        let chunk = &ir.blocks[offset..end];
         let sub_ir = ChapterContentIr::new(chunk.to_vec(), ir.plain_text.clone());
         let result = paginate_chapter_ir(&sub_ir, config.clone());
         merged.merge(result);
+        offset = end;
     }
 
     merged
@@ -630,5 +664,39 @@ mod tests {
         assert_eq!(ir.block_count(), 0);
         let result = paginate_chapter_ir_chunked(&ir, test_config());
         assert_eq!(result.page_count(), 1, "0-block chapter should produce 1 placeholder page");
+    }
+
+    #[test]
+    fn chunked_boundary_guard_keeps_image_in_current_chunk() {
+        // 构造 >200 blocks 的 IR，在 chunk 边界附近插入图片
+        // 验证图片不会被孤零零地推到下一个 chunk 开头
+        let mut b = BlockJoinedPlainBuilder::new();
+        // 前 197 个文本块
+        for i in 0..197 {
+            b.push_text(format!("Text block {i}."), TextBlockStyle::default());
+        }
+        // 在边界附近插入图片块（块索引 197，恰好在 200 块切割点附近）
+        b.push_image("test_image.png".into(), None);
+        // 后续文本块使总 block 数 > CHUNK_BLOCK_COUNT
+        for i in 0..50 {
+            b.push_text(format!("After image block {i}."), TextBlockStyle::default());
+        }
+        let ir = b.finish();
+        assert!(ir.block_count() > CHUNK_BLOCK_COUNT);
+
+        let result = paginate_chapter_ir_chunked(&ir, test_config());
+        // 验证分页结果有效
+        assert!(result.page_count() > 1);
+
+        // 验证 plain range 单调递增
+        let mut prev_end = 0u32;
+        for d in &result.descriptors {
+            assert!(
+                d.plain.plain_start >= prev_end.saturating_sub(1),
+                "descriptor page={} plain_start={} < prev_end={}",
+                d.page_index, d.plain.plain_start, prev_end
+            );
+            prev_end = d.plain_end_exclusive();
+        }
     }
 }

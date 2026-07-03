@@ -1,8 +1,8 @@
 # 排版差距分析 — 双语小说阅读器
 
 > 审查日期: 2026-06-26
+> 更新日期: 2026-07-03 — P1 已通过 IR block 路径完整实现
 > 产品目标：中英双语**小说**离线阅读。不追求多看级通用 EPUB 精排。
-> 当前小说场景覆盖约 **75%**（基础样式 + 纯文本分页 + 滚动/双语富文本）；剩余可做工约 **1–2d**。
 
 ## 当前已有（小说场景够用）
 
@@ -16,56 +16,46 @@
 | 分页排版（TXT/EPUB 正文） | ✅ | `PageStreamer` + `PaginationSession` |
 | 滚动模式富文本 | ✅ | EPUB/MD → `ScrollModeRenderer` |
 | 双语对齐 / 对照高亮 | ✅ | `align_bilingual_content` + Translation VM |
+| **首行缩进 (text-indent)** | ✅ | `IrTextBlockStyle.resolveFirstLineIndentPx` → `WidgetSpan+SizedBox` |
+| **段间距 (margin-top/bottom)** | ✅ | `IrTextBlockStyle.resolveBlockPadding` / `resolveBottomSpacing` |
+| **段落字体 (font-family)** | ✅ | `IrTextBlockStyle.mapToTextStyle(fontFamily)` |
+| **行高 (line-height)** | ✅ | `IrTextBlockStyle.mapToTextStyle(height)` |
 
 ---
 
-## 值得做的差距（按优先级）
+## ✅ P1 已完成 — 段落排版 CSS 投射到 Dart
 
-### P1 — 段落排版 CSS 投射到 Dart（~1–2d）
+> 2026-07-03 确认：P1 所列 gap 已通过 Phase 4 IR block 渲染路径（`IrTextBlockStyle`）全部实现。
+> scroll + pagination 两条主链路均使用 `IrTextBlockStyle` 消费 `TextBlockStyle` 字段。
+> `RichTextConverter` 的 CJK 全角空格方案仅是 fallback 路径（Phase 4 后不应触发）。
 
-Rust 侧 CSS 解析已完整（`rust/src/text/rich_text.rs`），以下属性已解析到 `RichParagraph` 字段：
-
-| `RichParagraph` 字段 | 来源 CSS | Dart 使用状态 |
-|----------------------|----------|--------------|
-| `text_indent_em` | `text-indent` | ❌ `RichTextConverter.paragraphBlockStyle` 未处理 |
-| `margin_top_em` / `margin_bottom_em` | `margin-top` / `margin-bottom` | ❌ 同上 |
-| `font_family` | `font-family` | ❌ 同上 |
-| `line_height` | `line-height` | ✅ 已在 `paragraphBlockStyle` 使用 |
-
-**瓶颈在 Dart 侧**：当前 `toTextSpan` 将所有段落压平到一个 `TextSpan` 树。实现块级属性（text-indent、margin）需要将输出从单一 `TextSpan` 改为 `WidgetSpan` 或外层 `Column` + `Padding` 包裹的结构。
-
-改动面：
-
-- `lib/features/reader/data/rich_text_converter.dart` — `paragraphBlockStyle` 投射 `font_family` / `text_indent_em`；`toTextSpan` 输出改为 `List<InlineSpan>` 或段落级 widget 列表
-- 消费方（`ScrollModeRenderer`）适配新输出格式；双语模式走独立链路，不受影响
-
-**不涉及** `PageStreamer` 改造，仅滚动/双语渲染链路。
-
-### P2 — 双语模式与富文本一致性（~0.5d，按需）
-
-双语渲染器（`BilingualModeRenderer`）使用 `BilingualAlignment` 纯文本段落，不走 `RichParagraph` / `RichTextConverter`。当前双语模式与滚动富文本模式的样式由各自独立链路控制：
-
-- 滚动模式：`RichParagraph` → `RichTextConverter.toTextSpan`
-- 双语模式：`BilingualAlignment`（plain text segments）→ `HighlightPainter.paintPlain`
-
-P1 对 `RichTextConverter` 的改动不会自动惠及双语模式。如需双语段落样式与滚动模式一致，需额外实现双语侧的段落样式投射。
+| CSS 属性 | `TextBlockStyle` 字段 | Dart 实现方式 | 状态 |
+|----------|------------------------|---------------|------|
+| `text-indent` | `textIndentEm` | `WidgetSpan` + `SizedBox(width: em × fontSize)` | ✅ |
+| `margin-top/bottom` | `marginTopEm`/`marginBottomEm` | `EdgeInsets.only(top/bottom: em × fontSize)` | ✅ |
+| `font-family` | `fontFamily` | `TextStyle(fontFamily)` + `StrutStyle` | ✅ |
+| `line-height` | `lineHeight` | `TextStyle(height)` | ✅ |
+| `font-size` | `fontSize` | `TextStyle(fontSize)` | ✅ |
+| `text-align` | `textAlign` | `TextAlign` 映射 | ✅ |
 
 ---
 
-## 实施路径
+### ✅ P2 已完成 — 双语模式段落样式投射
 
-```
-Phase 1（1–2d）— 段落 CSS 投射到 Dart
-  lib/.../rich_text_converter.dart
-    - paragraphBlockStyle: 加 font_family / text_indent_em
-    - toTextSpan: 输出段落级 List<InlineSpan> 或 widget 列表
-  验收：带 text-indent 的 EPUB 段落首行缩进正确；段间距可见
+> 2026-07-03 实现：双语渲染器接入用户全局配置（`firstLineIndent` / `paragraphSpacing` / `textAlign`），
+> 与单语 scroll 模式无 CSS 段行为一致。
 
-Phase 2（按需，~0.5d）— 双语模式段落样式
-  BilingualModeRenderer 接入段落样式投射（独立于 RichTextConverter）
-  验收：bilingual 段落 text-indent / 段间距与 scroll 一致
-```
-**架构影响：低。** `toTextSpan` 返回类型可能从 `(TextSpan, String)` 变为 `(List<InlineSpan>, String)` 或段落级 widget 列表。不改动 `PageStreamer`。
+`AlignedSegment` 只含纯文本（`chinese`/`english`），不含 CSS 样式信息。
+双语段无法像 IR block 路径那样消费 `TextBlockStyle`，因此投射策略为：
+
+| 样式 | 双语实现方式 | 状态 |
+|------|-------------|------|
+| `text-indent` | `config.firstLineIndent` → `WidgetSpan` + `SizedBox(width: 2em × fontSize)` | ✅ |
+| 段间距 | `config.paragraphSpacing` 替代硬编码 `20px` | ✅ |
+| `text-align` | `config.textAlign` 传入 `SelectableText.rich` | ✅ |
+| 行高行为 | `ReaderRenderConfig.textHeightBehavior` | ✅ |
+
+改动文件：`bilingual_renderer.dart`
 
 ---
 
@@ -73,7 +63,6 @@ Phase 2（按需，~0.5d）— 双语模式段落样式
 
 | 指标 | 数值 |
 |------|------|
-| 小说场景当前覆盖 | ~75% |
-| 目标覆盖 | ~85%（P1 段落 CSS 完成后） |
-| 建议工作量 | **1–2d** |
-| 架构影响 | **低**（Dart 转换器输出结构调整） |
+| 小说场景当前覆盖 | ~90%（P1 + P2 段落样式已完成） |
+| P1 状态 | ✅ 已完成（通过 IR block 路径） |
+| P2 状态 | ✅ 已完成（用户全局配置投射） |

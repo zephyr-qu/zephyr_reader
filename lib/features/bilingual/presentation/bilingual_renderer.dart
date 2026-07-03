@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/features/reader/rendering/highlight_painter.dart';
+import 'package:zephyr_reader/features/reader/rendering/ir_text_block_style.dart';
+import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/features/reader/rendering/find_render_box.dart';
 
 /// 双语对照模式渲染器。
@@ -158,6 +159,10 @@ class BilingualModeRenderer extends StatelessWidget {
       useLatin: true,
       fontSizeMultiplier: 0.9,
     );
+    // 双语中文段首行缩进：与单语 scroll 模式行为一致
+    final cnIndentPx = config.firstLineIndent
+        ? IrTextBlockStyle.defaultFirstLineIndentEm * config.fontSize
+        : 0.0;
 
     final cnOffsets = <int>[];
     var acc = 0;
@@ -203,6 +208,21 @@ class BilingualModeRenderer extends StatelessWidget {
           vocabularyWords: config.effectiveVocabWords,
         );
 
+        // 双语中文段：与 IrTextBlockStyle 同方案的首行缩进
+        final cnIndentedSpan = cnIndentPx > 0
+            ? TextSpan(
+                style: chineseStyle,
+                children: [
+                  WidgetSpan(
+                    alignment: PlaceholderAlignment.baseline,
+                    baseline: TextBaseline.alphabetic,
+                    child: SizedBox(width: cnIndentPx),
+                  ),
+                  cnSpan,
+                ],
+              )
+            : cnSpan;
+
         final enSegHighlights = enHighlights
             .where((h) {
               final hStart = h.charOffset.toInt();
@@ -222,13 +242,19 @@ class BilingualModeRenderer extends StatelessWidget {
 
         final segmentWidget = RepaintBoundary(
           child: Padding(
-            padding: const EdgeInsets.only(bottom: 20),
+            padding: EdgeInsets.only(
+              bottom: index < alignment.segments.length - 1
+                  ? config.paragraphSpacing
+                  : 0,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SelectableText.rich(
-                  cnSpan,
+                  cnIndentedSpan,
                   strutStyle: chineseStrut,
+                  textAlign: config.textAlign,
+                  textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
                   onSelectionChanged: (sel, cause) =>
                       _onSelection(sel, seg.chinese, cnOff, context),
                   contextMenuBuilder: (_, _) => const SizedBox.shrink(),
@@ -243,6 +269,8 @@ class BilingualModeRenderer extends StatelessWidget {
                 SelectableText.rich(
                   enSpan,
                   strutStyle: englishStrut,
+                  textAlign: config.textAlign,
+                  textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
                   onSelectionChanged: (sel, cause) =>
                       _onSelection(sel, seg.english, enOff, context),
                   contextMenuBuilder: (_, _) => const SizedBox.shrink(),

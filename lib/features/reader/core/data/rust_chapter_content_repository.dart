@@ -437,7 +437,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
     required int anchorPageIndex,
   }) {
     final mode = result.mode;
-    final configHash = result.configHash.toInt();
+    final configHash = result.configHash;
     final pageContent = core_api.getPageContent(
       filePath: filePath,
       chapterIndex: chapterIndex,

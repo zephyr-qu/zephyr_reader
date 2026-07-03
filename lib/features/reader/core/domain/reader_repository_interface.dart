@@ -37,7 +37,7 @@ abstract class ReaderRepositoryInterface {
   });
 
   /// 上次分页的 configHash；null 表示无 session。
-  int? get sessionConfigHash;
+  BigInt? get sessionConfigHash;
 
   /// 当前分页会话对应的章节索引；null 表示无 session。
   int? get sessionChapterIndex;

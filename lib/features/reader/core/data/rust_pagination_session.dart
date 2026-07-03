@@ -21,7 +21,7 @@ class RustPaginationSession implements PaginationSession {
   final void Function()? _onCacheUpdated;
 
   List<PageDescriptor>? _descriptors;
-  int? _sessionConfigHash;
+  BigInt? _sessionConfigHash;
   int? _sessionChapterIndex;
   bool _sessionIsPartial = false;
   ChapterPaginationMode _sessionMode = ChapterPaginationMode.plainText;
@@ -37,9 +37,9 @@ class RustPaginationSession implements PaginationSession {
   @override
   List<PageDescriptor>? get descriptors => _descriptors;
 
-  /// 上次分页的 configHash；null 表示无 session。
+  /// 上次分页的 configHash（BigInt，不做 u64 截断）；null 表示无 session。
   @override
-  int? get sessionConfigHash => _sessionConfigHash;
+  BigInt? get sessionConfigHash => _sessionConfigHash;
 
   @override
   int? get sessionChapterIndex => _sessionChapterIndex;
@@ -113,9 +113,9 @@ class RustPaginationSession implements PaginationSession {
     final descriptorsChanged =
         _descriptors != result.descriptors ||
         _sessionIsPartial != result.isPartial ||
-        _sessionConfigHash != result.configHash.toInt();
+        _sessionConfigHash != result.configHash;
     _descriptors = result.descriptors;
-    _sessionConfigHash = result.configHash.toInt();
+    _sessionConfigHash = result.configHash;
     _sessionIsPartial = result.isPartial;
     _sessionMode = result.mode;
     if (chapterIndex != null) _sessionChapterIndex = chapterIndex;
@@ -291,7 +291,7 @@ class RustPaginationSession implements PaginationSession {
         final sw = Stopwatch()..start();
         // config hash 未变 → 复用 session 已有 config，避免重复 validate
         final newHash = core_api.computeConfigHash(config: newConfig);
-        final configArg = (newHash.toInt() == _sessionConfigHash)
+        final configArg = (newHash == _sessionConfigHash)
             ? null
             : newConfig;
         result = await core_api.paginateSessionFull(

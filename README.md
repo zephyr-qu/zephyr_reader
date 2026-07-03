@@ -23,7 +23,7 @@ Zephyr Reader（Zephyr 阅读器）是一款基于 **Flutter + Rust** 架构开�
 ## ✨ 核心功能
 
 ### 📚 书籍管理
-- 支持 TXT、EPUB、Markdown 格式导入（主格式 EPUB、TXT；见 [discuss/READING_BOUNDARIES.md](discuss/READING_BOUNDARIES.md)）
+- 支持 TXT、EPUB 格式导入（见 [discuss/READING_BOUNDARIES.md](discuss/READING_BOUNDARIES.md)）
 - 批量导入与书籍元数据自动提取
 - 书籍列表展示、分类标签、搜索、置顶
 - 阅读进度自动记忆与恢复
@@ -69,7 +69,7 @@ Zephyr Reader（Zephyr 阅读器）是一款基于 **Flutter + Rust** 架构开�
 │  └─ 状态: signals + setState                             │
 ├────────────────────── flutter_rust_bridge FFI ──────────┤
 │                  Rust 核心引擎 (高性能)                    │
-│  ├─ 解析: TXT/EPUB/MD + 封面提取                         │
+│  ├─ 解析: TXT/EPUB + 封面提取                         │
 │  ├─ 排版: 中英混排断行 + letter/paragraph/page margin   │
 │  ├─ 搜索: FTS5 + jieba 中文分词                         │
 │  ├─ 词典: MDict 离线词典 (.mdx/.mdd)                    │
@@ -130,7 +130,7 @@ zephyr_reader/
 │   └── src/
 │       ├── lib.rs           # 库入口
 │       ├── api/             # FRB 暴露接口层
-│       ├── parser/          # 解析器（TXT/EPUB/MD）
+│       ├── parser/          # 解析器（TXT/EPUB）
 │       ├── storage/         # 存储（SQLite repos + sled KV）
 │       ├── search/          # FTS5 全文搜索
 │       ├── text/            # 文本处理（断行、排版、章节检测、双语对齐）
@@ -289,14 +289,14 @@ pub async fn parse_txt_file(file_path: String) -> Result<String, AppError> {
   | 阶段 | 工作内容 |
   |------|---------|
   | **基础框架** | Flutter 工程 + Rust 引擎 + FRB 桥接 + 主题/路由/DI/设备适配 |
-  | **解析引擎** | TXT/EPUB/MD 格式解析、编码检测、章节提取、封面提取 |
+  | **解析引擎** | TXT/EPUB 格式解析、编码检测、章节提取、封面提取 |
   | **存储层** | SQLite (sqlx) + sled KV 排版缓存、Repository 模式、数据库备份/还原 |
   | **阅读核心** | 双语排版、分页渲染、翻页、进度记忆、章节跳转、高亮批注、双语对照高亮 |
   | **排版引擎** | 文本断行、分块排版、标点优化、CSS 适配、lazy/eager 双模式 |
   | **进阶功能** | 全书搜索 (FTS5)、离线词典 (MDict)、双语对齐、TTS 朗读 |
   | **WebDAV** | 数据同步、冲突解决、备份与还原、自动同步、同步历史 |
   | **阅读统计** | 日/周/月/总览统计、阅读会话记录、生词本 |
-  | **WiFi 传书** | HTTP 服务器上传 TXT/EPUB/MD，Web 管理页面 |
+  | **WiFi 传书** | HTTP 服务器上传 TXT/EPUB，Web 管理页面 |
   | **学习与笔记** | 笔记管理、高亮管理、生词复习、书签管理、分类过滤、导出 |
   | **设置面板** | TTS 朗读设置、排版与字体设置、主题与亮度、其他设置、关于页面 |
   | **国际化** | 中文/英文完整本地化（ARB）、跟随系统区域 |

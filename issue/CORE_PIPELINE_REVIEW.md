@@ -12,7 +12,7 @@
 ```mermaid
 flowchart LR
     subgraph Parse["解析 (Rust)"]
-        A1[EPUB/TXT/MD/PDF Parser]
+        A1[EPUB/TXT Parser]
         A2[ChapterContentProvider]
         A3[Rich HTML → RichParagraph]
     end
@@ -79,8 +79,7 @@ flowchart LR
 | `rust/src/parser/registry.rs`                                        | 格式路由              |
 | `rust/src/parser/epub/*`                                             | EPUB 管道           |
 | `rust/src/parser/txt/*`                                              | TXT 管道            |
-| `rust/src/parser/md/*`                                               | Markdown 管道       |
-| `rust/src/parser/pdf/*`                                              | PDF 管道（仅导入，阅读未接入） |
+
 | `lib/features/bookshelf/application/book_import_service.dart`        | Dart 导入入口         |
 | `lib/features/reader/core/data/rust_chapter_content_repository.dart` | Dart 读取入口         |
 
@@ -106,7 +105,7 @@ Rust 分页与 Flutter 渲染是**近似对齐**，不是像素级一致。已�
 
 ```
 Book file
-  → ChapterContentProvider.read_text_range (TXT/MD/EPUB)
+  → ChapterContentProvider.read_text_range (TXT/EPUB)
   → PageStreamer::new(content, TypesetConfig)
   → get_descriptors() → Vec<PageDescriptor>
   → [Dart] RustPaginationSession 存储 descriptors + handle
