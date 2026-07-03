@@ -16,7 +16,7 @@
 | **80%** | 进度/书签/笔记稳定 · 排版可调 · 搜索快 · **换章丝滑** |
 | **进度真理** | `chapterIndex` + `charOffset`（plainText）— [ADR-001](./adr/001-reading-position-truth.md) |
 | **技术分工** | Rust IR+块分页+缓存；Flutter 渲染+staging — [ADR-006](./adr/006-rust-flutter-division.md) |
-| **当前阶段** | **Phase 4 引擎完善** — [PHASE4_SCOPE.md](./PHASE4_SCOPE.md) / [ROADMAP.md](./ROADMAP.md) |
+| **当前阶段** | **Phase 5 稳定性与工程化** — [PHASE5_SCOPE.md](./PHASE5_SCOPE.md) / [ROADMAP.md](./ROADMAP.md) |
 | **明确不做** | PDF 阅读、账号/多端同步、复杂 CSS、WebView 全引擎、章内搜索 UI |
 
 ---
@@ -76,6 +76,7 @@
 | [011](./adr/011-bilingual-feature-module.md) | 双语 feature 模块 |
 | [012](./adr/012-staging-prefetch-guarantee.md) | Staging 零 loading |
 | [013](./adr/013-flutter-metrics-calibration.md) | Metrics 回传校准 |
+| [014](./adr/014-api-path-unification.md) | 分页 API 路径统一 |
 
 ---
 
@@ -101,3 +102,4 @@
 | v1.0 | 2026-06-18 | 第二轮冻结 |
 | v1.1 | 2026-06-18 | 第三轮闭环；Phase 0 完成 |
 | v1.2 | 2026-06-25 | Phase 4 范围；ADR-009～013；章内搜索降为 Won't |
+| v1.3 | 2026-07-03 | Phase 4 退出 → Phase 5 启动；ADR-014；MD 格式残留清除 |

@@ -1,6 +1,6 @@
 # Phase 4 范围 — 引擎完善（Grilling 第五轮，2026-06-25）
 
-> **状态**：核心链路已完成（P4-1～P4-5 代码 + 测试），**正式签退待真机验收**。  
+> **状态**：✅ 代码交付完毕；真机签退推迟至 Phase 5 M1。
 > **来源**：`/grill-with-docs` 会话；决策归档 [xinxi-round5.md](./xinxi-round5.md)  
 > **绑定**：[READING_BOUNDARIES.md](./READING_BOUNDARIES.md) v1.2 · [ROADMAP.md](./ROADMAP.md) Phase 4
 
@@ -66,7 +66,7 @@
 - [x] I1 持久化清理：`ReadingProgress` 移除 `page_index`/`total_pages`（Rust struct + SQL + Dart 全链路）
 - [x] G1+G2 block font-size：`RichParagraph` → `TextBlockStyle`(IR) → Flutter `mapToTextStyle()`
 - [x] FFI 测试恢复：`initFfiForTest()` 显式加载 DLL，集成测试 24/24 pass
-- [ ] 真机：跨章 forward/backward 无可见 spinner（待真机验收）
+- [ ] 真机：跨章 forward/backward 无可见 spinner（推迟至 Phase 5 M5 收尾）
 
 ---
 
