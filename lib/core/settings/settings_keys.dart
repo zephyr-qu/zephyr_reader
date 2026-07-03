@@ -71,7 +71,6 @@ abstract final class SettingsKeys {
   /// 首行缩进
   static const readerFirstLineIndent = 'reader_first_line_indent';
 
-
   /// 语言类型
   static const readerLanguage = 'reader_language';
 
@@ -147,9 +146,6 @@ abstract final class SettingsKeys {
 
   /// 启动检查更新
   static const otherStartupCheck = 'other.startup_check';
-
-  /// Markdown 预览
-  static const otherMarkdownPreview = 'feature.markdown_preview';
 
   // ==================== 自动翻译 ====================
 

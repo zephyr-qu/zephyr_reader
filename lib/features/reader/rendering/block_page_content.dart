@@ -1,10 +1,11 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/data/epub_block_image_cache.dart';
-import 'package:zephyr_reader/features/reader/rendering/highlight_painter.dart';
+import 'package:zephyr_reader/features/reader/rendering/ir_text_block_style.dart';
 import 'package:zephyr_reader/features/reader/rendering/paginated_page_viewport.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
@@ -23,11 +24,11 @@ Widget buildBlockPageContent({
   required void Function(Offset?)? onSelectionGlobalPosition,
   required double maxContentWidth,
 }) {
-  final textStyle = config.buildTextStyle();
-  final strutStyle = config.buildStrutStyle();
   final vPad = ReaderRenderConfig.pageContentVerticalPadding;
-  final imageMaxWidth =
-      (maxContentWidth - 2 * config.pageMargin).clamp(1.0, maxContentWidth);
+  final imageMaxWidth = (maxContentWidth - 2 * config.pageMargin).clamp(
+    1.0,
+    maxContentWidth,
+  );
 
   return RepaintBoundary(
     child: Padding(
@@ -37,8 +38,10 @@ Widget buildBlockPageContent({
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final bodyHeight =
-              (constraints.maxHeight - 2 * vPad).clamp(0.0, constraints.maxHeight);
+          final bodyHeight = (constraints.maxHeight - 2 * vPad).clamp(
+            0.0,
+            constraints.maxHeight,
+          );
           final children = <Widget>[];
           var runningOffset = startOffset;
 
@@ -46,40 +49,65 @@ Widget buildBlockPageContent({
             block.when(
               text: (slice) {
                 if (slice.text.isEmpty) return;
-                final paintedSpan = HighlightPainter.paintPlain(
-                  slice.text,
-                  textStyle,
-                  highlights,
-                  onHighlightTap: onHighlightTap,
-                  vocabularyWords: config.effectiveVocabWords,
+                final irStyle = slice.style;
+                final blockStrutStyle = config.buildStrutStyle(
+                  fontFamily: irStyle.fontFamily,
+                );
+                final textAlign = IrTextBlockStyle.resolveTextAlign(
+                  irStyle.textAlign,
+                  config.textAlign,
+                );
+                final paintedSpan = IrTextBlockStyle.buildHighlightedSpan(
+                  text: slice.text,
+                  spans: slice.spans,
+                  irStyle: irStyle,
+                  config: config,
+                  highlights: highlights,
                   contentStart: runningOffset,
+                  applyFirstLineIndent: slice.isBlockStart,
+                  onHighlightTap: onHighlightTap,
                 );
-                final textWidget = SelectableText.rich(
-                  paintedSpan,
-                  strutStyle: strutStyle,
-                  textAlign: config.textAlign,
-                  textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
-                  onSelectionChanged: (sel, cause) => _handleBlockTextSelection(
-                    sel,
-                    slice.text,
-                    runningOffset,
-                    context,
-                    onSelectionChanged,
-                    onSelectionGlobalPosition,
+                final blockPadding = slice.isBlockStart
+                    ? IrTextBlockStyle.resolveBlockPadding(irStyle, config)
+                    : EdgeInsets.zero;
+                final textWidget = Padding(
+                  padding: blockPadding,
+                  child: SelectableText.rich(
+                    paintedSpan,
+                    strutStyle: blockStrutStyle,
+                    textAlign: textAlign,
+                    textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
+                    onSelectionChanged: (sel, cause) =>
+                        _handleBlockTextSelection(
+                          sel,
+                          slice.text,
+                          runningOffset,
+                          context,
+                          onSelectionChanged,
+                          onSelectionGlobalPosition,
+                        ),
+                    contextMenuBuilder: (_, _) => const SizedBox.shrink(),
                   ),
-                  contextMenuBuilder: (_, _) => const SizedBox.shrink(),
                 );
-                if (slice.isBlockEnd && config.paragraphSpacing > 0) {
-                  children.add(
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        textWidget,
-                        SizedBox(height: config.paragraphSpacing),
-                      ],
-                    ),
+                if (slice.isBlockEnd) {
+                  final bottomSpacing = IrTextBlockStyle.resolveBottomSpacing(
+                    irStyle,
+                    config,
                   );
+                  if (bottomSpacing > 0) {
+                    children.add(
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          textWidget,
+                          SizedBox(height: bottomSpacing),
+                        ],
+                      ),
+                    );
+                  } else {
+                    children.add(textWidget);
+                  }
                 } else {
                   children.add(textWidget);
                 }
@@ -93,7 +121,9 @@ Widget buildBlockPageContent({
                     assetId: slice.assetId,
                     alt: slice.alt,
                     maxWidthPx: imageMaxWidth.round().clamp(1, 4096),
-                    maxHeightPx: bodyHeight.round().clamp(1, 4096),
+                    maxHeightPx: isFullPage
+                        ? bodyHeight.round().clamp(1, 4096)
+                        : null,
                     fullPage: isFullPage,
                   ),
                 );
@@ -200,7 +230,9 @@ class _EpubBlockImageState extends State<EpubBlockImage> {
       if (!mounted) return;
       setState(() => _imageBytes = bytes);
     } catch (e) {
-      Logging.warning('[EpubBlockImage] load failed asset=${widget.assetId}: $e');
+      Logging.warning(
+        '[EpubBlockImage] load failed asset=${widget.assetId}: $e',
+      );
       if (!mounted) return;
       setState(() => _error = e);
     }
@@ -209,11 +241,11 @@ class _EpubBlockImageState extends State<EpubBlockImage> {
   @override
   Widget build(BuildContext context) {
     if (_error != null) {
-      return _compactPlaceholder(icon: Icons.broken_image_outlined);
+      return _sizedPlaceholder(icon: Icons.broken_image_outlined);
     }
     final bytes = _imageBytes;
     if (bytes == null) {
-      return _compactPlaceholder(icon: Icons.image_outlined);
+      return _sizedPlaceholder(icon: Icons.image_outlined);
     }
 
     final maxW = widget.maxWidthPx.toDouble();
@@ -227,15 +259,11 @@ class _EpubBlockImageState extends State<EpubBlockImage> {
       cacheWidth: (maxW * dpr).ceil().clamp(1, 8192),
       semanticLabel: widget.alt,
       errorBuilder: (_, _, _) =>
-          _compactPlaceholder(icon: Icons.broken_image_outlined),
+          _sizedPlaceholder(icon: Icons.broken_image_outlined),
     );
 
     if (widget.fullPage) {
-      return SizedBox(
-        width: maxW,
-        height: maxH,
-        child: image,
-      );
+      return SizedBox(width: maxW, height: maxH, child: image);
     }
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -243,10 +271,22 @@ class _EpubBlockImageState extends State<EpubBlockImage> {
     );
   }
 
-  Widget _compactPlaceholder({required IconData icon}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Icon(icon, size: 28, color: Colors.grey),
+  /// 占位符：预留图片实际尺寸空间，避免加载完成后排版跳动。
+  Widget _sizedPlaceholder({required IconData icon}) {
+    final maxW = widget.maxWidthPx.toDouble();
+    final maxH = widget.maxHeightPx?.toDouble();
+    if (maxH != null) {
+      return SizedBox(
+        width: maxW,
+        height: math.min(maxH, 1200),
+        child: Center(child: Icon(icon, size: 28, color: Colors.grey)),
+      );
+    }
+    // 内联图片无固定高度：按 16:9 估算占位
+    return SizedBox(
+      width: maxW,
+      height: maxW * 9 / 16,
+      child: Center(child: Icon(icon, size: 28, color: Colors.grey)),
     );
   }
 }

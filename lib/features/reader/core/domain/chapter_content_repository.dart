@@ -3,6 +3,7 @@ import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
+import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
@@ -25,11 +26,17 @@ abstract class ChapterContentRepository {
 
   Future<void> preload(String bookId, int chapterId);
 
-  /// 当前章节的富文本内容（EPUB/MD）。
+  /// 当前章节的富文本内容（EPUB）。
   TextSpan? get currentRichContent;
 
   /// 当前章节的富文本段落。
   List<RichParagraph>? get currentRichParagraphs;
+
+  /// P4-1：当前章节的 IR 块流（scroll 主路径）。
+  ChapterContentIr? get currentChapterIr;
+
+  /// 当前章节对应书籍文件路径（EPUB 图片解码用）。
+  String? get currentChapterFilePath;
 
   /// 预加载完成时递增，供 UI 监听重建。
   ValueNotifier<int> get preloadGeneration;

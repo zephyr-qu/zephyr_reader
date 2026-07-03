@@ -154,7 +154,6 @@ class ReaderConfig {
     debounce: Duration.zero,
   );
 
-
   /// 语言类型
   late final language = persistedEnum<LanguageType>(
     prefs,

@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:flutter/scheduler.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/core/utils/app_error_mapper.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
@@ -79,7 +80,8 @@ class ChapterLoadOrchestrator {
   }) async {
     final gen = ++_generation;
     // stagingPromote 路径保留 staging（promote 完成后自身 clear），normalLoad 清除
-    final isStagingPromote = request.navigationKind == ChapterNavigationKind.adjacentCrossChapter;
+    final isStagingPromote =
+        request.navigationKind == ChapterNavigationKind.adjacentCrossChapter;
     if (!isStagingPromote) {
       _contentRepo.clearAdjacentStaging();
     }
@@ -93,8 +95,8 @@ class ChapterLoadOrchestrator {
         repo: _contentRepo,
         pagination: _pagination,
       );
-      final effectivePreserveContent = request.preserveContent ??
-          shouldPreserveContentForIntent(intent);
+      final effectivePreserveContent =
+          request.preserveContent ?? shouldPreserveContentForIntent(intent);
       Logging.info(
         '[Timing] gen=$gen intent=$intent preserveContent=$effectivePreserveContent',
       );
@@ -109,18 +111,24 @@ class ChapterLoadOrchestrator {
         return;
       }
 
-
-      await _runStarting(gen, effectivePreserveContent: effectivePreserveContent);
+      await _runStarting(
+        gen,
+        effectivePreserveContent: effectivePreserveContent,
+      );
       if (_isStale(gen)) {
         _setPhase(gen, ChapterLoadPhase.cancelled);
         return;
       }
 
-      final chapterPlainFuture = _contentRepo.loadChapterContent(
-        _chapterVM.bookId.value,
-        request.chapterIndex,
-        readingMode: request.readingMode,
-      );
+      // P3 (Bug A) 修复：stagingPromote 路径不需要冗余 loadChapterContent，
+      // 内容已由 staging 缓存提供。提前跳过，避免无谓 IO 和未处理 Future 错误。
+      final chapterPlainFuture = isStagingPromote
+          ? Future<String>.value('')
+          : _contentRepo.loadChapterContent(
+              _chapterVM.bookId.value,
+              request.chapterIndex,
+              readingMode: request.readingMode,
+            );
 
       final calibFuture = _pagination.calibration.value != null
           ? Future<CalibrationData?>.value(_pagination.calibration.value)
@@ -139,11 +147,34 @@ class ChapterLoadOrchestrator {
         calibFuture: calibFuture,
         preloadAdjacentFirstPages: preloadAdjacentFirstPages,
       );
+      if (_isStale(gen)) {
+        _setPhase(gen, ChapterLoadPhase.cancelled);
+        return;
+      }
+
+      // stagingPromote 路径：_runStagingPromote 已设置所有信号，跳过冗余后继处理。
+      // 见 issue/KNOWN_POSTPHASE4_BUGS.md Bug A
+      if (intent == ChapterPaginationIntent.stagingPromoteForward ||
+          intent == ChapterPaginationIntent.stagingPromoteBackward) {
+        _setPhase(gen, ChapterLoadPhase.completed);
+        _applyIfCurrent(gen, () { _loadPhase.value = ChapterLoadPhase.idle; });
+        return;
+      }
+
 
       Logging.info(
         '[Timing] gen=$gen phase=quickPaginate quickPaginate: '
         '${sw.elapsedMilliseconds}ms cumulative',
       );
+
+      // 仅 initial load / config 变更时回传 metrics；expandOnly 校准已稳定，
+      // 重复回传会导致章内翻页时重分页 → 已渲染页面排版跳变（Bug #2）。
+      final shouldBackfeed =
+          intent == ChapterPaginationIntent.normalLoad ||
+          intent == ChapterPaginationIntent.configReload;
+      final backfeedFuture = shouldBackfeed
+          ? _captureMetricsBackfeed(gen, _pageIndex.value)
+          : Future<CalibrationData?>.value(null);
 
       _setPhase(gen, ChapterLoadPhase.awaitingConcurrent);
       final results = await Future.wait([chapterPlainFuture, calibFuture]);
@@ -157,13 +188,16 @@ class ChapterLoadOrchestrator {
         _pagination.calibration.value ??= results[1] as CalibrationData?;
       });
 
-      final tConcurrent = sw.elapsedMilliseconds;
-      Logging.info(
-        '[Timing] gen=$gen phase=awaitingConcurrent '
-        '(content+calibration): ${tConcurrent}ms cumulative',
-      );
+      final refinedCalibration = await backfeedFuture;
+
+      // Bug B fix: refinedCalibration 暂不更新到 calibration.value，
+      // 避免 expandToFullChapter / repaginate 使用不同校准改变已显示页边界。
+      // 延后到所有分页操作完成后更新（仅用于后续新 session）。
+      // 见 issue/KNOWN_POSTPHASE4_BUGS.md Bug B
 
       int total;
+      final bool isNormalLoad =
+          intent == ChapterPaginationIntent.normalLoad;
       if (quickResult!.isPartial) {
         _setPhase(gen, ChapterLoadPhase.fullPaginate);
         final fullPaginateFuture = _pagination.expandToFullChapter(
@@ -175,6 +209,12 @@ class ChapterLoadOrchestrator {
           _setPhase(gen, ChapterLoadPhase.cancelled);
           return;
         }
+        _syncPaginationSignalsAfterRepaginate(
+          gen,
+          request,
+          totalPages: total,
+          content: content,
+        );
         Logging.info(
           '[Timing] gen=$gen phase=fullPaginate paginateChapter: '
           '${sw.elapsedMilliseconds - tBeforePaginate}ms '
@@ -182,10 +222,43 @@ class ChapterLoadOrchestrator {
         );
       } else {
         total = quickResult.totalPages;
+        if (refinedCalibration != null && !isNormalLoad) {
+          // configReload: 用户已预期视觉变化，inline repaginate
+          final repaginated = await _pagination.repaginateAfterMetricsBackfeed(
+            maxChars: null,
+          );
+          if (_isStale(gen)) {
+            _setPhase(gen, ChapterLoadPhase.cancelled);
+            return;
+          }
+          total = repaginated.totalPages;
+          _syncPaginationSignalsAfterRepaginate(
+            gen,
+            request,
+            totalPages: total,
+            content: content,
+          );
+          Logging.info(
+            '[Timing] gen=$gen phase=metricsBackfeed repaginate: '
+            'pages=$total',
+          );
+        } else if (refinedCalibration != null && isNormalLoad) {
+          // Bug B fix: normalLoad 不 repaginate，避免排版跳变。
+          // 回传校准值已推迟到所有分页操作后更新 calibration.value 信号，
+          // 供后续新 session（下一章 / configReload）使用。
+          Logging.info(
+            '[Timing] gen=$gen phase=metricsBackfeed deferred (normalLoad)',
+          );
+        }
         Logging.info(
           '[Timing] gen=$gen phase=fullPaginate skipped '
           '(partial covered full content, ${quickResult.totalPages} pages)',
         );
+      }
+
+      // 所有分页操作完成后，更新校准信号供后续新 session 使用
+      if (refinedCalibration != null && !_isStale(gen)) {
+        _pagination.calibration.value = refinedCalibration;
       }
 
       await _runFinalize(gen, request, content: content, total: total);
@@ -211,9 +284,20 @@ class ChapterLoadOrchestrator {
       });
     } catch (e) {
       _applyIfCurrent(gen, () {
-        _chapterVM.chapterContent.value = AsyncState.error(e);
-        _error.value = AppErrorMapper.humanReadable(e);
-        _loadPhase.value = ChapterLoadPhase.failed;
+        // P3 (Bug A) 修复：stagingPromote 已成功设置信号后，
+        // 后续错误（如 clearAdjacentStaging）不应覆盖已可见的内容。
+        // 非 stagingPromote 路径正常显示错误。
+        if (isStagingPromote &&
+            _chapterVM.chapterContent.value.value != null) {
+          Logging.warning(
+            '[ChapterLoad] stagingPromote error after content visible: $e',
+          );
+          // 保持内容可见，不覆盖为错误
+        } else {
+          _chapterVM.chapterContent.value = AsyncState.error(e);
+          _error.value = AppErrorMapper.humanReadable(e);
+          _loadPhase.value = ChapterLoadPhase.failed;
+        }
       });
       Logging.error('ChapterLoadOrchestrator.run error', exception: e);
     } finally {
@@ -223,7 +307,10 @@ class ChapterLoadOrchestrator {
     }
   }
 
-  Future<void> _runStarting(int gen, {required bool effectivePreserveContent}) async {
+  Future<void> _runStarting(
+    int gen, {
+    required bool effectivePreserveContent,
+  }) async {
     _setPhase(gen, ChapterLoadPhase.starting);
     if (!effectivePreserveContent) {
       _applyIfCurrent(gen, () {
@@ -240,7 +327,7 @@ class ChapterLoadOrchestrator {
     int gen,
     ChapterLoadRequest request, {
     required Future<void> Function(int chapterIndex, String content)?
-        scheduleSearchIndex,
+    scheduleSearchIndex,
   }) async {
     _setPhase(gen, ChapterLoadPhase.starting);
     _applyIfCurrent(gen, () {
@@ -268,8 +355,10 @@ class ChapterLoadOrchestrator {
     _applyIfCurrent(gen, () {
       _chapterVM.chapterContent.value = AsyncState.data(content);
       _chapterVM.chapterIndex.value = request.chapterIndex;
-      _chapterVM.currentCharOffset.value =
-          request.initialCharOffset.clamp(0, content.length);
+      _chapterVM.currentCharOffset.value = request.initialCharOffset.clamp(
+        0,
+        content.length,
+      );
       _totalPages.value = 1;
       _pageIndex.value = 0;
       _error.value = null;
@@ -280,21 +369,48 @@ class ChapterLoadOrchestrator {
           request.chapterIndex,
           richParagraphs: _contentRepo.currentRichParagraphs,
           richRootSpan: _contentRepo.currentRichContent,
+          chapterIr: _contentRepo.currentChapterIr,
+          chapterFilePath: _contentRepo.currentChapterFilePath,
         );
       }
       if (_contentRepo.consumeEpubRichSkippedNotice()) {
-        if (_contentRepo.sessionMode != ChapterPaginationMode.contentBlocks) {
+        if (request.readingMode == ReadingMode.bilingual &&
+            _contentRepo.sessionMode != ChapterPaginationMode.contentBlocks) {
           _chapterVM.readerNotice.value = ReaderNotice.epubRichSkipped;
         }
       }
     });
+
+    // P4-3: scroll 模式预加载相邻章 IR 内容，避免跨章滚动时等待 FFI
+    if (request.readingMode == ReadingMode.scroll) {
+      final bookId = _chapterVM.bookId.value;
+      unawaited(
+        _contentRepo
+            .loadScrollSegment(
+              bookId,
+              request.chapterIndex + 1,
+              readingMode: ReadingMode.scroll,
+            )
+            .then((_) {}, onError: (_) {}),
+      );
+      if (request.chapterIndex > 0) {
+        unawaited(
+          _contentRepo
+              .loadScrollSegment(
+                bookId,
+                request.chapterIndex - 1,
+                readingMode: ReadingMode.scroll,
+              )
+              .then((_) {}, onError: (_) {}),
+        );
+      }
+    }
 
     _setPhase(gen, ChapterLoadPhase.completed);
     _applyIfCurrent(gen, () {
       _loadPhase.value = ChapterLoadPhase.idle;
     });
   }
-
 
   Future<({int totalPages, bool isPartial})?> _runQuickPaginateForIntent(
     int gen,
@@ -446,6 +562,7 @@ class ChapterLoadOrchestrator {
     required Future<CalibrationData?> calibFuture,
     required Future<void> Function(int chapterIndex)? preloadAdjacentFirstPages,
   }) async {
+    final sw = Stopwatch()..start();
     _setPhase(gen, ChapterLoadPhase.firstSpine);
 
     // 等待校准完成
@@ -453,12 +570,15 @@ class ChapterLoadOrchestrator {
     if (_isStale(gen)) return null;
     _pagination.calibration.value ??= calibResult;
 
-    // 释放旧 handle（不清除目标章 streamer cache）
-    _contentRepo.disposePagination();
     final result = await _pagination.paginateFirstScreenFromCache(
       request.chapterIndex,
     );
     if (_isStale(gen)) return null;
+
+    // 旧 session 在 promote 成功后释放（失败时保留，供 fallback normalLoad 使用）
+    _contentRepo.disposePagination();
+
+    final preloadHit = !result.isPartial;
 
     // 同步写 signals — promote handoff
     final descriptors = _contentRepo.descriptors;
@@ -470,8 +590,8 @@ class ChapterLoadOrchestrator {
       _totalPages.value = result.totalPages;
       _chapterVM.chapterIndex.value = request.chapterIndex;
       _pageIndex.value = pageIndex;
-      _chapterVM.currentCharOffset.value = descriptors != null &&
-              pageIndex < descriptors.length
+      _chapterVM.currentCharOffset.value =
+          descriptors != null && pageIndex < descriptors.length
           ? descriptors[pageIndex].startOffset
           : 0;
       _chapterVM.pendingJumpCharOffset.value = null;
@@ -486,7 +606,10 @@ class ChapterLoadOrchestrator {
     _contentRepo.clearAdjacentStaging();
     unawaited(preloadAdjacentFirstPages?.call(request.chapterIndex));
 
-    Logging.info('[Timing] gen=$gen phase=firstSpine stagingPromote done');
+    final direction = isForward ? 'forward' : 'backward';
+    Logging.info(
+      '[Timing] gen=$gen phase=stagingPromote direction=$direction chapter_to=${request.chapterIndex} preload_hit=$preloadHit promote_ms=${sw.elapsedMilliseconds}',
+    );
     return result;
   }
 
@@ -509,6 +632,8 @@ class ChapterLoadOrchestrator {
         request.chapterIndex,
         richParagraphs: _contentRepo.currentRichParagraphs,
         richRootSpan: _contentRepo.currentRichContent,
+        chapterIr: _contentRepo.currentChapterIr,
+        chapterFilePath: _contentRepo.currentChapterFilePath,
       );
     }
 
@@ -610,7 +735,9 @@ class ChapterLoadOrchestrator {
         batch.map(
           (i) => _contentRepo
               .preloadChapter(_chapterVM.bookId.value, i)
-              .catchError((_) {}),
+              .catchError((Object e) {
+            Logging.debug('[Orchestrator] preloadChapter($i) failed: $e');
+          }),
         ),
       );
     }
@@ -625,4 +752,77 @@ class ChapterLoadOrchestrator {
   ///
   /// 仅 [ReadingMode.pagination] 需要 Rust 分页链路。
   static bool _needsPagination(ReadingMode mode) => needsRustPagination(mode);
+
+  /// descriptors 变更后立即同步页码信号，避免 finalize 前 UI 与 Rust 脱节。
+  ///
+  /// P4 (Bug B) 修复：使用当前 charOffset（而非 request.initialCharOffset）
+  /// 重新映射 pageIndex，确保 partial→full 转换时用户停留在同一文本位置，
+  /// 即使页边界发生变化页码也可能改变，但内容连续不跳变。
+  void _syncPaginationSignalsAfterRepaginate(
+    int gen,
+    ChapterLoadRequest request, {
+    required int totalPages,
+    required String content,
+  }) {
+    if (_isStale(gen)) return;
+    if (!_pagination.isPaginationValid(totalPages)) return;
+
+    final currentCharOffset = _chapterVM.currentCharOffset.value;
+    final applied = _pagination.applyFullResult(
+      total: totalPages,
+      initialCharOffset: currentCharOffset,
+      content: content,
+    );
+    _applyIfCurrent(gen, () {
+      _totalPages.value = applied.totalPages;
+      _pageIndex.value = applied.pageIndex;
+      _chapterVM.currentCharOffset.value = currentCharOffset;
+    });
+  }
+
+  /// 首屏渲染后从实际页文本采样 TextPainter metrics（P4-4 / ADR-013）。
+  Future<CalibrationData?> _captureMetricsBackfeed(
+    int gen,
+    int pageIndex,
+  ) async {
+    try {
+      await SchedulerBinding.instance.endOfFrame;
+      if (_isStale(gen)) return null;
+
+      final pageText = await _contentRepo.fetchPageContent(pageIndex);
+      if (pageText == null || pageText.isEmpty) return null;
+      if (_isStale(gen)) return null;
+
+      final baseline = _pagination.calibration.value;
+      if (baseline == null) return null;
+
+      final refined = calibrateFromPageText(
+        pageText: pageText,
+        fontSize: _config.fontSize.value,
+        devicePixelRatio: _pagination.devicePixelRatio,
+        fontFamily: _pagination.fontFamily,
+        baseline: baseline,
+      );
+      if (refined == null || !calibrationDriftExceeds(baseline, refined)) {
+        return null;
+      }
+      if (!isCalibrationPlausible(refined, _config.fontSize.value)) {
+        Logging.info(
+          '[MetricsBackfeed] refined calibration failed plausibility check, '
+          'discarding',
+        );
+        return null;
+      }
+
+      Logging.info(
+        '[MetricsBackfeed] page=$pageIndex cjk '
+        '${baseline.cjkWidth.toStringAsFixed(2)}→'
+        '${refined.cjkWidth.toStringAsFixed(2)}',
+      );
+      return refined;
+    } catch (e) {
+      Logging.warning('[MetricsBackfeed] capture failed: $e');
+      return null;
+    }
+  }
 }

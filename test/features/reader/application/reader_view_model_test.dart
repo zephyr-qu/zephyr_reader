@@ -22,21 +22,21 @@ import 'package:zephyr_reader/features/reader/core/domain/reader_repository_inte
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
-import 'package:zephyr_reader/features/reader/translation/application/translation_config.dart';
-import 'package:zephyr_reader/features/reader/translation/application/translation_view_model.dart';
-import 'package:zephyr_reader/features/reader/translation/domain/translation_service.dart';
+import 'package:zephyr_reader/features/bilingual/application/bilingual_config.dart';
+import 'package:zephyr_reader/features/bilingual/application/bilingual_view_model.dart';
+import 'package:zephyr_reader/features/bilingual/domain/bilingual_service.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 
 // ===== Mocks =====
 
 class _MockRepo extends Mock implements ReaderRepository {}
 
-class _MockTranslationConfig extends Mock implements TranslationConfig {
+class _MockBilingualConfig extends Mock implements BilingualConfig {
   @override
   bool get isConfigured => false;
 }
 
-class _MockTranslationService extends Mock implements TranslationService {}
+class _MockBilingualService extends Mock implements BilingualService {}
 
 class _MockSharedPreferences extends Mock implements PreferencesService {
   _MockSharedPreferences() {
@@ -215,12 +215,10 @@ void main() {
   late ReaderViewModel vm;
 
   setUp(() {
+    // Mock bilingual deps for BilingualViewModel's getIt fallback
     GetIt.I.reset();
-    // Mock translation deps for TranslationViewModel's getIt fallback
-    GetIt.I.registerFactory<TranslationConfig>(() => _MockTranslationConfig());
-    GetIt.I.registerFactory<TranslationService>(
-      () => _MockTranslationService(),
-    );
+    GetIt.I.registerFactory<BilingualConfig>(() => _MockBilingualConfig());
+    GetIt.I.registerFactory<BilingualService>(() => _MockBilingualService());
     // Register sub-VMs as factoryParam for DI
     GetIt.I.registerFactoryParam<
       ChapterViewModel,
@@ -228,16 +226,16 @@ void main() {
       ReaderConfig
     >((repo, config) => ChapterViewModel(repo, config));
     GetIt.I.registerFactoryParam<ReadingSessionManager, ChapterViewModel, void>(
-      (vm, _) => ReadingSessionManager(vm as ChapterViewModel),
+      (vm, _) => ReadingSessionManager(vm),
     );
     GetIt.I.registerFactoryParam<BookmarkViewModel, ChapterViewModel, void>(
-      (vm, _) => BookmarkViewModel(vm as ChapterViewModel),
+      (vm, _) => BookmarkViewModel(vm),
     );
     GetIt.I.registerFactoryParam<AnnotationViewModel, ChapterViewModel, void>(
-      (vm, _) => AnnotationViewModel(vm as ChapterViewModel),
+      (vm, _) => AnnotationViewModel(vm),
     );
-    GetIt.I.registerFactoryParam<TranslationViewModel, ChapterViewModel, void>(
-      (vm, _) => TranslationViewModel(vm as ChapterViewModel),
+    GetIt.I.registerFactoryParam<BilingualViewModel, ChapterViewModel, void>(
+      (vm, _) => BilingualViewModel(vm),
     );
   });
   setUp(() {

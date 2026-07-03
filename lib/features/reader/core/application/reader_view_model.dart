@@ -10,7 +10,7 @@ import 'package:zephyr_reader/features/reader/annotations/application/bookmark_v
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/annotations/application/annotation_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
-import 'package:zephyr_reader/features/reader/translation/application/translation_view_model.dart';
+import 'package:zephyr_reader/features/reader/core/domain/bilingual_reader_delegate.dart';
 import 'chapter_view_model.dart';
 import 'reading_session_manager.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
@@ -22,7 +22,7 @@ import 'package:zephyr_reader/di/service_locator.dart';
 /// 阅读计时和进度保存 → ReadingSessionManager。
 /// 书签 → BookmarkViewModel。
 /// 划词批注 → AnnotationViewModel。
-/// 翻译/双语 → TranslationViewModel。
+/// 双语 → BilingualReaderDelegate（可选，core 不依赖实现）。
 class ReaderViewModel {
   final ReaderRepositoryInterface _repo;
   final ReaderConfig _config;
@@ -36,7 +36,7 @@ class ReaderViewModel {
   late final ReadingSessionManager sessionManager;
   late final BookmarkViewModel bookmarks;
   late final AnnotationViewModel annotations;
-  late final TranslationViewModel translation;
+  BilingualReaderDelegate? bilingual;
 
   // ==================== 跨切面信号 ====================
 
@@ -49,13 +49,12 @@ class ReaderViewModel {
 
   final List<void Function()> _disposers = [];
 
-  ReaderViewModel({required this._repo, ReaderConfig? config})
+  ReaderViewModel({required this._repo, ReaderConfig? config, this.bilingual})
     : _config = config ?? getIt<ReaderConfig>() {
     chapterManager = getIt<ChapterViewModel>(param1: _repo, param2: _config);
     sessionManager = getIt<ReadingSessionManager>(param1: chapterManager);
     bookmarks = getIt<BookmarkViewModel>(param1: chapterManager);
     annotations = getIt<AnnotationViewModel>(param1: chapterManager);
-    translation = getIt<TranslationViewModel>(param1: chapterManager);
   }
 
   /// 公开仓库访问（渲染层使用）。
@@ -182,7 +181,7 @@ class ReaderViewModel {
 
   Future<void> deleteNote(String noteId, AppLocalizations l10n) async {
     try {
-      await translation.deleteBilingualPair(noteId: noteId);
+      await bilingual?.deleteBilingualPair(noteId: noteId);
       await HapticFeedback.heavyImpact();
       await annotations.loadHighlights(forceRefresh: true);
     } catch (_) {
@@ -244,7 +243,12 @@ class ReaderViewModel {
     readingMode.value = mode;
     chapterManager.activeReadingMode = mode;
     if (mode == ReadingMode.bilingual) {
-      translation.onEnterBilingualMode();
+      bilingual?.onEnterBilingualMode();
+    }
+    // P2 修复：切换到 scroll/bilingual 前，释放 Rust 分页会话，
+    // 避免 PaginationSession 和 LRU engine 悬空占用内存。
+    if (mode != ReadingMode.pagination) {
+      _repo.disposePagination();
     }
     if (mode == ReadingMode.scroll) {
       final content = chapterManager.chapterContent.value.value;
@@ -254,6 +258,8 @@ class ReaderViewModel {
           chapterManager.chapterIndex.value,
           richParagraphs: _repo.currentRichParagraphs,
           richRootSpan: _repo.currentRichContent,
+          chapterIr: _repo.currentChapterIr,
+          chapterFilePath: _repo.currentChapterFilePath,
         );
       }
     }
@@ -273,7 +279,7 @@ class ReaderViewModel {
 
     bookmarks.reset();
     annotations.reset();
-    await translation.reset();
+    await bilingual?.reset();
     toastMessage.value = '';
 
     readingMode.value = ReadingMode.pagination;

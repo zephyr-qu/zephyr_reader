@@ -4,6 +4,7 @@ import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 enum ChapterNavigationKind {
   /// 相邻跨章（翻页触发的换章，走 staging promote / 虚拟页）。
   adjacentCrossChapter,
+
   /// 手动跳章（TOC / 书签 / 搜索），保留 AnimatedSwitcher 过渡。
   manualJump,
 }

@@ -6,6 +6,7 @@ class ReaderTypographyDefaults {
   ReaderTypographyDefaults._();
 
   static const double fontSize = 18.0;
+
   /// 中文长篇阅读推荐 1.8（约 32px @ 18sp），与 Rust `line_spacing` 对齐。
   static const double lineHeight = 1.8;
   static const double paragraphSpacing = 16.0;

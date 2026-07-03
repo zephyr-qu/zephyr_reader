@@ -236,10 +236,30 @@ class TypesettingPanel extends StatelessWidget {
   ) {
     final accentColor = readerTheme.accentColor;
     final modes = [
-      (ReadingMode.scroll, PaginationSkin.slide, l10n.scrollMode, PhosphorIconsRegular.arrowsDownUp),
-      (ReadingMode.pagination, PaginationSkin.curl, l10n.pageTurnMode, PhosphorIconsRegular.book),
-      (ReadingMode.pagination, PaginationSkin.slide, l10n.paginationMode, PhosphorIconsFill.bookOpenText),
-      (ReadingMode.bilingual, PaginationSkin.slide, l10n.bilingualMode, PhosphorIconsRegular.translate),
+      (
+        ReadingMode.scroll,
+        PaginationSkin.slide,
+        l10n.scrollMode,
+        PhosphorIconsRegular.arrowsDownUp,
+      ),
+      (
+        ReadingMode.pagination,
+        PaginationSkin.curl,
+        l10n.pageTurnMode,
+        PhosphorIconsRegular.book,
+      ),
+      (
+        ReadingMode.pagination,
+        PaginationSkin.slide,
+        l10n.paginationMode,
+        PhosphorIconsFill.bookOpenText,
+      ),
+      (
+        ReadingMode.bilingual,
+        PaginationSkin.slide,
+        l10n.bilingualMode,
+        PhosphorIconsRegular.translate,
+      ),
     ];
 
     showModalBottomSheet<void>(
@@ -263,7 +283,8 @@ class TypesettingPanel extends StatelessWidget {
               child: ListView(
                 shrinkWrap: true,
                 children: modes.map((m) {
-                  final isSelected = readingMode == m.$1 &&
+                  final isSelected =
+                      readingMode == m.$1 &&
                       (m.$1 != ReadingMode.pagination ||
                           config.paginationSkin.value == m.$2);
                   return ListTile(

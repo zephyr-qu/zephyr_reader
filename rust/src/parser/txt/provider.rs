@@ -27,9 +27,7 @@ enum SliceStrategy {
 }
 
 /// TXT 文件按需内容提供器
-#[allow(dead_code)]
 pub struct TxtContentProvider {
-    file_path: String,
     mmap: Mmap,
     encoding: &'static Encoding,
     slice_strategy: SliceStrategy,
@@ -66,7 +64,6 @@ impl TxtContentProvider {
         };
         if mmap.is_empty() {
             return Ok(Self {
-                file_path: file_path.to_string(),
                 mmap,
                 encoding: UTF_8,
                 slice_strategy: SliceStrategy::Utf8,
@@ -86,7 +83,6 @@ impl TxtContentProvider {
         };
 
         Ok(Self {
-            file_path: file_path.to_string(),
             mmap,
             encoding,
             slice_strategy,

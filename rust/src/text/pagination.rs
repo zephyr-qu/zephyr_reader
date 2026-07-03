@@ -3,7 +3,7 @@
 
 use crate::domain::{LanguageType, PageContent, PageDescriptor, TypesetConfig};
 use crate::text::char_width::CharWidthTable;
-use crate::text::constants::{is_cjk_char, is_cjk_punctuation, is_start_avoid_punctuation};
+use crate::text::constants::{is_cjk_char, is_cjk_punctuation, is_end_avoid_punctuation, is_start_avoid_punctuation};
 use crate::text::typeset::{optimize_punctuation, optimize_spaces};
 use std::borrow::Cow;
 use flutter_rust_bridge::frb;
@@ -72,6 +72,17 @@ pub(crate) fn compute_line_breaks_from_indices(
             end = start + 1;
         }
 
+        // 避尾标点：行尾不应出现开括号等 end-avoid 字符，推到下一行
+        while end > start + 1 {
+            let last_char = para_char_indices[end - 1].1;
+            if is_end_avoid_punctuation(last_char) {
+                end -= 1;
+            } else {
+                break;
+            }
+        }
+
+        // 避头标点：行首不应出现逗号、句号等 start-avoid 字符，回拉一个字符
         if end < char_count && end > start + 1 {
             let next_char = para_char_indices[end].1;
             if is_start_avoid_punctuation(next_char) {
@@ -122,7 +133,7 @@ pub struct PageStreamer {
 
 /// 主动模式内存阈值（100 MB），超过此大小记录警告
 const PAGE_STREAMER_MEMORY_THRESHOLD: usize = 100 * 1024 * 1024;
-/// 懒加载模式字符数阈值（50K 字符）
+/// 懒加载模式字符数阈值（200K 字符）
 /// 当内容字符数超过此值时使用懒加载分页，避免预计算所有行偏移
 const LAZY_PAGINATION_CHAR_THRESHOLD: usize = 200_000;
 
@@ -156,7 +167,10 @@ impl PageStreamer {
 
     /// Create a PageStreamer from pre-computed page content (KV cache hit).
     /// Skips CPU-intensive typesetting — pages are served directly.
-    pub fn from_pages(pages: Vec<PageContent>) -> Self {
+    ///
+    /// `is_partial` should be set to `true` if the cached pages originated
+    /// from a partial (lazy) pagination session; otherwise `false`.
+    pub fn from_pages(pages: Vec<PageContent>, is_partial: bool) -> Self {
         let total_pages = pages.len();
         Self {
             cached_pages: Some(pages),
@@ -170,7 +184,7 @@ impl PageStreamer {
             first_of_paragraph: Vec::new(),
             indent_str: String::new(),
             line_paragraph_indices: Vec::new(),
-            is_partial: false,
+            is_partial,
         }
     }
 
@@ -898,6 +912,115 @@ mod tests {
                 "lazy mode should provide paragraph indices, got last={}",
                 desc.last_paragraph_index,
             );
+        }
+    }
+
+    #[test]
+    fn test_end_avoid_punctuation_not_at_line_end() {
+        // 避尾标点（开括号）不应出现在行尾
+        // 用足够长的文本 + 合理窄行宽迫使换行
+        let content = "你好世界（《重要内容》更多文字继续写下去还有内容再加上很多文字以便产生多行排版测试数据"
+            .repeat(5);
+        let mut config = TypesetConfig::default();
+        config.font_size = 16;
+        config.page_width = 180; // 每行约9个CJK字符，足够避免单字符行
+        config.page_height = 200;
+
+        let streamer = PageStreamer::new(content, config);
+        assert!(streamer.total_lines() > 5, "should have multiple lines");
+
+        // 验证每一行的最后一个字符不是避尾标点
+        // 排除单字符行（行宽极端情况下无法避免）
+        for i in 0..streamer.total_pages() {
+            if let Some(page) = streamer.get_page(i, 0) {
+                for line in page.content.lines() {
+                    if line.chars().count() > 1 {
+                        let last_char = line.chars().last().unwrap();
+                        assert!(
+                            !crate::text::constants::is_end_avoid_punctuation(last_char),
+                            "end-avoid punctuation '{}' should not appear at line end (len>1): {:?}",
+                            last_char, line,
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_start_avoid_punctuation_not_at_line_start() {
+        // 避头标点（逗号、句号等）不应出现在行首
+        let content = "你好世界，重要内容。更多文字继续写下去还有内容再加上很多文字以便产生多行排版测试数据"
+            .repeat(5);
+        let mut config = TypesetConfig::default();
+        config.font_size = 16;
+        config.page_width = 180;
+        config.page_height = 200;
+
+        let streamer = PageStreamer::new(content, config);
+        assert!(streamer.total_lines() > 5, "should have multiple lines");
+
+        // 验证每一行（非段落首行）的第一个字符不是避头标点
+        for i in 0..streamer.total_pages() {
+            if let Some(page) = streamer.get_page(i, 0) {
+                for (line_idx, line) in page.content.lines().enumerate() {
+                    if !line.is_empty() {
+                        let first_char = line.chars().next().unwrap();
+                        // 段落首行以缩进空格开头，跳过
+                        if line_idx == 0 && first_char == ' ' {
+                            continue;
+                        }
+                        assert!(
+                            !crate::text::constants::is_start_avoid_punctuation(first_char),
+                            "start-avoid punctuation '{}' should not appear at line start: {:?}",
+                            first_char, line,
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_line_breaks_end_avoid_direct() {
+        // 直接测试 compute_line_breaks_from_indices 的避尾逻辑
+        use crate::text::char_width::CharWidthTable;
+
+        // 文本中开括号（《是避尾标点，不应出现在行尾
+        let text = "你好世界（《重要内容》更多文字继续写下去还有内容";
+        let char_indices: Vec<(usize, char)> = text.char_indices().collect();
+        let width_table = CharWidthTable::from_calibration(&Default::default());
+
+        // 合理行宽：每行约6-7个CJK字符（~120px）
+        let max_width = 120.0;
+        let line_breaks = compute_line_breaks_from_indices(
+            &char_indices, 0, text.len(), max_width, &width_table, 0.0, 0.0, false,
+        );
+
+        // 验证没有多字符行以避尾标点结尾
+        for (start, end) in &line_breaks {
+            let line_text = &text[*start..*end];
+            let char_count = line_text.chars().count();
+            if char_count > 1 {
+                let last_char = line_text.chars().last().unwrap();
+                assert!(
+                    !crate::text::constants::is_end_avoid_punctuation(last_char),
+                    "line (len={}) should not end with end-avoid '{}': {:?}",
+                    char_count, last_char, line_text,
+                );
+            }
+        }
+
+        // 验证避头逻辑：没有行以避头标点开头（段落首行除外）
+        for (i, (start, end)) in line_breaks.iter().enumerate() {
+            if *end > *start && i > 0 {
+                let first_char = text[*start..*end].chars().next().unwrap();
+                assert!(
+                    !crate::text::constants::is_start_avoid_punctuation(first_char),
+                    "line should not start with start-avoid '{}': {:?}",
+                    first_char, &text[*start..*end],
+                );
+            }
         }
     }
 }

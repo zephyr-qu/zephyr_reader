@@ -46,7 +46,8 @@ ChapterPaginationIntent resolveChapterPaginationIntent({
   final descriptors = repo.descriptors;
   final sessionChapterIndex = repo.sessionChapterIndex;
 
-  final sessionValid = hash != null &&
+  final sessionValid =
+      hash != null &&
       (descriptors?.isNotEmpty == true) &&
       sessionChapterIndex == chapterIndex;
 
@@ -69,7 +70,7 @@ QuickPageResolveResult resolveQuickPageForPartial({
   required bool isPartial,
   required int fallbackPageIndex,
   int Function(int charOffset, List<PageDescriptor> descriptors)?
-      resolvePageIndex,
+  resolvePageIndex,
 }) {
   final partialEnd = descriptors.last.endOffset;
   final offsetBeyondPartial = isPartial && initialCharOffset > partialEnd;

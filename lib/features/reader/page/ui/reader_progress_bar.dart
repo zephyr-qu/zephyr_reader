@@ -4,11 +4,13 @@ import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 /// 阅读器底部拖拽进度条。
 ///
 /// 显示当前页码/总页数，支持拖拽跳页。
+@Deprecated('底部进度条已从阅读页移除，保留文件备查。')
 class ReaderProgressBar extends StatelessWidget {
   final int pageIndex;
   final int totalPages;
   final ValueChanged<int> onPageChanged;
 
+  @Deprecated('底部进度条已从阅读页移除，保留文件备查。')
   const ReaderProgressBar({
     super.key,
     required this.pageIndex,

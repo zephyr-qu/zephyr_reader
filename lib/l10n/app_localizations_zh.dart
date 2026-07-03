@@ -1826,12 +1826,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get otherExperimental => '实验性功能';
 
   @override
-  String get otherMarkdownPreview => 'Markdown 笔记预览';
-
-  @override
-  String get otherMarkdownPreviewDesc => '在笔记列表中渲染 Markdown 格式';
-
-  @override
   String get otherLegal => '法律与合规';
 
   @override

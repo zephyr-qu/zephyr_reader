@@ -3,9 +3,11 @@
 mod common;
 
 use rust_lib_zephyr_reader::api::core::{
-    create_pagination_session, create_pagination_session_adopt, dispose_pagination_session,
-    get_session_page_content, paginate_session_full, repaginate_session,
+    apply_session_calibration, create_pagination_session, create_pagination_session_adopt,
+    dispose_pagination_session, get_session_page_content, paginate_session_full,
+    repaginate_session,
 };
+use rust_lib_zephyr_reader::domain::TypesetCalibration;
 use rust_lib_zephyr_reader::domain::TypesetConfig;
 
 async fn setup_parsed_txt_book(content: &str) -> (tempfile::TempDir, String) {
@@ -266,6 +268,46 @@ async fn test_repaginate_session_updates_descriptors_and_config() {
     dispose_pagination_session(handle).expect("dispose should succeed");
     // Suppress unused warning on initial_count when not asserted
     let _ = initial_count;
+}
+
+#[tokio::test]
+async fn test_apply_session_calibration_updates_config_hash() {
+    let content: String = (0..80)
+        .map(|i| format!("段落 {i}。Some English text 012.\n\n"))
+        .collect();
+    let (_dir, file_path) = setup_parsed_txt_book(&content).await;
+    let mut config = TypesetConfig::default();
+    config.calibration = Some(TypesetCalibration {
+        cjk_width: 16.0,
+        ..TypesetCalibration::default()
+    });
+
+    let (handle, initial) = create_pagination_session(
+        file_path.clone(),
+        0,
+        config.clone(),
+        Some(2_000),
+    )
+    .await
+    .expect("create should succeed");
+
+    let refined = TypesetCalibration {
+        cjk_width: 17.5,
+        ascii_width: 10.2,
+        ..TypesetCalibration::default()
+    };
+    let repaginated = apply_session_calibration(handle.clone(), refined, Some(2_000))
+        .await
+        .expect("apply_session_calibration should succeed");
+
+    assert_ne!(initial.config_hash, repaginated.config_hash);
+    assert!(!repaginated.descriptors.is_empty());
+
+    let page = get_session_page_content(handle.clone(), 0)
+        .expect("page access after calibration should succeed");
+    assert!(!page.is_empty());
+
+    dispose_pagination_session(handle).expect("dispose should succeed");
 }
 
 #[tokio::test]

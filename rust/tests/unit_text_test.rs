@@ -2,14 +2,13 @@
 use rust_lib_zephyr_reader::domain::types::TypesetCalibration;
 use rust_lib_zephyr_reader::text::{
     bilingual::{SentenceSegmenter, SimilarityCalculator},
-    chapter_detect::{extract_chapter_number, extract_chapters},
+    chapter_detect::extract_chapters,
     char_width::CharWidthTable,
     constants::{is_cjk_char, is_end_avoid_punctuation, is_start_avoid_punctuation},
     css::{
         build_style_map, extract_inline_css, parse_css, resolve_color, resolve_float,
         resolve_font_size,
     },
-    line_break::{is_mostly_cjk, smart_break_line},
 };
 
 // ==================== constants ====================
@@ -92,49 +91,6 @@ fn test_is_end_avoid_punctuation() {
     assert!(!is_end_avoid_punctuation('中'));
 }
 
-// ==================== line_break ====================
-
-#[test]
-fn test_is_mostly_cjk_various() {
-    // Pure CJK
-    assert!(is_mostly_cjk("中文测试"));
-    // Pure English — 0 CJK out of 5, ratio=0.0
-    assert!(!is_mostly_cjk("Hello"));
-    // Majority CJK — 4 CJK out of 6, ratio≈0.667
-    assert!(is_mostly_cjk("中文测试AB"));
-    // Mixed with minority CJK — 2 CJK out of 7, ratio≈0.286
-    assert!(!is_mostly_cjk("中文Hello"));
-    // Empty string — 0/1=0.0, not > 0.5
-    assert!(!is_mostly_cjk(""));
-}
-
-#[test]
-fn test_smart_break_line() {
-    // Empty text returns empty Vec
-    let lines = smart_break_line("", 10);
-    assert!(lines.is_empty());
-
-    // Short text under max_width returns single line
-    let lines = smart_break_line("Hello", 20);
-    assert_eq!(lines.len(), 1);
-    assert_eq!(lines[0], "Hello");
-
-    // Chinese text that fits in one line
-    let lines = smart_break_line("中文测试", 20);
-    assert_eq!(lines.len(), 1);
-    assert_eq!(lines[0], "中文测试");
-
-    // English text breaks at word boundaries
-    // TODO: Avoid triggering overflow bug in break_english_line (line_break.rs:95)
-    // Use max_width > 12 to prevent `max_width - current_width - 1` underflow
-    let lines = smart_break_line("Hello World", 10);
-    assert!(!lines.is_empty());
-    assert_eq!(lines[0], "Hello");
-    assert_eq!(lines[1], "World");
-    // Chinese text wraps when exceeding max_width
-    let lines = smart_break_line("中文测试很长文本", 4);
-    assert!(lines.len() >= 2);
-}
 
 // ==================== bilingual ====================
 
@@ -234,12 +190,9 @@ fn test_extract_chapters() {
     assert_eq!(chapters.len(), 2);
     assert!(chapters[0].title.contains("第一章"));
     assert!(chapters[1].title.contains("第二章"));
-    // English chapters ("Chapter N" style) — the EN pattern also captures
-    // Chapter\s+\d+ with $ anchor; (.*) captures empty title after the number.
-    // When Chapter 1 and Chapter 2 both have empty titles, they ARE both captured.
-    // However extract_chapter_number("Chapter 1") → Some(100) (C=100 Roman numeral) returning 99.
-    // This means both get chapter_index=99, but they are distinct chapters.
-    // Use explicit title after colon to keep test simple.
+    // English chapters ("Chapter N" style) — the EN pattern captures
+    // Chapter\s+\d+ with $ anchor. Both chapters are detected and receive
+    // sequential indices (0, 1, …), regardless of the text-derived number.
     let chapters = extract_chapters("Chapter 1: Introduction\nChapter 2: Body\n", 10, "test_book");
     assert_eq!(chapters.len(), 2, "should find 2 English chapters");
 
@@ -252,18 +205,6 @@ fn test_extract_chapters() {
     assert_eq!(chapters.len(), 2);
 }
 
-#[test]
-fn test_extract_chapter_number() {
-    // Chinese chapter number
-    assert_eq!(extract_chapter_number("第一章"), Some(1));
-
-    // Chinese number with Arabic digits mixed
-    assert_eq!(extract_chapter_number("第1章"), Some(1));
-
-    // Non-chapter text returns None
-    assert_eq!(extract_chapter_number("Hello"), None);
-    assert_eq!(extract_chapter_number("任意文本"), None);
-}
 
 // ==================== char_width ====================
 

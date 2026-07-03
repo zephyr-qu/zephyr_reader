@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### 文档
+- **对齐 READING_BOUNDARIES v1.2**：rust/README 删除 PDF/MD 解析承诺、doc/README 索引更新至 Phase 4、修正过时 mermaid 依赖图
+- **清除 PDF/MD 格式残留**：删除 `markdownPreview` 实验性设置（无实现）、修正 Rust 测试中 PDF/MD 为不支持格式断言、修正注释 "EPUB/MD" → "EPUB"、删除 l10n 字符串
+
 ### 修复
 - **分页缓存未命中空白占位**：`_buildPageContent`/`buildSinglePageContent` 在 `pageContent == null` 时显示 `CircularProgressIndicator` + 后帧 `dataSource.ensureWindow` 触发拉取，`ensurePageWindow` 完成后递增 `preloadGeneration` 触发 `AnimatedBuilder` 重建（不再显示 600px 空白）
   - `ReaderRenderDataSource` 新增 `ensureWindow` 抽象方法

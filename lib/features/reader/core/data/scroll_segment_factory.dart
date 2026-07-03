@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
+import 'package:zephyr_reader/features/reader/core/data/scroll_list_metrics.dart';
 
 /// 将章节加载结果转为 [ScrollChapterSegment]。
 class ScrollSegmentFactory {
@@ -10,6 +10,18 @@ class ScrollSegmentFactory {
     int chapterIndex,
     ScrollChapterPayload payload,
   ) {
+    final ir = payload.chapterIr;
+    if (ir != null && ir.blocks.isNotEmpty) {
+      return ScrollChapterSegment(
+        chapterIndex: chapterIndex,
+        paragraphs: const [],
+        paragraphCharOffsets: const [],
+        irBlocks: ir.blocks,
+        chapterFilePath: payload.chapterFilePath,
+        listMetrics: computeScrollIrListMetrics(blocks: ir.blocks),
+      );
+    }
+
     final paragraphs = payload.content
         .split('\n\n')
         .where((p) => p.trim().isNotEmpty)
@@ -26,6 +38,7 @@ class ScrollSegmentFactory {
       paragraphCharOffsets: offsets,
       richParagraphs: payload.richParagraphs,
       richRootSpan: payload.richRootSpan,
+      chapterFilePath: payload.chapterFilePath,
     );
   }
 }

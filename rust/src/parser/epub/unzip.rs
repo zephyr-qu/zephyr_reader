@@ -364,20 +364,48 @@ impl EpubFile {
     /// TOC 中的 href 是文件路径（如 "text/part0000.html"），
     /// 而 spine 中存的是 resource ID（如 "id5"），
     /// 需要通过 manifest 中的 resource path 做桥接。
+    ///
+    /// 匹配策略：先尝试路径结尾精确匹配，若失败则
+    /// 仅比较文件名部分（忽略目录差异），提高对
+    /// 目录结构不一致的 EPUB 的兼容性。
     pub fn find_spine_index_by_toc_href(&self, toc_href: &str) -> Option<usize> {
         let pure_href = toc_href.split('#').next().unwrap_or(toc_href);
-        // 在 resources 中找 path 结尾匹配 TOC href 的条目
+
+        // Strategy 1: path suffix exact match (existing behavior)
         let resource_id = self
             .doc
             .resources
             .iter()
             .find(|(_, res)| res.path.to_string_lossy().ends_with(pure_href))
-            .map(|(id, _)| id.clone())?;
+            .map(|(id, _)| id.clone());
+
+        // Strategy 2: filename-only match (ignores directory prefix mismatch)
+        let resource_id = resource_id.or_else(|| {
+            let href_filename = pure_href
+                .rsplit_once('/')
+                .map(|(_, name)| name)
+                .unwrap_or(pure_href);
+            self.doc
+                .resources
+                .iter()
+                .find(|(_, res)| {
+                    let res_path = res.path.to_string_lossy();
+                    let res_filename = res_path
+                        .rsplit_once('/')
+                        .map(|(_, name)| name)
+                        .unwrap_or(&res_path);
+                    res_filename == href_filename
+                })
+                .map(|(id, _)| id.clone())
+        });
+
         // 在 spine 中找 idref 匹配该 resource ID 的位置
-        self.doc
-            .spine
-            .iter()
-            .position(|item| item.idref == resource_id)
+        resource_id.and_then(|rid| {
+            self.doc
+                .spine
+                .iter()
+                .position(|item| item.idref == rid)
+        })
     }
 }
 /// 递归展开 NavPoint 树为扁平列表 (label, href, level)

@@ -12,6 +12,11 @@
 | [006](./adr/006-rust-flutter-division.md) | Rust IR+分页；Flutter 渲染+staging | **已接受** | 2026-06-18 |
 | [007](./adr/007-plaintext-segmentation-stability.md) | plainText 分段冻结；charOffset 稳定 | **已接受** | 2026-06-18 |
 | [008](./adr/008-ir-image-plain-placeholder.md) | IR 图片在 plain 中用 `\uFFFC` 占位 | **已接受** | 2026-06-18 |
+| [009](./adr/009-scroll-ir-unification.md) | Scroll 统一 Chunked IR | **已接受** | 2026-06-25 |
+| [010](./adr/010-block-css-in-ir.md) | IR Text 块基础 CSS；版式窄义 | **已接受** | 2026-06-25 |
+| [011](./adr/011-bilingual-feature-module.md) | 双语独立 feature，主链零依赖 | **已接受** | 2026-06-25 |
+| [012](./adr/012-staging-prefetch-guarantee.md) | Staging 预取硬保证，零可见 loading | **已接受** | 2026-06-25 |
+| [013](./adr/013-flutter-metrics-calibration.md) | Rust 初筛 + Flutter metrics 回传 | **已接受** | 2026-06-25 |
 
 ## 问卷归档
 
@@ -21,10 +26,12 @@
 | 2 | [xinxi-round2.md](./xinxi-round2.md) | 冲突拍板 |
 | 3 | [xinxi-round3.md](./xinxi-round3.md) | ADR-001 / G7 确认 |
 | 4 | [xinxi-round4.md](./xinxi-round4.md) | Phase 1 缺口；ADR-007；INTENTS |
+| 5 | [xinxi-round5.md](./xinxi-round5.md) | Phase 4 引擎完善；ADR-009～013 |
 
 ## 相关文档
 
-- [READING_BOUNDARIES.md](./READING_BOUNDARIES.md) — 产品边界 v1.1
+- [READING_BOUNDARIES.md](./READING_BOUNDARIES.md) — 产品边界 v1.2
+- [PHASE4_SCOPE.md](./PHASE4_SCOPE.md) — Phase 4 范围
 - [DOMAIN_MODEL.md](./DOMAIN_MODEL.md) — 领域模型
 - [TARGET_ARCHITECTURE.md](./TARGET_ARCHITECTURE.md) — 目标技术架构
 - [ROADMAP.md](./ROADMAP.md) — 实施阶段

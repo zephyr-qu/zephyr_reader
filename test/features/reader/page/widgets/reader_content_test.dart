@@ -25,7 +25,9 @@ void _stubReaderDataSource(_MockDataSource dataSource) {
   when(() => dataSource.preloadGeneration).thenReturn(ValueNotifier<int>(0));
   when(() => dataSource.prevChapterStaging).thenReturn(null);
   when(() => dataSource.nextChapterStaging).thenReturn(null);
-  when(() => dataSource.sessionMode).thenReturn(ChapterPaginationMode.plainText);
+  when(
+    () => dataSource.sessionMode,
+  ).thenReturn(ChapterPaginationMode.plainText);
   when(() => dataSource.sessionFilePath).thenReturn(null);
   when(() => dataSource.pageBlocks(any())).thenReturn(null);
 }
@@ -79,9 +81,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('ReaderContent — pagination curl skin', () {
-    testWidgets('curl 皮肤渲染 PageCurlWidget 而非 AnimatedSwitcher', (
-      tester,
-    ) async {
+    testWidgets('curl 皮肤渲染 PageCurlWidget 而非 AnimatedSwitcher', (tester) async {
       final dataSource = _MockDataSource();
       _stubReaderDataSource(dataSource);
       when(
@@ -109,12 +109,12 @@ void main() {
             totalPages: 1,
             renderConfig: _testRenderConfig,
             readingMode: ReadingMode.pagination,
-    paginationSkin: PaginationSkin.curl,
+            paginationSkin: PaginationSkin.curl,
             content: 'Page content text.',
             isLoading: false,
             highlights: const [],
             scrollBuilder: (_, _) => const SizedBox(),
-            bilingualBuilder: (_, _, _) => const SizedBox(),
+            bilingualBuilder: (_, _) => const SizedBox(),
             paginatedBuilder: _pageTurnPaginatedBuilder(
               dataSource: dataSource,
               chapterId: 0,
@@ -158,12 +158,12 @@ void main() {
               vocabularyWords: {},
             ),
             readingMode: ReadingMode.pagination,
-    paginationSkin: PaginationSkin.curl,
+            paginationSkin: PaginationSkin.curl,
             content: '',
             isLoading: true,
             highlights: const [],
             scrollBuilder: (_, _) => const SizedBox(),
-            bilingualBuilder: (_, _, _) => const SizedBox(),
+            bilingualBuilder: (_, _) => const SizedBox(),
             paginatedBuilder: (_, _) => const SizedBox(),
           ),
         ),
@@ -177,8 +177,9 @@ void main() {
     testWidgets('pageTurn 跨章虚拟页使用预加载 staging 内容', (tester) async {
       final dataSource = _MockDataSource();
       _stubReaderDataSource(dataSource);
-      when(() => dataSource.preloadGeneration)
-          .thenReturn(ValueNotifier<int>(0));
+      when(
+        () => dataSource.preloadGeneration,
+      ).thenReturn(ValueNotifier<int>(0));
       when(() => dataSource.descriptors).thenReturn([
         const PageDescriptor(
           pageIndex: 0,
@@ -221,13 +222,13 @@ void main() {
               totalPages: 1,
               renderConfig: _testRenderConfig,
               readingMode: ReadingMode.pagination,
-    paginationSkin: PaginationSkin.curl,
+              paginationSkin: PaginationSkin.curl,
               content: 'Page content text.',
               isLoading: false,
               hasNextChapter: true,
               highlights: const [],
               scrollBuilder: (_, _) => const SizedBox(),
-              bilingualBuilder: (_, _, _) => const SizedBox(),
+              bilingualBuilder: (_, _) => const SizedBox(),
               paginatedBuilder: _pageTurnPaginatedBuilder(
                 dataSource: dataSource,
                 chapterId: 0,
@@ -248,8 +249,9 @@ void main() {
     testWidgets('pageTurn 虚拟上一章页使用 prevChapterStaging', (tester) async {
       final dataSource = _MockDataSource();
       _stubReaderDataSource(dataSource);
-      when(() => dataSource.preloadGeneration)
-          .thenReturn(ValueNotifier<int>(0));
+      when(
+        () => dataSource.preloadGeneration,
+      ).thenReturn(ValueNotifier<int>(0));
       when(() => dataSource.descriptors).thenReturn([
         const PageDescriptor(
           pageIndex: 0,
@@ -292,13 +294,13 @@ void main() {
               totalPages: 2,
               renderConfig: _testRenderConfig,
               readingMode: ReadingMode.pagination,
-    paginationSkin: PaginationSkin.curl,
+              paginationSkin: PaginationSkin.curl,
               content: 'Current chapter page.',
               isLoading: false,
               hasPreviousChapter: true,
               highlights: const [],
               scrollBuilder: (_, _) => const SizedBox(),
-              bilingualBuilder: (_, _, _) => const SizedBox(),
+              bilingualBuilder: (_, _) => const SizedBox(),
               paginatedBuilder: _pageTurnPaginatedBuilder(
                 dataSource: dataSource,
                 chapterId: 1,
@@ -349,7 +351,7 @@ void main() {
             isLoading: false,
             highlights: const [],
             scrollBuilder: (_, _) => const SizedBox(),
-            bilingualBuilder: (_, _, _) => const SizedBox(),
+            bilingualBuilder: (_, _) => const SizedBox(),
             paginatedBuilder: (_, _) => const SizedBox(),
           ),
         ),
@@ -393,7 +395,7 @@ void main() {
             isLoading: false,
             highlights: const [],
             scrollBuilder: (_, _) => const SizedBox(),
-            bilingualBuilder: (_, _, _) => const SizedBox(),
+            bilingualBuilder: (_, _) => const SizedBox(),
             paginatedBuilder: (_, _) => const SizedBox(),
           ),
         ),
@@ -436,7 +438,7 @@ void main() {
             isLoading: false,
             highlights: const [],
             scrollBuilder: (_, _) => const SizedBox(),
-            bilingualBuilder: (_, _, _) => const SizedBox(),
+            bilingualBuilder: (_, _) => const SizedBox(),
             paginatedBuilder: (_, _) => const SizedBox(),
           ),
         ),
@@ -466,12 +468,12 @@ void main() {
             totalPages: 1,
             renderConfig: _testRenderConfig,
             readingMode: ReadingMode.pagination,
-    paginationSkin: PaginationSkin.curl,
+            paginationSkin: PaginationSkin.curl,
             content: 'Content.',
             isLoading: false,
             highlights: const [],
             scrollBuilder: (_, _) => const SizedBox(),
-            bilingualBuilder: (_, _, _) => const SizedBox(),
+            bilingualBuilder: (_, _) => const SizedBox(),
             paginatedBuilder: _pageTurnPaginatedBuilder(
               dataSource: dataSource,
               chapterId: 0,

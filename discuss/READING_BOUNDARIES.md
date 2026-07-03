@@ -1,7 +1,7 @@
-# Zephyr Reader — 阅读核心边界 v1.1
+# Zephyr Reader — 阅读核心边界 v1.2
 
-> **状态**：已冻结 · **Phase 0 已闭环**（2026-06-18）  
-> 来源：`xinxi.md` → `xinxi-round2.md` → `xinxi-round3.md`  
+> **状态**：已冻结 · **Phase 4 范围已定义**（2026-06-25）  
+> 来源：`xinxi.md` → … → [xinxi-round5.md](./xinxi-round5.md)  
 > 冲突时以本文为准；技术细节见 [DECISIONS.md](./DECISIONS.md)、[DOMAIN_MODEL.md](./DOMAIN_MODEL.md)。
 
 ---
@@ -16,8 +16,8 @@
 | **80%** | 进度/书签/笔记稳定 · 排版可调 · 搜索快 · **换章丝滑** |
 | **进度真理** | `chapterIndex` + `charOffset`（plainText）— [ADR-001](./adr/001-reading-position-truth.md) |
 | **技术分工** | Rust IR+块分页+缓存；Flutter 渲染+staging — [ADR-006](./adr/006-rust-flutter-division.md) |
-| **当前阶段** | **Phase 3 已退出**（2026-06-24）— [ROADMAP.md](./ROADMAP.md) / [PHASE3_EXIT.md](./PHASE3_EXIT.md) |
-| **明确不做** | PDF 阅读、账号/同步、复杂 CSS、WebView 全引擎 |
+| **当前阶段** | **Phase 5 稳定性与工程化** — [PHASE5_SCOPE.md](./PHASE5_SCOPE.md) / [ROADMAP.md](./ROADMAP.md) |
+| **明确不做** | PDF 阅读、账号/多端同步、复杂 CSS、WebView 全引擎、章内搜索 UI |
 
 ---
 
@@ -42,17 +42,19 @@
 
 ### Should
 
-- pageTurn 合并为 pagination 皮肤（ADR-002）
-- 章内搜索、主题色、大章降级 + 提示
-- 分页基础样式（非完整 CSS）
-- 双语：设置开关；非主加载链（ADR-005）
+- pageTurn 合并为 pagination 皮肤（ADR-002）✅
+- **版式像原书（窄义）**：font-family、段首缩进、段间距、基础强调（ADR-010）
+- 大章降级 + 提示（Phase 4 目标：scroll→IR 消除降级）
+- 主题色（阅读器 accent）
+- 双语：设置开关；**独立 feature 模块**（ADR-011）
 
 ### Won't
 
-- PDF 阅读（主仓可移除 PDF 阅读链）
-- 多设备同步、账号
+- PDF 阅读（主仓不投入；文档不对用户承诺）
+- **多设备同步、账号**（WebDAV 仅作备份/手动工具，非产品级同步）
 - WebView / 完整 HTML 排版引擎
 - CSS float / 多栏 / 复杂表格
+- **章内搜索 UI**（全书搜索已覆盖；D4-C）
 - 对标微信读书全量能力
 
 ---
@@ -68,6 +70,13 @@
 | [005](./adr/005-bilingual-optional.md) | 双语可选 |
 | [006](./adr/006-rust-flutter-division.md) | Rust/Flutter 分工 |
 | [007](./adr/007-plaintext-segmentation-stability.md) | plainText 分段冻结 |
+| [008](./adr/008-ir-image-plain-placeholder.md) | IR 图片 plain 占位 |
+| [009](./adr/009-scroll-ir-unification.md) | Scroll 统一 IR |
+| [010](./adr/010-block-css-in-ir.md) | IR 块基础 CSS |
+| [011](./adr/011-bilingual-feature-module.md) | 双语 feature 模块 |
+| [012](./adr/012-staging-prefetch-guarantee.md) | Staging 零 loading |
+| [013](./adr/013-flutter-metrics-calibration.md) | Metrics 回传校准 |
+| [014](./adr/014-api-path-unification.md) | 分页 API 路径统一 |
 
 ---
 
@@ -92,3 +101,5 @@
 |------|------|------|
 | v1.0 | 2026-06-18 | 第二轮冻结 |
 | v1.1 | 2026-06-18 | 第三轮闭环；Phase 0 完成 |
+| v1.2 | 2026-06-25 | Phase 4 范围；ADR-009～013；章内搜索降为 Won't |
+| v1.3 | 2026-07-03 | Phase 4 退出 → Phase 5 启动；ADR-014；MD 格式残留清除 |

@@ -10,18 +10,14 @@ import 'package:zephyr_reader/features/reader/core/application/reader_view_model
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'package:zephyr_reader/features/reader/annotations/presentation/reader_annotation_dialog.dart';
 import 'package:zephyr_reader/features/reader/annotations/presentation/reader_highlight_sheet.dart';
-import 'package:zephyr_reader/features/reader/rendering/bilingual_renderer.dart';
 import 'package:zephyr_reader/features/reader/rendering/paginated_renderer.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/features/reader/rendering/scroll_mode_renderer.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
-import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dart';
 import 'package:zephyr_reader/features/reader/page/ui/battery_indicator.dart';
 import 'package:zephyr_reader/features/reader/page/ui/brightness_mask.dart';
 import 'package:zephyr_reader/features/reader/page/widgets/reader_content.dart';
-import 'package:zephyr_reader/features/reader/page/widgets/reader_translation_dialog.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 class ReaderContentArea extends HookWidget {
@@ -54,8 +50,9 @@ class ReaderContentArea extends HookWidget {
     final int bPageindex = useSignalValue(vm.chapterManager.pageIndex);
     final int bTotalpages = useSignalValue(vm.chapterManager.totalPages);
     final ReadingMode bCurrentreadingmode = useSignalValue(vm.readingMode);
-    final PaginationSkin bPaginationSkin =
-        useSignalValue(vm.config.paginationSkin.signal);
+    final PaginationSkin bPaginationSkin = useSignalValue(
+      vm.config.paginationSkin.signal,
+    );
     final double bFontsize = useSignalValue(vm.config.fontSize.signal);
     final double bLineheight = useSignalValue(vm.config.lineHeight.signal);
     final AsyncState<String> chContent = useSignalValue(
@@ -64,11 +61,6 @@ class ReaderContentArea extends HookWidget {
     final String bContent = chContent.value ?? '';
     final bool bIsloading = useSignalValue(vm.chapterManager.isLoading);
     final String? bError = useSignalValue(vm.chapterManager.error);
-    final AsyncState<BilingualAlignment?> bState = useSignalValue(
-      vm.translation.bilingualAlignment,
-    );
-    final BilingualAlignment? bBilingualalign = bState.value;
-    final bool bIsbilingualloading = bState.isLoading;
     final int bAutoscrolltick = useSignalValue(
       vm.chapterManager.autoScrollTick,
     );
@@ -94,8 +86,9 @@ class ReaderContentArea extends HookWidget {
     );
     final int bNumchapters = (chaptersState.value as List?)?.length ?? 0;
     final Set<String> vocabWordSet = useSignalValue(vocabWords);
-    final List<ScrollChapterSegment> scrollSegments =
-        useSignalValue(vm.chapterManager.scrollSegments);
+    final List<ScrollChapterSegment> scrollSegments = useSignalValue(
+      vm.chapterManager.scrollSegments,
+    );
     final paginationBoundaryTriggered = useRef(false);
     final fontFamily = fontRepo.currentFontFamily;
     void cycleBrightness() {
@@ -107,6 +100,9 @@ class ReaderContentArea extends HookWidget {
       vm.config.brightnessOverlay.value = _brightnessPresets[nextIdx];
     }
 
+    final bool bFirstlineindent = useSignalValue(
+      vm.config.firstLineIndent.signal,
+    );
     final textScaler = vm.config.followSystemFontScale.value
         ? MediaQuery.textScalerOf(context)
         : TextScaler.noScaling;
@@ -134,6 +130,7 @@ class ReaderContentArea extends HookWidget {
                 vocabularyWords: vocabWordSet,
                 baselineAlign: bBaselinealign,
                 textAlign: bTextalign,
+                firstLineIndent: bFirstlineindent,
               );
               Future<void> onHighlightTap(Note note) =>
                   showModalBottomSheet<void>(
@@ -173,12 +170,12 @@ class ReaderContentArea extends HookWidget {
                 error: bError,
                 hasNextChapter: bChapterindex < bNumchapters - 1,
                 hasPreviousChapter: bChapterindex > 0,
-                showChapterTransition: vm.chapterManager.showChapterTransition.value,
+                showChapterTransition:
+                    vm.chapterManager.showChapterTransition.value,
                 scrollBuilder: (_, sc) => ScrollModeRenderer(
                   config: renderConfig,
                   scrollController: sc,
                   dataSource: dataSource,
-                  bookId: bCurrentbookid,
                   chapterId: bChapterindex,
                   content: bContent,
                   segments: scrollSegments,
@@ -189,31 +186,19 @@ class ReaderContentArea extends HookWidget {
                       selectionGlobalPos.value = pos,
                   showSentenceSplit: true,
                 ),
-                bilingualBuilder: (_, sc, pairs) => BilingualModeRenderer(
-                  config: renderConfig,
-                  scrollController: sc,
-                  bilingualPairs: pairs,
-                  isBilingualLoading: bIsbilingualloading,
-                  bilingualAlignment: bBilingualalign,
-                  highlights: bHighlights,
-                  onRequestTranslation: () => showDialog<void>(
-                    context: context,
-                    builder: (_) => ReaderTranslationDialog(
-                      onChanged: vm.translation.setTranslationContent,
-                      translationConfigured: vm.translation.isConfigured,
-                      onTranslateWithApi: () {
-                        Navigator.of(context).pop();
-                        unawaited(vm.translation.translateChapter());
-                      },
-                    ),
-                  ),
-                  onRetryTranslation: () =>
-                      unawaited(vm.translation.translateChapter()),
-                  onHighlightTap: onHighlightTap,
-                  onSelectionChanged: vm.annotations.updateSelection,
-                  onSelectionGlobalPosition: (pos) =>
-                      selectionGlobalPos.value = pos,
-                ),
+                bilingualBuilder: (_, sc) {
+                  final b = vm.bilingual;
+                  if (b == null) return const SizedBox.shrink();
+                  return b.buildBilingualContent(
+                    context,
+                    sc,
+                    renderConfig,
+                    bHighlights,
+                    onHighlightTap,
+                    vm.annotations.updateSelection,
+                    (pos) => selectionGlobalPos.value = pos,
+                  );
+                },
                 paginatedBuilder: (_, pc) => PaginatedModeRenderer(
                   config: renderConfig,
                   pageController: pc,

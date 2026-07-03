@@ -1,3 +1,4 @@
+import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/features/search/page/search_results.dart';
@@ -39,10 +40,16 @@ class SearchViewModel {
         query: query,
         limit: 50,
         offset: 0,
-      ).catchError((_) => <SearchResult>[]);
+      ).catchError((Object e, StackTrace stack) {
+        Logging.error('searchAllBooks failed', exception: e, stackTrace: stack);
+        return <SearchResult>[];
+      });
       final noteFuture = note_api
           .searchNotes(query: query)
-          .catchError((_) => <Note>[]);
+          .catchError((Object e, StackTrace stack) {
+        Logging.error('searchNotes failed', exception: e, stackTrace: stack);
+        return <Note>[];
+      });
 
       final allBooksResult = await allBooksFuture;
       final bookMap = {for (final b in allBooksResult) b.bookId: b};

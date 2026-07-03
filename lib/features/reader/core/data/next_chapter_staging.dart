@@ -3,7 +3,7 @@ import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 
 class NextChapterStaging {
   final int chapterIndex;
-  final int configHash;
+  final BigInt configHash;
   final List<PageDescriptor> descriptors;
   final String firstPageContent;
   final bool isPartial;
@@ -22,6 +22,6 @@ class NextChapterStaging {
     this.anchorPageBlocks,
   });
 
-  bool matches(int chapterIndex, int configHash) =>
+  bool matches(int chapterIndex, BigInt configHash) =>
       this.chapterIndex == chapterIndex && this.configHash == configHash;
 }

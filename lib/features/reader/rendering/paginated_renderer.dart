@@ -69,13 +69,13 @@ class PaginatedModeRenderer extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48,
-              color: Theme.of(context).colorScheme.error),
-            const SizedBox(height: 16),
-            Text(
-              '分页数据加载失败',
-              style: Theme.of(context).textTheme.titleMedium,
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: Theme.of(context).colorScheme.error,
             ),
+            const SizedBox(height: 16),
+            Text('分页数据加载失败', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(
               '无法为当前章节创建分页，请返回书架重试。',
@@ -91,7 +91,9 @@ class PaginatedModeRenderer extends StatelessWidget {
   Widget _buildPageTurnShell(BuildContext context) {
     final descriptors = dataSource.descriptors;
     if (descriptors == null || descriptors.isEmpty) {
-      Logging.warning('[Renderer] _buildPageTurnShell: descriptors null/empty → fallback');
+      Logging.warning(
+        '[Renderer] _buildPageTurnShell: descriptors null/empty → fallback',
+      );
       return _buildFallbackPagination(context);
     }
 
@@ -159,21 +161,25 @@ class PaginatedModeRenderer extends StatelessWidget {
     );
   }
 
+  /// 下一章虚拟页：staging 命中渲染预加载内容，miss 显示当前章末页 hold 帧。
   Widget _buildCrossChapterPage(BuildContext context, int virtualIndex) {
     final staging = dataSource.nextChapterStaging;
-    if (staging != null && staging.chapterIndex == chapterId + 1) {
-      Logging.debug('[Renderer] _buildCrossChapterPage HIT: chapter=${staging.chapterIndex} virtualIndex=$virtualIndex');
+    final stagingReady =
+        staging != null && staging.chapterIndex == chapterId + 1;
+    if (stagingReady) {
+      Logging.info(
+        '[Timing] cross-chapter render: staging_ready=true chapter=${staging.chapterIndex} virtualIndex=$virtualIndex',
+      );
       final startOffset = staging.descriptors.isNotEmpty
           ? staging.descriptors[0].startOffset
           : 0;
-      return _buildStagingPageFromStaging(
-        context,
-        staging,
-        startOffset,
-      );
+      return _buildStagingPageFromStaging(context, staging, startOffset);
     }
-    Logging.debug('[Renderer] _buildCrossChapterPage MISS: virtualIndex=$virtualIndex');
-    return const Center(child: CircularProgressIndicator());
+    // ADR-012: staging miss → hold 帧（当前章末页），不展示 spinner
+    Logging.info(
+      '[Timing] cross-chapter render: staging_ready=false virtualIndex=$virtualIndex → hold frame',
+    );
+    return _buildHoldFrame(context, isFirstPage: false);
   }
 
   /// 跨章 staging 页：plain 或 block 预渲染。
@@ -186,7 +192,8 @@ class PaginatedModeRenderer extends StatelessWidget {
       final blocks = staging.anchorPageBlocks;
       final filePath = staging.filePath;
       if (blocks == null || filePath == null || filePath.isEmpty) {
-        return const Center(child: CircularProgressIndicator());
+        // ADR-012: incomplete staging → hold frame, not spinner
+        return _buildHoldFrame(context, isFirstPage: true);
       }
       return LayoutBuilder(
         builder: (context, constraints) {
@@ -230,6 +237,7 @@ class PaginatedModeRenderer extends StatelessWidget {
     );
   }
 
+  /// 上一章虚拟页：staging 命中渲染预加载内容，miss 显示当前章首页 hold 帧。
   Widget _buildPreviousChapterPage(BuildContext context) {
     final staging = dataSource.prevChapterStaging;
     if (staging != null && staging.chapterIndex == chapterId - 1) {
@@ -237,13 +245,27 @@ class PaginatedModeRenderer extends StatelessWidget {
       final startOffset = lastIdx >= 0
           ? staging.descriptors[lastIdx].startOffset
           : 0;
-      return _buildStagingPageFromStaging(
-        context,
-        staging,
-        startOffset,
-      );
+      return _buildStagingPageFromStaging(context, staging, startOffset);
     }
-    return const Center(child: CircularProgressIndicator());
+    // ADR-012: staging miss → hold 帧（当前章首页），不展示 spinner
+    return _buildHoldFrame(context, isFirstPage: true);
+  }
+
+  /// ADR-012: staging miss 时显示当前章首/末页 hold 帧，替代 spinner。
+  Widget _buildHoldFrame(BuildContext context, {required bool isFirstPage}) {
+    final descriptors = dataSource.descriptors;
+    if (descriptors == null || descriptors.isEmpty) {
+      return _buildPageSkeleton();
+    }
+    if (isFirstPage) {
+      return _buildPageContent(context, 0, descriptors[0].startOffset);
+    }
+    final lastIdx = descriptors.length - 1;
+    return _buildPageContent(
+      context,
+      lastIdx,
+      descriptors[lastIdx].startOffset,
+    );
   }
 
   void _handlePageChanged(List<PageDescriptor> descriptors, int index) {
@@ -273,9 +295,12 @@ class PaginatedModeRenderer extends StatelessWidget {
   }
 
   int _extendedPageCount(List<PageDescriptor> descriptors) {
-    final offset = hasPreviousChapter ? 1 : 0;
-    return descriptors.length + (_stagingReadyForNext() ? 1 : 0) + offset;
+    // Prev virtual page always included (hasPreviousChapter flag is static);
+    // hold frame in _buildPreviousChapterPage covers the staging-miss visual.
+    final prevOffset = hasPreviousChapter ? 1 : 0;
+    return descriptors.length + (_stagingReadyForNext() ? 1 : 0) + prevOffset;
   }
+
   @override
   Widget build(BuildContext context) {
     if (usesPageCurlSkin(mode: readingMode, skin: paginationSkin)) {
@@ -372,8 +397,10 @@ Widget buildStagingPageContent({
     child: LayoutBuilder(
       builder: (context, constraints) {
         final vPad = ReaderRenderConfig.pageContentVerticalPadding;
-        final bodyHeight =
-            (constraints.maxHeight - 2 * vPad).clamp(0.0, constraints.maxHeight);
+        final bodyHeight = (constraints.maxHeight - 2 * vPad).clamp(
+          0.0,
+          constraints.maxHeight,
+        );
         return Padding(
           padding: EdgeInsets.symmetric(
             horizontal: config.pageMargin,
@@ -387,8 +414,7 @@ Widget buildStagingPageContent({
               strutStyle: strutStyle,
               textAlign: config.textAlign,
               textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
-              onSelectionChanged: (sel, cause) =>
-                  _handlePageContentSelection(
+              onSelectionChanged: (sel, cause) => _handlePageContentSelection(
                 sel,
                 pageContent,
                 startOffset,
@@ -402,6 +428,16 @@ Widget buildStagingPageContent({
         );
       },
     ),
+  );
+}
+
+/// ADR-012: page cache miss 骨架占位，替代 spinner。
+/// [ensureWindow] 已在调用方通过 postFrameCallback 触发；
+/// 当 [ReaderRenderDataSource.preloadGeneration] 变化时 AnimatedBuilder 重建本 widget。
+Widget _buildPageSkeleton() {
+  return Container(
+    color: Colors.grey.withValues(alpha: 0.03),
+    child: const Center(child: SizedBox.shrink()),
   );
 }
 
@@ -423,15 +459,15 @@ Widget buildSinglePageContent({
     if (blocks == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Logging.info(
-          '[Renderer] buildBlockPageContent MISS page=$pageIndex → spinner + ensureWindow',
+          '[Renderer] buildBlockPageContent MISS page=$pageIndex → skeleton + ensureWindow',
         );
         dataSource.ensureWindow(pageIndex);
       });
-      return const Center(child: CircularProgressIndicator());
+      return _buildPageSkeleton();
     }
     final filePath = dataSource.sessionFilePath;
     if (filePath == null || filePath.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return _buildPageSkeleton();
     }
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -455,10 +491,12 @@ Widget buildSinglePageContent({
   final pageContent = dataSource.pageContent(pageIndex);
   if (pageContent == null) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Logging.info('[Renderer] buildSinglePageContent MISS page=$pageIndex → spinner + ensureWindow');
+      Logging.info(
+        '[Renderer] buildSinglePageContent MISS page=$pageIndex → skeleton + ensureWindow',
+      );
       dataSource.ensureWindow(pageIndex);
     });
-    return const Center(child: CircularProgressIndicator());
+    return _buildPageSkeleton();
   }
   final textStyle = config.buildTextStyle();
   final strutStyle = config.buildStrutStyle();
@@ -475,8 +513,10 @@ Widget buildSinglePageContent({
     child: LayoutBuilder(
       builder: (context, constraints) {
         final vPad = ReaderRenderConfig.pageContentVerticalPadding;
-        final bodyHeight =
-            (constraints.maxHeight - 2 * vPad).clamp(0.0, constraints.maxHeight);
+        final bodyHeight = (constraints.maxHeight - 2 * vPad).clamp(
+          0.0,
+          constraints.maxHeight,
+        );
         return Padding(
           padding: EdgeInsets.symmetric(
             horizontal: config.pageMargin,
@@ -490,8 +530,7 @@ Widget buildSinglePageContent({
               strutStyle: strutStyle,
               textAlign: config.textAlign,
               textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
-              onSelectionChanged: (sel, cause) =>
-                  _handlePageContentSelection(
+              onSelectionChanged: (sel, cause) => _handlePageContentSelection(
                 sel,
                 pageContent,
                 startOffset,

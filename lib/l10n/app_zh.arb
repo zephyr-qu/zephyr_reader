@@ -576,8 +576,6 @@
   "otherStartupCheck": "启动时检查更新",
   "otherStartupCheckDesc": "仅前台启动时检测新版本",
   "otherExperimental": "实验性功能",
-  "otherMarkdownPreview": "Markdown 笔记预览",
-  "otherMarkdownPreviewDesc": "在笔记列表中渲染 Markdown 格式",
   "otherLegal": "法律与合规",
   "openSourceLicenseDesc": "Flutter / Rust / 第三方库许可",
   "resetAllSettings": "重置所有设置",

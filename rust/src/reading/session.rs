@@ -13,7 +13,7 @@ use crate::domain::{
     AppError, ChapterPaginationMode, PageBlockSlice, PaginateResult, TypesetConfig,
 };
 use crate::reading::pagination::paginate_chapter;
-use crate::reading::pagination_engine::PaginationEngine;
+use crate::reading::pagination_store::PaginationEngine;
 use crate::reading::pagination_store::{PaginationKey, PaginationStore};
 use crate::reading::types::PaginationSessionHandle;
 use crate::utils::security::validate_file_path;
@@ -215,6 +215,18 @@ pub(crate) async fn repaginate_session(
     apply_session_repagination(handle.session_id, entry, Some(config), max_chars).await
 }
 
+/// Apply Flutter-measured calibration to an existing session and repaginate in-place.
+pub(crate) async fn apply_session_calibration(
+    handle: PaginationSessionHandle,
+    calibration: crate::domain::types::typeset::TypesetCalibration,
+    max_chars: Option<u64>,
+) -> Result<PaginateResult, AppError> {
+    let entry = lookup_pagination_session(handle.session_id)?;
+    let mut config = entry.config.clone();
+    config.calibration = Some(calibration);
+    apply_session_repagination(handle.session_id, entry, Some(config), max_chars).await
+}
+
 /// Expand session to full chapter.
 pub(crate) async fn paginate_session_full(
     handle: PaginationSessionHandle,
@@ -310,16 +322,16 @@ pub(crate) fn session_char_offset_to_page_index(
 pub(crate) fn dispose_pagination_session(
     handle: PaginationSessionHandle,
 ) -> Result<(), AppError> {
-    let entry = SESSION_MAP
-        .lock()
-        .get(&handle.session_id)
-        .cloned()
+    let mut session_map = SESSION_MAP.lock();
+    let session_id = handle.session_id;
+    let cache_key = session_map
+        .get(&session_id)
+        .map(|e| e.cache_key())
         .ok_or_else(|| AppError::NotFound {
-            entity: format!("pagination session {}", handle.session_id),
+            entity: format!("pagination session {}", session_id),
         })?;
 
-    PaginationStore::global().evict(&entry.cache_key());
-    SESSION_MAP.lock().remove(&handle.session_id);
-    let _ = &entry;
+    PaginationStore::global().evict(&cache_key);
+    session_map.remove(&session_id);
     Ok(())
 }

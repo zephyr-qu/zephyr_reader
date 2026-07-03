@@ -1,28 +1,28 @@
-﻿import 'package:flutter_test/flutter_test.dart';
-import 'package:zephyr_reader/features/reader/translation/data/translation_cache.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:zephyr_reader/features/bilingual/data/bilingual_cache.dart';
 
 void main() {
-  group('TranslationCache', () {
+  group('BilingualCache', () {
     test('stores and retrieves translation', () {
-      final cache = TranslationCache(maxEntries: 5);
+      final cache = BilingualCache(maxEntries: 5);
       cache.put(0, 'Hello world', '你好世界');
       expect(cache.get(0, 'Hello world'), '你好世界');
     });
 
     test('returns null for unknown chapter', () {
-      final cache = TranslationCache(maxEntries: 5);
+      final cache = BilingualCache(maxEntries: 5);
       cache.put(0, 'Hello', '你好');
       expect(cache.get(1, 'Hello'), isNull);
     });
 
     test('returns null for different content', () {
-      final cache = TranslationCache(maxEntries: 5);
+      final cache = BilingualCache(maxEntries: 5);
       cache.put(0, 'Hello', '你好');
       expect(cache.get(0, 'World'), isNull);
     });
 
     test('invalidateChapter removes only specified chapter', () {
-      final cache = TranslationCache(maxEntries: 10);
+      final cache = BilingualCache(maxEntries: 10);
       cache.put(0, 'Chapter 0', '第0章');
       cache.put(1, 'Chapter 1', '第1章');
       cache.put(2, 'Chapter 2', '第2章');
@@ -35,7 +35,7 @@ void main() {
     });
 
     test('clear removes all entries', () {
-      final cache = TranslationCache(maxEntries: 10);
+      final cache = BilingualCache(maxEntries: 10);
       cache.put(0, 'Hello', '你好');
       cache.put(1, 'World', '世界');
 
@@ -46,7 +46,7 @@ void main() {
     });
 
     test('evicts one entry when over max capacity', () {
-      final cache = TranslationCache(maxEntries: 2);
+      final cache = BilingualCache(maxEntries: 2);
 
       cache.put(0, 'A', 'A-translated');
       cache.put(1, 'B', 'B-translated');
@@ -69,7 +69,7 @@ void main() {
     });
 
     test('different chapter indices are isolated', () {
-      final cache = TranslationCache(maxEntries: 10);
+      final cache = BilingualCache(maxEntries: 10);
       cache.put(0, 'Same content', 'translated-0');
       cache.put(1, 'Same content', 'translated-1');
 
@@ -78,14 +78,14 @@ void main() {
     });
 
     test('sha256 produces deterministic hash', () {
-      final h1 = TranslationCache.sha256('Hello World');
-      final h2 = TranslationCache.sha256('Hello World');
+      final h1 = BilingualCache.sha256('Hello World');
+      final h2 = BilingualCache.sha256('Hello World');
       expect(h1, h2);
     });
 
     test('sha256 differs for different content', () {
-      final h1 = TranslationCache.sha256('Hello');
-      final h2 = TranslationCache.sha256('World');
+      final h1 = BilingualCache.sha256('Hello');
+      final h2 = BilingualCache.sha256('World');
       expect(h1, isNot(h2));
     });
   });

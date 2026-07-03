@@ -200,8 +200,8 @@ sealed class NoteWithBook with _$NoteWithBook {
 
 /// 单章阅读进度
 ///
-/// - `page_index` / `total_pages` 标记了 `#[sqlx(default)]`，
-///   仅在数据库迁移新增这两列的过渡期内使用，迁移完成后应移除。
+/// 进度只持久化 chapterIndex + charOffset（ADR-001 / I1）。
+/// page_index / total_pages 已于 Phase 4 移除——它们是分页视图的派生值，不属于持久化真理。
 @freezed
 sealed class ReadingProgress with _$ReadingProgress {
   const factory ReadingProgress({
@@ -210,8 +210,6 @@ sealed class ReadingProgress with _$ReadingProgress {
     required PlatformInt64 chunkIndex,
     String? chapterId,
     required PlatformInt64 charOffset,
-    required PlatformInt64 pageIndex,
-    required PlatformInt64 totalPages,
     required double progress,
     required PlatformInt64 readingTimeSeconds,
     required DateTime lastReadAt,

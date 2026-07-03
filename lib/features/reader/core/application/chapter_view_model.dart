@@ -14,6 +14,7 @@ import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dar
 import 'package:zephyr_reader/features/reader/core/application/search_index_lifecycle.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_notice.dart';
@@ -120,6 +121,7 @@ class ChapterViewModel {
     _pagination.devicePixelRatio = value;
     _pagination.syncChapterTypesetLayoutToRepo();
   }
+
   late final ReadonlySignal<String> progressText = computed(() {
     final totalChapters = chapters.value.value?.length ?? 0;
     if (totalChapters == 0) return '0%';
@@ -154,7 +156,8 @@ class ChapterViewModel {
     bool? preserveContent,
     ChapterNavigationKind navigationKind = ChapterNavigationKind.manualJump,
   }) {
-    showChapterTransition.value = (navigationKind == ChapterNavigationKind.manualJump);
+    showChapterTransition.value =
+        (navigationKind == ChapterNavigationKind.manualJump);
     return _loader.loadChapter(
       chapterIndex,
       initialCharOffset: initialCharOffset,
@@ -164,6 +167,7 @@ class ChapterViewModel {
       navigationKind: navigationKind,
     );
   }
+
   Future<void> previousChapter() => _navigator.previousChapter();
   Future<void> nextChapter() => _navigator.nextChapter();
   Future<void> jumpToChapter(int chapterIndex) =>
@@ -186,6 +190,8 @@ class ChapterViewModel {
     int chapterIndex, {
     List<RichParagraph>? richParagraphs,
     TextSpan? richRootSpan,
+    ChapterContentIr? chapterIr,
+    String? chapterFilePath,
   }) {
     _scrollBoundary.reset(
       bookId.value,
@@ -193,6 +199,8 @@ class ChapterViewModel {
       content,
       richParagraphs: richParagraphs,
       richRootSpan: richRootSpan,
+      chapterIr: chapterIr,
+      chapterFilePath: chapterFilePath,
     );
   }
 

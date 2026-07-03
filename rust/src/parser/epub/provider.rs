@@ -4,7 +4,7 @@
 //! 每个 spine 的纯文本在其内容首次被请求时才加载和缓存，
 //! 避免首次访问时加载整章所有 spine item 的内存浪费。
 
-use once_cell::sync::OnceCell as OnceLock;
+use std::sync::OnceLock as OnceLock;
 
 use parking_lot::Mutex;
 
@@ -545,64 +545,6 @@ fn clean_whitespace(text: &str) -> String {
 
     cleaned
 }
-#[allow(dead_code)]
-/// 解码数字 HTML 实体（&#xHH; 和 &#D;）
-fn decode_numeric_entities(text: &str) -> String {
-    let mut result = String::with_capacity(text.len());
-    let mut chars = text.chars().peekable();
-
-    while let Some(c) = chars.next() {
-        if c == '&' && chars.peek() == Some(&'#') {
-            let mut entity = String::from("&#");
-            chars.next(); // skip #
-            if chars.peek() == Some(&'x') || chars.peek() == Some(&'X') {
-                entity.push('x');
-                chars.next(); // skip x
-                let mut hex_val = String::new();
-                while let Some(&ch) = chars.peek() {
-                    if ch == ';' {
-                        chars.next(); // skip ;
-                        if let Ok(code) = u32::from_str_radix(&hex_val, 16) {
-                            if let Some(decoded) = char::from_u32(code) {
-                                result.push(decoded);
-                            } else {
-                                result.push_str(&format!("&#x{};", hex_val));
-                            }
-                        } else {
-                            result.push_str(&format!("&#x{};", hex_val));
-                        }
-                        break;
-                    }
-                    hex_val.push(ch);
-                    chars.next();
-                }
-            } else {
-                let mut dec_val = String::new();
-                while let Some(&ch) = chars.peek() {
-                    if ch == ';' {
-                        chars.next(); // skip ;
-                        if let Ok(code) = dec_val.parse::<u32>() {
-                            if let Some(decoded) = char::from_u32(code) {
-                                result.push(decoded);
-                            } else {
-                                result.push_str(&format!("&#{};", dec_val));
-                            }
-                        } else {
-                            result.push_str(&format!("&#{};", dec_val));
-                        }
-                        break;
-                    }
-                    dec_val.push(ch);
-                    chars.next();
-                }
-            }
-        } else {
-            result.push(c);
-        }
-    }
-
-    result
-}
 
 #[cfg(test)]
 mod tests {
@@ -645,17 +587,6 @@ mod tests {
         assert!(text.contains("Line3"));
     }
 
-    #[test]
-    fn test_decode_numeric_entities_hex() {
-        assert_eq!(decode_numeric_entities("&#x41;"), "A");
-        assert_eq!(decode_numeric_entities("&#x4F60;"), "你");
-    }
-
-    #[test]
-    fn test_decode_numeric_entities_dec() {
-        assert_eq!(decode_numeric_entities("&#65;"), "A");
-        assert_eq!(decode_numeric_entities("&#20320;"), "你");
-    }
 
     #[test]
     fn test_html_to_plain_text_nested_inline_tags() {

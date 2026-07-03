@@ -3,6 +3,7 @@ import 'package:zephyr_reader/features/reader/core/domain/progress_repository.da
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.dart';
+import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -36,7 +37,7 @@ abstract class ReaderRepositoryInterface {
   });
 
   /// 上次分页的 configHash；null 表示无 session。
-  int? get sessionConfigHash;
+  BigInt? get sessionConfigHash;
 
   /// 当前分页会话对应的章节索引；null 表示无 session。
   int? get sessionChapterIndex;
@@ -59,6 +60,17 @@ abstract class ReaderRepositoryInterface {
     BigInt? maxChars,
   });
 
+  /// P4-4：Flutter metrics 回传校准后 repaginate。
+  Future<({int totalPages, bool isPartial})> applySessionCalibration({
+    required String bookId,
+    required int chapterIndex,
+    required PaginationParams params,
+    BigInt? maxChars,
+  });
+
+  /// 异步拉取单页 plain text（首屏 metrics 采样）。
+  Future<String?> fetchPageContent(int pageIndex);
+
   /// 预加载章节内容到缓存。
   Future<void> preloadChapter(String bookId, int chapterId);
 
@@ -75,6 +87,12 @@ abstract class ReaderRepositoryInterface {
 
   /// 当前章节的富文本段落（EPUB）。
   List<RichParagraph>? get currentRichParagraphs;
+
+  /// P4-1：当前章 IR（scroll）。
+  ChapterContentIr? get currentChapterIr;
+
+  /// 当前章书籍文件路径。
+  String? get currentChapterFilePath;
 
   /// 页面描述符列表（轻量级）。
   List<PageDescriptor>? get descriptors;
@@ -112,7 +130,6 @@ abstract class ReaderRepositoryInterface {
     double devicePixelRatio = 1.0,
     String fontFamily = 'Noto Sans SC',
   });
-
 
   /// 预加载下一章 descriptors + 首页 content。
   Future<void> preloadNextChapterStaging(
@@ -160,5 +177,4 @@ abstract class ReaderRepositoryInterface {
 
   /// 加载书籍的阅读进度。
   Future<ReadingProgressData?> loadReadingProgress(String bookId);
-
 }

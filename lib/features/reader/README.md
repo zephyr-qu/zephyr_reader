@@ -68,6 +68,17 @@ ReaderShell → ReaderViewModel (facade)
 5. `preserveContent` 默认 `true`，避免排版变更闪 loading
 6. full expand 后续由 `expandToFullChapter` 继续
 
+### P4-4 Metrics 回传（ADR-013）
+
+首屏 partial paginate 后、`endOfFrame` 从当前页 plain text 采样 TextPainter 字宽；
+若相对 baseline 漂移 > 3%：
+
+1. 更新 `_pagination.calibration`
+2. partial 章：`expandToFullChapter` 自动带新 calibration
+3. 已全量首屏：调用 `applySessionCalibration` → Rust repaginate + sled 新 config_hash
+
+Staging promote 路径跳过回传（缓存 session 已分页）。
+
 ### `PaginationSession` lifecycle
 
 - `dispose()` 释放 Rust 会话并清空本地缓存（含 `sessionChapterIndex` /

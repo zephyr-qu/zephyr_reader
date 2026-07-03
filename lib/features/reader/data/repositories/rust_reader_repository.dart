@@ -12,6 +12,7 @@ import 'package:zephyr_reader/features/reader/core/domain/progress_repository.da
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
+import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
@@ -28,10 +29,10 @@ class ReaderRepository
     this._progress,
     PaginationSessionFactory sessionFactory,
   ) : _session = sessionFactory.create(
-          onCacheUpdated: () {
-            _chapterContent.preloadGeneration.value++;
-          },
-        );
+        onCacheUpdated: () {
+          _chapterContent.preloadGeneration.value++;
+        },
+      );
 
   final ChapterContentRepository _chapterContent;
   final ProgressRepository _progress;
@@ -64,7 +65,6 @@ class ReaderRepository
     return null;
   }
 
-
   @override
   void warmPageCache(int pageIndex, String content) {
     _session.warmPageCache(pageIndex, content);
@@ -88,6 +88,12 @@ class ReaderRepository
   List<RichParagraph>? get currentRichParagraphs =>
       _chapterContent.currentRichParagraphs;
 
+  @override
+  ChapterContentIr? get currentChapterIr => _chapterContent.currentChapterIr;
+
+  @override
+  String? get currentChapterFilePath => _chapterContent.currentChapterFilePath;
+
   // ==================== ReaderRepositoryInterface ====================
 
   @override
@@ -107,17 +113,16 @@ class ReaderRepository
     String bookId,
     int chapterId, {
     ReadingMode? readingMode,
-  }) =>
-      _chapterContent.loadScrollSegment(
-        bookId,
-        chapterId,
-        readingMode: readingMode,
-      );
+  }) => _chapterContent.loadScrollSegment(
+    bookId,
+    chapterId,
+    readingMode: readingMode,
+  );
 
   @override
   void disposePagination() => _session.dispose();
   @override
-  int? get sessionConfigHash => _session.sessionConfigHash;
+  BigInt? get sessionConfigHash => _session.sessionConfigHash;
   @override
   int? get sessionChapterIndex => _session.sessionChapterIndex;
   @override
@@ -135,6 +140,23 @@ class ReaderRepository
     params: params,
     maxChars: maxChars,
   );
+
+  @override
+  Future<({int totalPages, bool isPartial})> applySessionCalibration({
+    required String bookId,
+    required int chapterIndex,
+    required PaginationParams params,
+    BigInt? maxChars,
+  }) => _session.applySessionCalibration(
+    bookId: bookId,
+    chapterIndex: chapterIndex,
+    params: params,
+    maxChars: maxChars,
+  );
+
+  @override
+  Future<String?> fetchPageContent(int pageIndex) =>
+      _session.fetchPageContent(pageIndex);
 
   @override
   Future<({int totalPages, bool isPartial})> beginPaginate({
@@ -205,7 +227,6 @@ class ReaderRepository
     devicePixelRatio: devicePixelRatio,
     fontFamily: fontFamily,
   );
-
 
   @override
   Future<void> preloadPreviousChapterStaging(

@@ -29,10 +29,7 @@ class PaginatedPageViewport extends StatelessWidget {
             onNotification: (_) => true,
             child: SingleChildScrollView(
               physics: const NeverScrollableScrollPhysics(),
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: child,
-              ),
+              child: Align(alignment: Alignment.topCenter, child: child),
             ),
           ),
         ),
