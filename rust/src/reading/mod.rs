@@ -8,7 +8,7 @@
 //! - `pagination_store` — `PaginationStore` 全局 LRU（plain / block 分页引擎 + 协调 API）
 //! - `layout_cache` — 持久化分页结果（sled KV）读写
 //! - `chapter_access` — 章节边界 + 格式识别 + 章节读取（Phase 1 迁边界/格式，Phase 4 迁读取）
-//! - `pagination` — 分页 API（`paginate_chapter` / `paginate_all_content` / `get_page_content`）
+//! - `pagination` — 分页 API（`paginate_chapter` / `get_page_content`）
 //! - `session` — `PaginationSession` 生命周期
 //! - `orchestrator` — `ReadingOrchestrator` 业务方法入口 + 全局单例
 //! - `types` — FRB-exposed types（`PaginationSessionHandle`）
