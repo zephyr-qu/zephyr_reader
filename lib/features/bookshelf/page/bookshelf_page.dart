@@ -10,6 +10,7 @@ import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.d
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle_tile.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
@@ -389,7 +390,7 @@ class BookshelfPage extends HookWidget {
     final folder = await FilePicker.getDirectoryPath();
     if (folder == null || !context.mounted) return;
     showInfoSnack(context, l10n.scanningFolder);
-    final (success, fail, _) = await importService.scanFolder(
+    final (success, fail, errors) = await importService.scanFolder(
       folder,
       onProgress: (done, total) {
         showInfoSnack(context, l10n.scanProgress(done, total));
@@ -400,6 +401,10 @@ class BookshelfPage extends HookWidget {
     if (success == 0 && fail == 0) {
       showInfoSnack(context, l10n.noBookFilesFound);
     } else if (fail > 0) {
+      final failedFiles = errors.length > 5
+          ? '${errors.sublist(0, 5).join('\n')}…'
+          : errors.join('\n');
+      Logging.warning('批量导入失败文件: $failedFiles');
       showInfoSnack(context, l10n.scanCompleteWithFailures(success, fail));
     } else {
       showInfoSnack(context, l10n.scanComplete(success));
