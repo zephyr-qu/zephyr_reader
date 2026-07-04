@@ -14,6 +14,10 @@ use super::models::{
 const BLOCK_LAYOUT_TREE_NAME: &str = "block_layout_cache";
 const SCROLL_IR_TREE_NAME: &str = "scroll_ir_cache";
 
+/// sled 磁盘缓存条目上限。超过时按 `created_at` 淘汰最旧条目。
+const BLOCK_LAYOUT_MAX_ENTRIES: usize = 256;
+const SCROLL_IR_MAX_ENTRIES: usize = 256;
+
 /// KV 存储封装
 pub struct KvStore {
     /// sled 数据库句柄 — 不会被直接读取，仅用于保活。
@@ -68,6 +72,7 @@ impl KvStore {
         self.block_layout_cache
             .insert(key.to_string(), bytes)
             .map_err(|e| AppError::DatabaseError { reason: format!("Failed to insert block cache: {e}").into() })?;
+        self.enforce_block_layout_capacity()?;
         Ok(())
     }
 
@@ -109,6 +114,7 @@ impl KvStore {
         self.scroll_ir_cache
             .insert(key, bytes)
             .map_err(|e| AppError::DatabaseError { reason: format!("Failed to insert scroll ir cache: {e}").into() })?;
+        self.enforce_scroll_ir_capacity()?;
         Ok(())
     }
 
@@ -197,6 +203,86 @@ impl KvStore {
             }
         }
         Ok(count)
+    }
+
+    /// 容量淘汰：当 block_layout_cache 条目超过上限时，按 created_at 淘汰最旧条目。
+    fn enforce_block_layout_capacity(&self) -> Result<(), AppError> {
+        let len = self.block_layout_cache.len();
+        if len <= BLOCK_LAYOUT_MAX_ENTRIES {
+            return Ok(());
+        }
+        // 收集所有条目的 (key, created_at)，按 created_at 升序排序后淘汰最旧的
+        let mut entries: Vec<(sled::IVec, i64)> = Vec::new();
+        for item in self.block_layout_cache.iter() {
+            let (key, value) = item
+                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to read from sled: {e}").into() })?;
+            if let Ok((cache, _)) =
+                bincode::decode_from_slice::<BlockLayoutCache, _>(&value, bincode::config::standard())
+            {
+                entries.push((key, cache.created_at));
+            }
+        }
+        entries.sort_by_key(|(_, ts)| *ts);
+        let to_evict = len - BLOCK_LAYOUT_MAX_ENTRIES;
+        for (key, _) in entries.iter().take(to_evict) {
+            self.block_layout_cache
+                .remove(key)
+                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to evict block cache: {e}").into() })?;
+        }
+        tracing::info!(
+            "Evicted {to_evict} oldest block_layout_cache entries (was {len}, max {BLOCK_LAYOUT_MAX_ENTRIES})"
+        );
+        Ok(())
+    }
+
+    /// 容量淘汰：当 scroll_ir_cache 条目超过上限时，按版本号淘汰无效条目，再按 key 顺序淘汰最旧。
+    fn enforce_scroll_ir_capacity(&self) -> Result<(), AppError> {
+        let len = self.scroll_ir_cache.len();
+        if len <= SCROLL_IR_MAX_ENTRIES {
+            return Ok(());
+        }
+        // 先淘汰版本不匹配的无效条目
+        let mut valid_keys: Vec<sled::IVec> = Vec::new();
+        let mut stale_keys: Vec<sled::IVec> = Vec::new();
+        for item in self.scroll_ir_cache.iter() {
+            let (key, value) = item
+                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to read from sled: {e}").into() })?;
+            if let Ok((cache, _)) =
+                bincode::decode_from_slice::<ScrollIrCache, _>(&value, bincode::config::standard())
+            {
+                if cache.is_valid() {
+                    valid_keys.push(key);
+                } else {
+                    stale_keys.push(key);
+                }
+            }
+        }
+        // 先删无效条目
+        for key in &stale_keys {
+            self.scroll_ir_cache
+                .remove(key)
+                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to evict stale scroll ir: {e}").into() })?;
+        }
+        // 若仍超限，删最早的有效条目（sled key 按字节序排列 ≈ 插入序）
+        let remaining = self.scroll_ir_cache.len();
+        if remaining > SCROLL_IR_MAX_ENTRIES {
+            let to_evict = remaining - SCROLL_IR_MAX_ENTRIES;
+            for key in valid_keys.iter().take(to_evict) {
+                self.scroll_ir_cache
+                    .remove(key)
+                    .map_err(|e| AppError::DatabaseError { reason: format!("Failed to evict scroll ir: {e}").into() })?;
+            }
+            tracing::info!(
+                "Evicted {to_evict} scroll_ir_cache entries (stale: {stale_count}, was {len}, max {SCROLL_IR_MAX_ENTRIES})",
+                stale_count = stale_keys.len()
+            );
+        } else if !stale_keys.is_empty() {
+            tracing::info!(
+                "Evicted {stale_count} stale scroll_ir_cache entries (was {len}, now {remaining})",
+                stale_count = stale_keys.len()
+            );
+        }
+        Ok(())
     }
 }
 

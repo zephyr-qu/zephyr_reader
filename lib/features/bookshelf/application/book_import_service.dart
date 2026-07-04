@@ -141,18 +141,19 @@ class _Semaphore {
   _Semaphore(this._max);
 
   Future<T> acquire<T>(Future<T> Function() fn) async {
-    if (_count < _max) {
-      _count++;
-      try {
-        return await fn();
-      } finally {
-        _release();
+    while (true) {
+      if (_count < _max) {
+        _count++;
+        try {
+          return await fn();
+        } finally {
+          _release();
+        }
       }
+      final completer = Completer<void>();
+      _queue.add(completer);
+      await completer.future;
     }
-    final completer = Completer<void>();
-    _queue.add(completer);
-    await completer.future;
-    return acquire(fn);
   }
 
   void _release() {
