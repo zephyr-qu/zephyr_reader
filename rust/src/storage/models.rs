@@ -433,10 +433,10 @@ impl TryFrom<String> for BookFormat {
 #[strum(serialize_all = "lowercase")]
 #[frb]
 pub enum BookStatus {
-    #[default]
     Reading,
     Completed,
     Dropped,
+    #[default]
     Planned,
 }
 

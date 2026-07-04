@@ -14,6 +14,7 @@ class ReaderRenderConfig {
   final double lineHeight;
   final String fontFamily;
   final double letterSpacing;
+  /// 段落间距（逻辑像素 dp）。传给 Rust 时自动转换为倍数（dp / fontSize）。
   final double paragraphSpacing;
   final double pageMargin;
   final bool showVocabularyMark;
