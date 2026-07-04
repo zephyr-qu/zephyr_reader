@@ -157,10 +157,11 @@ class ChapterLoadOrchestrator {
       if (intent == ChapterPaginationIntent.stagingPromoteForward ||
           intent == ChapterPaginationIntent.stagingPromoteBackward) {
         _setPhase(gen, ChapterLoadPhase.completed);
-        _applyIfCurrent(gen, () { _loadPhase.value = ChapterLoadPhase.idle; });
+        _applyIfCurrent(gen, () {
+          _loadPhase.value = ChapterLoadPhase.idle;
+        });
         return;
       }
-
 
       Logging.info(
         '[Timing] gen=$gen phase=quickPaginate quickPaginate: '
@@ -196,8 +197,7 @@ class ChapterLoadOrchestrator {
       // 见 issue/KNOWN_POSTPHASE4_BUGS.md Bug B
 
       int total;
-      final bool isNormalLoad =
-          intent == ChapterPaginationIntent.normalLoad;
+      final bool isNormalLoad = intent == ChapterPaginationIntent.normalLoad;
       if (quickResult!.isPartial) {
         _setPhase(gen, ChapterLoadPhase.fullPaginate);
         final fullPaginateFuture = _pagination.expandToFullChapter(
@@ -287,8 +287,7 @@ class ChapterLoadOrchestrator {
         // P3 (Bug A) 修复：stagingPromote 已成功设置信号后，
         // 后续错误（如 clearAdjacentStaging）不应覆盖已可见的内容。
         // 非 stagingPromote 路径正常显示错误。
-        if (isStagingPromote &&
-            _chapterVM.chapterContent.value.value != null) {
+        if (isStagingPromote && _chapterVM.chapterContent.value.value != null) {
           Logging.warning(
             '[ChapterLoad] stagingPromote error after content visible: $e',
           );
@@ -575,9 +574,7 @@ class ChapterLoadOrchestrator {
     );
     if (_isStale(gen)) return null;
 
-    // 旧 session 在 promote 成功后释放（失败时保留，供 fallback normalLoad 使用）
-    _contentRepo.disposePagination();
-
+    // beginPaginateFromCache 内部已释放旧 session 并设置新 session/descriptors
     final preloadHit = !result.isPartial;
 
     // 同步写 signals — promote handoff
@@ -736,8 +733,8 @@ class ChapterLoadOrchestrator {
           (i) => _contentRepo
               .preloadChapter(_chapterVM.bookId.value, i)
               .catchError((Object e) {
-            Logging.debug('[Orchestrator] preloadChapter($i) failed: $e');
-          }),
+                Logging.debug('[Orchestrator] preloadChapter($i) failed: $e');
+              }),
         ),
       );
     }
