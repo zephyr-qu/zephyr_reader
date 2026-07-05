@@ -9,7 +9,9 @@ use super::content_ir::{BlockPlainRange, TextBlockStyle};
 use super::rich_text::RichTextSpan;
 
 /// 页内 Image 块的排版方式（ADR-003）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode,
+)]
 #[frb]
 pub enum ImageBlockLayout {
     /// 剩余页高足够：缩放 contain，与文本同页。
@@ -105,11 +107,7 @@ pub struct BlockPaginateResult {
 }
 
 impl BlockPaginateResult {
-    pub fn new(
-        descriptors: Vec<BlockPageDescriptor>,
-        config_hash: u64,
-        is_partial: bool,
-    ) -> Self {
+    pub fn new(descriptors: Vec<BlockPageDescriptor>, config_hash: u64, is_partial: bool) -> Self {
         Self {
             descriptors,
             config_hash,
@@ -136,6 +134,9 @@ impl BlockPaginateResult {
 
     /// 合并另一个 chunk 的 [BlockPaginateResult]。
     /// 追加 descriptors 并调整 `page_index` 偏移。
+    /// 调用方需在 merge 前通过 [offset_block_indices] 将 chunk-relative
+    /// 的 `first_block_index`/`last_block_index`/`image_layouts[].block_index`
+    /// 转换为全章绝对索引。
     pub fn merge(&mut self, other: BlockPaginateResult) {
         let offset = self.page_count() as i32;
         for mut desc in other.descriptors {
@@ -145,7 +146,22 @@ impl BlockPaginateResult {
         self.is_partial = self.is_partial || other.is_partial;
     }
 
-    pub fn to_legacy_paginate_result(&self, mode: super::pagination::ChapterPaginationMode) -> super::pagination::PaginateResult {
+    /// 将 block 索引（`first_block_index`、`last_block_index`、`image_layouts[].block_index`）
+    /// 统一增加 `offset`，用于 chunked pagination 合并。
+    pub fn offset_block_indices(&mut self, offset: u32) {
+        for desc in &mut self.descriptors {
+            desc.first_block_index += offset;
+            desc.last_block_index += offset;
+            for layout in &mut desc.image_layouts {
+                layout.block_index += offset;
+            }
+        }
+    }
+
+    pub fn to_legacy_paginate_result(
+        &self,
+        mode: super::pagination::ChapterPaginationMode,
+    ) -> super::pagination::PaginateResult {
         super::pagination::PaginateResult {
             descriptors: self
                 .descriptors
@@ -199,13 +215,7 @@ mod tests {
 
     #[test]
     fn block_range_is_half_open() {
-        let d = BlockPageDescriptor::new(
-            0,
-            1,
-            4,
-            BlockPlainRange::new(10, 20),
-            false,
-        );
+        let d = BlockPageDescriptor::new(0, 1, 4, BlockPlainRange::new(10, 20), false);
         assert_eq!(d.block_count(), 3);
         assert!(d.contains_block(1));
         assert!(d.contains_block(3));
@@ -215,13 +225,7 @@ mod tests {
 
     #[test]
     fn plain_end_exclusive() {
-        let d = BlockPageDescriptor::new(
-            2,
-            0,
-            1,
-            BlockPlainRange::new(5, 3),
-            true,
-        );
+        let d = BlockPageDescriptor::new(2, 0, 1, BlockPlainRange::new(5, 3), true);
         assert_eq!(d.plain_end_exclusive(), 8);
     }
 
@@ -255,5 +259,25 @@ mod tests {
         assert_eq!(result.page_index_at_char_offset(9), Some(0));
         assert_eq!(result.page_index_at_char_offset(10), Some(1));
         assert_eq!(result.page_index_at_char_offset(15), Some(1));
+    }
+
+    #[test]
+    fn offset_block_indices_shifts_all_references() {
+        let d = BlockPageDescriptor::new(0, 3, 7, BlockPlainRange::new(0, 10), false)
+            .with_image_layouts(vec![PageImageLayout {
+                block_index: 5,
+                layout: ImageBlockLayout::InlineContain,
+            }]);
+        let mut result = BlockPaginateResult::new(vec![d], 0, false);
+
+        result.offset_block_indices(200);
+
+        let desc = &result.descriptors[0];
+        assert_eq!(desc.first_block_index, 203);
+        assert_eq!(desc.last_block_index, 207);
+        assert_eq!(desc.image_layouts[0].block_index, 205);
+        // plain ranges must NOT be offset
+        assert_eq!(desc.plain.plain_start, 0);
+        assert_eq!(desc.plain.plain_len, 10);
     }
 }
