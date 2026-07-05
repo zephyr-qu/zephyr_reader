@@ -266,11 +266,12 @@ pub(crate) async fn paginate_chapter(
     let start = Instant::now();
     let store = PaginationStore::global();
 
-    // 全章（max_chars=None）：P0 — 所有章节统一走 block 路径。
-    // P1: plain sled 缓存已移除，不再有 fallback 到 PageStreamer 的路径。
-    if max_chars.is_none()
-        && let Some(result) =
-            try_paginate_chapter_blocks(book_id, &validated_path, chapter_index, &config, None).await?
+    // P0: ALL paths (full + partial) try block pagination first.
+    // try_paginate_chapter_blocks handles both max_chars=None (full)
+    // and max_chars=Some(N) (partial, via filter_blocks_to_chars).
+    // Returns Ok(None) for unsupported formats → fall through to PageStreamer.
+    if let Some(result) =
+        try_paginate_chapter_blocks(book_id, &validated_path, chapter_index, &config, max_chars).await?
         {
             tracing::info!(
                 "[Timing] paginate_chapter block_path config_hash={:016x} chapter={} elapsed={:?}",
