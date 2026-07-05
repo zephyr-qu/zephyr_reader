@@ -109,9 +109,9 @@ impl CoverExtractor for EpubCoverExtractor {
             .to_string();
 
         std::fs::create_dir_all(output_dir)
-            .map_err(|e| AppError::FileWriteError { path: output_dir.to_string().into(), details: e.to_string().into() })?;
+            .map_err(|e| AppError::FileWriteError { path: output_dir.to_string(), details: e.to_string() })?;
         std::fs::write(&output_path, cover_data)
-            .map_err(|e| AppError::FileWriteError { path: output_path.clone().into(), details: e.to_string().into() })?;
+            .map_err(|e| AppError::FileWriteError { path: output_path.clone(), details: e.to_string() })?;
 
         Ok(output_path)
     }
@@ -174,11 +174,11 @@ impl CoverExtractorRegistry {
             .extension()
             .and_then(|ext| ext.to_str())
             .ok_or_else(|| {
-                AppError::UnsupportedFormat { format: "unable to identify file extension".to_string().into() }
+                AppError::UnsupportedFormat { format: "unable to identify file extension".to_string() }
             })?;
 
         let extractor = self.get_extractor(extension).ok_or_else(|| {
-            AppError::UnsupportedFormat { format: format!("unsupported file format: {}", extension).into() }
+            AppError::UnsupportedFormat { format: format!("unsupported file format: {}", extension) }
         })?;
 
         extractor.extract_cover(file_path, output_dir)
@@ -222,10 +222,10 @@ impl ThreadSafeCoverRegistry {
             .extension()
             .and_then(|ext| ext.to_str())
             .ok_or_else(|| {
-                AppError::UnsupportedFormat { format: "unable to identify file extension".to_string().into() }
+                AppError::UnsupportedFormat { format: "unable to identify file extension".to_string() }
             })?;
         let extractor = self.inner.lock().get_extractor(extension).ok_or_else(|| {
-            AppError::UnsupportedFormat { format: format!("unsupported file format: {}", extension).into() }
+            AppError::UnsupportedFormat { format: format!("unsupported file format: {}", extension) }
         })?;
         extractor.extract_cover(file_path, output_dir)
     }

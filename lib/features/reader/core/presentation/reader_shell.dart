@@ -92,7 +92,11 @@ class ReaderShell extends HookWidget {
     });
 
     useSignalEffect(() {
-      vm.chapterManager.updateFont(fontRepo.currentFontFamily);
+      final font = fontRepo.currentFontFamily;
+      final prev = vm.chapterManager.fontFamily;
+      if (font != prev) {
+        vm.chapterManager.updateFont(font);
+      }
     });
 
     useEffect(() {
@@ -103,7 +107,7 @@ class ReaderShell extends HookWidget {
         vm.chapterManager.pageWidth = mq.size.width;
         vm.chapterManager.pageHeight = mq.size.height - mq.padding.vertical;
         vm.chapterManager.devicePixelRatio = mq.devicePixelRatio;
-        vm.chapterManager.updateFont(fontRepo.currentFontFamily);
+        vm.chapterManager.fontFamily = fontRepo.currentFontFamily;
         vm.initialize(bookId, initialChapterId: initialChapterId);
       });
       return () {

@@ -50,7 +50,7 @@ class ChapterNavigator {
         initialCharOffset: preferLastPageCharOffset,
       );
       Logging.info(
-        '[Timing] cross-chapter backward: chapter_from=$fromChapter chapter_to=$newChapterIndex total_ms=${sw.elapsedMilliseconds}',
+        '[ChapterTransition] backward: from=$fromChapter to=$newChapterIndex total_ms=${sw.elapsedMilliseconds}',
       );
     }
   }
@@ -70,7 +70,7 @@ class ChapterNavigator {
         navigationKind: ChapterNavigationKind.adjacentCrossChapter,
       );
       Logging.info(
-        '[Timing] cross-chapter forward: chapter_from=$fromChapter chapter_to=$newChapterIndex total_ms=${sw.elapsedMilliseconds}',
+        '[ChapterTransition] forward: from=$fromChapter to=$newChapterIndex total_ms=${sw.elapsedMilliseconds}',
       );
     }
   }

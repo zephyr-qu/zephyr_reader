@@ -36,18 +36,18 @@ const PAGINATION_ENGINE_CACHE_CAPACITY: NonZeroUsize = match NonZeroUsize::new(1
     None => unreachable!(),
 };
 
-/// LRU 键：canonical `file_path` + 章索引 + 排版 config hash。
+/// LRU 键：`book_id` + 章索引 + 排版 config hash（M2: handle-based 统一，ADR-014）。
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub(crate) struct PaginationKey {
-    pub file_path: String,
+    pub book_id: String,
     pub chapter_index: i32,
     pub config_hash: u64,
 }
 
 impl PaginationKey {
-    pub fn new(validated_path: &str, chapter_index: i32, config_hash: u64) -> Self {
+    pub fn new(book_id: &str, chapter_index: i32, config_hash: u64) -> Self {
         Self {
-            file_path: validated_path.to_string(),
+            book_id: book_id.to_string(),
             chapter_index,
             config_hash,
         }
@@ -95,19 +95,17 @@ impl PaginationStore {
         PAGINATION_ENGINE_CACHE.lock().pop(key);
     }
 
-    /// 清空内存 LRU（测试用：验证 sled 跨 session 命中）。
-#[cfg(test)]
-    pub fn clear_lru_for_test(&self) {
+/// 清空内存 LRU（集成测试用：验证 sled 跨 session 命中，无 cfg(test) 防护）。
+pub fn clear_lru_for_test(&self) {
         PAGINATION_ENGINE_CACHE.lock().clear();
     }
 
     /// config 变更时驱逐旧 key（repaginate）。
     pub(crate) fn evict_if_replaced(&self, prior: Option<&PaginationKey>, new_key: &PaginationKey) {
-        if let Some(old) = prior {
-            if old != new_key {
+        if let Some(old) = prior
+            && old != new_key {
                 self.evict(old);
             }
-        }
     }
 
     /// Pop → 只读借用 → put back（path API 单页读取用）。
@@ -173,8 +171,7 @@ impl PaginationStore {
             return Err(AppError::InternalError {
                 reason: format!(
                     "pagination engine mode mismatch: cache vs expected_mode={expected_mode:?}"
-                )
-                .into(),
+                ),
             });
         }
 
@@ -191,8 +188,8 @@ mod tests {
     use crate::domain::{BlockJoinedPlainBuilder, TypesetConfig};
     use crate::text::paginate_chapter_ir;
 
-    fn make_key(file_path: &str, chapter_index: i32, config_hash: u64) -> PaginationKey {
-        PaginationKey::new(file_path, chapter_index, config_hash)
+    fn make_key(book_id: &str, chapter_index: i32, config_hash: u64) -> PaginationKey {
+        PaginationKey::new(book_id, chapter_index, config_hash)
     }
 
     fn make_block_engine() -> PaginationEngine {

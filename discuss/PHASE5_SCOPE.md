@@ -1,7 +1,7 @@
 # Phase 5 范围 — 稳定性与工程化（2026-07-03）
 
-> **状态**：定义阶段
-> **绑定**：[READING_BOUNDARIES.md](./READING_BOUNDARIES.md) v1.2 · [ROADMAP.md](./ROADMAP.md) Phase 5
+> **状态**：进行中
+> **绑定**：[READING_BOUNDARIES.md](./READING_BOUNDARIES.md) v1.3 · [ROADMAP.md](./ROADMAP.md) Phase 5
 > **前置**：Phase 4 代码全部完成（P4-1～P4-5 + 所有 P1/P2 bug 修复 + P0 架构统一 + 精排 P1/P2 CSS 投射）
 
 ---
@@ -44,7 +44,10 @@
 
 | # | 项 | 验收 |
 |---|-----|------|
-| 5-4 | path-based → handle-based 统一 | `get_chapter_content_ir(bookId, chapterIndex, config)` 替代 `get_chapter_content_ir(path, ...)` |
+| 5-4 | path-based → handle-based 统一 | `create_pagination_session(book_id, chapter_index, config)` 替代 `create_pagination_session(file_path, ...)` |
+| 5-4a | `NextChapterStaging` 参数从 `file_path` 改为 `book_id` | staging 路径无 path-based pagination 调用 |
+| 5-4b | `provider_cache.rs` CacheKey 从 `(path, format)` 改为 `(book_id, format)` | 缓存 key 不含文件路径 |
+| 5-4c | 移除 `format_from_file_path` 在分页 API 中的使用 | `chapter_access.rs` 分页路径简化 |
 | 5-5 | 删除 `chapterHasImageBlocks` 废弃函数 | 无遗留调用 |
 | 5-6 | 删除 `paginate_all_content` / plain sled 残余 | Rust/Dart 两侧无 plain 分页路径 |
 
@@ -53,8 +56,10 @@
 | # | 项 | 验收 |
 |---|-----|------|
 | 5-7 | `ChapterLoadOrchestrator` 单元测试 | expand/rebuild/dispose 并发场景有断言 |
+| 5-7b | `NextChapterStaging` 单元测试 | M2 改 `book_id` 参数后 staging 预取/提升链路正常 |
 | 5-8 | `PaginationCoordinator` 单元测试 | configHash 一致性 + generation gate 验证 |
 | 5-9 | `RustPaginationSession` 生命周期测试 | create/expand/dispose 链路有断言 |
+| 5-9b | `_Semaphore` 单元测试 | acquire/release 正反场景覆盖（M4 重构前建立基线） |
 | 5-10 | `CharWidthTable` 独立测试 | CJK/Latin/标点宽度表验证 |
 
 ### M4 — 小清理
@@ -107,7 +112,7 @@
 
 - [ ] 22 处 catch(_) → catch(e) + Logging 全完成（M1）
 - [ ] ADR-014 执行完毕（M2）
-- [ ] Orchestrator/Coordinator/Session 核心路径测试 ≥ 3（M3）
+- [ ] M3 六项测试全部通过（Orchestrator + NextChapterStaging + Coordinator + Session + _Semaphore + CharWidthTable）
 - [ ] 废弃函数清理完成（M4）
 - [ ] 真机验收全绿（M5 收尾）
 - [ ] `cargo clippy -- -D warnings` + `dart analyze --fatal-infos` 零报

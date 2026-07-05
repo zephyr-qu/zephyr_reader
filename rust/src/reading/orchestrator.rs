@@ -12,6 +12,8 @@ use std::sync::LazyLock;
 use crate::domain::{AppError, ChapterContentIr, PageBlockSlice, PaginateResult, TypesetConfig};
 use crate::reading::types::PaginationSessionHandle;
 use crate::api::core::{ChapterContent, FirstSpineResult};
+use crate::storage::repos::BookRepository;
+use crate::storage::storage_pool;
 
 use crate::utils::security::validate_file_path;
 
@@ -33,6 +35,19 @@ impl ReadingOrchestrator {
         &INSTANCE
     }
 
+    /// M2: 从 book_id 解析 file_path（ADR-014 — handle-based 统一）。
+    async fn resolve_book_path(book_id: &str) -> Result<String, AppError> {
+        // 复用已有的 chapter_access::BOOK_ID_CACHE 方向（path→book_id）暂不满足需求；
+        // M2 反向解析走 DB 主键查询，后续若热点明显可补 book_id→path 缓存。
+        let pool = storage_pool()?;
+        let book = BookRepository::find_by_id(&pool, book_id)
+            .await?
+            .ok_or_else(|| AppError::NotFound {
+                entity: format!("book {book_id}"),
+            })?;
+        Ok(book.file_path)
+    }
+
     /// 从 DB 获取章节边界信息（TXT 的文件字节偏移，EPUB 的 spine 索引）。
     pub async fn get_chapter_bounds(
         &self,
@@ -43,57 +58,63 @@ impl ReadingOrchestrator {
     }
 
     /// 轻量级分页排版（只获取页面描述符，文本按需加载）。
+    /// M2: book_id 替代 file_path（ADR-014）。
     pub async fn paginate_chapter(
         &self,
-        file_path: String,
+        book_id: String,
         chapter_index: i32,
         config: TypesetConfig,
         max_chars: Option<u64>,
     ) -> Result<PaginateResult, AppError> {
-        super::pagination::paginate_chapter(file_path, chapter_index, config, max_chars).await
+        let file_path = Self::resolve_book_path(&book_id).await?;
+        super::pagination::paginate_chapter(&book_id, file_path, chapter_index, config, max_chars).await
     }
 
     /// 按需获取单页内容（同步，纯内存操作）。
     pub fn get_page_content(
         &self,
-        file_path: String,
+        book_id: String,
         chapter_index: i32,
         config_hash: u64,
         page_index: i32,
     ) -> Result<String, AppError> {
-        super::pagination::get_page_content(file_path, chapter_index, config_hash, page_index)
+        super::pagination::get_page_content(&book_id, chapter_index, config_hash, page_index)
     }
 
     /// 从 `PAGINATION_ENGINE_CACHE` 按需取页块（staging 预渲染用）。
     pub fn get_page_blocks(
         &self,
-        file_path: String,
+        book_id: String,
         chapter_index: i32,
         config_hash: u64,
         page_index: i32,
     ) -> Result<Vec<PageBlockSlice>, AppError> {
-        super::pagination::get_page_blocks(file_path, chapter_index, config_hash, page_index)
+        super::pagination::get_page_blocks(&book_id, chapter_index, config_hash, page_index)
     }
 
     /// Create a pagination session and run initial pagination for the chapter.
+    /// M2: book_id 替代 file_path（ADR-014）。
     pub async fn create_pagination_session(
         &self,
-        file_path: String,
+        book_id: String,
         chapter_index: i32,
         config: TypesetConfig,
         max_chars: Option<u64>,
     ) -> Result<(PaginationSessionHandle, PaginateResult), AppError> {
-        super::session::create_pagination_session(file_path, chapter_index, config, max_chars).await
+        let file_path = Self::resolve_book_path(&book_id).await?;
+        super::session::create_pagination_session(book_id, file_path, chapter_index, config, max_chars).await
     }
 
     /// Create a pagination session by adopting an existing streamer from cache.
+    /// M2: book_id 替代 file_path（ADR-014）。
     pub async fn create_pagination_session_adopt(
         &self,
-        file_path: String,
+        book_id: String,
         chapter_index: i32,
         config: TypesetConfig,
     ) -> Result<(PaginationSessionHandle, PaginateResult), AppError> {
-        super::session::create_pagination_session_adopt(file_path, chapter_index, config).await
+        let file_path = Self::resolve_book_path(&book_id).await?;
+        super::session::create_pagination_session_adopt(book_id, file_path, chapter_index, config).await
     }
 
     /// Re-paginate an existing session with a new config in-place.
@@ -198,8 +219,7 @@ impl ReadingOrchestrator {
         super::chapter_ir::load_chapter_content_ir(&validated_path, chapter_index).await
     }
 
-    /// 清理 PROVIDER_CACHE + BOOK_ID_CACHE + 分页内存 LRU（测试用）。
-#[cfg(test)]
+    /// 清理 PROVIDER_CACHE + BOOK_ID_CACHE + 分页内存 LRU（集成测试用，无 cfg(test) 防护）。
     pub fn clear_caches_for_test(&self) {
         super::provider_cache::clear_for_test();
         super::clear_for_test();

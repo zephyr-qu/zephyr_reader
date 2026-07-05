@@ -140,11 +140,10 @@ impl EpubAssetRegistry {
             if href.is_empty() || !tried.insert(href.clone()) {
                 continue;
             }
-            if let Some(bytes) = epub.read_resource_bytes(&href) {
-                if !bytes.is_empty() {
+            if let Some(bytes) = epub.read_resource_bytes(&href)
+                && !bytes.is_empty() {
                     return Some(bytes);
                 }
-            }
         }
         None
     }
@@ -161,11 +160,10 @@ impl EpubAssetRegistry {
         if let Some(id) = self.by_internal_path.get(&normalized) {
             return self.by_asset_id.get(id);
         }
-        if let Some(name) = normalized.rsplit('/').next().filter(|s| !s.is_empty()) {
-            if let Some(id) = self.by_filename.get(name) {
+        if let Some(name) = normalized.rsplit('/').next().filter(|s| !s.is_empty())
+            && let Some(id) = self.by_filename.get(name) {
                 return self.by_asset_id.get(id);
             }
-        }
         self.by_asset_id.values().find(|entry| {
             entry.internal_path == normalized
                 || entry.internal_path.ends_with(&format!("/{normalized}"))
@@ -202,13 +200,12 @@ fn decode_percent_ascii(input: &str) -> String {
     let mut out = Vec::with_capacity(bytes.len());
     let mut i = 0;
     while i < bytes.len() {
-        if bytes[i] == b'%' && i + 2 < bytes.len() {
-            if let (Some(h1), Some(h2)) = (hex_nibble(bytes[i + 1]), hex_nibble(bytes[i + 2])) {
+        if bytes[i] == b'%' && i + 2 < bytes.len()
+            && let (Some(h1), Some(h2)) = (hex_nibble(bytes[i + 1]), hex_nibble(bytes[i + 2])) {
                 out.push((h1 << 4) | h2);
                 i += 3;
                 continue;
             }
-        }
         out.push(bytes[i]);
         i += 1;
     }

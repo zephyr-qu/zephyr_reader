@@ -100,7 +100,7 @@ impl From<sqlx::Error> for AppError {
             _ => "Other",
         };
         Self::DatabaseError {
-            reason: format!("[{}] {}", category, err).into(),
+            reason: format!("[{}] {}", category, err),
         }
     }
 }

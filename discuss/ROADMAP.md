@@ -1,6 +1,6 @@
 # 阅读核心路线图（与边界 v1.1 绑定）
 
-> **当前阶段 = Phase 5 稳定性与工程化**（2026-07-03 定义，见 [PHASE5_SCOPE.md](./PHASE5_SCOPE.md)）
+> **当前阶段 = Phase 5 稳定性与工程化**（2026-07-03 定义，2026-07-04 进行中，见 [PHASE5_SCOPE.md](./PHASE5_SCOPE.md)）
 > **Phase 4** 已关闭 ✅（2026-07-03）
 > **上一阶段**：Phase 4 退出
 
@@ -89,7 +89,7 @@ EPUB 分页内联图 + 大图独占页；`BlockPaginator`；charOffset 兼容 AD
 
 ---
 
-## Phase 5 — 稳定性与工程化 🚧 定义阶段
+## Phase 5 — 稳定性与工程化 🚧 进行中
 
 **目标**：真机验收零缺陷、可观测性补齐、API 路径统一、测试补齐。详见 [PHASE5_SCOPE.md](./PHASE5_SCOPE.md)。
 

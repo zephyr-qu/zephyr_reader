@@ -33,7 +33,7 @@ pub async fn load_chapter_content_ir(
             .await
             .map_err(|e| AppError::TaskPanic {
                 task_name: "load_chapter_ir:epub".into(),
-                details: e.to_string().into(),
+                details: e.to_string(),
             })?
         }
         BookFormat::Txt => {
@@ -43,7 +43,7 @@ pub async fn load_chapter_content_ir(
             .await
             .map_err(|e| AppError::TaskPanic {
                 task_name: "load_chapter_ir:txt".into(),
-                details: e.to_string().into(),
+                details: e.to_string(),
             })?
         }
     }?;

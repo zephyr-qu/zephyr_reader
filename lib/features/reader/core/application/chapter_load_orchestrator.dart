@@ -120,6 +120,12 @@ class ChapterLoadOrchestrator {
         return;
       }
 
+      if (!isStagingPromote) {
+        Logging.info(
+          '[FirstLoad] gen=$gen starting pagination intent=$intent chapter=${request.chapterIndex}',
+        );
+      }
+
       // P3 (Bug A) 修复：stagingPromote 路径不需要冗余 loadChapterContent，
       // 内容已由 staging 缓存提供。提前跳过，避免无谓 IO 和未处理 Future 错误。
       final chapterPlainFuture = isStagingPromote
@@ -153,9 +159,12 @@ class ChapterLoadOrchestrator {
       }
 
       // stagingPromote 路径：_runStagingPromote 已设置所有信号，跳过冗余后继处理。
-      // 见 issue/KNOWN_POSTPHASE4_BUGS.md Bug A
       if (intent == ChapterPaginationIntent.stagingPromoteForward ||
           intent == ChapterPaginationIntent.stagingPromoteBackward) {
+        Logging.info(
+          '[ChapterTransition] gen=$gen promote done ${sw.elapsedMilliseconds}ms '
+          'chapter=${request.chapterIndex} pages=${quickResult?.totalPages ?? "?"}',
+        );
         _setPhase(gen, ChapterLoadPhase.completed);
         _applyIfCurrent(gen, () {
           _loadPhase.value = ChapterLoadPhase.idle;
@@ -260,6 +269,11 @@ class ChapterLoadOrchestrator {
       if (refinedCalibration != null && !_isStale(gen)) {
         _pagination.calibration.value = refinedCalibration;
       }
+
+      Logging.info(
+        '[FirstLoad] gen=$gen finalize contentLen=${content.length} total=$total isPartial=${quickResult.isPartial}'
+        ' cumulative=${sw.elapsedMilliseconds}ms',
+      );
 
       await _runFinalize(gen, request, content: content, total: total);
       if (_isStale(gen)) {
@@ -486,8 +500,20 @@ class ChapterLoadOrchestrator {
     if (_isStale(gen)) return null;
     _pagination.calibration.value ??= calibResult;
 
+    Logging.info(
+      '[FirstLoad] gen=$gen $logLabel calibration ready'
+      ' calib=${calibResult != null}',
+    );
+
+    final paginateSw = Stopwatch()..start();
     final quickResult = await paginate();
     if (_isStale(gen)) return null;
+
+    Logging.info(
+      '[FirstLoad] gen=$gen $logLabel paginate done'
+      ' pages=${quickResult.totalPages} partial=${quickResult.isPartial}'
+      ' ${paginateSw.elapsedMilliseconds}ms',
+    );
 
     final descriptors = _contentRepo.descriptors;
     if (descriptors != null && descriptors.isNotEmpty) {
@@ -563,6 +589,11 @@ class ChapterLoadOrchestrator {
   }) async {
     final sw = Stopwatch()..start();
     _setPhase(gen, ChapterLoadPhase.firstSpine);
+
+    Logging.info(
+      '[ChapterTransition] gen=$gen promoteStart direction=${isForward ? "forward" : "backward"}'
+      ' chapter_to=${request.chapterIndex} sw=${sw.elapsedMilliseconds}ms',
+    );
 
     // 等待校准完成
     final calibResult = await calibFuture;
@@ -764,6 +795,8 @@ class ChapterLoadOrchestrator {
     if (_isStale(gen)) return;
     if (!_pagination.isPaginationValid(totalPages)) return;
 
+    final oldPage = _pageIndex.value;
+    final oldTotal = _totalPages.value;
     final currentCharOffset = _chapterVM.currentCharOffset.value;
     final applied = _pagination.applyFullResult(
       total: totalPages,
@@ -775,6 +808,13 @@ class ChapterLoadOrchestrator {
       _pageIndex.value = applied.pageIndex;
       _chapterVM.currentCharOffset.value = currentCharOffset;
     });
+
+    Logging.info(
+      '[LayoutChange] gen=$gen syncAfterRepaginate '
+      'totalPages $oldTotal→${applied.totalPages}'
+      ' pageIndex $oldPage→${applied.pageIndex}'
+      ' off=$currentCharOffset',
+    );
   }
 
   /// 首屏渲染后从实际页文本采样 TextPainter metrics（P4-4 / ADR-013）。

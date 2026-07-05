@@ -19,7 +19,7 @@ fn image_cache_root() -> Result<PathBuf, AppError> {
     let dir = base.join("zephyr_reader").join("epub_images");
     fs::create_dir_all(&dir).map_err(|e| AppError::FileWriteError {
         path: dir.to_string_lossy().into(),
-        details: e.to_string().into(),
+        details: e.to_string(),
     })?;
     Ok(dir)
 }
@@ -66,7 +66,7 @@ fn encode_resized_image(img: image::DynamicImage, max_width_px: u32) -> Result<V
     processed
         .write_to(&mut Cursor::new(&mut png_buf), ImgFormat::Png)
         .map_err(|e| AppError::InternalError {
-            reason: format!("image encode failed: {e}").into(),
+            reason: format!("image encode failed: {e}"),
         })?;
     Ok(png_buf)
 }
@@ -119,7 +119,7 @@ pub fn get_processed_epub_image(
     if let Some(parent) = out_path.parent() {
         fs::create_dir_all(parent).map_err(|e| AppError::FileWriteError {
             path: parent.to_string_lossy().into(),
-            details: e.to_string().into(),
+            details: e.to_string(),
         })?;
     }
 
@@ -134,7 +134,7 @@ pub fn get_processed_epub_image(
 
     fs::write(&write_path, &processed_bytes).map_err(|e| AppError::FileWriteError {
         path: write_path.to_string_lossy().into(),
-        details: format!("image cache write failed for {asset_id}: {e}").into(),
+        details: format!("image cache write failed for {asset_id}: {e}"),
     })?;
 
     Ok(write_path.to_string_lossy().into())

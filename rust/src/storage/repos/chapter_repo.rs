@@ -18,7 +18,7 @@ impl ChapterRepository {
                 return Err(AppError::DatabaseError { reason: format!(
                     "Chapter {} belongs to book {}, but expected {}",
                     chapter.id, chapter.book_id, book_id
-                ).into() });
+                ) });
             }
             sqlx::query(
                 "INSERT INTO chapters (id, book_id, title, chapter_index, cached_at, level, start_index, end_index) \

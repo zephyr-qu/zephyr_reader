@@ -34,7 +34,7 @@ pub fn parse_html_to_rich_text(html_content: &str) -> Result<Vec<RichParagraph>,
     let dom = parse_document(RcDom::default(), Default::default())
         .from_utf8()
         .read_from(&mut html_content.as_bytes())
-        .map_err(|e| AppError::EpubParseError { reason: format!("HTML parse failed: {}", e).into() })?;
+        .map_err(|e| AppError::EpubParseError { reason: format!("HTML parse failed: {}", e) })?;
 
     let mut paragraphs = Vec::new();
 

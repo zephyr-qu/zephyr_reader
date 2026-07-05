@@ -32,27 +32,24 @@ fn extract_metadata_from_content(
             continue;
         }
 
-        if title.is_none() {
-            if let Some(val) = extract_kv(line, &["书名", "書名"]) {
+        if title.is_none()
+            && let Some(val) = extract_kv(line, &["书名", "書名"]) {
                 title = Some(val);
                 continue;
             }
-        }
 
-        if author.is_none() {
-            if let Some(val) = extract_kv(line, &["作者"]) {
+        if author.is_none()
+            && let Some(val) = extract_kv(line, &["作者"]) {
                 author = Some(val);
                 continue;
             }
-        }
 
-        if description.is_none() {
-            if let Some(val) =
+        if description.is_none()
+            && let Some(val) =
                 extract_kv(line, &["简介", "簡介", "内容简介", "內容簡介", "内容提要"])
             {
                 description = Some(val);
             }
-        }
 
         if title.is_some() && author.is_some() && description.is_some() {
             break;
@@ -88,7 +85,7 @@ fn parse_txt_inner(file_path: String) -> Result<ParseResult, AppError> {
 
     // 检查文件是否存在
     if !Path::new(&file_path).exists() {
-        return Err(AppError::FileNotFound { path: file_path.into() });
+        return Err(AppError::FileNotFound { path: file_path });
     }
     tracing::debug!("file existence check passed: {}", file_path);
 

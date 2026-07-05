@@ -327,11 +327,10 @@ fn render_txt(notes: Vec<Note>, book_title: &str) -> String {
             &mut buf,
             format_args!("章节: 第 {} 章\n", note.chapter_index + 1),
         );
-        if let Some(ref sel) = note.selected_text {
-            if !sel.is_empty() {
+        if let Some(ref sel) = note.selected_text
+            && !sel.is_empty() {
                 let _ = std::fmt::Write::write_fmt(&mut buf, format_args!("原文: \"{}\"\n", sel));
             }
-        }
         let _ = std::fmt::Write::write_fmt(
             &mut buf,
             format_args!("时间: {}\n", format_timestamp(&note.created_at)),
@@ -356,12 +355,11 @@ fn render_markdown(notes: Vec<Note>, book_title: &str) -> String {
             &mut buf,
             format_args!("- **章节**: 第 {} 章\n", note.chapter_index + 1),
         );
-        if let Some(ref sel) = note.selected_text {
-            if !sel.is_empty() {
+        if let Some(ref sel) = note.selected_text
+            && !sel.is_empty() {
                 let _ =
                     std::fmt::Write::write_fmt(&mut buf, format_args!("- **原文**: \"{}\"\n", sel));
             }
-        }
         let _ = std::fmt::Write::write_fmt(
             &mut buf,
             format_args!("- **时间**: {}\n\n", format_timestamp(&note.created_at)),
@@ -391,14 +389,13 @@ fn render_html(notes: Vec<Note>, book_title: &str) -> String {
                 note.chapter_index + 1
             ),
         );
-        if let Some(ref sel) = note.selected_text {
-            if !sel.is_empty() {
+        if let Some(ref sel) = note.selected_text
+            && !sel.is_empty() {
                 let _ = std::fmt::Write::write_fmt(
                     &mut body,
                     format_args!("      <blockquote>{}</blockquote>\n", escape_html(sel)),
                 );
             }
-        }
         let _ = std::fmt::Write::write_fmt(
             &mut body,
             format_args!(

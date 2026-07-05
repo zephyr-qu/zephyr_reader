@@ -18,9 +18,11 @@ use crate::reading::pagination_store::{PaginationKey, PaginationStore};
 use crate::reading::types::PaginationSessionHandle;
 use crate::utils::security::validate_file_path;
 
-/// Server-side pagination session entry (file/chapter/config binding).
+/// Server-side pagination session entry (book/chapter/config binding).
+/// M2: `book_id` 新增（ADR-014），`file_path` 保留为内部文件操作使用。
 #[derive(Clone)]
 pub(crate) struct PaginationSessionEntry {
+    pub(crate) book_id: String,
     pub(crate) file_path: String,
     pub(crate) chapter_index: i32,
     pub(crate) config: TypesetConfig,
@@ -33,7 +35,7 @@ impl PaginationSessionEntry {
     }
 
     fn cache_key(&self) -> PaginationKey {
-        PaginationKey::new(&self.file_path, self.chapter_index, self.config_hash())
+        PaginationKey::new(&self.book_id, self.chapter_index, self.config_hash())
     }
 }
 
@@ -59,12 +61,12 @@ pub(crate) fn lookup_pagination_session(
 }
 
 fn engine_from_paginate_result(
-    validated_path: &str,
+    book_id: &str,
     chapter_index: i32,
     result: &PaginateResult,
     old_key: Option<PaginationKey>,
 ) -> Result<PaginationEngine, AppError> {
-    let key = PaginationKey::new(validated_path, chapter_index, result.config_hash);
+    let key = PaginationKey::new(book_id, chapter_index, result.config_hash);
     PaginationStore::global().attach_for_session(
         &key,
         result.mode,
@@ -85,6 +87,7 @@ pub(crate) async fn apply_session_repagination(
     let old_key = entry.cache_key();
 
     let result = paginate_chapter(
+        &entry.book_id,
         entry.file_path.clone(),
         entry.chapter_index,
         config.clone(),
@@ -93,7 +96,7 @@ pub(crate) async fn apply_session_repagination(
     .await?;
 
     let engine = engine_from_paginate_result(
-        &entry.file_path,
+        &entry.book_id,
         entry.chapter_index,
         &result,
         Some(old_key),
@@ -102,6 +105,7 @@ pub(crate) async fn apply_session_repagination(
     SESSION_MAP.lock().insert(
         session_id,
         PaginationSessionEntry {
+            book_id: entry.book_id,
             file_path: entry.file_path,
             chapter_index: entry.chapter_index,
             config,
@@ -113,7 +117,9 @@ pub(crate) async fn apply_session_repagination(
 }
 
 /// Create a pagination session and run initial pagination for the chapter.
+/// M2: `book_id` 用于 PaginationKey，`file_path` 由 orchestrator 预解析（ADR-014）。
 pub(crate) async fn create_pagination_session(
+    book_id: String,
     file_path: String,
     chapter_index: i32,
     config: TypesetConfig,
@@ -122,6 +128,7 @@ pub(crate) async fn create_pagination_session(
     let validated_path = validate_file_path(&file_path)?;
     let config = config.validate_and_fix();
     let result = paginate_chapter(
+        &book_id,
         validated_path.clone(),
         chapter_index,
         config.clone(),
@@ -131,7 +138,7 @@ pub(crate) async fn create_pagination_session(
 
     let session_id = allocate_session_id();
     let engine = engine_from_paginate_result(
-        &validated_path,
+        &book_id,
         chapter_index,
         &result,
         None,
@@ -140,6 +147,7 @@ pub(crate) async fn create_pagination_session(
     SESSION_MAP.lock().insert(
         session_id,
         PaginationSessionEntry {
+            book_id: book_id.clone(),
             file_path: validated_path,
             chapter_index,
             config,
@@ -151,7 +159,9 @@ pub(crate) async fn create_pagination_session(
 }
 
 /// Create a pagination session by adopting an existing engine from cache.
+/// M2: `book_id` 用于 PaginationKey，`file_path` 由 orchestrator 预解析（ADR-014）。
 pub(crate) async fn create_pagination_session_adopt(
+    book_id: String,
     file_path: String,
     chapter_index: i32,
     config: TypesetConfig,
@@ -159,7 +169,7 @@ pub(crate) async fn create_pagination_session_adopt(
     let validated_path = validate_file_path(&file_path)?;
     let config = config.validate_and_fix();
     let config_hash = config.config_hash();
-    let key = PaginationKey::new(&validated_path, chapter_index, config_hash);
+    let key = PaginationKey::new(&book_id, chapter_index, config_hash);
 
     let Some(engine) = PaginationStore::global().clone_for_adopt(&key) else {
         return Err(AppError::NotFound {
@@ -187,6 +197,7 @@ pub(crate) async fn create_pagination_session_adopt(
     SESSION_MAP.lock().insert(
         session_id,
         PaginationSessionEntry {
+            book_id: book_id.clone(),
             file_path: validated_path,
             chapter_index,
             config,

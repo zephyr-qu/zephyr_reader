@@ -10,8 +10,7 @@ use std::path::PathBuf;
 use std::sync::LazyLock;
 
 use rust_lib_zephyr_reader::api::core::{
-    get_chapter, get_chapter_partial, paginate_chapter,
-    paginate_all_content, parse_book, supports_chunked_pagination, ChapterContent,
+    create_pagination_session, dispose_pagination_session, get_chapter, get_chapter_partial, paginate_chapter, parse_book, supports_chunked_pagination, ChapterContent,
 };
 use rust_lib_zephyr_reader::api::data::init::init_storage;
 use rust_lib_zephyr_reader::domain::{AppError, TypesetConfig};
@@ -95,10 +94,11 @@ async fn diagnose_content_extraction_pipeline() {
     }
 
     let config = TypesetConfig::default();
-    let pages = paginate_all_content(file_path.clone(), 0, config).await
-        .expect("paginate_all_content should succeed");
-
-    assert!(!pages.is_empty(), "PaginateAllContent should produce at least 1 page");
+    let (handle, result) = create_pagination_session(file_path.clone(), 0, config, None)
+        .await
+        .expect("create_pagination_session should succeed");
+    assert!(!result.descriptors.is_empty(), "Pagination session should produce at least 1 page");
+    dispose_pagination_session(handle).expect("dispose should succeed");
 }
 
 #[tokio::test]

@@ -32,13 +32,13 @@ impl KvStore {
     /// 打开或创建 KV 存储
     pub fn new(path: impl AsRef<Path>) -> Result<Self, AppError> {
         let db = sled::open(path)
-            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to open sled database: {e}").into() })?;
+            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to open sled database: {e}") })?;
         let block_layout_cache = db
             .open_tree(BLOCK_LAYOUT_TREE_NAME)
-            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to open block layout tree: {e}").into() })?;
+            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to open block layout tree: {e}") })?;
         let scroll_ir_cache = db
             .open_tree(SCROLL_IR_TREE_NAME)
-            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to open scroll ir tree: {e}").into() })?;
+            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to open scroll ir tree: {e}") })?;
         Ok(Self {
             db,
             block_layout_cache,
@@ -50,7 +50,7 @@ impl KvStore {
     pub fn flush(&self) -> Result<(), AppError> {
         self.db
             .flush()
-            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to flush sled database: {e}").into() })?;
+            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to flush sled database: {e}") })?;
         Ok(())
     }
 
@@ -68,10 +68,10 @@ impl KvStore {
             "BlockLayoutCache version/config_hash mismatch on save"
         );
         let bytes = bincode::encode_to_vec(value, bincode::config::standard())
-            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to serialize block cache: {e}").into() })?;
+            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to serialize block cache: {e}") })?;
         self.block_layout_cache
             .insert(key.to_string(), bytes)
-            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to insert block cache: {e}").into() })?;
+            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to insert block cache: {e}") })?;
         self.enforce_block_layout_capacity()?;
         Ok(())
     }
@@ -84,7 +84,7 @@ impl KvStore {
         match self
             .block_layout_cache
             .get(key.to_string())
-            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to read block cache: {e}").into() })?
+            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to read block cache: {e}") })?
         {
             Some(bytes) => match bincode::decode_from_slice::<BlockLayoutCache, _>(
                 &bytes,
@@ -110,10 +110,10 @@ impl KvStore {
     ) -> Result<(), AppError> {
         let key = format!("{}#{}", file_path, chapter_index);
         let bytes = bincode::encode_to_vec(value, bincode::config::standard())
-            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to serialize scroll ir: {e}").into() })?;
+            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to serialize scroll ir: {e}") })?;
         self.scroll_ir_cache
             .insert(key, bytes)
-            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to insert scroll ir cache: {e}").into() })?;
+            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to insert scroll ir cache: {e}") })?;
         self.enforce_scroll_ir_capacity()?;
         Ok(())
     }
@@ -128,7 +128,7 @@ impl KvStore {
         match self
             .scroll_ir_cache
             .get(&key)
-            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to read scroll ir cache: {e}").into() })?
+            .map_err(|e| AppError::DatabaseError { reason: format!("Failed to read scroll ir cache: {e}") })?
         {
             Some(bytes) => match bincode::decode_from_slice::<ScrollIrCache, _>(
                 &bytes,
@@ -151,9 +151,9 @@ impl KvStore {
     ) -> Result<(), AppError> {
         for key in tree.scan_prefix(prefix.as_bytes()).keys() {
             let key = key
-                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to read key: {e}").into() })?;
+                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to read key: {e}") })?;
             tree.remove(key)
-                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to remove cache: {e}").into() })?;
+                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to remove cache: {e}") })?;
         }
         Ok(())
     }
@@ -178,7 +178,7 @@ impl KvStore {
         for key in keys {
             self.block_layout_cache
                 .remove(key)
-                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to remove key: {e}").into() })?;
+                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to remove key: {e}") })?;
             count += 1;
         }
         Ok(count)
@@ -190,17 +190,15 @@ impl KvStore {
         let mut count = 0;
         for item in self.block_layout_cache.iter() {
             let (key, value) = item
-                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to read from sled: {e}").into() })?;
+                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to read from sled: {e}") })?;
             if let Ok((cache, _)) =
                 bincode::decode_from_slice::<BlockLayoutCache, _>(&value, bincode::config::standard())
-            {
-                if cache.created_at < cutoff {
+                && cache.created_at < cutoff {
                     self.block_layout_cache
                         .remove(key)
-                        .map_err(|e| AppError::DatabaseError { reason: format!("Failed to remove key: {e}").into() })?;
+                        .map_err(|e| AppError::DatabaseError { reason: format!("Failed to remove key: {e}") })?;
                     count += 1;
                 }
-            }
         }
         Ok(count)
     }
@@ -215,7 +213,7 @@ impl KvStore {
         let mut entries: Vec<(sled::IVec, i64)> = Vec::new();
         for item in self.block_layout_cache.iter() {
             let (key, value) = item
-                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to read from sled: {e}").into() })?;
+                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to read from sled: {e}") })?;
             if let Ok((cache, _)) =
                 bincode::decode_from_slice::<BlockLayoutCache, _>(&value, bincode::config::standard())
             {
@@ -227,7 +225,7 @@ impl KvStore {
         for (key, _) in entries.iter().take(to_evict) {
             self.block_layout_cache
                 .remove(key)
-                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to evict block cache: {e}").into() })?;
+                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to evict block cache: {e}") })?;
         }
         tracing::info!(
             "Evicted {to_evict} oldest block_layout_cache entries (was {len}, max {BLOCK_LAYOUT_MAX_ENTRIES})"
@@ -246,7 +244,7 @@ impl KvStore {
         let mut stale_keys: Vec<sled::IVec> = Vec::new();
         for item in self.scroll_ir_cache.iter() {
             let (key, value) = item
-                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to read from sled: {e}").into() })?;
+                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to read from sled: {e}") })?;
             if let Ok((cache, _)) =
                 bincode::decode_from_slice::<ScrollIrCache, _>(&value, bincode::config::standard())
             {
@@ -261,7 +259,7 @@ impl KvStore {
         for key in &stale_keys {
             self.scroll_ir_cache
                 .remove(key)
-                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to evict stale scroll ir: {e}").into() })?;
+                .map_err(|e| AppError::DatabaseError { reason: format!("Failed to evict stale scroll ir: {e}") })?;
         }
         // 若仍超限，删最早的有效条目（sled key 按字节序排列 ≈ 插入序）
         let remaining = self.scroll_ir_cache.len();
@@ -270,7 +268,7 @@ impl KvStore {
             for key in valid_keys.iter().take(to_evict) {
                 self.scroll_ir_cache
                     .remove(key)
-                    .map_err(|e| AppError::DatabaseError { reason: format!("Failed to evict scroll ir: {e}").into() })?;
+                    .map_err(|e| AppError::DatabaseError { reason: format!("Failed to evict scroll ir: {e}") })?;
             }
             tracing::info!(
                 "Evicted {to_evict} scroll_ir_cache entries (stale: {stale_count}, was {len}, max {SCROLL_IR_MAX_ENTRIES})",

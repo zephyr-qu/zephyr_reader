@@ -80,6 +80,15 @@ class ReaderViewModel {
         }
       }),
     );
+    _disposers.add(
+      effect(() {
+        final err = annotations.highlightsError.value;
+        if (err != null) {
+          toastMessage.value = err;
+          annotations.highlightsError.value = null; // 消费后重置，避免重复提示
+        }
+      }),
+    );
 
     try {
       await chapterManager.loadChapters();

@@ -9,7 +9,7 @@ mod common;
 use rust_lib_zephyr_reader::api;
 use rust_lib_zephyr_reader::api::core::{
     compute_config_hash, create_pagination_session, dispose_pagination_session, get_chapter,
-    get_page_content, paginate_all_content, paginate_chapter, ChapterContent,
+    get_page_content, paginate_chapter, ChapterContent,
 };
 use rust_lib_zephyr_reader::api::search;
 use rust_lib_zephyr_reader::domain::{LanguageType, TypesetConfig};
@@ -57,10 +57,6 @@ fn ms_str(ms: f64) -> String {
 }
 
 fn row(op: &str, ms: f64, note: &str) {
-    println!("  {:<45} {:>10}  {}", op, ms_str(ms), note);
-}
-
-fn row_note(op: &str, ms: f64, note: &str) {
     println!("  {:<45} {:>10}  {}", op, ms_str(ms), note);
 }
 
@@ -132,9 +128,8 @@ async fn profile_all() {
     let _tmp = scratch_storage().await;
     let path = fixture("活着.epub");
     let fp = path.to_str().unwrap().to_string();
-    let book_id = api::parse_book(fp.clone()).await.expect("parse");
+    let _book_id = api::parse_book(fp.clone()).await.expect("parse");
     let cfg = config();
-    let fixt_name = "活着.epub";
 
     // 2a. get_chapter (chapter 0)
     let t = Instant::now();
@@ -166,13 +161,14 @@ async fn profile_all() {
     };
     row("paginate_chapter (warm, ch0)", ms, &format!("{} pages  {}", pr2.descriptors.len(), hit));
 
-    // 2d. paginate_all_content (scroll mode)
+    // 2d. create_pagination_session (replaces paginate_all_content scroll mode)
     let t = Instant::now();
-    let pages = paginate_all_content(fp.clone(), 0, cfg.clone())
+    let (handle, result) = create_pagination_session(fp.clone(), 0, cfg.clone(), None)
         .await
-        .expect("paginate_all");
+        .expect("pagination_session");
     let ms = t.elapsed().as_secs_f64() * 1000.0;
-    row("paginate_all (scroll, ch0)", ms, &format!("{} pages, {} total", pages.len(), size_str(pages.iter().map(|p| p.content.len() as u64).sum::<u64>())));
+    row("paginate_all (scroll, ch0)", ms, &format!("{} pages", result.descriptors.len()));
+    dispose_pagination_session(handle).expect("dispose");
 
     // 2e. get_page_content
     let t = Instant::now();
@@ -186,15 +182,7 @@ async fn profile_all() {
     println!("  {:<45} {:>10}  {}", "Operation", "Latency", "Details");
     println!("  {}", "-".repeat(70));
 
-    // 3a. scroll switch ch0
-    let t = Instant::now();
-    let _ = paginate_all_content(fp.clone(), 0, cfg.clone()).await;
-    let t0 = t.elapsed().as_secs_f64() * 1000.0;
-    // scroll switch ch1
-    let _ = paginate_all_content(fp.clone(), 1, cfg.clone()).await;
-    let t1 = t.elapsed().as_secs_f64() * 1000.0;
-    row("scroll ch0", t0, "");
-    row("scroll ch1", t1 - t0, "switch from ch0");
+    
 
     // 3b. paginate switch ch0
     let t = Instant::now();
@@ -233,11 +221,7 @@ async fn profile_all() {
     let ms = t.elapsed().as_secs_f64() * 1000.0;
     row("paginate_chapter (warm, ch0)", ms, "cache HIT");
 
-    let t = Instant::now();
-    let pages_m = paginate_all_content(fp2.clone(), 0, cfg.clone()).await.expect("scroll medium");
-    let ms = t.elapsed().as_secs_f64() * 1000.0;
-    let total: u64 = pages_m.iter().map(|p| p.content.len() as u64).sum();
-    row("paginate_all (scroll, ch0)", ms, &format!("{} pages, {} total", pages_m.len(), size_str(total)));
+
 
     // ── 5. Search engine ────────────────────────────────────────
     println!();

@@ -40,7 +40,6 @@ pub type BookIdCache = LruCache<String, String>;
 pub static BOOK_ID_CACHE: LazyLock<Mutex<BookIdCache>> =
     LazyLock::new(|| Mutex::new(LruCache::new(BOOK_ID_CACHE_CAPACITY)));
 
-#[cfg(test)]
 pub(crate) fn clear_for_test() {
     BOOK_ID_CACHE.lock().clear();
 }
