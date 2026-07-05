@@ -86,6 +86,7 @@ fn filter_blocks_to_chars(
 ) -> Vec<ContentBlock> {
     let max_chars = max_chars as usize;
     let mut filtered = Vec::new();
+    let mut had_truncation = false;
 
     for block in blocks {
         let start = block.plain_start() as usize;
@@ -100,6 +101,7 @@ fn filter_blocks_to_chars(
                 let truncated_len = (max_chars - start) as u32;
                 let truncated_text: String =
                     tb.text.chars().take(truncated_len as usize).collect();
+                had_truncation = true;
                 // 边界块丢弃 spans（首屏展示可接受；完整 IR 已缓存供 expand 使用）
                 filtered.push(ContentBlock::Text(TextBlock {
                     plain: BlockPlainRange::new(tb.plain.plain_start, truncated_len),
@@ -113,6 +115,12 @@ fn filter_blocks_to_chars(
             break;
         }
     }
+    tracing::info!(
+        "[Trace] filter_blocks_to_chars in={} out={} max_chars={max_chars} truncated={had_truncation} last_plain_end={}",
+        blocks.len(),
+        filtered.len(),
+        filtered.last().map(|b| b.plain_start() + b.plain_len()).unwrap_or(0)
+    );
     filtered
 }
 
@@ -190,7 +198,10 @@ async fn try_paginate_chapter_blocks(
 
     if let Some(chars) = max_chars {
         // Partial paginate: 截取前 N 字符对应的 blocks
+        let ir_block_count = full_ir.blocks.len();
+        let ir_plain_len = full_ir.plain_text.chars().count();
         let partial_blocks = filter_blocks_to_chars(&full_ir.blocks, chars);
+        let partial_block_count = partial_blocks.len();
         let partial_ir = ChapterContentIr::new(partial_blocks, full_ir.plain_text.clone());
         let ir_for_paginate = partial_ir.clone();
         let partial_result = tokio::task::spawn_blocking(move || {
@@ -208,7 +219,7 @@ async fn try_paginate_chapter_blocks(
         store.put(key, PaginationEngine::Block(state));
 
         tracing::info!(
-            "[Timing] paginate_chapter block_path_partial config_hash={:016x} chapter={} pages={} max_chars={chars}",
+            "[Timing] paginate_chapter block_path_partial config_hash={:016x} chapter={} pages={} max_chars={chars} ir_blocks={ir_block_count} partial_blocks={partial_block_count} ir_plain_len={ir_plain_len}",
             config_hash, chapter_index, result.descriptors.len()
         );
         return Ok(Some(result));
