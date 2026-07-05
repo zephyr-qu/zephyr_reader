@@ -93,9 +93,10 @@ Widget buildBlockPageContent({
                   // 段落间距：marginBottomEm 由 blockPadding.bottom 处理，
                   // 此处仅对无显式 margin 的块补 paragraphSpacing
                   final extraSpacing =
-                      irStyle.marginBottomEm == null && config.paragraphSpacing > 0
-                          ? config.paragraphSpacing
-                          : 0.0;
+                      irStyle.marginBottomEm == null &&
+                          config.paragraphSpacing > 0
+                      ? config.paragraphSpacing
+                      : 0.0;
                   if (extraSpacing > 0) {
                     children.add(
                       Column(
