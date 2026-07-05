@@ -142,7 +142,8 @@ class ChapterNavigator {
     if (chapterList.isEmpty) return;
     final effectiveHeight =
         _pagination.pageHeight -
-        2 * ReaderRenderConfig.pageContentVerticalPadding;
+        2 * ReaderRenderConfig.pageContentVerticalPadding -
+        _config.fontSize.value;
 
     // 预加载下一章
     if (centerIndex + 1 < chapterList.length) {
@@ -196,7 +197,8 @@ class ChapterNavigator {
         width: _pagination.pageWidth,
         height:
             (_pagination.pageHeight -
-                    2 * ReaderRenderConfig.pageContentVerticalPadding)
+                    2 * ReaderRenderConfig.pageContentVerticalPadding -
+                    _config.fontSize.value)
                 .clamp(100, _pagination.pageHeight),
         padding: _config.padding.value,
         devicePixelRatio: _pagination.devicePixelRatio,

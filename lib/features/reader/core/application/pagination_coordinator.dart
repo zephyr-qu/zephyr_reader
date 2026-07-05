@@ -35,9 +35,11 @@ class PaginationCoordinator {
   String fontFamily = 'Noto Sans SC';
 
   PaginationParams buildPaginationParams() {
-    // 减去渲染层上下 padding（与 PaginatedPageViewport / Rust page_height 对齐）。
+    // 渲染层上下 padding + 一行缓冲（补偿 Rust/Flutter 字体度量差异）
     final effectiveHeight =
-        pageHeight - 2 * ReaderRenderConfig.pageContentVerticalPadding;
+        pageHeight -
+        2 * ReaderRenderConfig.pageContentVerticalPadding -
+        _config.fontSize.value;
     return PaginationParams(
       fontSize: _config.fontSize.value,
       lineHeight: _config.lineHeight.value,
