@@ -38,7 +38,10 @@ Widget buildBlockPageContent({
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final bodyHeight = constraints.maxHeight.clamp(0.0, constraints.maxHeight);
+          final bodyHeight = constraints.maxHeight.clamp(
+            0.0,
+            constraints.maxHeight,
+          );
           final children = <Widget>[];
           var runningOffset = startOffset;
 
