@@ -7,7 +7,7 @@ class SharedPreferencesService implements PreferencesService {
   final SharedPreferences _prefs;
 
   // 缓存 Signal 实例，避免重复创建导致内存泄漏或状态不一致
-  final Map<String, Signal> _signalCache = {};
+  final Map<String, Signal<dynamic>> _signalCache = {};
 
   SharedPreferencesService(this._prefs);
 

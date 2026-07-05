@@ -1,7 +1,9 @@
-//! `PROVIDER_CACHE` — `(file_path, chapter_index, format) → Arc<dyn ChapterContentProvider>` LRU。
+//! `PROVIDER_CACHE` — `(book_id, chapter_index, format) → Arc<dyn ChapterContentProvider>` LRU。
 //!
 //! 章节内容提供器缓存，避免每次分页/章节读取都重新打开文件、解析目录、扫描 spine。
 //! 容量 16，命中后直接 `Arc::clone` 出去。
+//!
+//! M2: CacheKey 改为 `(book_id, chapter_index, BookFormat)`（ADR-014）。
 //!
 //! 行为契约（与 god module 阶段一致）：
 //! - 命中：返回缓存值的 clone，不重新构建。
@@ -23,32 +25,25 @@ const PROVIDER_CACHE_CAPACITY: NonZeroUsize = match NonZeroUsize::new(16) {
     None => unreachable!(),
 };
 
-// M9 fix: include `BookFormat` in the key. Without it, a cache hit
-// for `(path, chapter_index)` could theoretically return a provider
-// built for a different format if the file's format somehow changed
-// (not currently possible — format is determined by file extension
-// at import and never mutates — but the invariant should be explicit).
-// Also: 3-tuple is `Eq + Hash` so the LRU key keeps the same
-// behavior, and `BookFormat` is a small Copy enum.
+// M2: CacheKey 从 `(String /*file_path*/, i32, BookFormat)` 改为 `(String /*book_id*/, i32, BookFormat)`。
 pub(crate) type CacheKey = (String, i32, BookFormat);
 
 pub(crate) static PROVIDER_CACHE: LazyLock<Mutex<LruCache<CacheKey, Arc<dyn ChapterContentProvider>>>> =
     LazyLock::new(|| Mutex::new(LruCache::new(PROVIDER_CACHE_CAPACITY)));
 
 
-/// 清空 provider LRU（仅供测试使用）。
-#[cfg(test)]
+/// 清空 provider LRU（集成测试使用，无 cfg(test) 防护）。
 pub(crate) fn clear_for_test() {
     PROVIDER_CACHE.lock().clear();
 }
 
-/// 从 LRU 缓存获取或创建 Provider
+/// 从 LRU 缓存获取或创建 Provider（path-based，供 chapter_access 等非分页路径使用）。
 pub(crate) async fn get_or_create_provider(
     validated_path: &str,
     chapter_index: i32,
     format: &BookFormat,
 ) -> Result<Arc<dyn ChapterContentProvider>, AppError> {
-    // M9 fix: include `format` in cache key (see CacheKey doc).
+    // 非分页路径：cache key 仍用 validated_path（不在 ADR-014 范围）。
     let cache_key = (validated_path.to_string(), chapter_index, *format);
     {
         let mut cache = PROVIDER_CACHE.lock();
@@ -64,7 +59,7 @@ pub(crate) async fn get_or_create_provider(
                 crate::parser::txt::TxtContentProvider::open(&path)
             })
             .await
-            .map_err(|e| AppError::TaskPanic { task_name: "txt provider".into(), details: e.to_string().into() })??;
+            .map_err(|e| AppError::TaskPanic { task_name: "txt provider".into(), details: e.to_string() })??;
             Arc::new(provider)
         }
         BookFormat::Epub => {
@@ -84,7 +79,7 @@ pub(crate) async fn get_or_create_provider(
                 )
             })
             .await
-            .map_err(|e| AppError::TaskPanic { task_name: "epub provider".into(), details: e.to_string().into() })??;
+            .map_err(|e| AppError::TaskPanic { task_name: "epub provider".into(), details: e.to_string() })??;
             Arc::new(provider)
         }
     };

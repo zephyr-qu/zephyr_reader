@@ -35,7 +35,7 @@ pub fn parse_epub(file_path: String) -> Result<ParseResult, AppError> {
 
     // 检查文件是否存在
     if !Path::new(&file_path).exists() {
-        return Err(AppError::FileNotFound { path: file_path.into() });
+        return Err(AppError::FileNotFound { path: file_path });
     }
     tracing::debug!("file existence check passed: {}", file_path);
 
@@ -123,11 +123,10 @@ fn estimate_total_chars(epub_file: &mut EpubFile, chapters: &[Chapter]) -> i64 {
             let end = (chapters[idx].end_index as usize).min(spine.len()).max(start + 1);
             let mut parts = Vec::new();
             for i in start..end {
-                if let Some(href) = spine.get(i) {
-                    if let Ok(text) = epub_file.read_resource(href) {
+                if let Some(href) = spine.get(i)
+                    && let Ok(text) = epub_file.read_resource(href) {
                         parts.push(text);
                     }
-                }
             }
             parts.join("\n")
         };
@@ -213,8 +212,8 @@ pub fn get_chapter_content_rich(
 
     // 解析图片：遍历段落，加载图片数据
     for p in &mut paragraphs {
-        if p.is_image {
-            if let Some(src) = &p.image_src {
+        if p.is_image
+            && let Some(src) = &p.image_src {
                 if let Some(bytes) = provider.read_resource_bytes(src) {
                     p.image_data = bytes;
                     tracing::info!(
@@ -229,7 +228,6 @@ pub fn get_chapter_content_rich(
                     );
                 }
             }
-        }
     }
     if let Some(first) = paragraphs.first() {
         tracing::info!(

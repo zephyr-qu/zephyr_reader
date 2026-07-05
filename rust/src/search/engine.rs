@@ -261,13 +261,13 @@ impl SearchEngine {
 
 /// 初始化 Jieba 分词器（幂等，编译期嵌入词典数据）
 pub fn ensure_jieba() -> Result<(), String> {
-    JIEBA.get_or_init(|| Jieba::new());
+    JIEBA.get_or_init(Jieba::new);
     Ok(())
 }
 
 /// 对中文文本进行分词，非中文原样返回
 pub fn tokenize_chinese_text(text: &str) -> String {
-    let jieba = JIEBA.get_or_init(|| Jieba::new());
+    let jieba = JIEBA.get_or_init(Jieba::new);
 
     // L2: 避免中间 Vec<&str> 分配，直接 fold 到 String
     let mut result = String::with_capacity(text.len() + 4);

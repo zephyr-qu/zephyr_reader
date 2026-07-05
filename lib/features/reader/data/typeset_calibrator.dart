@@ -71,6 +71,9 @@ Future<CalibrationData?> calibrateSafely({
   int maxRetries = 2,
   Duration retryDelay = const Duration(milliseconds: 100),
 }) async {
+  Logging.info(
+    '[FirstLoad] calibrateSafely start fontSize=$fontSize fontFamily=$fontFamily',
+  );
   for (int attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       final result = _calibrateCharacterWidths(

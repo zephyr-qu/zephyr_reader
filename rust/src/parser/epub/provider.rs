@@ -52,16 +52,14 @@ impl EpubContentProvider {
         let count = spine_hrefs.len();
 
         // Detect oversized single-spine chapters (>2MB HTML)
-        if count == 1 {
-            if let Ok(html) = epub.read_resource(&spine_hrefs[0]) {
-                if html.len() > 2_000_000 {
+        if count == 1
+            && let Ok(html) = epub.read_resource(&spine_hrefs[0])
+                && html.len() > 2_000_000 {
                     return Err(AppError::ChapterTooLarge {
                         size_bytes: html.len(),
                         details: format!("spine {} is {} bytes", &spine_hrefs[0], html.len()),
                     });
                 }
-            }
-        }
 
         Ok(Self {
             epub: Mutex::new(epub),
@@ -83,7 +81,7 @@ impl EpubContentProvider {
         let mut epub = self.epub.lock();
         let href = &self.spine_hrefs[index];
         let html = epub.read_resource(href).map_err(|e| {
-            AppError::ChapterExtractError { index: -1, reason: format!("failed to read spine item {}: {}", href, e).into() }
+            AppError::ChapterExtractError { index: -1, reason: format!("failed to read spine item {}: {}", href, e) }
         })?;
         // 缓存原始 HTML，供 read_html_range 使用
         let _ = self.spine_htmls[index].get_or_init(|| html.clone());
@@ -154,7 +152,7 @@ impl EpubContentProvider {
         if index >= self.spine_hrefs.len() {
             return Err(AppError::ChapterExtractError {
                 index: index as i32,
-                reason: format!("spine index {index} out of range").into(),
+                reason: format!("spine index {index} out of range"),
             });
         }
         self.ensure_spine_text(index)?;
@@ -162,7 +160,7 @@ impl EpubContentProvider {
             .get()
             .cloned()
             .ok_or_else(|| AppError::EpubParseError {
-                reason: format!("spine HTML not cached at index {index}").into(),
+                reason: format!("spine HTML not cached at index {index}"),
             })
     }
 
@@ -478,20 +476,16 @@ fn decode_entity(entity: &str) -> String {
         "&nbsp;" => " ".to_string(),
         _ => {
             // 数字实体
-            if let Some(hex) = entity.strip_prefix("&#x").and_then(|s| s.strip_suffix(';')) {
-                if let Ok(code) = u32::from_str_radix(hex, 16) {
-                    if let Some(ch) = char::from_u32(code) {
+            if let Some(hex) = entity.strip_prefix("&#x").and_then(|s| s.strip_suffix(';'))
+                && let Ok(code) = u32::from_str_radix(hex, 16)
+                    && let Some(ch) = char::from_u32(code) {
                         return ch.to_string();
                     }
-                }
-            }
-            if let Some(dec) = entity.strip_prefix("&#").and_then(|s| s.strip_suffix(';')) {
-                if let Ok(code) = dec.parse::<u32>() {
-                    if let Some(ch) = char::from_u32(code) {
+            if let Some(dec) = entity.strip_prefix("&#").and_then(|s| s.strip_suffix(';'))
+                && let Ok(code) = dec.parse::<u32>()
+                    && let Some(ch) = char::from_u32(code) {
                         return ch.to_string();
                     }
-                }
-            }
             entity.to_string()
         }
     }

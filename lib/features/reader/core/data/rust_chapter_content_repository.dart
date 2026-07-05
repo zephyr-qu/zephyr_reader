@@ -430,16 +430,17 @@ class RustChapterContentRepository implements ChapterContentRepository {
   NextChapterStaging? get prevChapterStaging => _prevChapterStaging;
 
   /// 构建 staging 锚页内容（plain 或 block）。
+  /// M2: `filePath` → `bookId`（ADR-014）。
   NextChapterStaging _buildStaging({
     required int chapterIndex,
     required PaginateResult result,
-    required String filePath,
+    required String bookId,
     required int anchorPageIndex,
   }) {
     final mode = result.mode;
     final configHash = result.configHash;
     final pageContent = core_api.getPageContent(
-      filePath: filePath,
+      bookId: bookId,
       chapterIndex: chapterIndex,
       configHash: result.configHash,
       pageIndex: anchorPageIndex,
@@ -447,7 +448,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
     List<PageBlockSlice>? blocks;
     if (mode == ChapterPaginationMode.contentBlocks) {
       blocks = core_api.getPageBlocks(
-        filePath: filePath,
+        bookId: bookId,
         chapterIndex: chapterIndex,
         configHash: result.configHash,
         pageIndex: anchorPageIndex,
@@ -463,7 +464,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
       firstPageContent: pageContent,
       isPartial: result.isPartial,
       paginationMode: mode,
-      filePath: filePath,
+      bookId: bookId,
       anchorPageBlocks: blocks,
     );
   }
@@ -513,9 +514,8 @@ class RustChapterContentRepository implements ChapterContentRepository {
       );
 
       // P0: all chapters now use block pagination (maxChars=null → full chapter).
-      // No longer need chapterHasImageBlocks branch — unified IR path.
       final result = await core_api.paginateChapter(
-        filePath: book.filePath,
+        bookId: bookId,
         chapterIndex: chapterIndex,
         config: config,
         maxChars: null,
@@ -532,7 +532,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
       _nextChapterStaging = _buildStaging(
         chapterIndex: chapterIndex,
         result: result,
-        filePath: book.filePath,
+        bookId: bookId,
         anchorPageIndex: 0,
       );
       preloadGeneration.value++;
@@ -592,7 +592,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
 
       // Use maxChars: null to hit KV cache for full paginate
       final result = await core_api.paginateChapter(
-        filePath: book.filePath,
+        bookId: bookId,
         chapterIndex: chapterIndex,
         config: config,
         maxChars: null,
@@ -608,7 +608,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
       _prevChapterStaging = _buildStaging(
         chapterIndex: chapterIndex,
         result: result,
-        filePath: book.filePath,
+        bookId: bookId,
         anchorPageIndex: lastPageIndex,
       );
       preloadGeneration.value++;

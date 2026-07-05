@@ -243,7 +243,7 @@ fn read_image_dimensions(bytes: &[u8]) -> Option<(u32, u32)> {
             if len < 2 {
                 break;
             }
-            if matches!(marker, 0xC0 | 0xC1 | 0xC2) {
+            if matches!(marker, 0xC0..=0xC2) {
                 if i + 9 > bytes.len() {
                     break;
                 }
@@ -269,8 +269,8 @@ fn resolve_image_dimensions(ir: &mut ChapterContentIr, provider: &EpubContentPro
             if img.intrinsic_width.is_some() && img.intrinsic_height.is_some() {
                 continue; // 已有尺寸，跳过
             }
-            if let Some(data) = provider.read_resource_bytes(&img.asset_id) {
-                if let Some((w, h)) = read_image_dimensions(&data) {
+            if let Some(data) = provider.read_resource_bytes(&img.asset_id)
+                && let Some((w, h)) = read_image_dimensions(&data) {
                     img.intrinsic_width = Some(w);
                     img.intrinsic_height = Some(h);
                     tracing::debug!(
@@ -278,7 +278,6 @@ fn resolve_image_dimensions(ir: &mut ChapterContentIr, provider: &EpubContentPro
                         img.asset_id, w, h
                     );
                 }
-            }
         }
     }
 }
@@ -311,7 +310,7 @@ pub fn get_chapter_content_ir(
     resolve_image_dimensions(&mut ir, &provider);
     ir.validate_plain(PlainProjectionStyle::BlockJoined)
         .map_err(|e| AppError::EpubParseError {
-            reason: format!("IR plain validation failed: {e}").into(),
+            reason: format!("IR plain validation failed: {e}"),
         })?;
     Ok(ir)
 }

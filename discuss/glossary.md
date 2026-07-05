@@ -1,7 +1,7 @@
 # Zephyr Reader — 领域词汇表
 
 > 与边界讨论、ADR 共用。术语稳定后，代码与文档应对齐此处定义。  
-> **最后更新**：2026-06-25（Phase 4 grilling）
+> **最后更新**：2026-07-04（Phase 5）
 
 | 术语 | 定义 | 非本项目的含义 |
 |------|------|----------------|
@@ -18,6 +18,6 @@
 | **ContentBlock / IR** | Rust 统一中间表示：Text / Image / … per chapter（ADR-003）。scroll + pagination 渲染输入。 | 不是 plainText 替代品（进度仍用 plain）。 |
 | **BlockPaginator** | 对 IR 按视口切页的引擎；Phase 2 MVP 已完成，替代 plain-only PageStreamer（含图章）。 | 不是 Dart 分页。 |
 | **firstSpine** | 首屏约 2000 字的 partial 文本；仅用于快速出页，不能当 `plainText` 全文。 | 见 ADR-003。 |
-| **epubRichSkipped** | 大章 plain 降级 + 用户提示；Phase 4 目标通过 scroll→IR 消除。 | 不是静默失败。 |
+| **epubRichSkipped** | 大章 plain 降级 + 用户提示；Phase 4 已通过 scroll→IR 消除。 | 不是静默失败。 |
 | **版式像原书（窄义）** | font-family、text-indent、段间距、行高、基础强调、图片位；不含多栏/float/复杂表格（ADR-010）。 | 不是出版级 CSS 引擎。 |
 | **Won't** | 项目明确不做的能力；新需求先查 [READING_BOUNDARIES.md](./READING_BOUNDARIES.md)。 | 不是「以后再说」。 |

@@ -50,7 +50,7 @@ impl TxtParser {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || parse_txt(fp))
             .await
-            .map_err(|e| AppError::InternalError { reason: format!("parse task failed: {}", e).into() })?
+            .map_err(|e| AppError::InternalError { reason: format!("parse task failed: {}", e) })?
     }
 
     /// 提取 TXT 文件元数据
@@ -69,7 +69,7 @@ impl TxtParser {
         let fp = file_path.to_string();
         let result = tokio::task::spawn_blocking(move || parse_txt(fp))
             .await
-            .map_err(|e| AppError::InternalError { reason: format!("parse task failed: {}", e).into() })??;
+            .map_err(|e| AppError::InternalError { reason: format!("parse task failed: {}", e) })??;
         Ok(BookMetadata {
             title: result.book_info.title,
             author: result.book_info.author.unwrap_or_default(),

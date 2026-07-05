@@ -58,7 +58,13 @@ class PaginationCoordinator {
 
   /// 将当前排版参数推送到章节内容仓库（滚动 EPUB 富文本 / staging 共用）。
   void syncChapterTypesetLayoutToRepo() {
-    _repo.syncChapterTypesetLayout(buildPaginationParams());
+    final params = buildPaginationParams();
+    Logging.info(
+      '[Typeset] syncLayout fontSize=${params.fontSize} lineHeight=${params.lineHeight}'
+      ' width=${params.width} height=${params.height}'
+      ' font=${params.fontFamily}',
+    );
+    _repo.syncChapterTypesetLayout(params);
   }
 
   /// 计算当前排版配置的哈希值，用于检测配置变更。
@@ -66,31 +72,34 @@ class PaginationCoordinator {
   /// 返回 BigInt（Rust u64 → Dart BigInt），不做截断。
   BigInt computeConfigHash() {
     final p = buildPaginationParams();
-    return core_api
-        .computeConfigHash(
-          config: buildTypesetConfig(
-            width: p.width,
-            height: p.height,
-            fontSize: p.fontSize,
-            lineHeight: p.lineHeight,
-            padding: p.padding,
-            devicePixelRatio: p.devicePixelRatio,
-            calibration: p.calibration,
-            fontFamily: p.fontFamily,
-            letterSpacing: p.letterSpacing,
-            paragraphSpacing: p.paragraphSpacing,
-            punctuationSqueeze: p.punctuationSqueeze,
-            firstLineIndent: p.firstLineIndent ? 2 : 0,
-            language: p.language,
-            autoSpaceRatio: p.autoSpaceRatio,
-          ),
-        );
+    return core_api.computeConfigHash(
+      config: buildTypesetConfig(
+        width: p.width,
+        height: p.height,
+        fontSize: p.fontSize,
+        lineHeight: p.lineHeight,
+        padding: p.padding,
+        devicePixelRatio: p.devicePixelRatio,
+        calibration: p.calibration,
+        fontFamily: p.fontFamily,
+        letterSpacing: p.letterSpacing,
+        paragraphSpacing: p.paragraphSpacing,
+        punctuationSqueeze: p.punctuationSqueeze,
+        firstLineIndent: p.firstLineIndent ? 2 : 0,
+        language: p.language,
+        autoSpaceRatio: p.autoSpaceRatio,
+      ),
+    );
   }
 
   /// 首屏分页（统一入口，maxChars=2000）。
   Future<({int totalPages, bool isPartial})> paginateFirstScreen(
     int chapterIndex,
   ) {
+    Logging.info(
+      '[FirstLoad] paginateFirstScreen chapter=$chapterIndex'
+      ' maxChars=${PaginationEngine.firstScreenMaxChars}',
+    );
     return _repo.beginPaginate(
       bookId: _chapterVM.bookId.value,
       chapterIndex: chapterIndex,

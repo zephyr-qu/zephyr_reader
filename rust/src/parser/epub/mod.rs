@@ -61,7 +61,7 @@ impl EpubParser {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || parse_epub(fp))
             .await
-            .map_err(|e| AppError::InternalError { reason: format!("EPUB parse task failed: {}", e).into() })?
+            .map_err(|e| AppError::InternalError { reason: format!("EPUB parse task failed: {}", e) })?
     }
 
     /// 提取 EPUB 文件元数据
@@ -81,7 +81,7 @@ impl EpubParser {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || -> Result<BookMetadata, AppError> {
             if !Path::new(&fp).exists() {
-                return Err(AppError::FileNotFound { path: fp.into() });
+                return Err(AppError::FileNotFound { path: fp });
             }
 
             let epub_file = unzip::EpubFile::open(&fp)?;
@@ -105,7 +105,7 @@ impl EpubParser {
             })
         })
         .await
-        .map_err(|e| AppError::InternalError { reason: format!("EPUB metadata extraction failed: {}", e).into() })?
+        .map_err(|e| AppError::InternalError { reason: format!("EPUB metadata extraction failed: {}", e) })?
     }
 
 }

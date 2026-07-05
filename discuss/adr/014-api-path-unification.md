@@ -1,6 +1,6 @@
 # ADR-014 — 分页 API 路径统一
 
-> **状态**：草案（Phase 5 执行）
+> **状态**：已接受（Phase 5 执行）
 > **背景**：[KNOWN_POSTPHASE4_BUGS.md](../../issue/KNOWN_POSTPHASE4_BUGS.md) P3-13
 
 ---

@@ -8,7 +8,7 @@ class NextChapterStaging {
   final String firstPageContent;
   final bool isPartial;
   final ChapterPaginationMode paginationMode;
-  final String? filePath;
+  final String? bookId;
   final List<PageBlockSlice>? anchorPageBlocks;
 
   const NextChapterStaging({
@@ -18,7 +18,7 @@ class NextChapterStaging {
     required this.firstPageContent,
     required this.isPartial,
     this.paginationMode = ChapterPaginationMode.plainText,
-    this.filePath,
+    this.bookId,
     this.anchorPageBlocks,
   });
 

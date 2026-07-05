@@ -72,7 +72,7 @@ async fn ensure_meta_table(pool: &sqlx::SqlitePool) -> Result<(), AppError> {
     )
     .execute(pool)
     .await
-    .map_err(|e| AppError::DatabaseError { reason: format!("ensure_meta_table: {e}").into() })?;
+    .map_err(|e| AppError::DatabaseError { reason: format!("ensure_meta_table: {e}") })?;
     Ok(())
 }
 
@@ -85,13 +85,13 @@ async fn read_manifest_from_pool(
     )
     .fetch_optional(pool)
     .await
-    .map_err(|e| AppError::DatabaseError { reason: format!("read_manifest: {e}").into() })?;
+    .map_err(|e| AppError::DatabaseError { reason: format!("read_manifest: {e}") })?;
 
     let Some((app_version, exported_at, db_size, stats_json)) = row else {
         return Ok(None);
     };
     let stats: BackupStats = serde_json::from_str(&stats_json)
-        .map_err(|e| AppError::DatabaseError { reason: format!("parse stats_json: {e}").into() })?;
+        .map_err(|e| AppError::DatabaseError { reason: format!("parse stats_json: {e}") })?;
     Ok(Some(BackupManifest {
         app_version,
         exported_at,
@@ -106,7 +106,7 @@ async fn write_manifest_to_pool(
     manifest: &BackupManifest,
 ) -> Result<(), AppError> {
     let stats_json = serde_json::to_string(&manifest.stats)
-        .map_err(|e| AppError::InternalError { reason: format!("serialize stats: {e}").into() })?;
+        .map_err(|e| AppError::InternalError { reason: format!("serialize stats: {e}") })?;
     sqlx::query(
         "INSERT OR REPLACE INTO _backup_meta (id, app_version, exported_at, db_size, stats_json) VALUES (1, ?, ?, ?, ?)",
     )
@@ -116,7 +116,7 @@ async fn write_manifest_to_pool(
     .bind(&stats_json)
     .execute(pool)
     .await
-    .map_err(|e| AppError::DatabaseError { reason: format!("write_manifest: {e}").into() })?;
+    .map_err(|e| AppError::DatabaseError { reason: format!("write_manifest: {e}") })?;
     Ok(())
 }
 
@@ -125,7 +125,7 @@ async fn drop_meta_table(pool: &sqlx::SqlitePool) -> Result<(), AppError> {
     sqlx::query("DROP TABLE IF EXISTS _backup_meta")
         .execute(pool)
         .await
-        .map_err(|e| AppError::DatabaseError { reason: format!("drop_meta_table: {e}").into() })?;
+        .map_err(|e| AppError::DatabaseError { reason: format!("drop_meta_table: {e}") })?;
     Ok(())
 }
 
@@ -136,7 +136,7 @@ async fn count_stats(pool: &sqlx::SqlitePool) -> Result<BackupStats, AppError> {
         let (n,): (i64,) = sqlx::query_as(sql)
             .fetch_one(pool)
             .await
-            .map_err(|e| AppError::DatabaseError { reason: format!("count: {e}").into() })?;
+            .map_err(|e| AppError::DatabaseError { reason: format!("count: {e}") })?;
         Ok(n)
     }
     Ok(BackupStats {
@@ -194,7 +194,7 @@ async fn open_readonly_pool(validated: &str) -> Result<sqlx::SqlitePool, AppErro
                 .create_if_missing(false),
         )
         .await
-        .map_err(|e| AppError::DatabaseError { reason: format!("open readonly: {e}").into() })
+        .map_err(|e| AppError::DatabaseError { reason: format!("open readonly: {e}") })
 }
 
 // ==================== 公开 API ====================

@@ -192,10 +192,10 @@ void main() {
       ]);
       when(() => dataSource.pageContent(0)).thenReturn('Page content text.');
       when(() => dataSource.nextChapterStaging).thenReturn(
-        const NextChapterStaging(
+        NextChapterStaging(
           chapterIndex: 1,
-          configHash: 0x1234,
-          descriptors: [
+          configHash:BigInt.from(0x1234) ,
+          descriptors: const [
             PageDescriptor(
               pageIndex: 0,
               startOffset: 0,
@@ -264,10 +264,10 @@ void main() {
       ]);
       when(() => dataSource.pageContent(0)).thenReturn('Current chapter page.');
       when(() => dataSource.prevChapterStaging).thenReturn(
-        const NextChapterStaging(
+        NextChapterStaging(
           chapterIndex: 0,
-          configHash: 0x1234,
-          descriptors: [
+          configHash: BigInt.from(0x1234),
+          descriptors: const [
             PageDescriptor(
               pageIndex: 1,
               startOffset: 500,

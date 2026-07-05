@@ -125,7 +125,7 @@ pub(crate) async fn get_chapter_first_spine_only(
         tokio::task::spawn_blocking(move || -> Result<String, AppError> {
             let mut epub =
                 crate::parser::epub::unzip::EpubFile::open(&path)
-                    .map_err(|e| AppError::ChapterExtractError { index: idx, reason: e.to_string().into() })?;
+                    .map_err(|e| AppError::ChapterExtractError { index: idx, reason: e.to_string() })?;
             let spine = epub.spine();
             let start = spine_start.max(0) as usize;
             if start >= spine.len() {
@@ -135,7 +135,7 @@ pub(crate) async fn get_chapter_first_spine_only(
             let href = &spine[start];
             let html = epub
                 .read_resource(href)
-                .map_err(|e| AppError::ChapterExtractError { index: idx, reason: e.to_string().into() })?;
+                .map_err(|e| AppError::ChapterExtractError { index: idx, reason: e.to_string() })?;
 
             // 截断 HTML 到 8KB 避免 html_to_plain_text 处理大文件
             let truncated: String = html.chars().take(8 * 1024).collect();
@@ -145,12 +145,12 @@ pub(crate) async fn get_chapter_first_spine_only(
             Ok(plain.chars().take(2000).collect())
         })
         .await
-        .map_err(|e| AppError::TaskPanic { task_name: "first_spine".into(), details: e.to_string().into() })??
+        .map_err(|e| AppError::TaskPanic { task_name: "first_spine".into(), details: e.to_string() })??
     } else {
         // TXT/MD: 读前 2000 字符
         let content = tokio::fs::read_to_string(&validated_path)
             .await
-            .map_err(|e| AppError::FileReadError { path: validated_path.into(), details: e.to_string().into() })?;
+            .map_err(|e| AppError::FileReadError { path: validated_path, details: e.to_string() })?;
         content.chars().take(2000).collect()
     };
 
@@ -192,7 +192,7 @@ pub(crate) async fn get_chapter_partial(
         }
     } else {
         Err(AppError::UnsupportedFormat {
-            format: format!("unsupported format for partial read: {:?}", format).into(),
+            format: format!("unsupported format for partial read: {:?}", format),
         })
     }
 }
@@ -248,7 +248,7 @@ pub(crate) async fn get_chapter(
                 .await
                 .map_err(|e| AppError::TaskPanic {
                     task_name: "block_paginate_chapter".into(),
-                    details: e.to_string().into(),
+                    details: e.to_string(),
                 })?;
 
                 let state = BlockPaginationState::new(ir.clone(), block_result.clone(), false);
@@ -270,7 +270,7 @@ pub(crate) async fn get_chapter(
         }
     } else {
         Err(AppError::UnsupportedFormat {
-            format: format!("unsupported format for chapter read: {:?}", format).into(),
+            format: format!("unsupported format for chapter read: {:?}", format),
         })
     }
 }

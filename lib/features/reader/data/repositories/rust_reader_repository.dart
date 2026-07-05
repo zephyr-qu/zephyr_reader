@@ -51,18 +51,12 @@ class ReaderRepository
 
   @override
   String? pageContent(int pageIndex) {
-    final cached = _session.pageContent(pageIndex);
-    if (cached != null) return cached;
-    Logging.debug('[Repo] pageContent MISS page=$pageIndex');
-    return null;
+    return _session.pageContent(pageIndex);
   }
 
   @override
   List<PageBlockSlice>? pageBlocks(int pageIndex) {
-    final cached = _session.pageBlocks(pageIndex);
-    if (cached != null) return cached;
-    Logging.debug('[Repo] pageBlocks MISS page=$pageIndex');
-    return null;
+    return _session.pageBlocks(pageIndex);
   }
 
   @override
@@ -268,7 +262,6 @@ class ReaderRepository
 
   @override
   void ensureWindow(int centerPage) {
-    Logging.debug('[Repo] ensureWindow → ensurePageWindow center=$centerPage');
     ensurePageWindow(centerPage);
   }
 

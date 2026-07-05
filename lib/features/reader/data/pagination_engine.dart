@@ -19,7 +19,7 @@ class PaginationEngine {
     BigInt? maxChars,
   }) async {
     return core_api.paginateChapter(
-      filePath: filePath,
+      bookId: filePath,
       chapterIndex: chapterIndex,
       config: config,
       maxChars: maxChars,

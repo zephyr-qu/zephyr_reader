@@ -54,7 +54,7 @@ void main() {
     });
 
     test('returns normalLoad when session has no descriptors', () {
-      when(() => repo.sessionConfigHash).thenReturn(12345);
+      when(() => repo.sessionConfigHash).thenReturn(12345 as BigInt?);
       when(() => repo.sessionChapterIndex).thenReturn(0);
       when(() => repo.descriptors).thenReturn([]);
 
@@ -68,7 +68,7 @@ void main() {
     });
 
     test('returns normalLoad when chapterIndex differs from session', () {
-      when(() => repo.sessionConfigHash).thenReturn(12345);
+      when(() => repo.sessionConfigHash).thenReturn(BigInt.from(12345));
       when(() => repo.descriptors).thenReturn(_descriptors);
 
       final intent = resolveChapterPaginationIntent(
@@ -81,10 +81,10 @@ void main() {
     });
 
     test('returns configReload when configHash changed', () {
-      when(() => repo.sessionConfigHash).thenReturn(12345);
+      when(() => repo.sessionConfigHash).thenReturn(BigInt.from(12345));
       when(() => repo.sessionChapterIndex).thenReturn(0);
       when(() => repo.descriptors).thenReturn(_descriptors);
-      when(() => pagination.computeConfigHash()).thenReturn(67890);
+      when(() => pagination.computeConfigHash()).thenReturn(BigInt.from(67890));
 
       final intent = resolveChapterPaginationIntent(
         chapterIndex: 0,
@@ -96,10 +96,10 @@ void main() {
     });
 
     test('returns expandOnly when session is valid and configHash matches', () {
-      when(() => repo.sessionConfigHash).thenReturn(12345);
+      when(() => repo.sessionConfigHash).thenReturn(BigInt.from(12345));
       when(() => repo.sessionChapterIndex).thenReturn(0);
       when(() => repo.descriptors).thenReturn(_descriptors);
-      when(() => pagination.computeConfigHash()).thenReturn(12345);
+      when(() => pagination.computeConfigHash()).thenReturn(BigInt.from(12345));
 
       final intent = resolveChapterPaginationIntent(
         chapterIndex: 0,
@@ -112,15 +112,15 @@ void main() {
 
     test('returns stagingPromoteForward when next staging matches', () {
       when(() => repo.nextChapterStaging).thenReturn(
-        const NextChapterStaging(
+        NextChapterStaging(
           chapterIndex: 2,
-          configHash: 999,
+          configHash: BigInt.from(999),
           descriptors: _descriptors,
           firstPageContent: 'page0',
           isPartial: true,
         ),
       );
-      when(() => pagination.computeConfigHash()).thenReturn(999);
+      when(() => pagination.computeConfigHash()).thenReturn(BigInt.from(999));
 
       final intent = resolveChapterPaginationIntent(
         chapterIndex: 2,
@@ -133,15 +133,15 @@ void main() {
 
     test('returns stagingPromoteBackward when prev staging matches', () {
       when(() => repo.prevChapterStaging).thenReturn(
-        const NextChapterStaging(
+        NextChapterStaging(
           chapterIndex: 1,
-          configHash: 888,
+          configHash: BigInt.from(888),
           descriptors: _descriptors,
           firstPageContent: 'last',
           isPartial: true,
         ),
       );
-      when(() => pagination.computeConfigHash()).thenReturn(888);
+      when(() => pagination.computeConfigHash()).thenReturn(BigInt.from(888));
 
       final intent = resolveChapterPaginationIntent(
         chapterIndex: 1,
@@ -154,24 +154,24 @@ void main() {
 
     test('prefers forward staging over backward when both match', () {
       when(() => repo.nextChapterStaging).thenReturn(
-        const NextChapterStaging(
+        NextChapterStaging(
           chapterIndex: 3,
-          configHash: 111,
+          configHash: BigInt.from(111),
           descriptors: _descriptors,
           firstPageContent: 'fwd',
           isPartial: true,
         ),
       );
       when(() => repo.prevChapterStaging).thenReturn(
-        const NextChapterStaging(
+        NextChapterStaging(
           chapterIndex: 3,
-          configHash: 111,
+          configHash: BigInt.from(111),
           descriptors: _descriptors,
           firstPageContent: 'bwd',
           isPartial: true,
         ),
       );
-      when(() => pagination.computeConfigHash()).thenReturn(111);
+      when(() => pagination.computeConfigHash()).thenReturn(BigInt.from(111));
 
       final intent = resolveChapterPaginationIntent(
         chapterIndex: 3,
@@ -184,15 +184,15 @@ void main() {
 
     test('falls through to normalLoad when staging hash mismatches', () {
       when(() => repo.nextChapterStaging).thenReturn(
-        const NextChapterStaging(
+        NextChapterStaging(
           chapterIndex: 2,
-          configHash: 999,
+          configHash: BigInt.from(999),
           descriptors: _descriptors,
           firstPageContent: 'page0',
           isPartial: true,
         ),
       );
-      when(() => pagination.computeConfigHash()).thenReturn(1000);
+      when(() => pagination.computeConfigHash()).thenReturn(BigInt.from(1000));
 
       final intent = resolveChapterPaginationIntent(
         chapterIndex: 2,

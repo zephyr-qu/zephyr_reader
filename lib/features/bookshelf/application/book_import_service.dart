@@ -64,7 +64,7 @@ class BookImportService {
     final errors = <String>[];
     onProgress?.call(0, total);
 
-    final sem = _Semaphore(_scanConcurrency);
+    final sem = Semaphore(_scanConcurrency);
     await Future.wait(
       files.map(
         (file) => sem.acquire(() async {
@@ -133,12 +133,13 @@ class BookImportService {
 }
 
 /// 简单信号量，限制并发数。
-class _Semaphore {
+/// 使用 while(true) 循环而非递归，避免栈溢出。
+class Semaphore {
   final int _max;
   int _count = 0;
   final _queue = <Completer<void>>[];
 
-  _Semaphore(this._max);
+  Semaphore(this._max);
 
   Future<T> acquire<T>(Future<T> Function() fn) async {
     while (true) {

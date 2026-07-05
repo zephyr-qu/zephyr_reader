@@ -17,6 +17,7 @@
 | [011](./adr/011-bilingual-feature-module.md) | 双语独立 feature，主链零依赖 | **已接受** | 2026-06-25 |
 | [012](./adr/012-staging-prefetch-guarantee.md) | Staging 预取硬保证，零可见 loading | **已接受** | 2026-06-25 |
 | [013](./adr/013-flutter-metrics-calibration.md) | Rust 初筛 + Flutter metrics 回传 | **已接受** | 2026-06-25 |
+| [014](./adr/014-api-path-unification.md) | 分页 API 路径统一 | **已接受** | 2026-07-03 |
 
 ## 问卷归档
 
@@ -30,8 +31,9 @@
 
 ## 相关文档
 
-- [READING_BOUNDARIES.md](./READING_BOUNDARIES.md) — 产品边界 v1.2
-- [PHASE4_SCOPE.md](./PHASE4_SCOPE.md) — Phase 4 范围
+- [READING_BOUNDARIES.md](./READING_BOUNDARIES.md) — 产品边界 v1.3
+- [PHASE5_SCOPE.md](./PHASE5_SCOPE.md) — Phase 5 范围
+- [PHASE4_SCOPE.md](./PHASE4_SCOPE.md) — Phase 4 范围（已关闭）
 - [DOMAIN_MODEL.md](./DOMAIN_MODEL.md) — 领域模型
 - [TARGET_ARCHITECTURE.md](./TARGET_ARCHITECTURE.md) — 目标技术架构
 - [ROADMAP.md](./ROADMAP.md) — 实施阶段

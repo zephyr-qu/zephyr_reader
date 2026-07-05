@@ -97,6 +97,10 @@ class PaginatedModeRenderer extends StatelessWidget {
       return _buildFallbackPagination(context);
     }
 
+    Logging.info(
+      '[Render] pageTurnShell descriptors=${descriptors.length} logicalIdx=${pageIndex.clamp(0, descriptors.length - 1)}',
+    );
+
     return AnimatedBuilder(
       animation: dataSource.preloadGeneration,
       builder: (context, _) {
@@ -168,7 +172,8 @@ class PaginatedModeRenderer extends StatelessWidget {
         staging != null && staging.chapterIndex == chapterId + 1;
     if (stagingReady) {
       Logging.info(
-        '[Timing] cross-chapter render: staging_ready=true chapter=${staging.chapterIndex} virtualIndex=$virtualIndex',
+        '[ChapterTransition] renderCrossChapter staging_ready=true'
+        ' chapter=${staging.chapterIndex} virtualIndex=$virtualIndex',
       );
       final startOffset = staging.descriptors.isNotEmpty
           ? staging.descriptors[0].startOffset
@@ -190,8 +195,8 @@ class PaginatedModeRenderer extends StatelessWidget {
   ) {
     if (staging.paginationMode == ChapterPaginationMode.contentBlocks) {
       final blocks = staging.anchorPageBlocks;
-      final filePath = staging.filePath;
-      if (blocks == null || filePath == null || filePath.isEmpty) {
+      final bookId = staging.bookId;
+      if (blocks == null || bookId == null || bookId.isEmpty) {
         // ADR-012: incomplete staging → hold frame, not spinner
         return _buildHoldFrame(context, isFirstPage: true);
       }
@@ -201,7 +206,7 @@ class PaginatedModeRenderer extends StatelessWidget {
             context: context,
             blocks: blocks,
             startOffset: startOffset,
-            epubFilePath: filePath,
+            epubFilePath: dataSource.sessionFilePath ?? '',
             config: config,
             highlights: highlights,
             onHighlightTap: onHighlightTap,
@@ -269,7 +274,7 @@ class PaginatedModeRenderer extends StatelessWidget {
   }
 
   void _handlePageChanged(List<PageDescriptor> descriptors, int index) {
-    Logging.debug('[Renderer] _handlePageChanged: virtualIndex=$index');
+    // _handlePageChanged 每翻页触发一次
     // 向后虚拟页 → onReachStart
     if (index == 0 && hasPreviousChapter) {
       onReachStart?.call();
@@ -303,6 +308,11 @@ class PaginatedModeRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Logging.info(
+      '[Render] build chapter=$chapterId page=$pageIndex mode=${readingMode.name}'
+      ' descCount=${dataSource.descriptors?.length ?? 0}',
+    );
+
     if (usesPageCurlSkin(mode: readingMode, skin: paginationSkin)) {
       return _buildPageTurnShell(context);
     }

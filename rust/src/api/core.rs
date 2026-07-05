@@ -1,7 +1,6 @@
 pub(crate) use crate::domain::{AppError, ChapterContentIr, PageBlockSlice, TypesetConfig};
 use crate::domain::{PageContent, PaginateResult};
 use crate::parser::registry::parser_for_file;
-use crate::reading::chapter_access::format_from_file_path;
 use crate::storage::models::BookFormat;
 use crate::storage::repos::{BookRepository, ChapterRepository};
 use crate::storage::storage_pool;
@@ -31,11 +30,11 @@ pub async fn parse_book(file_path: String) -> Result<String, AppError> {
     let validated_path = validate_file_path(&file_path)?;
     let metadata = tokio::fs::metadata(&validated_path)
         .await
-        .map_err(|e| AppError::FileReadError { path: validated_path.clone().into(), details: e.to_string().into() })?;
+        .map_err(|e| AppError::FileReadError { path: validated_path.clone(), details: e.to_string() })?;
     if metadata.len() > MAX_FILE_SIZE {
         return Err(AppError::SecurityError { reason: format!(
             "file size exceeds limit (max {} MB)", MAX_FILE_SIZE / 1024 / 1024
-        ).into(), path: validated_path.into() });
+        ), path: validated_path });
     }
     let pool = storage_pool()?;
     if let Some(existing) = BookRepository::find_by_file_path(&pool, &validated_path).await? {
@@ -81,60 +80,65 @@ pub async fn get_chapter(
         .await
 }
 /// Lightweight pagination — descriptor-only, text on demand via [get_page_content].
+/// M2: `book_id` 替代 `file_path`（ADR-014）。
 #[frb]
 pub async fn paginate_chapter(
-    file_path: String,
+    book_id: String,
     chapter_index: i32,
     config: TypesetConfig,
     max_chars: Option<u64>,
 ) -> Result<PaginateResult, AppError> {
     ReadingOrchestrator::global()
-        .paginate_chapter(file_path, chapter_index, config, max_chars)
+        .paginate_chapter(book_id, chapter_index, config, max_chars)
         .await
 }
 /// Fetch single page text synchronously from streamer/block cache.
+/// M2: `book_id` 替代 `file_path`（ADR-014）。
 #[frb(sync)]
 pub fn get_page_content(
-    file_path: String,
+    book_id: String,
     chapter_index: i32,
     config_hash: u64,
     page_index: i32,
 ) -> Result<String, AppError> {
     ReadingOrchestrator::global()
-        .get_page_content(file_path, chapter_index, config_hash, page_index)
+        .get_page_content(book_id, chapter_index, config_hash, page_index)
 }
 /// M5.1：从 `PAGINATION_ENGINE_CACHE` 取单页块（staging 预渲染）。
+/// M2: `book_id` 替代 `file_path`（ADR-014）。
 #[frb(sync)]
 pub fn get_page_blocks(
-    file_path: String,
+    book_id: String,
     chapter_index: i32,
     config_hash: u64,
     page_index: i32,
 ) -> Result<Vec<PageBlockSlice>, AppError> {
     ReadingOrchestrator::global()
-        .get_page_blocks(file_path, chapter_index, config_hash, page_index)
+        .get_page_blocks(book_id, chapter_index, config_hash, page_index)
 }
 /// Create pagination session with initial pagination.
+/// M2: `book_id` 替代 `file_path`（ADR-014）。
 #[frb]
 pub async fn create_pagination_session(
-    file_path: String,
+    book_id: String,
     chapter_index: i32,
     config: TypesetConfig,
     max_chars: Option<u64>,
 ) -> Result<(PaginationSessionHandle, PaginateResult), AppError> {
     ReadingOrchestrator::global()
-        .create_pagination_session(file_path, chapter_index, config, max_chars)
+        .create_pagination_session(book_id, chapter_index, config, max_chars)
         .await
 }
 /// Create session by adopting existing streamer from cache.
+/// M2: `book_id` 替代 `file_path`（ADR-014）。
 #[frb]
 pub async fn create_pagination_session_adopt(
-    file_path: String,
+    book_id: String,
     chapter_index: i32,
     config: TypesetConfig,
 ) -> Result<(PaginationSessionHandle, PaginateResult), AppError> {
     ReadingOrchestrator::global()
-        .create_pagination_session_adopt(file_path, chapter_index, config)
+        .create_pagination_session_adopt(book_id, chapter_index, config)
         .await
 }
 /// Re-paginate session with new config in-place.
@@ -211,12 +215,22 @@ pub fn compute_config_hash(config: TypesetConfig) -> u64 {
     config.config_hash()
 }
 /// Check if format supports chunked pagination.
+/// M2: `book_id` 替代 `file_path`（ADR-014）。
 #[frb(sync)]
-pub fn supports_chunked_pagination(file_path: String) -> bool {
-    matches!(
-        format_from_file_path(&file_path),
-        Ok(BookFormat::Txt | BookFormat::Epub)
-    )
+pub fn supports_chunked_pagination(book_id: String) -> bool {
+    // M2: resolve book_id → format via DB（同步调用，用 spawn_blocking 内的 runtime）
+    tokio::runtime::Handle::try_current().map_or(false, |handle| {
+        handle.block_on(async {
+            let pool = match storage_pool() {
+                Ok(p) => p,
+                Err(_) => return false,
+            };
+            match BookRepository::find_by_id(&pool, &book_id).await {
+                Ok(Some(book)) => matches!(book.format, BookFormat::Txt | BookFormat::Epub),
+                _ => false,
+            }
+        })
+    })
 }
 
 /// P4-1：加载整章 ContentBlock IR + plain 投影（scroll 路径；不创建 session）。

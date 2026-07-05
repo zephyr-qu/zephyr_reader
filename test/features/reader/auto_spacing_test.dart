@@ -8,6 +8,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
+import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 
 import '../../helpers/integration_test_helper.dart';
@@ -45,6 +46,38 @@ const _utf8Bom = '\uFEFF';
 /// 用于区分 CJK 和混合页面数的窄页面配置
 TypesetConfig _cjkCompareConfig() {
   return _makeConfig(fontSize: 18, width: 600, height: 500);
+}
+
+/// Helper: createPaginationSession + iterate all descriptors + dispose.
+Future<List<PageContent>> _allPages({
+  required String bookId,
+  required int chapterIndex,
+  required TypesetConfig config,
+}) async {
+  final (handle, result) = await core_api.createPaginationSession(
+    bookId: bookId,
+    chapterIndex: chapterIndex,
+    config: config,
+  );
+  final pages = <PageContent>[];
+  for (final desc in result.descriptors) {
+    final content = core_api.getSessionPageContent(
+      handle: handle,
+      pageIndex: desc.pageIndex,
+    );
+    pages.add(PageContent(
+      chapterIndex: chapterIndex,
+      pageIndex: desc.pageIndex,
+      content: content,
+      isLastPage: desc.isLastPage,
+      startOffset: desc.startOffset,
+      endOffset: desc.endOffset,
+      firstParagraphIndex: desc.firstParagraphIndex,
+      lastParagraphIndex: desc.lastParagraphIndex,
+    ));
+  }
+  core_api.disposePaginationSession(handle: handle);
+  return pages;
 }
 
 Future<void> main() async {
@@ -131,13 +164,13 @@ of cultural fusion, 传统与现代交相辉映的美。
       test('page count increases with larger font size', () async {
         final smallFont = _makeConfig(fontSize: 14);
         final largeFont = _makeConfig(fontSize: 28);
-        final smallPages = await core_api.paginateAllContent(
-          filePath: mixedFilePath,
+        final smallPages = await _allPages(
+          bookId: mixedBookId,
           chapterIndex: 0,
           config: smallFont,
         );
-        final largePages = await core_api.paginateAllContent(
-          filePath: mixedFilePath,
+        final largePages = await _allPages(
+          bookId: mixedBookId,
           chapterIndex: 0,
           config: largeFont,
         );
@@ -146,8 +179,8 @@ of cultural fusion, 传统与现代交相辉映的美。
 
       test('page content is non-empty at different font sizes', () async {
         for (final size in [14, 20, 28]) {
-          final pages = await core_api.paginateAllContent(
-            filePath: mixedFilePath,
+          final pages = await _allPages(
+            bookId: mixedBookId,
             chapterIndex: 0,
             config: _makeConfig(fontSize: size),
           );
@@ -169,13 +202,13 @@ of cultural fusion, 传统与现代交相辉映的美。
         'pure CJK and mixed content produce different page layout',
         () async {
           final cfg = _cjkCompareConfig();
-          final mixedPages = await core_api.paginateAllContent(
-            filePath: mixedFilePath,
+          final mixedPages = await _allPages(
+            bookId: mixedBookId,
             chapterIndex: 0,
             config: cfg,
           );
-          final purePages = await core_api.paginateAllContent(
-            filePath: pureFilePath,
+          final purePages = await _allPages(
+            bookId: pureBookId,
             chapterIndex: 0,
             config: cfg,
           );
@@ -188,8 +221,8 @@ of cultural fusion, 传统与现代交相辉映的美。
 
     group('Content cleanliness', () {
       test('paginated content preserves original characters', () async {
-        final pages = await core_api.paginateAllContent(
-          filePath: mixedFilePath,
+        final pages = await _allPages(
+          bookId: mixedBookId,
           chapterIndex: 0,
           config: _makeConfig(fontSize: 16),
         );
@@ -203,8 +236,8 @@ of cultural fusion, 传统与现代交相辉映的美。
       test(
         'no artificially inserted spaces within CJK consecutive characters',
         () async {
-          final pages = await core_api.paginateAllContent(
-            filePath: pureFilePath,
+          final pages = await _allPages(
+            bookId: pureBookId,
             chapterIndex: 0,
             config: _makeConfig(fontSize: 16),
           );

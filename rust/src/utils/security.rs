@@ -18,7 +18,7 @@ pub fn validate_file_path(path_str: &str) -> Result<String, AppError> {
     }
     let canonical = path
         .canonicalize()
-        .map_err(|e| AppError::FileReadError { path: path_str.into(), details: e.to_string().into() })?;
+        .map_err(|e| AppError::FileReadError { path: path_str.into(), details: e.to_string() })?;
     Ok(canonical.to_string_lossy().to_string())
 }
 

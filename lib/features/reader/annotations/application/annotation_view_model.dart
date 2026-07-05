@@ -21,6 +21,10 @@ class AnnotationViewModel {
   final selectionEnd = signal<int>(0);
   final highlights = asyncSignal<List<Note>>(AsyncState.data([]));
 
+  /// 上次加载高亮时的错误信息（null = 成功 / 未加载）。
+  /// 空列表 ≠ 加载成功：通过此信号区分「无高亮」和「加载失败」。
+  final highlightsError = signal<String?>(null);
+
   AnnotationViewModel(@factoryParam this._chapterVM);
 
   /// 加载当前章节的全部高亮和笔记。
@@ -42,9 +46,11 @@ class AnnotationViewModel {
       );
       highlightsCache[idx] = notes;
       highlights.value = AsyncState.data(notes);
+      highlightsError.value = null;
     } catch (e) {
       Logging.warning('加载章节批注失败(chapter=$idx): $e');
       highlights.value = AsyncState.error(e);
+      highlightsError.value = '加载批注失败: $e';
     }
   }
 
@@ -121,5 +127,6 @@ class AnnotationViewModel {
     selectionEnd.value = 0;
     highlightsCache.clear();
     highlights.value = AsyncState.data([]);
+    highlightsError.value = null;
   }
 }

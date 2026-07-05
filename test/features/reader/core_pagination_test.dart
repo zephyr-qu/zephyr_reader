@@ -15,7 +15,6 @@ import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 
 import '../../helpers/integration_test_helper.dart';
 
-const _fixtureFileName = 'test_book.txt';
 const _fixtureContent = '''
 第一章 混合内容
 
@@ -50,6 +49,38 @@ TypesetConfig _defaultConfig() {
     fontFamily: 'Noto Sans SC',
     calibration: null,
   );
+}
+
+/// Helper: createPaginationSession + iterate all descriptors + dispose.
+Future<List<PageContent>> _allPages({
+  required String bookId,
+  required int chapterIndex,
+  required TypesetConfig config,
+}) async {
+  final (handle, result) = await core_api.createPaginationSession(
+    bookId: bookId,
+    chapterIndex: chapterIndex,
+    config: config,
+  );
+  final pages = <PageContent>[];
+  for (final desc in result.descriptors) {
+    final content = core_api.getSessionPageContent(
+      handle: handle,
+      pageIndex: desc.pageIndex,
+    );
+    pages.add(PageContent(
+      chapterIndex: chapterIndex,
+      pageIndex: desc.pageIndex,
+      content: content,
+      isLastPage: desc.isLastPage,
+      startOffset: desc.startOffset,
+      endOffset: desc.endOffset,
+      firstParagraphIndex: desc.firstParagraphIndex,
+      lastParagraphIndex: desc.lastParagraphIndex,
+    ));
+  }
+  core_api.disposePaginationSession(handle: handle);
+  return pages;
 }
 
 Future<void> main() async {
@@ -102,7 +133,7 @@ Future<void> main() async {
     group('PaginationSessionHandle API', () {
       test('create, fetch page, dispose', () async {
         final (handle, result) = await core_api.createPaginationSession(
-          filePath: filePath!,
+          bookId: bookId!,
           chapterIndex: 0,
           config: _defaultConfig(),
         );
@@ -115,12 +146,12 @@ Future<void> main() async {
         );
         expect(pageText, isNotEmpty);
 
-        await core_api.disposePaginationSession(handle: handle);
+        core_api.disposePaginationSession(handle: handle);
       });
 
       test('partial session upgrades via paginateSessionFull', () async {
         final (handle, partial) = await core_api.createPaginationSession(
-          filePath: filePath!,
+          bookId: bookId!,
           chapterIndex: 0,
           config: _defaultConfig(),
           maxChars: BigInt.from(500),
@@ -140,7 +171,7 @@ Future<void> main() async {
         );
         expect(pageText, isNotEmpty);
 
-        await core_api.disposePaginationSession(handle: handle);
+        core_api.disposePaginationSession(handle: handle);
       });
     });
 
@@ -151,7 +182,7 @@ Future<void> main() async {
 
       setUp(() async {
         paginateResult = await core_api.paginateChapter(
-          filePath: filePath!,
+          bookId: bookId!,
           chapterIndex: 0,
           config: _defaultConfig(),
         );
@@ -192,14 +223,14 @@ Future<void> main() async {
       });
     });
 
-    // ==================== paginateAllContent (full page content) ====================
+    // ==================== Session-based full page content (replaces paginateAllContent) ====================
 
-    group('paginateAllContent returns page content', () {
+    group('Session returns full page content', () {
       late List<PageContent> pages;
 
       setUp(() async {
-        pages = await core_api.paginateAllContent(
-          filePath: filePath!,
+        pages = await _allPages(
+          bookId: bookId!,
           chapterIndex: 0,
           config: _defaultConfig(),
         );
@@ -281,7 +312,7 @@ Future<void> main() async {
 
       test('paginateChapter produces at least 1 descriptor', () async {
         final result = await core_api.paginateChapter(
-          filePath: huozhePath,
+          bookId: huozheBookId,
           chapterIndex: 0,
           config: _defaultConfig(),
         );
@@ -292,9 +323,9 @@ Future<void> main() async {
         expect(result.descriptors.last.isLastPage, isTrue);
       });
 
-      test('paginateAllContent returns non-empty pages', () async {
-        final pages = await core_api.paginateAllContent(
-          filePath: huozhePath,
+      test('Session returns non-empty pages', () async {
+        final pages = await _allPages(
+          bookId: huozheBookId,
           chapterIndex: 0,
           config: _defaultConfig(),
         );
@@ -305,8 +336,8 @@ Future<void> main() async {
       });
 
       test('page content contains real Chinese text from the book', () async {
-        final pages = await core_api.paginateAllContent(
-          filePath: huozhePath,
+        final pages = await _allPages(
+          bookId: huozheBookId,
           chapterIndex: 0,
           config: _defaultConfig(),
         );
@@ -320,8 +351,8 @@ Future<void> main() async {
       test(
         'page content of chapter 1 (韩文版自序) is non-empty and contains Korean preface',
         () async {
-          final pages = await core_api.paginateAllContent(
-            filePath: huozhePath,
+          final pages = await _allPages(
+            bookId: huozheBookId,
             chapterIndex: 1,
             config: _defaultConfig(),
           );
@@ -373,7 +404,7 @@ Future<void> main() async {
 
         test('paginateChapter produces at least 1 descriptor', () async {
           final result = await core_api.paginateChapter(
-            filePath: huozheEpubPath,
+            bookId: huozheEpubBookId,
             chapterIndex: 0,
             config: _defaultConfig(),
           );
@@ -384,9 +415,9 @@ Future<void> main() async {
           expect(result.descriptors.last.isLastPage, isTrue);
         });
 
-        test('paginateAllContent returns non-empty pages', () async {
-          final pages = await core_api.paginateAllContent(
-            filePath: huozheEpubPath,
+        test('Session returns non-empty pages', () async {
+          final pages = await _allPages(
+            bookId: huozheEpubBookId,
             chapterIndex: 0,
             config: _defaultConfig(),
           );
@@ -397,8 +428,8 @@ Future<void> main() async {
         });
 
         test('page content contains real Chinese text from the EPUB', () async {
-          final pages = await core_api.paginateAllContent(
-            filePath: huozheEpubPath,
+          final pages = await _allPages(
+            bookId: huozheEpubBookId,
             chapterIndex: 0,
             config: _defaultConfig(),
           );
@@ -409,12 +440,11 @@ Future<void> main() async {
         });
       });
 
-      // ==================== I7: Cross-chapter staging ====================
+      // ==================== I7: Cross-chapter staging (session-based) ====================
 
       group('Cross-chapter staging (I7)', () {
         late String huozhePath;
         late String huozheBookId;
-        late List<Chapter> huozheChapters;
 
         setUpAll(() async {
           await setupTestStorage(label: 'staging');
@@ -431,7 +461,7 @@ Future<void> main() async {
         test('adjacent chapters produce valid pagination sessions', () async {
           // Chapter 0
           final (h0, r0) = await core_api.createPaginationSession(
-            filePath: huozhePath,
+            bookId: huozheBookId,
             chapterIndex: 0,
             config: _defaultConfig(),
           );
@@ -441,7 +471,7 @@ Future<void> main() async {
 
           // Chapter 1
           final (h1, r1) = await core_api.createPaginationSession(
-            filePath: huozhePath,
+            bookId: huozheBookId,
             chapterIndex: 1,
             config: _defaultConfig(),
           );
@@ -452,19 +482,19 @@ Future<void> main() async {
           // Disjoint content: adjacent chapters should not overlap
           expect(p0, isNot(equals(p1)));
 
-          await core_api.disposePaginationSession(handle: h0);
-          await core_api.disposePaginationSession(handle: h1);
+          core_api.disposePaginationSession(handle: h0);
+          core_api.disposePaginationSession(handle: h1);
         });
 
         test('staging handoff: chapter 0→1 preserves content integrity', () async {
           // Paginate both chapters fully
-          final pages0 = await core_api.paginateAllContent(
-            filePath: huozhePath,
+          final pages0 = await _allPages(
+            bookId: huozheBookId,
             chapterIndex: 0,
             config: _defaultConfig(),
           );
-          final pages1 = await core_api.paginateAllContent(
-            filePath: huozhePath,
+          final pages1 = await _allPages(
+            bookId: huozheBookId,
             chapterIndex: 1,
             config: _defaultConfig(),
           );
@@ -489,13 +519,13 @@ Future<void> main() async {
 
         test('cross-chapter content flow: chapter 0→1 preserves pagination integrity', () async {
           // Paginate both chapters
-          final pages0 = await core_api.paginateAllContent(
-            filePath: huozhePath,
+          final pages0 = await _allPages(
+            bookId: huozheBookId,
             chapterIndex: 0,
             config: _defaultConfig(),
           );
-          final pages1 = await core_api.paginateAllContent(
-            filePath: huozhePath,
+          final pages1 = await _allPages(
+            bookId: huozheBookId,
             chapterIndex: 1,
             config: _defaultConfig(),
           );

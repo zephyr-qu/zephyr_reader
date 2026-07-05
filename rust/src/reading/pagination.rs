@@ -76,6 +76,7 @@ async fn save_block_caches_chunked(
     }
 }
 async fn try_paginate_chapter_blocks(
+    book_id: &str,
     validated_path: &str,
     chapter_index: i32,
     config: &TypesetConfig,
@@ -91,7 +92,7 @@ async fn try_paginate_chapter_blocks(
     }
 
     let config_hash = config.config_hash();
-    let key = PaginationKey::new(validated_path, chapter_index, config_hash);
+    let key = PaginationKey::new(book_id, chapter_index, config_hash);
     let store = PaginationStore::global();
 
     if let Some(result) = store.try_block_full_hit(&key) {
@@ -157,7 +158,7 @@ async fn try_paginate_chapter_blocks(
     .await
     .map_err(|e| AppError::TaskPanic {
         task_name: "block_paginate".into(),
-        details: e.to_string().into(),
+        details: e.to_string(),
     })?;
 
     let state = BlockPaginationState::new(ir.clone(), block_result.clone(), false);
@@ -187,7 +188,9 @@ async fn try_paginate_chapter_blocks(
 ///
 /// 创建 `PageStreamer` 或 `BlockPaginationState` 并缓存；Dart 侧按需取页。
 /// 如果指定 `max_chars`，只读取前 N 字符进行分页（惰性转换）。
+/// M2: `book_id` 用于 PaginationKey，`file_path` 用于文件操作（ADR-014）。
 pub(crate) async fn paginate_chapter(
+    book_id: &str,
     file_path: String,
     chapter_index: i32,
     config: TypesetConfig,
@@ -201,9 +204,9 @@ pub(crate) async fn paginate_chapter(
 
     // 全章（max_chars=None）：P0 — 所有章节统一走 block 路径。
     // P1: plain sled 缓存已移除，不再有 fallback 到 PageStreamer 的路径。
-    if max_chars.is_none() {
-        if let Some(result) =
-            try_paginate_chapter_blocks(&validated_path, chapter_index, &config, None).await?
+    if max_chars.is_none()
+        && let Some(result) =
+            try_paginate_chapter_blocks(book_id, &validated_path, chapter_index, &config, None).await?
         {
             tracing::info!(
                 "[Timing] paginate_chapter block_path config_hash={:016x} chapter={} elapsed={:?}",
@@ -211,7 +214,6 @@ pub(crate) async fn paginate_chapter(
             );
             return Ok(result);
         }
-    }
 
     // 提取章节文本（只读取必要的 spine，惰性转换）
     let format = format_from_file_path(&validated_path)?;
@@ -264,7 +266,7 @@ pub(crate) async fn paginate_chapter(
          }
      } else {
          return Err(AppError::UnsupportedFormat {
-             format: format!("unsupported format for pagination: {:?}", format).into(),
+             format: format!("unsupported format for pagination: {:?}", format),
          });
      };
 
@@ -273,7 +275,7 @@ pub(crate) async fn paginate_chapter(
     let descriptors = streamer.get_descriptors();
 
     store.put(
-        PaginationKey::new(&validated_path, chapter_index, config_hash),
+        PaginationKey::new(book_id, chapter_index, config_hash),
         PaginationEngine::Plain(streamer),
     );
 
@@ -307,15 +309,15 @@ fn page_content_entity(chapter_index: i32, config_hash: u64, page_index: i32) ->
 }
 
 /// 块路径单页块列表（对标 `get_session_page_blocks`）。
+/// M2: `book_id` 替代 `file_path`（ADR-014）。
 pub(crate) fn get_page_blocks(
-    file_path: String,
+    book_id: &str,
     chapter_index: i32,
     config_hash: u64,
     page_index: i32,
 ) -> Result<Vec<PageBlockSlice>, AppError> {
     ensure_non_negative_page_index(page_index)?;
-    let validated_path = validate_file_path(&file_path)?;
-    let key = PaginationKey::new(&validated_path, chapter_index, config_hash);
+    let key = PaginationKey::new(book_id, chapter_index, config_hash);
     PaginationStore::global().with_engine(&key, |engine| {
         match engine {
             PaginationEngine::Block(state) => state
@@ -334,15 +336,15 @@ pub(crate) fn get_page_blocks(
 ///
 /// 从 `PAGINATION_ENGINE_CACHE` 查找引擎并按模式取页。
 /// 缓存未命中或页码越界时返回 `NotFound`，调用方应回退到 `paginate_chapter`。
+/// M2: `book_id` 替代 `file_path`（ADR-014）。
 pub(crate) fn get_page_content(
-    file_path: String,
+    book_id: &str,
     chapter_index: i32,
     config_hash: u64,
     page_index: i32,
 ) -> Result<String, AppError> {
     ensure_non_negative_page_index(page_index)?;
-    let validated_path = validate_file_path(&file_path)?;
-    let key = PaginationKey::new(&validated_path, chapter_index, config_hash);
+    let key = PaginationKey::new(book_id, chapter_index, config_hash);
     PaginationStore::global().with_engine(&key, |engine| {
         match engine {
             PaginationEngine::Plain(streamer) => streamer

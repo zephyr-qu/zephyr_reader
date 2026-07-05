@@ -302,7 +302,7 @@ fn stress_production_pipeline(sample_size: usize) {
             let t_partial = measure_n(sample_size, || {
                 rt.block_on(api_core::paginate_chapter(
                     black_box(path_str.clone()),
-                    max_ch_idx as i32,
+                    max_ch_idx,
                     black_box(config.clone()),
                     Some(50000),
                 ))
@@ -318,7 +318,7 @@ fn stress_production_pipeline(sample_size: usize) {
             // 查看 50K partial 产出了多少描述符
             let partial_result = rt.block_on(api_core::paginate_chapter(
                 path_str.clone(),
-                max_ch_idx as i32,
+                max_ch_idx,
                 config.clone(),
                 Some(50000),
             ))
@@ -350,7 +350,7 @@ fn stress_production_pipeline(sample_size: usize) {
                 let start = Instant::now();
                 let _ = api_core::get_page_content(
                     path_str.clone(),
-                    max_ch_idx as i32,
+                    max_ch_idx,
                     config_hash,
                     page as i32,
                 );

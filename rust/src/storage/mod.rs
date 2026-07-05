@@ -31,12 +31,12 @@ pub fn storage() -> Option<&'static StorageManager> {
 
 /// 确保存储已初始化
 pub fn ensure_storage() -> Result<&'static StorageManager, AppError> {
-    storage().ok_or_else(|| AppError::StorageNotInitialized)
+    storage().ok_or(AppError::StorageNotInitialized)
 }
 
 /// 获取 storage pool 的简写，消除重复样板
 pub fn storage_pool() -> Result<sqlx::SqlitePool, AppError> {
-    ensure_storage()?.pool().map_err(|e| AppError::DatabaseError { reason: e.to_string().into() })
+    ensure_storage()?.pool().map_err(|e| AppError::DatabaseError { reason: e.to_string() })
 }
 
 #[cfg(test)]

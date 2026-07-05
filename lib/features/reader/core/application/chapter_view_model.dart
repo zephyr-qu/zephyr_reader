@@ -139,6 +139,12 @@ class ChapterViewModel {
 
   // ==================== 字体与校准 ====================
 
+  String get fontFamily => _pagination.fontFamily;
+  set fontFamily(String value) {
+    _pagination.fontFamily = value;
+    _pagination.calibration.value = null;
+  }
+
   void updateFont(String fontFamily) {
     _loader.updateFont(fontFamily);
     _pagination.syncChapterTypesetLayoutToRepo();

@@ -1,3 +1,6 @@
+// Shared test utilities — not every test binary uses every function.
+#![allow(dead_code)]
+
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
@@ -168,22 +171,6 @@ pub fn assert_monotonic_descriptors(descriptors: &[PageDescriptor]) {
                 descriptors[i - 1].end_offset,
             );
         }
-    }
-}
-
-/// Every page content fetched via `get_session_page_content` is non-empty.
-pub async fn assert_all_pages_non_empty(
-    handle: &PaginationSessionHandle,
-    page_count: i32,
-) {
-    for i in 0..page_count {
-        let content = get_session_page_content(handle.clone(), i)
-            .expect("get_session_page_content should succeed");
-        assert!(
-            !content.is_empty(),
-            "page {} content should not be empty",
-            i,
-        );
     }
 }
 
