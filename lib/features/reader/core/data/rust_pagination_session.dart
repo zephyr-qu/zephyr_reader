@@ -269,11 +269,11 @@ class RustPaginationSession implements PaginationSession {
       );
 
       // P0: all chapters now require block path. If adopt returns
-      // stale plain-full cache (from pre-P0 sled), recreate as block session.
-      if (result.mode != ChapterPaginationMode.contentBlocks &&
-          !result.isPartial) {
+      // any non-contentBlocks engine (stale plainText cache from pre-P0
+      // preload or pre-P0 sled), recreate as block session.
+      if (result.mode != ChapterPaginationMode.contentBlocks) {
         Logging.info(
-          '[ChapterTransition] adoptStalePlainFull ch=$chapterIndex → recreate block session',
+          '[ChapterTransition] adoptNonBlock ch=$chapterIndex mode=${result.mode} partial=${result.isPartial} → recreate block session',
         );
         _releaseHandle();
         return beginPaginate(
