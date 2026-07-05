@@ -39,11 +39,27 @@ impl BlockPaginationState {
     /// 页 plain 投影（含 `\uFFFC` 占位）；对标 `PageStreamer::get_page` 文本字段。
     pub fn page_plain_text(&self, page_index: usize) -> Option<String> {
         let desc = self.result.descriptors.get(page_index)?;
-        Some(slice_by_char_range(
+        let text = slice_by_char_range(
             &self.ir.plain_text,
             desc.plain.plain_start,
             desc.plain.plain_len,
-        ))
+        );
+        // Trace: log last 3 pages and first page for diagnosis
+        let total = self.result.page_count();
+        if page_index == 0 || page_index + 3 >= total {
+            let preview = if text.len() > 60 {
+                format!("{}...", &text[..60])
+            } else {
+                text.clone()
+            };
+            tracing::info!(
+                "[Trace] page_plain_text p={page_index}/{total} plain=[{}..+{}] len={} preview=\"{preview}\"",
+                desc.plain.plain_start,
+                desc.plain.plain_len,
+                text.len()
+            );
+        }
+        Some(text)
     }
 
     /// P0: 将所有页面展开为 `Vec<PageContent>`（对标 `paginate_all_content` 的全量输出）。
@@ -69,6 +85,16 @@ impl BlockPaginationState {
     /// M3.2：页内块切片（Text 裁剪 + Image asset_id/layout）。
     pub fn page_blocks(&self, page_index: usize) -> Option<Vec<PageBlockSlice>> {
         let desc = self.result.descriptors.get(page_index)?;
+        let total = self.result.page_count();
+        let block_range = desc.first_block_index..desc.last_block_index;
+        // Trace: log last 3 pages block info
+        if page_index + 3 >= total {
+            tracing::info!(
+                "[Trace] page_blocks p={page_index}/{total} blocks={:?} ir_blocks={}",
+                block_range,
+                self.ir.blocks.len()
+            );
+        }
         let page_plain_start = desc.plain.plain_start;
         let page_plain_end = desc.plain_end_exclusive();
 
@@ -132,6 +158,18 @@ impl BlockPaginationState {
         config: TypesetConfig,
     ) -> Result<PaginateResult, crate::domain::AppError> {
         assert!(self.is_partial, "expand_to_full called on non-partial state");
+        let old_pages = self.result.page_count();
+        let old_last_plain = self
+            .result
+            .descriptors
+            .last()
+            .map(|d| d.plain_end_exclusive())
+            .unwrap_or(0);
+        let ir_blocks = self.ir.blocks.len();
+        let ir_plain_len = self.ir.plain_text.chars().count();
+        tracing::info!(
+            "[Trace] expand_to_full START partial_pages={old_pages} partial_last_plain_end={old_last_plain} ir_blocks={ir_blocks} ir_plain_len={ir_plain_len}"
+        );
         let ir = self.ir.clone();
         let block_result = tokio::task::spawn_blocking(move || {
             crate::text::block_paginator::paginate_chapter_ir_chunked(&ir, config)
@@ -143,6 +181,23 @@ impl BlockPaginationState {
         })?;
         self.result = block_result;
         self.is_partial = false;
+        let full_pages = self.result.page_count();
+        let full_last_plain = self
+            .result
+            .descriptors
+            .last()
+            .map(|d| d.plain_end_exclusive())
+            .unwrap_or(0);
+        let last_block = self
+            .result
+            .descriptors
+            .last()
+            .map(|d| d.last_block_index)
+            .unwrap_or(0);
+        tracing::info!(
+            "[Trace] expand_to_full DONE full_pages={full_pages} full_last_plain_end={full_last_plain} last_block_index_in_result={last_block} ir_blocks={}",
+            self.ir.blocks.len()
+        );
         Ok(self
             .result
             .to_legacy_paginate_result(ChapterPaginationMode::ContentBlocks))
