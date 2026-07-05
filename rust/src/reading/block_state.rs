@@ -47,10 +47,11 @@ impl BlockPaginationState {
         // Trace: log last 3 pages and first page for diagnosis
         let total = self.result.page_count();
         if page_index == 0 || page_index + 3 >= total {
-            let preview = if text.len() > 60 {
-                format!("{}...", &text[..60])
+            let preview: String = text.chars().take(60).collect();
+            let preview = if text.chars().count() > 60 {
+                format!("{preview}...")
             } else {
-                text.clone()
+                preview
             };
             tracing::info!(
                 "[Trace] page_plain_text p={page_index}/{total} plain=[{}..+{}] len={} preview=\"{preview}\"",
