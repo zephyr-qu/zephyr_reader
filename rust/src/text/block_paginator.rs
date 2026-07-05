@@ -39,8 +39,7 @@ impl BlockLayoutMetrics {
         let effective_width = (page_width_px - SAFETY_MARGIN_PX).max(1.0);
         let first_line_indent_width_px = font_size * config.first_line_indent as f32;
         let max_line_width_px = (effective_width - first_line_indent_width_px).max(font_size);
-        let paragraph_spacing_extra_px =
-            (config.paragraph_spacing * font_size).max(0.0);
+        let paragraph_spacing_extra_px = (config.paragraph_spacing * font_size).max(0.0);
 
         Self {
             font_size_px: font_size,
@@ -68,9 +67,7 @@ struct TextLineSegment {
 }
 
 fn char_index_at_byte(text: &str, byte: usize) -> u32 {
-    text.char_indices()
-        .take_while(|(b, _)| *b < byte)
-        .count() as u32
+    text.char_indices().take_while(|(b, _)| *b < byte).count() as u32
 }
 
 /// 块级首行缩进（ADR-010）：IR 字段优先，否则 TypesetConfig。
@@ -84,10 +81,7 @@ fn effective_first_line_indent(
     match style.text_indent_em {
         Some(em) if em <= 0.0 => (false, 0.0),
         Some(em) => (true, em * metrics.font_size_px),
-        None if metrics.first_line_indent_chars > 0 => (
-            true,
-            metrics.first_line_indent_width_px,
-        ),
+        None if metrics.first_line_indent_chars > 0 => (true, metrics.first_line_indent_width_px),
         None => (false, 0.0),
     }
 }
@@ -153,8 +147,7 @@ fn layout_text_block_lines(
 
         let is_first_line_in_block = segments.is_empty();
         let max_width = if is_first_line_in_block && indent_first {
-            (metrics.max_line_width_px - indent_width_px)
-                .max(metrics.width_table.char_width('A'))
+            (metrics.max_line_width_px - indent_width_px).max(metrics.width_table.char_width('A'))
         } else {
             metrics.max_line_width_px
         };
@@ -252,7 +245,10 @@ impl BlockPaginator {
         if self.current.is_empty() {
             return;
         }
-        let plain_len = self.current.plain_end.saturating_sub(self.current.plain_start);
+        let plain_len = self
+            .current
+            .plain_end
+            .saturating_sub(self.current.plain_start);
         let descriptor = BlockPageDescriptor::new(
             self.page_index,
             self.current.first_block,
@@ -384,10 +380,7 @@ impl BlockPaginator {
 }
 
 /// 对章 IR 执行块分页。
-pub fn paginate_chapter_ir(
-    ir: &ChapterContentIr,
-    config: TypesetConfig,
-) -> BlockPaginateResult {
+pub fn paginate_chapter_ir(ir: &ChapterContentIr, config: TypesetConfig) -> BlockPaginateResult {
     let config = config.validate_and_fix();
     let config_hash = config.config_hash();
     let metrics = BlockLayoutMetrics::from_config(&config);
@@ -466,7 +459,9 @@ pub fn paginate_chapter_ir_chunked(
 
         let chunk = &ir.blocks[offset..end];
         let sub_ir = ChapterContentIr::new(chunk.to_vec(), ir.plain_text.clone());
-        let result = paginate_chapter_ir(&sub_ir, config.clone());
+        let mut result = paginate_chapter_ir(&sub_ir, config.clone());
+        // 将 chunk-relative 的 block 索引转换为全章绝对索引
+        result.offset_block_indices(offset as u32);
         merged.merge(result);
         offset = end;
     }
@@ -500,10 +495,15 @@ mod tests {
     #[test]
     fn pure_text_splits_across_pages() {
         let ir = long_text_ir(200);
-        ir.validate_plain(PlainProjectionStyle::BlockJoined).unwrap();
+        ir.validate_plain(PlainProjectionStyle::BlockJoined)
+            .unwrap();
 
         let result = paginate_chapter_ir(&ir, test_config());
-        assert!(result.page_count() > 1, "expected multiple pages, got {}", result.page_count());
+        assert!(
+            result.page_count() > 1,
+            "expected multiple pages, got {}",
+            result.page_count()
+        );
         assert!(result.descriptors.iter().all(|d| d.block_count() >= 1));
     }
 
@@ -600,13 +600,21 @@ mod tests {
         // Large chapter (>200 blocks) — should chunk and merge
         let mut b = BlockJoinedPlainBuilder::new();
         for i in 0..(CHUNK_BLOCK_COUNT + 50) {
-            b.push_text(format!("Block {i}: some text to paginate."), TextBlockStyle::default());
+            b.push_text(
+                format!("Block {i}: some text to paginate."),
+                TextBlockStyle::default(),
+            );
         }
         let ir = b.finish();
         assert!(ir.block_count() > CHUNK_BLOCK_COUNT);
 
         let result = paginate_chapter_ir_chunked(&ir, test_config());
-        assert!(result.page_count() > 1, "expected {} pages, got {}", result.page_count(), result.page_count());
+        assert!(
+            result.page_count() > 1,
+            "expected {} pages, got {}",
+            result.page_count(),
+            result.page_count()
+        );
 
         // Verify monotonic plain ranges across all descriptors
         let mut prev_end = 0u32;
@@ -614,14 +622,20 @@ mod tests {
             assert!(
                 d.plain.plain_start >= prev_end.saturating_sub(1),
                 "descriptor page={} plain_start={} < prev_end={}",
-                d.page_index, d.plain.plain_start, prev_end
+                d.page_index,
+                d.plain.plain_start,
+                prev_end
             );
             prev_end = d.plain_end_exclusive();
         }
 
         // Verify page_index is sequential
         for (i, d) in result.descriptors.iter().enumerate() {
-            assert_eq!(d.page_index as usize, i, "page_index mismatch at descriptor {}", i);
+            assert_eq!(
+                d.page_index as usize, i,
+                "page_index mismatch at descriptor {}",
+                i
+            );
         }
     }
 
@@ -663,7 +677,11 @@ mod tests {
         let ir = ChapterContentIr::new(vec![], String::new());
         assert_eq!(ir.block_count(), 0);
         let result = paginate_chapter_ir_chunked(&ir, test_config());
-        assert_eq!(result.page_count(), 1, "0-block chapter should produce 1 placeholder page");
+        assert_eq!(
+            result.page_count(),
+            1,
+            "0-block chapter should produce 1 placeholder page"
+        );
     }
 
     #[test]
@@ -694,7 +712,9 @@ mod tests {
             assert!(
                 d.plain.plain_start >= prev_end.saturating_sub(1),
                 "descriptor page={} plain_start={} < prev_end={}",
-                d.page_index, d.plain.plain_start, prev_end
+                d.page_index,
+                d.plain.plain_start,
+                prev_end
             );
             prev_end = d.plain_end_exclusive();
         }
