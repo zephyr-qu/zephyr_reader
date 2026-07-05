@@ -213,9 +213,8 @@ impl PageStreamer {
 
         let auto_space_px = (font_size * config.auto_space_ratio).max(1.0);
 
-        let width_table = CharWidthTable::from_calibration(
-            config.calibration.as_ref().unwrap_or(&Default::default()),
-        );
+        let width_table =
+            CharWidthTable::from_optional_calibration(config.calibration.as_ref(), font_size);
 
         let indent_str = "  ".repeat(config.first_line_indent as usize);
 
@@ -329,9 +328,8 @@ impl PageStreamer {
         let lines_per_page = ((page_height_px / line_height) as usize).max(5);
 
         let effective_width = (page_width_px - SAFETY_MARGIN_PX).max(1.0);
-        let width_table = CharWidthTable::from_calibration(
-            config.calibration.as_ref().unwrap_or(&Default::default()),
-        );
+        let width_table =
+            CharWidthTable::from_optional_calibration(config.calibration.as_ref(), font_size);
         let avg_char_width = width_table.char_width('中').max(1.0);
         let chars_per_line = (effective_width / avg_char_width * 1.2).max(10.0) as usize;
 

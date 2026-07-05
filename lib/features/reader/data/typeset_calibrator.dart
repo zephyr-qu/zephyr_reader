@@ -292,14 +292,15 @@ bool isCalibrationPlausible(CalibrationData data, double fontSize) {
 
 /// 将 [CalibrationData] 转为 Rust FRB 类型。
 TypesetCalibration calibrationToRust(CalibrationData data) {
+  final dpr = data.dpr;
   return TypesetCalibration(
-    dpr: data.dpr,
-    cjkWidth: data.cjkWidth,
-    asciiWidth: data.asciiWidth,
-    digitWidth: data.digitWidth,
-    punctWidth: data.punctWidth,
-    otherWidth: data.otherWidth,
-    latinExtWidth: data.otherWidth,
+    dpr: dpr,
+    cjkWidth: data.cjkWidth * dpr,
+    asciiWidth: data.asciiWidth * dpr,
+    digitWidth: data.digitWidth * dpr,
+    punctWidth: data.punctWidth * dpr,
+    otherWidth: data.otherWidth * dpr,
+    latinExtWidth: data.otherWidth * dpr,
   );
 }
 

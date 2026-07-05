@@ -123,8 +123,14 @@ Widget buildScrollIrBlockItem({
     text: (tb) {
       if (tb.text.isEmpty) return const SizedBox.shrink();
       final offset = tb.plain.plainStart;
+      final blockFontSize = IrTextBlockStyle.effectiveFontSize(
+        tb.style,
+        config,
+      );
       final blockStrutStyle = config.buildStrutStyle(
         fontFamily: tb.style.fontFamily,
+        fontSizeMultiplier: blockFontSize / config.fontSize,
+        lineHeight: IrTextBlockStyle.effectiveLineHeight(tb.style, config),
       );
       final textAlign = IrTextBlockStyle.resolveTextAlign(
         tb.style.textAlign,

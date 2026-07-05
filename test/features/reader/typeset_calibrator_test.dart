@@ -129,12 +129,12 @@ void main() {
 
         expect(config.calibration, isNotNull);
         expect(config.calibration!.dpr, equals(2.0));
-        expect(config.calibration!.cjkWidth, equals(18.0));
-        expect(config.calibration!.asciiWidth, equals(9.5));
-        expect(config.calibration!.digitWidth, equals(9.0));
-        expect(config.calibration!.punctWidth, equals(17.5));
-        expect(config.calibration!.otherWidth, equals(14.0));
-        expect(config.calibration!.latinExtWidth, equals(14.0));
+        expect(config.calibration!.cjkWidth, equals(36.0));
+        expect(config.calibration!.asciiWidth, equals(19.0));
+        expect(config.calibration!.digitWidth, equals(18.0));
+        expect(config.calibration!.punctWidth, equals(35.0));
+        expect(config.calibration!.otherWidth, equals(28.0));
+        expect(config.calibration!.latinExtWidth, equals(28.0));
       });
 
       test('calibration dpr 与 devicePixelRatio 独立', () {
@@ -236,7 +236,7 @@ void main() {
           otherWidth: 14.0,
         );
         final rust = calibrationToRust(cal);
-        expect(rust.latinExtWidth, equals(14.0));
+        expect(rust.latinExtWidth, equals(28.0));
       });
     });
   });

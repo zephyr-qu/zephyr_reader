@@ -31,6 +31,22 @@ impl CharWidthTable {
         }
     }
 
+    pub fn from_optional_calibration(cal: Option<&TypesetCalibration>, font_size_px: f32) -> Self {
+        match cal {
+            Some(cal) => Self::from_calibration(cal),
+            None => {
+                let factor = (font_size_px / 16.0).max(0.1);
+                Self::from_calibration(&TypesetCalibration::default()).scaled(factor)
+            }
+        }
+    }
+
+    pub fn scaled(&self, factor: f32) -> Self {
+        Self {
+            widths: self.widths.map(|w| w * factor),
+        }
+    }
+
     #[inline(always)]
     pub fn char_width(&self, ch: char) -> f32 {
         // 注意 match 顺序：数字区间是 ASCII 的子集，必须放在 ASCII 之前

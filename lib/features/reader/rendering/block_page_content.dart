@@ -50,8 +50,17 @@ Widget buildBlockPageContent({
               text: (slice) {
                 if (slice.text.isEmpty) return;
                 final irStyle = slice.style;
+                final blockFontSize = IrTextBlockStyle.effectiveFontSize(
+                  irStyle,
+                  config,
+                );
                 final blockStrutStyle = config.buildStrutStyle(
                   fontFamily: irStyle.fontFamily,
+                  fontSizeMultiplier: blockFontSize / config.fontSize,
+                  lineHeight: IrTextBlockStyle.effectiveLineHeight(
+                    irStyle,
+                    config,
+                  ),
                 );
                 final textAlign = IrTextBlockStyle.resolveTextAlign(
                   irStyle.textAlign,
