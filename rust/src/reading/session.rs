@@ -239,6 +239,9 @@ pub(crate) async fn apply_session_calibration(
 }
 
 /// Expand session to full chapter.
+///
+/// P0: 当 session 持有 partial `BlockPaginationState` 时，直接用缓存的完整 IR
+/// 调用 `expand_to_full`，避免重新从磁盘加载 IR 再分页。
 pub(crate) async fn paginate_session_full(
     handle: PaginationSessionHandle,
     config: Option<TypesetConfig>,
@@ -246,8 +249,26 @@ pub(crate) async fn paginate_session_full(
     if let Some(cfg) = config {
         return repaginate_session(handle, cfg, None).await;
     }
-    let entry = lookup_pagination_session(handle.session_id)?;
-    apply_session_repagination(handle.session_id, entry, None, None).await
+    let mut entry = lookup_pagination_session(handle.session_id)?;
+    let session_id = handle.session_id;
+
+    // P0: partial block state → 用缓存的完整 IR expand，跳过磁盘 IO
+    if let PaginationEngine::Block(ref state) = entry.engine
+        && state.is_partial {
+            let mut state = state.clone();
+            let result = state.expand_to_full(entry.config.clone()).await?;
+            // 同步更新 PaginationStore LRU（path API / adopt 需要）
+            let cache_key = entry.cache_key();
+            PaginationStore::global().put(
+                cache_key,
+                PaginationEngine::Block(state.clone()),
+            );
+            entry.engine = PaginationEngine::Block(state);
+            SESSION_MAP.lock().insert(session_id, entry);
+            return Ok(result);
+        }
+
+    apply_session_repagination(session_id, entry, None, None).await
 }
 
 fn session_page_entity(page_index: i32) -> String {

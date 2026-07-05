@@ -11,6 +11,9 @@ use crate::domain::{
     AppError, BlockPageDescriptor, BlockPaginateResult, ChapterContentIr,
     ChapterPaginationMode, PageBlockSlice, PaginateResult, TypesetConfig,
 };
+use crate::domain::types::content_ir::{
+    BlockPlainRange, ContentBlock, TextBlock,
+};
 use crate::storage::models::BookFormat;
 use crate::text::PageStreamer;
 use crate::utils::security::validate_file_path;
@@ -75,6 +78,44 @@ async fn save_block_caches_chunked(
         ).await;
     }
 }
+/// 截取 plain_text 中前 max_chars 个字符对应的 ContentBlock 集合。
+/// 保留完整包含的块 + 截断最后一个跨越边界的 TextBlock（ImageBlock 不可截断）。
+fn filter_blocks_to_chars(
+    blocks: &[ContentBlock],
+    max_chars: u64,
+) -> Vec<ContentBlock> {
+    let max_chars = max_chars as usize;
+    let mut filtered = Vec::new();
+
+    for block in blocks {
+        let start = block.plain_start() as usize;
+        let len = block.plain_len() as usize;
+        let end = start + len;
+
+        if end <= max_chars {
+            filtered.push(block.clone());
+        } else if start < max_chars {
+            // 跨越边界：仅截断 TextBlock（ImageBlock 不可截断，跳过）
+            if let ContentBlock::Text(tb) = block {
+                let truncated_len = (max_chars - start) as u32;
+                let truncated_text: String =
+                    tb.text.chars().take(truncated_len as usize).collect();
+                // 边界块丢弃 spans（首屏展示可接受；完整 IR 已缓存供 expand 使用）
+                filtered.push(ContentBlock::Text(TextBlock {
+                    plain: BlockPlainRange::new(tb.plain.plain_start, truncated_len),
+                    text: truncated_text,
+                    style: tb.style.clone(),
+                    spans: Vec::new(),
+                }));
+            }
+        }
+        if end >= max_chars {
+            break;
+        }
+    }
+    filtered
+}
+
 async fn try_paginate_chapter_blocks(
     book_id: &str,
     validated_path: &str,
@@ -82,10 +123,6 @@ async fn try_paginate_chapter_blocks(
     config: &TypesetConfig,
     max_chars: Option<u64>,
 ) -> Result<Option<PaginateResult>, AppError> {
-    if max_chars.is_some() {
-        return Ok(None);
-    }
-
     let format = format_from_file_path(validated_path)?;
     if !matches!(format, BookFormat::Txt | BookFormat::Epub) {
         return Ok(None);
@@ -147,10 +184,37 @@ async fn try_paginate_chapter_blocks(
     // P0: ALL chapters now go through block pagination, regardless of
     // image content. This eliminates the dual truth source (PageStreamer
     // vs BlockPaginator) — "分页引擎只认 IR" (TARGET_ARCHITECTURE §4).
-    let ir = load_chapter_content_ir(validated_path, chapter_index).await?;
+    let full_ir = load_chapter_content_ir(validated_path, chapter_index).await?;
 
     let config = config.clone();
-    let ir_for_paginate = ir.clone();
+
+    if let Some(chars) = max_chars {
+        // Partial paginate: 截取前 N 字符对应的 blocks
+        let partial_blocks = filter_blocks_to_chars(&full_ir.blocks, chars);
+        let partial_ir = ChapterContentIr::new(partial_blocks, full_ir.plain_text.clone());
+        let ir_for_paginate = partial_ir.clone();
+        let partial_result = tokio::task::spawn_blocking(move || {
+            crate::text::block_paginator::paginate_chapter_ir_chunked(&ir_for_paginate, config)
+        })
+        .await
+        .map_err(|e| AppError::TaskPanic {
+            task_name: "block_paginate_partial".into(),
+            details: e.to_string(),
+        })?;
+
+        // 存储完整 IR + partial result（expand 时用完整 IR 重新 paginate）
+        let state = BlockPaginationState::new(full_ir, partial_result.clone(), true);
+        let result = state.to_paginate_result(config_hash);
+        store.put(key, PaginationEngine::Block(state));
+
+        tracing::info!(
+            "[Timing] paginate_chapter block_path_partial config_hash={:016x} chapter={} pages={} max_chars={chars}",
+            config_hash, chapter_index, result.descriptors.len()
+        );
+        return Ok(Some(result));
+    }
+
+    let ir_for_paginate = full_ir.clone();
     let block_result = tokio::task::spawn_blocking(move || {
         // Use chunked paginator — transparently splits large chapters
         crate::text::block_paginator::paginate_chapter_ir_chunked(&ir_for_paginate, config)
@@ -161,7 +225,7 @@ async fn try_paginate_chapter_blocks(
         details: e.to_string(),
     })?;
 
-    let state = BlockPaginationState::new(ir.clone(), block_result.clone(), false);
+    let state = BlockPaginationState::new(full_ir.clone(), block_result.clone(), false);
     let result = state.to_paginate_result(config_hash);
     store.put(key, PaginationEngine::Block(state));
 
@@ -170,7 +234,7 @@ async fn try_paginate_chapter_blocks(
         validated_path,
         chapter_index,
         config_hash,
-        &ir,
+        &full_ir,
         &block_result,
     ).await;
 
@@ -360,4 +424,73 @@ pub(crate) fn get_page_content(
                 }),
         }
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::{
+        BlockJoinedPlainBuilder, ChapterContentIr, ChapterPaginationMode,
+        ContentBlock, TextBlockStyle, TypesetConfig,
+    };
+
+    fn make_ir_with_n_blocks(n: usize) -> ChapterContentIr {
+        let mut b = BlockJoinedPlainBuilder::new();
+        for i in 0..n {
+            b.push_text(
+                format!("Block {i}: {}", "X".repeat(200)),
+                TextBlockStyle::default(),
+            );
+        }
+        b.finish()
+    }
+
+    #[test]
+    fn filter_blocks_to_chars_all_blocks_within_limit() {
+        let ir = make_ir_with_n_blocks(3);
+        // 3 blocks × ~210 chars each ≈ 630 chars, max_chars=5000 should include all
+        let filtered = filter_blocks_to_chars(&ir.blocks, 5000);
+        assert_eq!(filtered.len(), 3, "all blocks should fit within 5000 chars");
+    }
+
+    #[test]
+    fn filter_blocks_to_chars_truncates_at_boundary() {
+        let ir = make_ir_with_n_blocks(5);
+        // first block ~210 chars, max_chars=300 → includes first block + truncated second block
+        let filtered = filter_blocks_to_chars(&ir.blocks, 300);
+        assert!(filtered.len() >= 1, "should include at least first block");
+        assert!(filtered.len() <= 2, "should include at most first + truncated second");
+
+        // first block should be intact
+        let first = &filtered[0];
+        let first_len = first.plain_len() as usize;
+        assert_eq!(first_len, ir.blocks[0].plain_len() as usize);
+    }
+
+    #[test]
+    fn filter_blocks_to_chars_empty_on_zero() {
+        let ir = make_ir_with_n_blocks(3);
+        let filtered = filter_blocks_to_chars(&ir.blocks, 0);
+        assert_eq!(filtered.len(), 0, "max_chars=0 should produce empty result");
+    }
+
+    #[test]
+    fn filter_blocks_to_chars_preserves_block_count_at_exact_boundary() {
+        let ir = make_ir_with_n_blocks(3);
+        let first_block_end = ir.blocks[0].plain_start() + ir.blocks[0].plain_len();
+        let filtered = filter_blocks_to_chars(&ir.blocks, first_block_end as u64);
+        assert_eq!(filtered.len(), 1, "exact boundary should include exactly first block");
+    }
+
+    /// P0: partial pagination 应返回 contentBlocks 模式（非 plainText）。
+    #[test]
+    fn filter_blocks_to_chars_partial_has_fewer_blocks() {
+        let ir = make_ir_with_n_blocks(10);
+        let filtered = filter_blocks_to_chars(&ir.blocks, 1000);
+        assert!(!filtered.is_empty());
+        for block in &filtered {
+            assert!(block.plain_len() > 0, "filtered block must have content");
+        }
+        assert!(filtered.len() < ir.blocks.len(), "partial should have fewer blocks than full");
+    }
 }
