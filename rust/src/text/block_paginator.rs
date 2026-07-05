@@ -333,6 +333,9 @@ impl BlockPaginator {
 
         let top_spacing = block_top_spacing_px(&block.style, effective_font_size);
         if top_spacing > 0.0 {
+            if !self.current.is_empty() && self.remaining_height < top_spacing {
+                self.flush_page(false);
+            }
             self.remaining_height = (self.remaining_height - top_spacing).max(0.0);
         }
 
@@ -349,7 +352,14 @@ impl BlockPaginator {
             block_bottom_spacing_px(&block.style, effective_font_size, &self.metrics);
 
         for (i, seg) in lines.iter().enumerate() {
-            if self.remaining_height < effective_line_height {
+            let is_last_line = i + 1 == lines.len();
+            let required_height = effective_line_height
+                + if is_last_line {
+                    bottom_spacing
+                } else {
+                    0.0
+                };
+            if !self.current.is_empty() && self.remaining_height < required_height {
                 self.flush_page(false);
             }
 
@@ -359,7 +369,7 @@ impl BlockPaginator {
             self.extend_plain_end(seg_plain_end);
             self.remaining_height -= effective_line_height;
 
-            if i + 1 == lines.len() && bottom_spacing > 0.0 {
+            if is_last_line && bottom_spacing > 0.0 {
                 self.remaining_height = (self.remaining_height - bottom_spacing).max(0.0);
             }
         }
@@ -568,6 +578,29 @@ mod tests {
             result_yes.page_count() >= result_no.page_count(),
             "paragraph_spacing should not reduce page count"
         );
+    }
+
+    #[test]
+    fn paragraph_spacing_must_fit_before_page_flush() {
+        let mut b = BlockJoinedPlainBuilder::new();
+        b.push_text("你好你好".into(), TextBlockStyle::default());
+        b.push_text("世界世界".into(), TextBlockStyle::default());
+        let ir = b.finish();
+        let mut config = test_config();
+        config.page_width = 400;
+        config.page_height = 100;
+        config.font_size = 50;
+        config.line_spacing = 1.0;
+        config.paragraph_spacing = 1.0;
+
+        let result = paginate_chapter_ir(&ir, config);
+
+        assert!(
+            result.page_count() >= 2,
+            "line + paragraph spacing must not be squeezed onto one visual page"
+        );
+        assert_eq!(result.descriptors[0].plain.plain_start, 0);
+        assert_eq!(result.descriptors[0].plain.plain_len, 4);
     }
 
     #[test]

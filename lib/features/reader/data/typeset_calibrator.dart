@@ -13,6 +13,7 @@ class CalibrationData {
   final double asciiWidth;
   final double digitWidth;
   final double punctWidth;
+  final double latinExtWidth;
   final double otherWidth;
 
   const CalibrationData({
@@ -21,6 +22,7 @@ class CalibrationData {
     required this.asciiWidth,
     required this.digitWidth,
     required this.punctWidth,
+    required this.latinExtWidth,
     required this.otherWidth,
   });
 }
@@ -30,7 +32,8 @@ const _cjkSamples = '排版测量';
 const _asciiSamples = 'Tex';
 const _digitSamples = '012';
 const _punctSamples = '，。！';
-const _otherSamples = 'ñüé';
+const _latinExtSamples = 'ñüé';
+const _otherSamples = '◇Ω☕';
 
 /// 执行字符宽度校准
 ///
@@ -48,6 +51,11 @@ CalibrationData _calibrateCharacterWidths({
   final asciiWidth = _measureWidth(_asciiSamples, fontSize, fontFamily);
   final digitWidth = _measureWidth(_digitSamples, fontSize, fontFamily);
   final punctWidth = _measureWidth(_punctSamples, fontSize, fontFamily);
+  final latinExtWidth = _measureWidth(
+    _latinExtSamples,
+    fontSize,
+    fontFamily,
+  );
   final otherWidth = _measureWidth(_otherSamples, fontSize, fontFamily);
 
   return CalibrationData(
@@ -56,6 +64,7 @@ CalibrationData _calibrateCharacterWidths({
     asciiWidth: asciiWidth,
     digitWidth: digitWidth,
     punctWidth: punctWidth,
+    latinExtWidth: latinExtWidth,
     otherWidth: otherWidth,
   );
 }
@@ -241,10 +250,6 @@ CalibrationData? calibrateFromPageText({
         fontFamily: fontFamily,
       );
 
-  final latinOrOther = latinExtSamples.isNotEmpty
-      ? latinExtSamples
-      : otherSamples;
-
   return CalibrationData(
     dpr: devicePixelRatio,
     cjkWidth:
@@ -259,8 +264,11 @@ CalibrationData? calibrateFromPageText({
     punctWidth:
         _avgWidthForCategory(punctSamples, fontSize, fontFamily) ??
         fallback.punctWidth,
+    latinExtWidth:
+        _avgWidthForCategory(latinExtSamples, fontSize, fontFamily) ??
+        fallback.latinExtWidth,
     otherWidth:
-        _avgWidthForCategory(latinOrOther, fontSize, fontFamily) ??
+        _avgWidthForCategory(otherSamples, fontSize, fontFamily) ??
         fallback.otherWidth,
   );
 }
@@ -280,6 +288,7 @@ bool calibrationDriftExceeds(
       drift(baseline.asciiWidth, refined.asciiWidth) ||
       drift(baseline.digitWidth, refined.digitWidth) ||
       drift(baseline.punctWidth, refined.punctWidth) ||
+      drift(baseline.latinExtWidth, refined.latinExtWidth) ||
       drift(baseline.otherWidth, refined.otherWidth);
 }
 
@@ -300,7 +309,7 @@ TypesetCalibration calibrationToRust(CalibrationData data) {
     digitWidth: data.digitWidth * dpr,
     punctWidth: data.punctWidth * dpr,
     otherWidth: data.otherWidth * dpr,
-    latinExtWidth: data.otherWidth * dpr,
+    latinExtWidth: data.latinExtWidth * dpr,
   );
 }
 

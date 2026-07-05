@@ -3,10 +3,9 @@
 use std::collections::HashMap;
 
 use crate::domain::{
-    BlockPaginateResult, ChapterContentIr, ChapterPaginationMode,
-    ContentBlock, ImageBlockLayout, PageBlockSlice, PageContent,
-    PageImageBlockSlice, PageTextBlockSlice, PaginateResult, TypesetConfig,
-    slice_by_char_range, slice_rich_spans,
+    BlockPaginateResult, ChapterContentIr, ChapterPaginationMode, ContentBlock, ImageBlockLayout,
+    PageBlockSlice, PageContent, PageImageBlockSlice, PageTextBlockSlice, PaginateResult,
+    TypesetConfig, slice_by_char_range, slice_rich_spans,
 };
 
 /// 块路径分页状态（session / `PAGINATION_ENGINE_CACHE` 持有）。
@@ -133,6 +132,11 @@ impl BlockPaginationState {
                     }
                 }
                 ContentBlock::Image(img) => {
+                    let block_start = img.plain.plain_start;
+                    let block_end = img.plain.end_exclusive();
+                    if page_plain_start >= block_end || page_plain_end <= block_start {
+                        continue;
+                    }
                     let layout = layout_map
                         .get(&bi)
                         .copied()
@@ -220,8 +224,8 @@ impl PaginateResultPatch for PaginateResult {
 mod tests {
     use super::*;
     use crate::domain::{
-        BlockJoinedPlainBuilder, ChapterContentIr, ContentBlock, PageBlockSlice,
-        PageImageBlockSlice, TextBlockStyle, TypesetConfig,
+        BlockJoinedPlainBuilder, BlockPageDescriptor, BlockPlainRange, ChapterContentIr,
+        PageBlockSlice, PageImageBlockSlice, TextBlockStyle, TypesetConfig,
     };
     use crate::text::paginate_chapter_ir;
 
@@ -249,6 +253,31 @@ mod tests {
                     if asset_id == "img1"
             ))
         );
+    }
+
+    #[test]
+    fn page_blocks_filters_images_outside_page_plain_range() {
+        let ir = sample_ir_with_image();
+        let result = BlockPaginateResult::new(
+            vec![BlockPageDescriptor::new(
+                0,
+                0,
+                3,
+                BlockPlainRange::new(0, 5),
+                false,
+            )],
+            0,
+            false,
+        );
+        let state = BlockPaginationState::new(ir, result, false);
+
+        let blocks = state.page_blocks(0).expect("page 0 blocks");
+
+        assert_eq!(blocks.len(), 1);
+        assert!(matches!(
+            &blocks[0],
+            PageBlockSlice::Text(t) if t.text == "Hello"
+        ));
     }
 
     #[test]

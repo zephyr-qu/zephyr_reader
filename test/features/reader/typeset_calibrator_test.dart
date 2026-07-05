@@ -117,6 +117,7 @@ void main() {
           asciiWidth: 9.5,
           digitWidth: 9.0,
           punctWidth: 17.5,
+          latinExtWidth: 13.0,
           otherWidth: 14.0,
         );
         final config = buildTypesetConfig(
@@ -133,8 +134,8 @@ void main() {
         expect(config.calibration!.asciiWidth, equals(19.0));
         expect(config.calibration!.digitWidth, equals(18.0));
         expect(config.calibration!.punctWidth, equals(35.0));
+        expect(config.calibration!.latinExtWidth, equals(26.0));
         expect(config.calibration!.otherWidth, equals(28.0));
-        expect(config.calibration!.latinExtWidth, equals(28.0));
       });
 
       test('calibration dpr 与 devicePixelRatio 独立', () {
@@ -144,6 +145,7 @@ void main() {
           asciiWidth: 9.5,
           digitWidth: 9.0,
           punctWidth: 17.5,
+          latinExtWidth: 13.0,
           otherWidth: 14.0,
         );
         final config = buildTypesetConfig(
@@ -181,6 +183,7 @@ void main() {
           asciiWidth: 9.6,
           digitWidth: 9.6,
           punctWidth: 16.0,
+          latinExtWidth: 10.0,
           otherWidth: 12.0,
         );
         const smallDrift = CalibrationData(
@@ -189,6 +192,7 @@ void main() {
           asciiWidth: 9.6,
           digitWidth: 9.6,
           punctWidth: 16.0,
+          latinExtWidth: 10.0,
           otherWidth: 12.0,
         );
         const largeDrift = CalibrationData(
@@ -197,6 +201,7 @@ void main() {
           asciiWidth: 9.6,
           digitWidth: 9.6,
           punctWidth: 16.0,
+          latinExtWidth: 10.0,
           otherWidth: 12.0,
         );
 
@@ -211,6 +216,7 @@ void main() {
           asciiWidth: 9.6,
           digitWidth: 9.6,
           punctWidth: 16.0,
+          latinExtWidth: 10.0,
           otherWidth: 12.0,
         );
         const tooWide = CalibrationData(
@@ -219,6 +225,7 @@ void main() {
           asciiWidth: 9.6,
           digitWidth: 9.6,
           punctWidth: 16.0,
+          latinExtWidth: 10.0,
           otherWidth: 12.0,
         );
 
@@ -233,10 +240,11 @@ void main() {
           asciiWidth: 9.5,
           digitWidth: 9.0,
           punctWidth: 17.5,
+          latinExtWidth: 13.0,
           otherWidth: 14.0,
         );
         final rust = calibrationToRust(cal);
-        expect(rust.latinExtWidth, equals(28.0));
+        expect(rust.latinExtWidth, equals(26.0));
       });
     });
   });
