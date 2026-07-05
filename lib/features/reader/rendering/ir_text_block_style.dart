@@ -12,6 +12,34 @@ abstract final class IrTextBlockStyle {
   static const double defaultFirstLineIndentEm = 2.0;
   static const _converter = RichTextConverter();
 
+  static double effectiveFontSize(
+    TextBlockStyle style,
+    ReaderRenderConfig config,
+  ) {
+    final explicit = style.fontSize;
+    if (explicit != null && explicit > 0) return explicit;
+    if (style.isHeading && style.headingLevel > 0) {
+      final multiplier = switch (style.headingLevel) {
+        1 => 1.5,
+        2 => 1.25,
+        3 => 1.125,
+        4 => 1.0,
+        _ => 0.875,
+      };
+      return config.fontSize * multiplier;
+    }
+    return config.fontSize;
+  }
+
+  static double effectiveLineHeight(
+    TextBlockStyle style,
+    ReaderRenderConfig config,
+  ) {
+    final explicit = style.lineHeight;
+    if (explicit != null && explicit > 0) return explicit;
+    return config.lineHeight;
+  }
+
   static TextAlign resolveTextAlign(String? irAlign, TextAlign configDefault) {
     switch (irAlign?.toLowerCase()) {
       case 'center':
@@ -47,7 +75,7 @@ abstract final class IrTextBlockStyle {
     TextBlockStyle style,
     ReaderRenderConfig config,
   ) {
-    final fs = config.fontSize;
+    final fs = effectiveFontSize(style, config);
     return EdgeInsets.only(
       top: (style.marginTopEm ?? 0) * fs,
       bottom: (style.marginBottomEm ?? 0) * fs,
@@ -59,7 +87,7 @@ abstract final class IrTextBlockStyle {
     ReaderRenderConfig config,
   ) {
     if (style.marginBottomEm != null) {
-      return style.marginBottomEm! * config.fontSize;
+      return style.marginBottomEm! * effectiveFontSize(style, config);
     }
     return config.paragraphSpacing;
   }
@@ -73,26 +101,11 @@ abstract final class IrTextBlockStyle {
           ? style.fontFamily
           : null,
     );
-    if (style.lineHeight != null && style.lineHeight! > 0) {
-      textStyle = textStyle.copyWith(height: style.lineHeight);
-    }
+    textStyle = textStyle.copyWith(height: effectiveLineHeight(style, config));
     if (style.isHeading && style.headingLevel > 0) {
-      final headingFs = switch (style.headingLevel) {
-        1 => 24.0,
-        2 => 20.0,
-        3 => 18.0,
-        4 => 16.0,
-        _ => 14.0,
-      };
-      if (textStyle.fontSize == config.fontSize) {
-        textStyle = textStyle.copyWith(fontSize: headingFs);
-      }
       textStyle = textStyle.copyWith(fontWeight: FontWeight.bold);
     }
-    // G1+G2: CSS/EPUB block-level font-size 优先于全局用户设置
-    if (style.fontSize != null && style.fontSize! > 0) {
-      textStyle = textStyle.copyWith(fontSize: style.fontSize);
-    }
+    textStyle = textStyle.copyWith(fontSize: effectiveFontSize(style, config));
     return textStyle;
   }
 

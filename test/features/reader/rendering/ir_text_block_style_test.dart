@@ -98,6 +98,22 @@ void main() {
     expect(IrTextBlockStyle.resolveFirstLineIndentPx(style, _config()), 0);
   });
 
+  test('heading fallback font size matches reader block rendering', () {
+    const style = TextBlockStyle(
+      isHeading: true,
+      headingLevel: 2,
+      textIndentEm: null,
+      marginTopEm: null,
+      marginBottomEm: null,
+      fontFamily: null,
+      lineHeight: null,
+      textAlign: null,
+    );
+
+    expect(IrTextBlockStyle.effectiveFontSize(style, _config()), 20);
+    expect(IrTextBlockStyle.effectiveLineHeight(style, _config()), 1.5);
+  });
+
   test('marginBottomEm overrides paragraphSpacing', () {
     const style = TextBlockStyle(
       isHeading: false,

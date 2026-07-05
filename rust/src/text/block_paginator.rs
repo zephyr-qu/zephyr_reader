@@ -50,8 +50,9 @@ impl BlockLayoutMetrics {
             first_line_indent_width_px,
             first_line_indent_chars: config.first_line_indent,
             paragraph_spacing_extra_px,
-            width_table: CharWidthTable::from_calibration(
-                config.calibration.as_ref().unwrap_or(&Default::default()),
+            width_table: CharWidthTable::from_optional_calibration(
+                config.calibration.as_ref(),
+                font_size,
             ),
             auto_space_px: (font_size * config.auto_space_ratio).max(1.0),
             letter_spacing_px: config.letter_spacing,
@@ -94,12 +95,38 @@ fn block_top_spacing_px(style: &TextBlockStyle, font_size_px: f32) -> f32 {
         .max(0.0)
 }
 
-fn block_bottom_spacing_px(style: &TextBlockStyle, metrics: &BlockLayoutMetrics) -> f32 {
+fn block_bottom_spacing_px(
+    style: &TextBlockStyle,
+    font_size_px: f32,
+    metrics: &BlockLayoutMetrics,
+) -> f32 {
     style
         .margin_bottom_em
-        .map(|em| em * metrics.font_size_px)
+        .map(|em| em * font_size_px)
         .unwrap_or(metrics.paragraph_spacing_extra_px)
         .max(0.0)
+}
+
+fn heading_font_size_px(style: &TextBlockStyle, base_font_size_px: f32) -> Option<f32> {
+    if !style.is_heading || style.heading_level == 0 {
+        return None;
+    }
+    let multiplier = match style.heading_level {
+        1 => 1.5,
+        2 => 1.25,
+        3 => 1.125,
+        4 => 1.0,
+        _ => 0.875,
+    };
+    Some(base_font_size_px * multiplier)
+}
+
+fn effective_font_size_px(style: &TextBlockStyle, metrics: &BlockLayoutMetrics) -> f32 {
+    style
+        .font_size
+        .filter(|fs| *fs > 0.0)
+        .or_else(|| heading_font_size_px(style, metrics.font_size_px))
+        .unwrap_or(metrics.font_size_px)
 }
 
 /// 将 Text 块拆成视觉行（含块内 `\n` 硬换行）。
@@ -107,6 +134,9 @@ fn layout_text_block_lines(
     text: &str,
     metrics: &BlockLayoutMetrics,
     style: &TextBlockStyle,
+    width_table: &CharWidthTable,
+    auto_space_px: f32,
+    letter_spacing_px: f32,
 ) -> Vec<TextLineSegment> {
     let (indent_first, indent_width_px) = effective_first_line_indent(style, metrics);
     let char_indices: Vec<(usize, char)> = text.char_indices().collect();
@@ -157,9 +187,9 @@ fn layout_text_block_lines(
             para_start_byte,
             para_end_byte,
             max_width,
-            &metrics.width_table,
-            metrics.auto_space_px,
-            metrics.letter_spacing_px,
+            width_table,
+            auto_space_px,
+            letter_spacing_px,
             metrics.punctuation_squeeze,
         );
 
@@ -285,21 +315,38 @@ impl BlockPaginator {
 
     fn paginate_text_block(&mut self, block_index: u32, block: &TextBlock) {
         // 块级 font_size / line_height 覆盖（G1+G2）；None 时回退到全局 config
-        let effective_font_size = block.style.font_size.unwrap_or(self.metrics.font_size_px);
+        let effective_font_size = effective_font_size_px(&block.style, &self.metrics);
         let effective_line_height = block
             .style
             .line_height
             .map(|lh| lh * effective_font_size)
             .unwrap_or(self.metrics.line_height_px);
+        let font_scale = if self.metrics.font_size_px > 0.0 {
+            effective_font_size / self.metrics.font_size_px
+        } else {
+            1.0
+        };
+        let width_table = self.metrics.width_table.scaled(font_scale);
+        let auto_space_px = (effective_font_size * self.metrics.auto_space_px
+            / self.metrics.font_size_px.max(1.0))
+        .max(1.0);
 
         let top_spacing = block_top_spacing_px(&block.style, effective_font_size);
         if top_spacing > 0.0 {
             self.remaining_height = (self.remaining_height - top_spacing).max(0.0);
         }
 
-        let lines = layout_text_block_lines(&block.text, &self.metrics, &block.style);
+        let lines = layout_text_block_lines(
+            &block.text,
+            &self.metrics,
+            &block.style,
+            &width_table,
+            auto_space_px,
+            self.metrics.letter_spacing_px,
+        );
         let base_plain = block.plain.plain_start;
-        let bottom_spacing = block_bottom_spacing_px(&block.style, &self.metrics);
+        let bottom_spacing =
+            block_bottom_spacing_px(&block.style, effective_font_size, &self.metrics);
 
         for (i, seg) in lines.iter().enumerate() {
             if self.remaining_height < effective_line_height {
@@ -520,6 +567,37 @@ mod tests {
         assert!(
             result_yes.page_count() >= result_no.page_count(),
             "paragraph_spacing should not reduce page count"
+        );
+    }
+
+    #[test]
+    fn heading_fallback_font_size_affects_pagination() {
+        let mut heading_style = TextBlockStyle {
+            is_heading: true,
+            heading_level: 1,
+            ..TextBlockStyle::default()
+        };
+        heading_style.font_size = None;
+
+        let mut normal_builder = BlockJoinedPlainBuilder::new();
+        normal_builder.push_text("标题内容".repeat(80), TextBlockStyle::default());
+        let normal_ir = normal_builder.finish();
+
+        let mut heading_builder = BlockJoinedPlainBuilder::new();
+        heading_builder.push_text("标题内容".repeat(80), heading_style);
+        let heading_ir = heading_builder.finish();
+
+        let mut config = test_config();
+        config.font_size = 16;
+        config.page_width = 180;
+        config.page_height = 180;
+
+        let normal = paginate_chapter_ir(&normal_ir, config.clone());
+        let heading = paginate_chapter_ir(&heading_ir, config);
+
+        assert!(
+            heading.page_count() >= normal.page_count(),
+            "heading fallback font size must not produce fewer pages"
         );
     }
 

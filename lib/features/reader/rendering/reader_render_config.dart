@@ -84,13 +84,14 @@ class ReaderRenderConfig {
     String? fontFamily,
     bool useLatin = false,
     double fontSizeMultiplier = 1.0,
+    double? lineHeight,
   }) {
     final size = fontSize * fontSizeMultiplier;
     return StrutStyle(
       fontFamily: fontFamily ?? _resolveFontFamily(useLatin),
       fontFamilyFallback: fallbackStack,
       fontSize: size,
-      height: lineHeight,
+      height: lineHeight ?? this.lineHeight,
       forceStrutHeight: baselineAlign,
       leading: 0,
     );
