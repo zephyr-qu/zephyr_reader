@@ -1,7 +1,6 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
-/// 分页单页视口：固定高度 + 裁剪溢出，并吸收子树滚动手势。
+/// 分页单页视口：固定高度 + 裁剪溢出。DEBUG: 开启滚动以验证内容是否正好一页。
 class PaginatedPageViewport extends StatelessWidget {
   const PaginatedPageViewport({
     super.key,
@@ -20,18 +19,8 @@ class PaginatedPageViewport extends StatelessWidget {
       height: maxHeight,
       width: maxWidth,
       child: ClipRect(
-        child: ScrollConfiguration(
-          behavior: ScrollConfiguration.of(context).copyWith(
-            scrollbars: false,
-            dragDevices: const <PointerDeviceKind>{},
-          ),
-          child: NotificationListener<ScrollNotification>(
-            onNotification: (_) => true,
-            child: SingleChildScrollView(
-              physics: const NeverScrollableScrollPhysics(),
-              child: Align(alignment: Alignment.topCenter, child: child),
-            ),
-          ),
+        child: SingleChildScrollView(
+          child: Align(alignment: Alignment.topCenter, child: child),
         ),
       ),
     );
