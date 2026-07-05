@@ -90,18 +90,20 @@ Widget buildBlockPageContent({
                   ),
                 );
                 if (slice.isBlockEnd) {
-                  final bottomSpacing = IrTextBlockStyle.resolveBottomSpacing(
-                    irStyle,
-                    config,
-                  );
-                  if (bottomSpacing > 0) {
+                  // 段落间距：marginBottomEm 由 blockPadding.bottom 处理，
+                  // 此处仅对无显式 margin 的块补 paragraphSpacing
+                  final extraSpacing =
+                      irStyle.marginBottomEm == null && config.paragraphSpacing > 0
+                          ? config.paragraphSpacing
+                          : 0.0;
+                  if (extraSpacing > 0) {
                     children.add(
                       Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           textWidget,
-                          SizedBox(height: bottomSpacing),
+                          SizedBox(height: extraSpacing),
                         ],
                       ),
                     );
