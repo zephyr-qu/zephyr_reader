@@ -24,6 +24,11 @@ class RustPaginationSession implements PaginationSession {
   BigInt? _sessionConfigHash;
   int? _sessionChapterIndex;
   bool _sessionIsPartial = false;
+
+  /// 分页引擎实际模式（由 Rust `PaginateResult.mode` 覆盖）。
+  /// 初始值为 `plainText` 仅作为异步初始化完成前的占位符；
+  /// `_applyPaginateResult` 后立即被 `result.mode`（`ContentBlocks`）替换。
+  /// 渲染器通过 `_descriptors == null` 判断 session 是否就绪，不依赖此值。
   ChapterPaginationMode _sessionMode = ChapterPaginationMode.plainText;
   String? _sessionFilePath;
   int _imageMaxWidthPx = 800;
