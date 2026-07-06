@@ -42,6 +42,35 @@ Widget buildBlockPageContent({
             0.0,
             constraints.maxHeight,
           );
+          Logging.info(
+            '[PageRender] blockPage maxH_dp=${constraints.maxHeight.toStringAsFixed(1)}'
+            ' vPad=$vPad bodyHeight_dp=${bodyHeight.toStringAsFixed(1)}'
+            ' blocks=${blocks.length}',
+          );
+
+          // Diagnostic: measure Flutter actual CJK char width vs Rust estimate
+          final dpr = MediaQuery.devicePixelRatioOf(context);
+          final tp = TextPainter(
+            text: TextSpan(text: '中', style: config.buildTextStyle()),
+            textDirection: TextDirection.ltr,
+          );
+          tp.layout();
+          final flutCjkDp = tp.width;
+          final flutCjkPx = flutCjkDp * dpr;
+          // Rust max_line_width = pageWidth - SAFETY_MARGIN = 975 - 2 = 973px
+          const rustMaxLinePx = 973.0;
+          final rustEstCharsPerLine = flutCjkPx > 0
+              ? rustMaxLinePx / flutCjkPx
+              : 0;
+          Logging.info(
+            '[LineWidth] flutCjk=${flutCjkDp.toStringAsFixed(1)}dp'
+            ' ${flutCjkPx.toStringAsFixed(0)}px'
+            ' fontSize=${config.fontSize}dp'
+            ' lineH=${config.lineHeight}'
+            ' estCharsPerLine=${rustEstCharsPerLine.toStringAsFixed(1)}'
+            ' viewportW=${constraints.maxWidth.toStringAsFixed(1)}dp',
+          );
+
           final children = <Widget>[];
           var runningOffset = startOffset;
 
@@ -151,10 +180,14 @@ Widget buildBlockPageContent({
           return PaginatedPageViewport(
             maxHeight: bodyHeight,
             maxWidth: constraints.maxWidth,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
-              children: children,
+            child: _ContentMeasurer(
+              label:
+                  'blocks=${blocks.length} vp=${bodyHeight.toStringAsFixed(1)}dp',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: children,
+              ),
             ),
           );
         },
@@ -300,5 +333,39 @@ class _EpubBlockImageState extends State<EpubBlockImage> {
       height: maxW * 9 / 16,
       child: Center(child: Icon(icon, size: 28, color: Colors.grey)),
     );
+  }
+}
+
+/// 测量 child 的实际渲染高度，用于诊断分页估算偏差。
+class _ContentMeasurer extends StatefulWidget {
+  final Widget child;
+  final String label;
+  const _ContentMeasurer({required this.child, required this.label});
+
+  @override
+  State<_ContentMeasurer> createState() => _ContentMeasurerState();
+}
+
+class _ContentMeasurerState extends State<_ContentMeasurer> {
+  bool _measured = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_measured) {
+      _measured = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final box = context.findRenderObject() as RenderBox?;
+        if (box != null && box.hasSize) {
+          final h = box.size.height;
+          final w = box.size.width;
+          Logging.info(
+            '[ContentHeight] ${widget.label} actualH=${h.toStringAsFixed(1)}dp'
+            ' actualW=${w.toStringAsFixed(1)}dp',
+          );
+        }
+      });
+    }
+    return widget.child;
   }
 }

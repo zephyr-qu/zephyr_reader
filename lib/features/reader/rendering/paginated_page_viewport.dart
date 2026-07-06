@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zephyr_reader/core/utils/logging.dart';
 
 /// 分页单页视口：固定高度 + 裁剪溢出。DEBUG: 开启滚动以验证内容是否正好一页。
 class PaginatedPageViewport extends StatelessWidget {
@@ -15,6 +16,10 @@ class PaginatedPageViewport extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Logging.info(
+      '[PageViewport] maxH_dp=${maxHeight.toStringAsFixed(1)}'
+      ' maxW_dp=${maxWidth.toStringAsFixed(1)}',
+    );
     return SizedBox(
       height: maxHeight,
       width: maxWidth,

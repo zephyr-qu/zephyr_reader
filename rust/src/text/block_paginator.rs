@@ -41,6 +41,14 @@ impl BlockLayoutMetrics {
         let max_line_width_px = (effective_width - first_line_indent_width_px).max(font_size);
         let paragraph_spacing_extra_px = (config.paragraph_spacing * font_size).max(0.0);
 
+        let est_lines = page_height_px / line_height_px;
+        let ls = config.line_spacing;
+        tracing::info!(
+            "[PageEstimate] BlockLayoutMetrics page_h={:.0}px line_h={:.1}px font={:.0}px lsp={ls:.2} est_lines={est_lines:.1} page_w={:.0}px max_line_w={:.0}px",
+            page_height_px, line_height_px, font_size,
+            page_width_px, max_line_width_px,
+        );
+
         Self {
             font_size_px: font_size,
             line_height_px,
@@ -279,6 +287,21 @@ impl BlockPaginator {
             .current
             .plain_end
             .saturating_sub(self.current.plain_start);
+        let consumed = self.metrics.page_height_px - self.remaining_height;
+        let first_block = self.current.first_block;
+        let last_block = self.current.last_block;
+        println!(
+            "!!!RUST!!! flush page={} plain={}..{} chars={} blocks={}..{} consumed={:.0}px remain={:.0}px page_h={:.0}px",
+            self.page_index,
+            self.current.plain_start,
+            self.current.plain_end,
+            plain_len,
+            first_block,
+            last_block.saturating_sub(1),
+            consumed,
+            self.remaining_height,
+            self.metrics.page_height_px,
+        );
         let descriptor = BlockPageDescriptor::new(
             self.page_index,
             self.current.first_block,
@@ -353,12 +376,8 @@ impl BlockPaginator {
 
         for (i, seg) in lines.iter().enumerate() {
             let is_last_line = i + 1 == lines.len();
-            let required_height = effective_line_height
-                + if is_last_line {
-                    bottom_spacing
-                } else {
-                    0.0
-                };
+            let required_height =
+                effective_line_height + if is_last_line { bottom_spacing } else { 0.0 };
             if !self.current.is_empty() && self.remaining_height < required_height {
                 self.flush_page(false);
             }
@@ -440,6 +459,15 @@ impl BlockPaginator {
 pub fn paginate_chapter_ir(ir: &ChapterContentIr, config: TypesetConfig) -> BlockPaginateResult {
     let config = config.validate_and_fix();
     let config_hash = config.config_hash();
+    tracing::info!(
+        "[PageEstimate] paginate_chapter_ir blocks={} config: w={} h={} font={} lsp={:.2} indent={}",
+        ir.blocks.len(),
+        config.page_width,
+        config.page_height,
+        config.font_size,
+        config.line_spacing,
+        config.first_line_indent,
+    );
     let metrics = BlockLayoutMetrics::from_config(&config);
     let mut paginator = BlockPaginator::new(metrics);
 
