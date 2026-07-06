@@ -100,6 +100,14 @@ class PaginatedModeRenderer extends StatelessWidget {
     Logging.info(
       '[Render] pageTurnShell descriptors=${descriptors.length} logicalIdx=${pageIndex.clamp(0, descriptors.length - 1)}',
     );
+    // 打印每页内容量（从 descriptors 反推，不依赖 Rust 日志）
+    for (var i = 0; i < descriptors.length && i < 8; i++) {
+      final d = descriptors[i];
+      Logging.info(
+        '[PageContent] page=$i start=${d.startOffset} end=${d.endOffset}'
+        ' chars=${d.endOffset - d.startOffset}',
+      );
+    }
 
     return AnimatedBuilder(
       animation: dataSource.preloadGeneration,
@@ -318,6 +326,14 @@ class PaginatedModeRenderer extends StatelessWidget {
     }
     final descriptors = dataSource.descriptors;
     if (descriptors != null && descriptors.isNotEmpty) {
+      // 打印每页内容量（从 descriptors 反推）
+      for (var i = 0; i < descriptors.length && i < 8; i++) {
+        final d = descriptors[i];
+        Logging.info(
+          '[PageContent] page=$i start=${d.startOffset} end=${d.endOffset}'
+          ' chars=${d.endOffset - d.startOffset}',
+        );
+      }
       return AnimatedBuilder(
         animation: dataSource.preloadGeneration,
         builder: (context, _) {
@@ -410,6 +426,10 @@ Widget buildStagingPageContent({
         final bodyHeight = (constraints.maxHeight - 2 * vPad).clamp(
           0.0,
           constraints.maxHeight,
+        );
+        Logging.info(
+          '[PageRender] stagingPage maxH_dp=${constraints.maxHeight.toStringAsFixed(1)}'
+          ' vPad=$vPad bodyHeight_dp=${bodyHeight.toStringAsFixed(1)}',
         );
         return Padding(
           padding: EdgeInsets.symmetric(
@@ -526,6 +546,10 @@ Widget buildSinglePageContent({
         final bodyHeight = (constraints.maxHeight - 2 * vPad).clamp(
           0.0,
           constraints.maxHeight,
+        );
+        Logging.info(
+          '[PageRender] singlePage maxH_dp=${constraints.maxHeight.toStringAsFixed(1)}'
+          ' vPad=$vPad bodyHeight_dp=${bodyHeight.toStringAsFixed(1)}',
         );
         return Padding(
           padding: EdgeInsets.symmetric(

@@ -51,11 +51,7 @@ CalibrationData _calibrateCharacterWidths({
   final asciiWidth = _measureWidth(_asciiSamples, fontSize, fontFamily);
   final digitWidth = _measureWidth(_digitSamples, fontSize, fontFamily);
   final punctWidth = _measureWidth(_punctSamples, fontSize, fontFamily);
-  final latinExtWidth = _measureWidth(
-    _latinExtSamples,
-    fontSize,
-    fontFamily,
-  );
+  final latinExtWidth = _measureWidth(_latinExtSamples, fontSize, fontFamily);
   final otherWidth = _measureWidth(_otherSamples, fontSize, fontFamily);
 
   return CalibrationData(
@@ -347,9 +343,24 @@ TypesetConfig buildTypesetConfig({
       ? calibrationToRust(calibration)
       : null;
 
+  final pageHeightPx = (height * devicePixelRatio).round();
+  final pageWidthPx = ((width - 2 * padding) * devicePixelRatio).round();
+  final estLines = pageHeightPx > 0
+      ? pageHeightPx / (fontSize * lineHeight * devicePixelRatio)
+      : 0;
+  Logging.info(
+    '[PageEstimate] buildTypesetConfig height_dp=${height.toStringAsFixed(1)}'
+    ' vHPad=2*$padding=${(2 * padding).toStringAsFixed(1)}'
+    ' dpr=${devicePixelRatio.toStringAsFixed(1)}'
+    ' pageHeight=$pageHeightPx px'
+    ' pageWidth=$pageWidthPx px'
+    ' fontSize=${fontSize.toStringAsFixed(1)} dp'
+    ' lineH=$lineHeight estLinesPerPage=${estLines.toStringAsFixed(1)}',
+  );
+
   return TypesetConfig(
-    pageWidth: ((width - 2 * padding) * devicePixelRatio).round(),
-    pageHeight: (height * devicePixelRatio).round(),
+    pageWidth: pageWidthPx,
+    pageHeight: pageHeightPx,
     fontSize: (fontSize * devicePixelRatio).round(),
     lineSpacing: lineHeight,
     letterSpacing: letterSpacing * devicePixelRatio,

@@ -1,13 +1,14 @@
 //! 页面排版分页
-//! 提供分页流式处理，支持懒加载模式以减少大文件内存占用
+//! 提供分页流式处理，基于精确行排版进行分页
 
 use crate::domain::{LanguageType, PageContent, PageDescriptor, TypesetConfig};
 use crate::text::char_width::CharWidthTable;
-use crate::text::constants::{is_cjk_char, is_cjk_punctuation, is_end_avoid_punctuation, is_start_avoid_punctuation};
+use crate::text::constants::{
+    is_cjk_char, is_cjk_punctuation, is_end_avoid_punctuation, is_start_avoid_punctuation,
+};
 use crate::text::typeset::{optimize_punctuation, optimize_spaces};
-use std::borrow::Cow;
 use flutter_rust_bridge::frb;
-
+use std::borrow::Cow;
 
 /// 排版安全余量（像素），防止字符恰好贴边
 const SAFETY_MARGIN_PX: f32 = 2.0;
@@ -106,7 +107,7 @@ pub(crate) fn compute_line_breaks_from_indices(
 /// 分页流处理器
 ///
 /// 根据排版配置将文本内容分割为页面。
-/// 提供两种模式：eager 模式（小文件，预计算所有行偏移）和 lazy 模式（大文件，按需计算）。
+/// 预计算所有行偏移的精确分页。
 /// 通过 `#[frb(opaque)]` 暴露给 Flutter 侧使用。
 #[derive(Clone)]
 #[frb(opaque)]
@@ -116,9 +117,6 @@ pub struct PageStreamer {
     pub(crate) lines_per_page: usize,
     pub(crate) line_offsets: Vec<(usize, usize)>,
     total_lines: usize,
-    chars_per_line: usize,
-    /// Byte offsets of each character boundary, for safe UTF-8 indexing in lazy mode
-    char_boundaries: Vec<usize>,
     /// Whether each line is the first line of a paragraph (eager mode)
     first_of_paragraph: Vec<bool>,
     /// Indentation string (e.g., "  ") (eager mode)
@@ -133,9 +131,6 @@ pub struct PageStreamer {
 
 /// 主动模式内存阈值（100 MB），超过此大小记录警告
 const PAGE_STREAMER_MEMORY_THRESHOLD: usize = 100 * 1024 * 1024;
-/// 懒加载模式字符数阈值（200K 字符）
-/// 当内容字符数超过此值时使用懒加载分页，避免预计算所有行偏移
-const LAZY_PAGINATION_CHAR_THRESHOLD: usize = 200_000;
 
 #[frb]
 impl PageStreamer {
@@ -159,9 +154,6 @@ impl PageStreamer {
             content
         };
 
-        if content.chars().count() > LAZY_PAGINATION_CHAR_THRESHOLD {
-            return Self::new_lazy(content, config);
-        }
         Self::new_eager(content, config)
     }
 
@@ -179,8 +171,6 @@ impl PageStreamer {
             lines_per_page: 1,
             line_offsets: Vec::new(),
             total_lines: total_pages,
-            chars_per_line: 0,
-            char_boundaries: Vec::new(),
             first_of_paragraph: Vec::new(),
             indent_str: String::new(),
             line_paragraph_indices: Vec::new(),
@@ -232,7 +222,6 @@ impl PageStreamer {
         // M3: 一次性计算全文 char_indices，段落复用
         let full_char_indices: Vec<(usize, char)> = content.char_indices().collect();
 
-
         for line_with_ending in content.split_inclusive(|c| c == '\n') {
             let paragraph = line_with_ending.trim_end_matches(['\r', '\n']);
 
@@ -254,14 +243,20 @@ impl PageStreamer {
             let para_end = para_start + paragraph.len();
 
             // Find char_indices subrange for this paragraph via binary search
-            let start_idx =
-                full_char_indices.partition_point(|&(byte, _)| byte < para_start);
-            let end_idx =
-                full_char_indices.partition_point(|&(byte, _)| byte < para_end);
+            let start_idx = full_char_indices.partition_point(|&(byte, _)| byte < para_start);
+            let end_idx = full_char_indices.partition_point(|&(byte, _)| byte < para_end);
             let para_indices = &full_char_indices[start_idx..end_idx];
 
-            let line_breaks =
-                compute_line_breaks_from_indices(para_indices, para_start, para_end, max_line_width, &width_table, auto_space_px, config.letter_spacing, config.punctuation_squeeze);
+            let line_breaks = compute_line_breaks_from_indices(
+                para_indices,
+                para_start,
+                para_end,
+                max_line_width,
+                &width_table,
+                auto_space_px,
+                config.letter_spacing,
+                config.punctuation_squeeze,
+            );
             for (i, (start, end)) in line_breaks.iter().enumerate() {
                 let line_start = global_offset + *start;
                 line_paragraph_indices.push(paragraph_count);
@@ -292,7 +287,6 @@ impl PageStreamer {
             }
         }
 
-
         let total_lines = line_offsets.len();
 
         let elapsed = start_time.elapsed();
@@ -308,68 +302,8 @@ impl PageStreamer {
             lines_per_page,
             line_offsets,
             total_lines,
-            chars_per_line,
-            char_boundaries: Vec::new(),
             first_of_paragraph,
             indent_str,
-            line_paragraph_indices,
-            cached_pages: None,
-            is_partial: false,
-        }
-    }
-
-    fn new_lazy(content: String, config: TypesetConfig) -> Self {
-        let font_size = config.font_size as f32;
-        let line_spacing = config.line_spacing;
-        let page_height_px = config.page_height as f32;
-        let page_width_px = config.page_width as f32;
-
-        let line_height = (font_size * line_spacing).max(1.0);
-        let lines_per_page = ((page_height_px / line_height) as usize).max(5);
-
-        let effective_width = (page_width_px - SAFETY_MARGIN_PX).max(1.0);
-        let width_table =
-            CharWidthTable::from_optional_calibration(config.calibration.as_ref(), font_size);
-        let avg_char_width = width_table.char_width('中').max(1.0);
-        let chars_per_line = (effective_width / avg_char_width * 1.2).max(10.0) as usize;
-
-        // 用字符数而非字节数计算 total_lines
-        let total_chars = content.chars().count();
-        let total_lines = total_chars.div_ceil(chars_per_line);
-
-        // 预计算 char_indices 供 get_page_lazy 安全索引
-        let char_boundaries: Vec<usize> = content.char_indices().map(|(i, _)| i).collect();
-
-        // 段落跟踪：按 \n 分割，为每段估算行数，标记段落首行和段落索引
-        let mut paragraph_count: u32 = 0;
-        let mut first_of_paragraph = Vec::new();
-        let mut line_paragraph_indices = Vec::new();
-        for chunk in content.split_inclusive('\n') {
-            let trimmed = chunk.trim_end_matches(['\r', '\n']);
-            if trimmed.is_empty() {
-                // 空行分隔符：估算一行
-                first_of_paragraph.push(false);
-                line_paragraph_indices.push(paragraph_count);
-                continue;
-            }
-            let para_chars = trimmed.chars().count();
-            let para_lines = para_chars.div_ceil(chars_per_line).max(1);
-            for i in 0..para_lines {
-                first_of_paragraph.push(i == 0);
-                line_paragraph_indices.push(paragraph_count);
-            }
-            paragraph_count += 1;
-        }
-        Self {
-            content,
-            current_page: 0,
-            lines_per_page,
-            line_offsets: Vec::new(),
-            total_lines,
-            chars_per_line,
-            char_boundaries,
-            first_of_paragraph,
-            indent_str: String::new(),
             line_paragraph_indices,
             cached_pages: None,
             is_partial: false,
@@ -407,9 +341,6 @@ impl PageStreamer {
                 p
             });
         }
-        if self.line_offsets.is_empty() {
-            return self.get_page_lazy(page_index, chapter_index);
-        }
         if page_index >= self.total_pages() || self.total_lines == 0 {
             return None;
         }
@@ -428,48 +359,6 @@ impl PageStreamer {
             end_offset: self.line_offsets[end - 1].1 as i32,
             first_paragraph_index: self.line_paragraph_indices[start] as i32,
             last_paragraph_index: self.line_paragraph_indices[end.saturating_sub(1)] as i32,
-        })
-    }
-
-    fn get_page_lazy(&self, page_index: usize, chapter_index: i32) -> Option<PageContent> {
-        let total = self.total_pages();
-        if page_index >= total || self.total_lines == 0 {
-            return None;
-        }
-        let chars_per_page = self.chars_per_line * self.lines_per_page;
-        let char_start = page_index * chars_per_page;
-        let char_end = (char_start + chars_per_page).min(self.total_chars());
-
-        let start_line = page_index * self.lines_per_page;
-        let end_line = (start_line + self.lines_per_page).min(self.total_lines);
-
-        // 将字符索引转换为安全的字节索引
-        let byte_start = self.char_boundaries
-            .get(char_start)
-            .copied()
-            .unwrap_or(self.content.len());
-        let byte_end = self.char_boundaries
-            .get(char_end)
-            .copied()
-            .unwrap_or(self.content.len());
-
-        let page_content = self.content[byte_start..byte_end].to_string();
-
-        Some(PageContent {
-            chapter_index,
-            page_index: page_index as i32,
-            content: page_content,
-            is_last_page: char_end >= self.total_chars(),
-            start_offset: byte_start as i32,
-            end_offset: byte_end as i32,
-            first_paragraph_index: self.line_paragraph_indices
-                .get(start_line)
-                .copied()
-                .unwrap_or(0) as i32,
-            last_paragraph_index: self.line_paragraph_indices
-                .get(end_line.saturating_sub(1))
-                .copied()
-                .unwrap_or(0) as i32,
         })
     }
 
@@ -532,34 +421,28 @@ impl PageStreamer {
         self.total_lines
     }
 
-    fn total_chars(&self) -> usize {
-        self.char_boundaries.len()
-    }
-
     #[frb(sync)]
     pub fn current_line_index(&self) -> usize {
         self.current_page * self.lines_per_page
     }
 
-
     /// 获取所有页面的描述符（轻量级，不含文本内容）。
     ///
-    /// Eager 模式基于预计算的 `line_offsets` 计算偏移量。
-    /// Lazy 模式基于 `char_boundaries` 估算偏移量。
+    /// 基于预计算的 `line_offsets` 计算偏移量。
     #[frb(sync)]
     pub fn get_descriptors(&self) -> Vec<PageDescriptor> {
         if let Some(ref pages) = self.cached_pages {
-            return pages.iter().map(|p| PageDescriptor {
-                page_index: p.page_index,
-                start_offset: p.start_offset,
-                end_offset: p.end_offset,
-                is_last_page: p.is_last_page,
-                first_paragraph_index: p.first_paragraph_index,
-                last_paragraph_index: p.last_paragraph_index,
-            }).collect();
-        }
-        if self.line_offsets.is_empty() {
-            return self.get_descriptors_lazy();
+            return pages
+                .iter()
+                .map(|p| PageDescriptor {
+                    page_index: p.page_index,
+                    start_offset: p.start_offset,
+                    end_offset: p.end_offset,
+                    is_last_page: p.is_last_page,
+                    first_paragraph_index: p.first_paragraph_index,
+                    last_paragraph_index: p.last_paragraph_index,
+                })
+                .collect();
         }
         let total = self.total_pages();
         let mut descriptors = Vec::with_capacity(total);
@@ -577,46 +460,8 @@ impl PageStreamer {
                 end_offset,
                 is_last_page,
                 first_paragraph_index: self.line_paragraph_indices[start_line] as i32,
-                last_paragraph_index: self.line_paragraph_indices[end_line.saturating_sub(1)] as i32,
-            });
-        }
-        descriptors
-    }
-
-    fn get_descriptors_lazy(&self) -> Vec<PageDescriptor> {
-        let total = self.total_pages();
-        let mut descriptors = Vec::with_capacity(total);
-        let chars_per_page = self.chars_per_line * self.lines_per_page;
-        let total_chars = self.total_chars();
-        for page_idx in 0..total {
-            let char_start = page_idx * chars_per_page;
-            let char_end = (char_start + chars_per_page).min(total_chars);
-
-            let byte_start = self.char_boundaries
-                .get(char_start)
-                .copied()
-                .unwrap_or(self.content.len());
-            let byte_end = self.char_boundaries
-                .get(char_end)
-                .copied()
-                .unwrap_or(self.content.len());
-
-            let start_line = page_idx * self.lines_per_page;
-            let end_line = (start_line + self.lines_per_page).min(self.total_lines);
-
-            descriptors.push(PageDescriptor {
-                page_index: page_idx as i32,
-                start_offset: byte_start as i32,
-                end_offset: byte_end as i32,
-                is_last_page: char_end >= total_chars,
-                first_paragraph_index: self.line_paragraph_indices
-                    .get(start_line)
-                    .copied()
-                    .unwrap_or(0) as i32,
-                last_paragraph_index: self.line_paragraph_indices
-                    .get(end_line.saturating_sub(1))
-                    .copied()
-                    .unwrap_or(0) as i32,
+                last_paragraph_index: self.line_paragraph_indices[end_line.saturating_sub(1)]
+                    as i32,
             });
         }
         descriptors
@@ -672,13 +517,25 @@ mod tests {
         let content = format!("{p1}\n\n{p2}\n\n{p3}");
         // Verify content has \n\n
         let nn_count = content.matches("\n\n").count();
-        assert_eq!(nn_count, 2, "should have 2 \\n\\n separators, got {nn_count}");
+        assert_eq!(
+            nn_count, 2,
+            "should have 2 \\n\\n separators, got {nn_count}"
+        );
         // Verify split_inclusive produces empty chunks
         let chunks: Vec<_> = content.split_inclusive('\n').collect();
-        let empty_chunks = chunks.iter().filter(|c| c.trim_end_matches(['\r','\n']).is_empty()).count();
-        assert_eq!(empty_chunks, 2, "should have 2 empty chunks from \\n\\n separators, got {empty_chunks} from {chunks:?}");
+        let empty_chunks = chunks
+            .iter()
+            .filter(|c| c.trim_end_matches(['\r', '\n']).is_empty())
+            .count();
+        assert_eq!(
+            empty_chunks, 2,
+            "should have 2 empty chunks from \\n\\n separators, got {empty_chunks} from {chunks:?}"
+        );
         // Verify the content ends without trailing newline
-        assert!(!content.ends_with('\n'), "content should not end with newline");
+        assert!(
+            !content.ends_with('\n'),
+            "content should not end with newline"
+        );
     }
 
     #[test]
@@ -728,31 +585,6 @@ mod tests {
         config.page_width = 10;
         let streamer = PageStreamer::new(content, config);
         assert!(streamer.total_pages() >= 1);
-    }
-
-    #[test]
-    fn test_lazy_mode_large_chinese_text_no_panic() {
-        // 200K+ characters to trigger lazy mode
-        let content = "中".repeat(250_000);
-        let mut config = TypesetConfig::default();
-        // Force small pages to have multiple pages
-        config.font_size = 100;
-        config.page_width = 200;
-        config.page_height = 200;
-
-        let streamer = PageStreamer::new(content, config);
-
-        // Verify lazy mode was triggered (line_offsets empty)
-        assert!(streamer.line_offsets.is_empty());
-        assert!(streamer.total_pages() > 0);
-
-        // Access every page - must not panic (regression test for byte/char confusion)
-        let total = streamer.total_pages();
-        for i in 0..total {
-            let page = streamer.get_page(i, 0);
-            assert!(page.is_some(), "page {} should exist in lazy mode", i);
-            assert!(!page.unwrap().content.is_empty(), "page {} content should not be empty", i);
-        }
     }
 
     #[test]
@@ -843,11 +675,23 @@ mod tests {
         let p3 = "Paragraph three content with enough text. ".repeat(3);
         let content = format!("{p1}\n\n{p2}\n\n{p3}");
         // Verify content structure
-        assert!(content.contains("\n\n"), "content should have \\n\\n, got: {:?}",
-            &content[..content.len().min(100)]);
+        assert!(
+            content.contains("\n\n"),
+            "content should have \\n\\n, got: {:?}",
+            &content[..content.len().min(100)]
+        );
         let chunks: Vec<_> = content.split_inclusive('\n').collect();
-        let empty: Vec<_> = chunks.iter().filter(|c| c.trim_end_matches(['\r','\n']).is_empty()).collect();
-        assert_eq!(empty.len(), 2, "expected 2 empty chunks, got {}: {:?}", empty.len(), chunks);
+        let empty: Vec<_> = chunks
+            .iter()
+            .filter(|c| c.trim_end_matches(['\r', '\n']).is_empty())
+            .collect();
+        assert_eq!(
+            empty.len(),
+            2,
+            "expected 2 empty chunks, got {}: {:?}",
+            empty.len(),
+            chunks
+        );
         let mut config = TypesetConfig::default();
         config.font_size = 40;
         config.page_width = 200;
@@ -858,7 +702,11 @@ mod tests {
         assert!(!streamer.line_offsets.is_empty(), "should use eager mode");
 
         let descriptors = streamer.get_descriptors();
-        assert!(descriptors.len() >= 2, "should have at least 2 pages, got {}", descriptors.len());
+        assert!(
+            descriptors.len() >= 2,
+            "should have at least 2 pages, got {}",
+            descriptors.len()
+        );
 
         // Check the last page's paragraph index
         for (i, d) in descriptors.iter().enumerate() {
@@ -870,7 +718,8 @@ mod tests {
             assert!(
                 d.last_paragraph_index >= d.first_paragraph_index,
                 "page {i}: last {} < first {}",
-                d.last_paragraph_index, d.first_paragraph_index
+                d.last_paragraph_index,
+                d.first_paragraph_index
             );
         }
 
@@ -948,8 +797,9 @@ mod tests {
     #[test]
     fn test_start_avoid_punctuation_not_at_line_start() {
         // 避头标点（逗号、句号等）不应出现在行首
-        let content = "你好世界，重要内容。更多文字继续写下去还有内容再加上很多文字以便产生多行排版测试数据"
-            .repeat(5);
+        let content =
+            "你好世界，重要内容。更多文字继续写下去还有内容再加上很多文字以便产生多行排版测试数据"
+                .repeat(5);
         let mut config = TypesetConfig::default();
         config.font_size = 16;
         config.page_width = 180;
@@ -971,7 +821,8 @@ mod tests {
                         assert!(
                             !crate::text::constants::is_start_avoid_punctuation(first_char),
                             "start-avoid punctuation '{}' should not appear at line start: {:?}",
-                            first_char, line,
+                            first_char,
+                            line,
                         );
                     }
                 }
@@ -992,7 +843,14 @@ mod tests {
         // 合理行宽：每行约6-7个CJK字符（~120px）
         let max_width = 120.0;
         let line_breaks = compute_line_breaks_from_indices(
-            &char_indices, 0, text.len(), max_width, &width_table, 0.0, 0.0, false,
+            &char_indices,
+            0,
+            text.len(),
+            max_width,
+            &width_table,
+            0.0,
+            0.0,
+            false,
         );
 
         // 验证没有多字符行以避尾标点结尾
@@ -1004,7 +862,9 @@ mod tests {
                 assert!(
                     !crate::text::constants::is_end_avoid_punctuation(last_char),
                     "line (len={}) should not end with end-avoid '{}': {:?}",
-                    char_count, last_char, line_text,
+                    char_count,
+                    last_char,
+                    line_text,
                 );
             }
         }
@@ -1016,7 +876,8 @@ mod tests {
                 assert!(
                     !crate::text::constants::is_start_avoid_punctuation(first_char),
                     "line should not start with start-avoid '{}': {:?}",
-                    first_char, &text[*start..*end],
+                    first_char,
+                    &text[*start..*end],
                 );
             }
         }
