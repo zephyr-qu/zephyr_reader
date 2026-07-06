@@ -9,7 +9,6 @@ pub mod constants;
 pub mod css;
 pub mod line_breaking;
 pub mod rich_text;
-pub mod typeset;
 
 pub use bilingual::align_bilingual_content;
 pub use block_paginator::paginate_chapter_ir;
