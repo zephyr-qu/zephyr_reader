@@ -22,7 +22,8 @@ use rust_lib_zephyr_reader::api;
 use rust_lib_zephyr_reader::api::core as api_core;
 use rust_lib_zephyr_reader::api::data::chapter as api_chapter;
 use rust_lib_zephyr_reader::domain::{LanguageType, TypesetConfig};
-use rust_lib_zephyr_reader::text::paginate_all;
+use rust_lib_zephyr_reader::parser::txt::txt_to_chapter_ir;
+use rust_lib_zephyr_reader::text::block_paginator::paginate_chapter_ir_chunked;
 use std::fs;
 use std::hint::black_box;
 use std::path::PathBuf;
@@ -51,8 +52,7 @@ fn setup_storage() -> (TempDir, tokio::runtime::Runtime) {
 
 /// 生成含段落结构的中文文本（行分割计入排版基准，更真实）
 fn generate_chinese_text(size_kb: usize) -> String {
-    let para =
-        "这是一段测试文本，用于性能基准测试。它包含中英文混排、标点符号和段落结构。";
+    let para = "这是一段测试文本，用于性能基准测试。它包含中英文混排、标点符号和段落结构。";
     let repetitions = (size_kb * 1024) / para.len();
     let mut text = String::with_capacity(size_kb * 1024);
     for i in 0..repetitions {
@@ -63,7 +63,6 @@ fn generate_chinese_text(size_kb: usize) -> String {
     }
     text
 }
-
 
 fn default_config() -> TypesetConfig {
     TypesetConfig {
@@ -115,30 +114,10 @@ where
     let p95_idx = p95_idx.min(n - 1);
     let p95 = samples[p95_idx];
 
-    result_line(
-        "measure_n",
-        "avg_ms",
-        avg * 1000.0,
-        "ms",
-    );
-    result_line(
-        "measure_n",
-        "p50_ms",
-        p50.as_secs_f64() * 1000.0,
-        "ms",
-    );
-    result_line(
-        "measure_n",
-        "p95_ms",
-        p95.as_secs_f64() * 1000.0,
-        "ms",
-    );
-    result_line(
-        "measure_n",
-        "p99_ms",
-        p99.as_secs_f64() * 1000.0,
-        "ms",
-    );
+    result_line("measure_n", "avg_ms", avg * 1000.0, "ms");
+    result_line("measure_n", "p50_ms", p50.as_secs_f64() * 1000.0, "ms");
+    result_line("measure_n", "p95_ms", p95.as_secs_f64() * 1000.0, "ms");
+    result_line("measure_n", "p99_ms", p99.as_secs_f64() * 1000.0, "ms");
 
     (Duration::from_secs_f64(avg), samples)
 }
@@ -158,24 +137,24 @@ fn stress_pagination(sample_size: usize) {
     for &size_kb in &[1, 10, 50, 100, 500, 2048] {
         let text = generate_chinese_text(size_kb);
         let mode = if size_kb >= 50 { "lazy" } else { "eager" };
+        let ir = txt_to_chapter_ir(&text);
         let samples = measure_n(sample_size, || {
-            black_box(paginate_all(
-                black_box(text.clone()),
-                black_box(0),
+            black_box(paginate_chapter_ir_chunked(
+                black_box(&ir),
                 black_box(config.clone()),
             ));
         });
-        let pages = paginate_all(text.clone(), 0, config.clone());
+        let result = paginate_chapter_ir_chunked(&ir, config.clone());
         result_line(
             "pagination_stress",
-            &format!("paginate_all/{mode}/{size_kb}kb"),
+            &format!("paginate_ir_chunked/{mode}/{size_kb}kb"),
             samples.0.as_secs_f64() * 1000.0,
             "ms",
         );
         result_line(
             "pagination_stress",
             &format!("page_count/{size_kb}kb"),
-            pages.len() as f64,
+            result.page_count() as f64,
             "pages",
         );
     }
@@ -189,8 +168,7 @@ fn stress_pagination(sample_size: usize) {
         let path_str = fixture_path.to_string_lossy().to_string();
 
         // 先解析书籍，写入 DB
-        rt.block_on(api::parse_book(path_str.clone()))
-            .unwrap();
+        rt.block_on(api::parse_book(path_str.clone())).unwrap();
 
         // 预热：首次调用填充 Provider + LRU
         rt.block_on(api_core::paginate_chapter(
@@ -225,8 +203,7 @@ fn stress_pagination(sample_size: usize) {
         let fixture_path = PathBuf::from(FIXTURES_DIR).join("活着.txt");
         let path_str = fixture_path.to_string_lossy().to_string();
 
-        rt.block_on(api::parse_book(path_str.clone()))
-            .unwrap();
+        rt.block_on(api::parse_book(path_str.clone())).unwrap();
         let result = rt
             .block_on(api_core::paginate_chapter(
                 path_str.clone(),
@@ -241,20 +218,14 @@ fn stress_pagination(sample_size: usize) {
         let mut latencies = Vec::with_capacity(pages_to_test);
         for page in 0..pages_to_test {
             let start = Instant::now();
-            let _ = api_core::get_page_content(
-                path_str.clone(),
-                0,
-                config_hash,
-                page as i32,
-            );
+            let _ = api_core::get_page_content(path_str.clone(), 0, config_hash, page as i32);
             latencies.push(start.elapsed());
         }
         latencies.sort();
         let p50 = latencies[pages_to_test / 2];
         let p95 = latencies[((pages_to_test as f64) * 0.95) as usize];
         let p99 = latencies[((pages_to_test as f64) * 0.99) as usize];
-        let avg = latencies.iter().sum::<Duration>().as_secs_f64()
-            / pages_to_test as f64;
+        let avg = latencies.iter().sum::<Duration>().as_secs_f64() / pages_to_test as f64;
 
         result_line("page_turn", "pages_tested", pages_to_test as f64, "pages");
         result_line("page_turn", "avg_ms", avg * 1000.0, "ms");
@@ -287,15 +258,27 @@ fn stress_production_pipeline(sample_size: usize) {
         if large_txt.exists() {
             let path_str = large_txt.to_string_lossy().to_string();
             let book_id = rt.block_on(api::parse_book(path_str.clone())).unwrap();
-            let chapters = rt.block_on(api_chapter::list_chapters_by_book(book_id)).unwrap();
+            let chapters = rt
+                .block_on(api_chapter::list_chapters_by_book(book_id))
+                .unwrap();
 
             let (max_ch_idx, max_ch_size) = chapters
                 .iter()
                 .map(|ch| (ch.chapter_index as i32, ch.end_index - ch.start_index))
                 .max_by_key(|&(_, s)| s)
                 .unwrap_or((0, 0));
-            result_line("pipeline", "large_txt_chapters", chapters.len() as f64, "chapters");
-            result_line("pipeline", "largest_chapter_bytes", max_ch_size as f64, "bytes");
+            result_line(
+                "pipeline",
+                "large_txt_chapters",
+                chapters.len() as f64,
+                "chapters",
+            );
+            result_line(
+                "pipeline",
+                "largest_chapter_bytes",
+                max_ch_size as f64,
+                "bytes",
+            );
             result_line("pipeline", "largest_chapter_idx", max_ch_idx as f64, "idx");
 
             // 4a-i. paginateChapterPartial (50K chars)
@@ -316,14 +299,20 @@ fn stress_production_pipeline(sample_size: usize) {
             );
 
             // 查看 50K partial 产出了多少描述符
-            let partial_result = rt.block_on(api_core::paginate_chapter(
-                path_str.clone(),
-                max_ch_idx,
-                config.clone(),
-                Some(50000),
-            ))
-            .unwrap();
-            result_line("pipeline_partial", "descriptor_count", partial_result.descriptors.len() as f64, "pages");
+            let partial_result = rt
+                .block_on(api_core::paginate_chapter(
+                    path_str.clone(),
+                    max_ch_idx,
+                    config.clone(),
+                    Some(50000),
+                ))
+                .unwrap();
+            result_line(
+                "pipeline_partial",
+                "descriptor_count",
+                partial_result.descriptors.len() as f64,
+                "pages",
+            );
 
             // 4a-ii. paginateChapter 全量
             let t_full = measure_n(sample_size, || {
@@ -335,15 +324,26 @@ fn stress_production_pipeline(sample_size: usize) {
                 ))
                 .unwrap();
             });
-            let full_result = rt.block_on(api_core::paginate_chapter(
-                path_str.clone(),
-                max_ch_idx,
-                config.clone(),
-                None,
-            ))
-            .unwrap();
-            result_line("pipeline_full", "paginate_chapter/full", t_full.0.as_secs_f64() * 1000.0, "ms");
-            result_line("pipeline_full", "descriptor_count", full_result.descriptors.len() as f64, "pages");
+            let full_result = rt
+                .block_on(api_core::paginate_chapter(
+                    path_str.clone(),
+                    max_ch_idx,
+                    config.clone(),
+                    None,
+                ))
+                .unwrap();
+            result_line(
+                "pipeline_full",
+                "paginate_chapter/full",
+                t_full.0.as_secs_f64() * 1000.0,
+                "ms",
+            );
+            result_line(
+                "pipeline_full",
+                "descriptor_count",
+                full_result.descriptors.len() as f64,
+                "pages",
+            );
             let pages_to_test = full_result.descriptors.len().min(100);
             let mut latencies = Vec::with_capacity(pages_to_test);
             for page in 0..pages_to_test {
@@ -362,11 +362,31 @@ fn stress_production_pipeline(sample_size: usize) {
             let p95 = latencies[((pages_to_test as f64) * 0.95) as usize];
             let p99 = latencies[((pages_to_test as f64) * 0.99) as usize];
 
-            result_line("pipeline_page_turn", "pages_tested", pages_to_test as f64, "pages");
+            result_line(
+                "pipeline_page_turn",
+                "pages_tested",
+                pages_to_test as f64,
+                "pages",
+            );
             result_line("pipeline_page_turn", "avg_ms", avg * 1000.0, "ms");
-            result_line("pipeline_page_turn", "p50_ms", p50.as_secs_f64() * 1000.0, "ms");
-            result_line("pipeline_page_turn", "p95_ms", p95.as_secs_f64() * 1000.0, "ms");
-            result_line("pipeline_page_turn", "p99_ms", p99.as_secs_f64() * 1000.0, "ms");
+            result_line(
+                "pipeline_page_turn",
+                "p50_ms",
+                p50.as_secs_f64() * 1000.0,
+                "ms",
+            );
+            result_line(
+                "pipeline_page_turn",
+                "p95_ms",
+                p95.as_secs_f64() * 1000.0,
+                "ms",
+            );
+            result_line(
+                "pipeline_page_turn",
+                "p99_ms",
+                p99.as_secs_f64() * 1000.0,
+                "ms",
+            );
 
             // 4a-iv. 完整生产流程计时
             println!("\n--- 4a-iv. 完整生产阅读流程 (partial→full→page_turn) ---");
@@ -395,12 +415,7 @@ fn stress_production_pipeline(sample_size: usize) {
 
                 // step 2: get_page_content for first 5 pages (preload)
                 for i in 0..5 {
-                    let _ = api_core::get_page_content(
-                        big_str.clone(),
-                        0,
-                        config_hash,
-                        i,
-                    );
+                    let _ = api_core::get_page_content(big_str.clone(), 0, config_hash, i);
                 }
                 let t_preload_done = Instant::now();
 
@@ -422,18 +437,50 @@ fn stress_production_pipeline(sample_size: usize) {
                 }
                 let t_finish = Instant::now();
 
-                let partial_ms = t_partial_done.duration_since(pipeline_start).as_secs_f64() * 1000.0;
-                let preload_ms = t_preload_done.duration_since(t_partial_done).as_secs_f64() * 1000.0;
+                let partial_ms =
+                    t_partial_done.duration_since(pipeline_start).as_secs_f64() * 1000.0;
+                let preload_ms =
+                    t_preload_done.duration_since(t_partial_done).as_secs_f64() * 1000.0;
                 let full_ms = t_full_done.duration_since(t_preload_done).as_secs_f64() * 1000.0;
                 let page_turn_ms = t_finish.duration_since(t_full_done).as_secs_f64() * 1000.0;
 
-                result_line("pipeline_full_cycle", "partial_to_first_page_ms", partial_ms, "ms");
-                result_line("pipeline_full_cycle", "preload_5_pages_ms", preload_ms, "ms");
+                result_line(
+                    "pipeline_full_cycle",
+                    "partial_to_first_page_ms",
+                    partial_ms,
+                    "ms",
+                );
+                result_line(
+                    "pipeline_full_cycle",
+                    "preload_5_pages_ms",
+                    preload_ms,
+                    "ms",
+                );
                 result_line("pipeline_full_cycle", "full_paginate_ms", full_ms, "ms");
-                result_line("pipeline_full_cycle", "turn_20_pages_ms", page_turn_ms, "ms");
-                result_line("pipeline_full_cycle", "total_ms", pipeline_start.elapsed().as_secs_f64() * 1000.0, "ms");
-                result_line("pipeline_full_cycle", "partial_descriptors", partial_result.descriptors.len() as f64, "pages");
-                result_line("pipeline_full_cycle", "total_descriptors", full_result.descriptors.len() as f64, "pages");
+                result_line(
+                    "pipeline_full_cycle",
+                    "turn_20_pages_ms",
+                    page_turn_ms,
+                    "ms",
+                );
+                result_line(
+                    "pipeline_full_cycle",
+                    "total_ms",
+                    pipeline_start.elapsed().as_secs_f64() * 1000.0,
+                    "ms",
+                );
+                result_line(
+                    "pipeline_full_cycle",
+                    "partial_descriptors",
+                    partial_result.descriptors.len() as f64,
+                    "pages",
+                );
+                result_line(
+                    "pipeline_full_cycle",
+                    "total_descriptors",
+                    full_result.descriptors.len() as f64,
+                    "pages",
+                );
             }
         } else {
             // large.txt 不存在时用小文件演示流程
@@ -443,14 +490,34 @@ fn stress_production_pipeline(sample_size: usize) {
             let small_str = small_path.to_string_lossy().to_string();
             rt.block_on(api::parse_book(small_str.clone())).unwrap();
 
-            let partial = rt.block_on(api_core::paginate_chapter(
-                small_str.clone(), 0, config.clone(), Some(50000),
-            )).unwrap();
-            let full = rt.block_on(api_core::paginate_chapter(
-                small_str.clone(), 0, config.clone(), None,
-            )).unwrap();
-            result_line("pipeline_fallback", "partial_descriptors", partial.descriptors.len() as f64, "pages");
-            result_line("pipeline_fallback", "full_descriptors", full.descriptors.len() as f64, "pages");
+            let partial = rt
+                .block_on(api_core::paginate_chapter(
+                    small_str.clone(),
+                    0,
+                    config.clone(),
+                    Some(50000),
+                ))
+                .unwrap();
+            let full = rt
+                .block_on(api_core::paginate_chapter(
+                    small_str.clone(),
+                    0,
+                    config.clone(),
+                    None,
+                ))
+                .unwrap();
+            result_line(
+                "pipeline_fallback",
+                "partial_descriptors",
+                partial.descriptors.len() as f64,
+                "pages",
+            );
+            result_line(
+                "pipeline_fallback",
+                "full_descriptors",
+                full.descriptors.len() as f64,
+                "pages",
+            );
         }
     }
 
@@ -473,12 +540,15 @@ fn stress_production_pipeline(sample_size: usize) {
         // 依次分页 5 本书 → 第 1 本应被驱逐 (capacity=4)
         for ps in &syn_paths {
             rt.block_on(api_core::paginate_chapter(
-                ps.clone(), 0, config.clone(), None,
+                ps.clone(),
+                0,
+                config.clone(),
+                None,
             ))
             .unwrap();
         }
 
-        // 重新分页 book_0（应未命中缓存 → 重新创建 PageStreamer + Provider）
+        // 重新分页 book_0（应未命中缓存 → 重新创建 BlockPaginationState + Provider）
         let t_repag = measure_n(sample_size, || {
             rt.block_on(api_core::paginate_chapter(
                 black_box(syn_paths[0].clone()),
@@ -488,7 +558,12 @@ fn stress_production_pipeline(sample_size: usize) {
             ))
             .unwrap();
         });
-        result_line("pipeline_lru", "repaginate_after_eviction_ms", t_repag.0.as_secs_f64() * 1000.0, "ms");
+        result_line(
+            "pipeline_lru",
+            "repaginate_after_eviction_ms",
+            t_repag.0.as_secs_f64() * 1000.0,
+            "ms",
+        );
 
         // 验证 book_4 仍在缓存中（快速命中）
         let t_hit = measure_n(sample_size, || {
@@ -500,7 +575,12 @@ fn stress_production_pipeline(sample_size: usize) {
             ))
             .unwrap();
         });
-        result_line("pipeline_lru", "repaginate_cache_hit_ms", t_hit.0.as_secs_f64() * 1000.0, "ms");
+        result_line(
+            "pipeline_lru",
+            "repaginate_cache_hit_ms",
+            t_hit.0.as_secs_f64() * 1000.0,
+            "ms",
+        );
 
         // 同步 get_page_content 检查 book_0 缓存状态（应 NotFound）
         let evicted_content = api_core::get_page_content(syn_paths[0].clone(), 0, config_hash, 0);
@@ -573,8 +653,18 @@ fn stress_book_import(sample_size: usize) {
             rt.block_on(api::parse_book(black_box(path_str.clone())))
                 .unwrap();
         });
-        result_line("book_import", "parse_book/medium.epub", samples.0.as_secs_f64() * 1000.0, "ms");
-        result_line("book_import", "file_size/medium.epub", file_size as f64, "bytes");
+        result_line(
+            "book_import",
+            "parse_book/medium.epub",
+            samples.0.as_secs_f64() * 1000.0,
+            "ms",
+        );
+        result_line(
+            "book_import",
+            "file_size/medium.epub",
+            file_size as f64,
+            "bytes",
+        );
     }
 
     // 2c. 超大文件限速验证（验证 parse_book 对 500MB+ 文件的拒绝行为）
@@ -649,8 +739,7 @@ fn stress_batch_import(sample_size: usize) {
         let total_samples = measure_n(sample_size.min(3), || {
             let (_tmp, rt) = setup_storage();
             for p in &paths {
-                rt.block_on(api::parse_book(black_box(p.clone())))
-                    .unwrap();
+                rt.block_on(api::parse_book(black_box(p.clone()))).unwrap();
             }
         });
 

@@ -56,7 +56,7 @@ pub struct PageDescriptor {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[frb]
 pub enum ChapterPaginationMode {
-    /// Phase 1 plain 文本流 + `PageStreamer`。
+    /// Phase 1 plain 文本流。
     #[default]
     PlainText,
     /// Phase 2 块 IR + `BlockPaginator`（含 Image 块时启用）。

@@ -1,14 +1,14 @@
 //! Phase 2 块分页引擎（M2 `BlockPaginator`）
 //!
 //! 输入 `ChapterContentIr` + `TypesetConfig`，输出 [`BlockPaginateResult`]。
-//! 文本断行复用 [`super::pagination::compute_line_breaks_from_indices`]。
+//! 文本断行复用 [`super::line_breaking::compute_line_breaks_from_indices`]。
 
 use crate::domain::{
     BlockPageDescriptor, BlockPaginateResult, BlockPlainRange, ChapterContentIr, ContentBlock,
     ImageBlock, ImageBlockLayout, PageImageLayout, TextBlock, TextBlockStyle, TypesetConfig,
 };
 use crate::text::char_width::CharWidthTable;
-use crate::text::pagination::compute_line_breaks_from_indices;
+use crate::text::line_breaking::compute_line_breaks_from_indices;
 
 const SAFETY_MARGIN_PX: f32 = 2.0;
 /// 无 intrinsic 尺寸时，图片显示高度 = page_width × ratio。

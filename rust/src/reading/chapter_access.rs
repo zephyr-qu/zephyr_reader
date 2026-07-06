@@ -4,7 +4,7 @@
 //! 章节读取函数（`get_chapter_first_spine_only` / `get_chapter_partial` / `get_chapter`）
 //! 留到 Phase 4。
 //!
-//! P1: `get_chapter(config)` 改走 block 路径（IR → BlockPaginator），不再走 PageStreamer + plain sled。
+//! P1: `get_chapter(config)` 改走 block 路径（IR → BlockPaginator）。
 
 use crate::domain::{AppError, TypesetConfig};
 use crate::parser::registry;

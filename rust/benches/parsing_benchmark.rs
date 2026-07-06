@@ -25,7 +25,8 @@ use rust_lib_zephyr_reader::api;
 use rust_lib_zephyr_reader::api::data::chapter;
 use rust_lib_zephyr_reader::api::core as api_core;
 use rust_lib_zephyr_reader::domain::{LanguageType, TypesetConfig};
-use rust_lib_zephyr_reader::text::paginate_all;
+use rust_lib_zephyr_reader::parser::txt::txt_to_chapter_ir;
+use rust_lib_zephyr_reader::text::block_paginator::paginate_chapter_ir_chunked;
 use std::fs;
 use std::hint::black_box;
 use std::path::PathBuf;
@@ -133,10 +134,10 @@ fn bench_pagination(c: &mut Criterion) {
             BenchmarkId::from_parameter(format!("{}kb", size)),
             &text,
             |b, text| {
+                let ir = txt_to_chapter_ir(text);
                 b.iter(|| {
-                    let _ = paginate_all(
-                        black_box(text.clone()),
-                        black_box(0),
+                    let _ = paginate_chapter_ir_chunked(
+                        black_box(&ir),
                         black_box(config.clone()),
                     );
                 })
