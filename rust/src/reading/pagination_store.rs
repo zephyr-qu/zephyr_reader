@@ -18,15 +18,11 @@ use parking_lot::Mutex;
 use crate::domain::{AppError, ChapterPaginationMode, PaginateResult};
 
 use crate::reading::block_state::BlockPaginationState;
-use crate::text::PageStreamer;
 
 /// Session / 内存 LRU 持有的分页引擎。
-///
-/// P1: `Plain(PageStreamer)` 仅用于 `max_chars` partial 首屏路径（in-memory，不持久化到 sled）。
-/// 全章分页统一走 `Block(BlockPaginationState)`，sled 唯一真理源 = `BlockLayoutCache`。
+/// 全章分页统一走 `Block(BlockPaginationState)`。
 #[derive(Clone)]
 pub(crate) enum PaginationEngine {
-    Plain(PageStreamer),
     Block(BlockPaginationState),
 }
 
@@ -164,7 +160,6 @@ pub fn clear_lru_for_test(&self) {
         let mode_ok = matches!(
             (&engine, expected_mode),
             (PaginationEngine::Block(_), ChapterPaginationMode::ContentBlocks)
-                | (PaginationEngine::Plain(_), ChapterPaginationMode::PlainText)
         );
         if !mode_ok {
             self.put(key.clone(), engine);

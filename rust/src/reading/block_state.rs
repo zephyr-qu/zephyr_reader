@@ -35,7 +35,7 @@ impl BlockPaginationState {
             .into_with_config_hash(config_hash)
     }
 
-    /// 页 plain 投影（含 `\uFFFC` 占位）；对标 `PageStreamer::get_page` 文本字段。
+    /// 页 plain 投影（含 `\uFFFC` 占位）。
     pub fn page_plain_text(&self, page_index: usize) -> Option<String> {
         let desc = self.result.descriptors.get(page_index)?;
         let text = slice_by_char_range(

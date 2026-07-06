@@ -1,33 +1,28 @@
 //! 分页 API（`paginate_chapter` / `get_page_content`）。
 //!
-//! Phase 2 实施：迁自 `api/core.rs` 的分页 + layout cache + provider cache 相关代码。
-//!
-//! P0: 所有章节（包括纯文本书）统一走 IR → BlockPaginator 路径。
-//! PageStreamer 仅用于 `max_chars` partial 分页（首屏快速分页），不再作为全章主路径。
+//! 所有章节统一走 IR → BlockPaginator 路径。
 
 use std::time::Instant;
 
 use crate::domain::{
     AppError, BlockPageDescriptor, BlockPaginateResult, ChapterContentIr,
-    ChapterPaginationMode, PageBlockSlice, PaginateResult, TypesetConfig,
+    PageBlockSlice, PaginateResult, TypesetConfig,
 };
 use crate::domain::types::content_ir::{
     BlockPlainRange, ContentBlock, TextBlock,
 };
 use crate::storage::models::BookFormat;
-use crate::text::PageStreamer;
 use crate::utils::security::validate_file_path;
 
 use super::block_state::BlockPaginationState;
-use super::chapter_access::{format_from_file_path, get_chapter_bounds};
+use super::chapter_access::format_from_file_path;
 use super::chapter_ir::load_chapter_content_ir;
 use super::layout_cache::{try_get_block_cached, try_save_block_cached};
 use super::pagination_store::PaginationEngine;
 use super::pagination_store::{PaginationKey, PaginationStore};
-use super::provider_cache::get_or_create_provider;
 
-/// 全章 + 含 Image 块时走 BlockPaginator；否则沿用 Phase 1 `PageStreamer`。
-
+/// 全章统一走 BlockPaginator。
+///
 /// 保存块分页缓存（透明 chunking：超过阈值时按 chunk 保存，否则单条目）。
 async fn save_block_caches_chunked(
     validated_path: &str,
@@ -190,8 +185,6 @@ async fn try_paginate_chapter_blocks(
 
     // Cache miss: load IR and paginate (chunked if large)
     // P0: ALL chapters now go through block pagination, regardless of
-    // image content. This eliminates the dual truth source (PageStreamer
-    // vs BlockPaginator) — "分页引擎只认 IR" (TARGET_ARCHITECTURE §4).
     let full_ir = load_chapter_content_ir(validated_path, chapter_index).await?;
 
     let config = config.clone();
@@ -261,7 +254,7 @@ async fn try_paginate_chapter_blocks(
 
 /// 轻量级分页排版（只获取页面描述符，文本按需加载）。
 ///
-/// 创建 `PageStreamer` 或 `BlockPaginationState` 并缓存；Dart 侧按需取页。
+/// 创建 `BlockPaginationState` 并缓存；Dart 侧按需取页。
 /// 如果指定 `max_chars`，只读取前 N 字符进行分页（惰性转换）。
 /// M2: `book_id` 用于 PaginationKey，`file_path` 用于文件操作（ADR-014）。
 pub(crate) async fn paginate_chapter(
@@ -275,98 +268,19 @@ pub(crate) async fn paginate_chapter(
     let config = config.validate_and_fix();
     let config_hash = config.config_hash();
     let start = Instant::now();
-    let store = PaginationStore::global();
+    let _store = PaginationStore::global();
 
-    // P0: ALL paths (full + partial) try block pagination first.
-    // try_paginate_chapter_blocks handles both max_chars=None (full)
-    // and max_chars=Some(N) (partial, via filter_blocks_to_chars).
-    // Returns Ok(None) for unsupported formats → fall through to PageStreamer.
-    if let Some(result) =
-        try_paginate_chapter_blocks(book_id, &validated_path, chapter_index, &config, max_chars).await?
-        {
-            tracing::info!(
-                "[Timing] paginate_chapter block_path config_hash={:016x} chapter={} elapsed={:?}",
-                config_hash, chapter_index, start.elapsed()
-            );
-            return Ok(result);
-        }
-
-    // 提取章节文本（只读取必要的 spine，惰性转换）
-    let format = format_from_file_path(&validated_path)?;
-    let (content, is_partial) = if matches!(format, BookFormat::Txt | BookFormat::Epub) {
-        let provider = get_or_create_provider(&validated_path, chapter_index, &format).await?;
-        let content_len = provider.content_length();
-        // 短路：如果 max_chars >= 全文长度，降级为完整分页（避免不完整结果）
-        let effective_max = match max_chars {
-            Some(limit) if limit >= content_len => None,
-            x => x,
-        };
-        match effective_max {
-            Some(limit) => {
-                if format == BookFormat::Txt {
-                    // TXT: chapter bounds are byte offsets in the file.
-                    // The provider operates on the full file, so for
-                    // chapter_index > 0 we must read from the chapter's
-                    let (cs, _ce) = get_chapter_bounds(&validated_path, chapter_index).await?;
-                    let chapter_start = cs.max(0) as u64;
-                    // max_chars 是字符数，但 read_text_range 用字节偏移。
-                    // UTF-8 CJK 最多 3 字节/字符，预读 limit*3 字节再取 limit 个字符。
-                    let read_end = (chapter_start + limit * 3).min(content_len);
-                    let content = provider.read_text_range(chapter_start, read_end)?;
-                    let partial: String = content.chars().take(limit as usize).collect();
-                    (partial, true)
-                } else {
-                    // EPUB: provider is already spine-scoped via
-                    // open_from_bounds.  Read up to limit*3 bytes from
-                    // start, then truncate to limit chars (CJK safety).
-                    let read_end = (limit * 3).min(content_len);
-                    let content = provider.read_text_range(0, read_end)?;
-                    let partial: String = content.chars().take(limit as usize).collect();
-                    (partial, true)
-                }
-            }
-            None => {
-                let (start, end) = if matches!(format, BookFormat::Epub) {
-                    // EPUB provider is already scoped to the chapter's spine
-                    // bounds by `open_from_bounds`; `content_length` is the
-                    // total byte length across those spines.  Read from 0 so
-                    // we don't accidentally treat spine indices as byte offsets.
-                    (0u64, content_len)
-                } else {
-                    // TXT: chapter bounds are byte offsets in the file.
-                    let (cs, ce) = get_chapter_bounds(&validated_path, chapter_index).await?;
-                    (cs.max(0) as u64, (ce.max(0) as u64).min(content_len))
-                };
-                (provider.read_text_range(start, end)?, false)
-            }
-         }
-     } else {
-         return Err(AppError::UnsupportedFormat {
-             format: format!("unsupported format for pagination: {:?}", format),
-         });
-     };
-
-    let mut streamer = PageStreamer::new(content, config);
-    streamer.is_partial = is_partial;
-    let descriptors = streamer.get_descriptors();
-
-    store.put(
-        PaginationKey::new(book_id, chapter_index, config_hash),
-        PaginationEngine::Plain(streamer),
-    );
-
-    // P1: plain sled 缓存已移除。Partial 引擎不持久化到 sled（全章应走 block 路径）。
+    // P0: ALL paths (full + partial) use block pagination.
+    let result = try_paginate_chapter_blocks(book_id, &validated_path, chapter_index, &config, max_chars).await?
+        .ok_or_else(|| AppError::UnsupportedFormat {
+            format: "unsupported format for pagination (only Txt/Epub supported)".into(),
+        })?;
 
     tracing::info!(
-        "[Timing] paginate_chapter cache=MISS config_hash={:016x} chapter={} elapsed={:?}",
+        "[Timing] paginate_chapter block_path config_hash={:016x} chapter={} elapsed={:?}",
         config_hash, chapter_index, start.elapsed()
     );
-    Ok(PaginateResult {
-        descriptors,
-        config_hash,
-        is_partial,
-        mode: ChapterPaginationMode::PlainText,
-    })
+    Ok(result)
 }
 
 fn ensure_non_negative_page_index(page_index: i32) -> Result<(), AppError> {
@@ -401,9 +315,6 @@ pub(crate) fn get_page_blocks(
                 .ok_or_else(|| AppError::NotFound {
                     entity: page_content_entity(chapter_index, config_hash, page_index),
                 }),
-            PaginationEngine::Plain(_) => Err(AppError::InvalidInput {
-                reason: "plain text pagination has no block slices".into(),
-            }),
         }
     })
 }
@@ -423,12 +334,6 @@ pub(crate) fn get_page_content(
     let key = PaginationKey::new(book_id, chapter_index, config_hash);
     PaginationStore::global().with_engine(&key, |engine| {
         match engine {
-            PaginationEngine::Plain(streamer) => streamer
-                .get_page(page_index as usize, chapter_index)
-                .map(|p| p.content)
-                .ok_or_else(|| AppError::NotFound {
-                    entity: page_content_entity(chapter_index, config_hash, page_index),
-                }),
             PaginationEngine::Block(state) => state
                 .page_plain_text(page_index as usize)
                 .ok_or_else(|| AppError::NotFound {

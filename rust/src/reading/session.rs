@@ -1,7 +1,7 @@
 //! `PaginationSession` 生命周期：entry storage + 原子 repaginate + dispose。
 //!
 //! Phase 3 实施：迁自 `api/core.rs` 的 session 相关 FFI 与内部 helper。
-//! M3：双路径 — `PageStreamer`（纯文）与 `BlockPaginationState`（含 Image IR）。
+//! M3：单路径 — `BlockPaginationState`（含 Image IR）。
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -178,12 +178,7 @@ pub(crate) async fn create_pagination_session_adopt(
     };
 
     let (descriptors, is_partial, mode) = match &engine {
-        PaginationEngine::Plain(streamer) => (
-            streamer.get_descriptors(),
-            streamer.is_partial,
-            ChapterPaginationMode::PlainText,
-        ),
-        PaginationEngine::Block(state) => {
+    PaginationEngine::Block(state) => {
             let result = state.to_paginate_result(config_hash);
             (
                 result.descriptors,
@@ -282,12 +277,6 @@ pub(crate) fn get_session_page_content(
 ) -> Result<String, AppError> {
     let entry = lookup_pagination_session(handle.session_id)?;
     match &entry.engine {
-        PaginationEngine::Plain(streamer) => streamer
-            .get_page(page_index as usize, entry.chapter_index)
-            .map(|p| p.content)
-            .ok_or_else(|| AppError::NotFound {
-                entity: session_page_entity(page_index),
-            }),
         PaginationEngine::Block(state) => state
             .page_plain_text(page_index as usize)
             .ok_or_else(|| AppError::NotFound {
@@ -308,9 +297,6 @@ pub(crate) fn get_session_page_blocks(
             .ok_or_else(|| AppError::NotFound {
                 entity: session_page_entity(page_index),
             }),
-        PaginationEngine::Plain(_) => Err(AppError::InvalidInput {
-            reason: "plain text session has no block slices".into(),
-        }),
     }
 }
 
@@ -332,21 +318,6 @@ pub(crate) fn session_char_offset_to_page_index(
             .ok_or_else(|| AppError::NotFound {
                 entity: format!("page for char_offset {char_offset}"),
             }),
-        PaginationEngine::Plain(streamer) => {
-            for desc in streamer.get_descriptors() {
-                if offset >= desc.start_offset as u32 && offset < desc.end_offset as u32 {
-                    return Ok(desc.page_index);
-                }
-            }
-            streamer
-                .get_descriptors()
-                .last()
-                .filter(|d| d.is_last_page && offset == d.end_offset as u32)
-                .map(|d| d.page_index)
-                .ok_or_else(|| AppError::NotFound {
-                    entity: format!("page for char_offset {char_offset}"),
-                })
-        }
     }
 }
 

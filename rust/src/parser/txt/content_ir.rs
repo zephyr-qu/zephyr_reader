@@ -1,14 +1,13 @@
 //! TXT 章节 → Phase 2 IR（M1.2）
 //!
-//! 按空行分段（与 `PageStreamer` 段落语义一致）；`plain_text` 与
+//! 按空行分段；`plain_text` 与
 //! `TxtContentProvider::read_text_range` 章内字节/字符内容 **完全一致**。
 
-use crate::domain::{
-    AppError, ChapterContentIr, ContentBlock, TextBlock, TextBlockStyle,
-    slice_by_char_range,
-};
 #[cfg(test)]
 use crate::domain::PlainProjectionStyle;
+use crate::domain::{
+    slice_by_char_range, AppError, ChapterContentIr, ContentBlock, TextBlock, TextBlockStyle,
+};
 
 use super::provider::TxtContentProvider;
 use crate::parser::provider::ChapterContentProvider;
