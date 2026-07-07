@@ -1,45 +1,71 @@
 # Zephyr Reader 阅读引擎架构
 
-> 版本：3.0 | 最后更新：2026-07-07
+> 版本：3.1 | 最后更新：2026-07-07
+
+---
+
+## 0. 核心概念澄清：排版 vs 分页
+
+本项目的两阶段流水线中，"排版"和"分页"是两个完全不同的概念：
+
+```
+阶段 1: Flutter 排版（Typesetting）
+  用 TextPainter 做真实的文字布局。
+  输出：字宽、行高、行宽比 → CalibrationData
+
+阶段 2: Rust 分页（Pagination）
+  用阶段 1 的实测值做数学计算。
+  Rust 从不渲染文字、从未调用字体引擎。
+  它只是用「每行能放几个字、每页能放几行」
+  来标定每页的字符范围（startOffset, endOffset）。
+  输出：PageDescriptor[]
+
+阶段 3: Flutter 渲染（Rendering）
+  用阶段 2 的页码范围裁剪文本，交给 SelectableText 渲染到屏幕。
+```
+
+| | 谁做 | 做什么 | 产出 |
+|---|------|--------|------|
+| **排版** | Flutter `TextPainter` | 字宽度量、行高测量、标量校准 | `CalibrationData` |
+| **分页** | Rust `BlockPaginator` | 用校准值估算每页边界 | `PageDescriptor[]` |
+| **渲染** | Flutter `SelectableText` | 在页码范围内渲染文字到屏幕 | 像素 |
+
+Rust 分页引擎的本质是一个**确定性数学估算器**：它拿到 Flutter 实测的几何参数后，不再猜任何魔数，纯粹做「字宽 × 字数 = 行宽」「行高 × 行数 = 页高」的算术，输出页边界。这与 Flutter 的 `TextPainter` 排版是两个独立的过程。
 
 ---
 
 ## 1. 总览
 
-### 1.1 四层架构
+### 1.1 三层职责
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                     Flutter 排版校准层                             │
-│  TypesetCalibrator  │  measureLayoutFingerprint()               │
-│  TypesetMeasureParams  │  CalibrationData → TypesetCalibration  │
+│                    Flutter 排版层（Typesetting）                   │
+│  TextPainter 真实排版  │  measureLayoutFingerprint()              │
+│  → 字宽 + 行高 + 行宽比  = CalibrationData（ground truth）        │
 │  LayoutCalibrationStore (SharedPreferences cache)               │
 │  resolveLayoutCalibration() — 强制测完再分页                     │
 └────────────────────────────┬─────────────────────────────────────┘
                              │ FRB (TypesetCalibration)
                              ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                      Rust 分页引擎层                              │
-│  TypesetConfig → BlockLayoutMetrics → BlockPaginator            │
-│  CharWidthTable (校准驱动)  │  compute_line_breaks (标量断行)     │
-│  full_line_width = page_w × ratio  (无魔数)                     │
-│  line_height = measured_line_height_px × (block_font/base_font) │
+│                    Rust 分页层（Pagination）                       │
+│  数学估算器：用 Flutter 实测字宽/行高/行宽比                       │
+│  计算每页能装多少字、页边界在哪。不渲染文字，不调字体引擎。            │
+│                                                                  │
+│  full_line_width = page_w × ratio        (ratio 来自 Flutter)    │
+│  line_height = measured_h × (block_font / base_font)             │
+│  → PageDescriptor { startOffset, endOffset }                     │
+│                                                                  │
+│  + parser + storage + search + dictionary (完整 Rust 引擎)         │
 └────────────────────────────┬─────────────────────────────────────┘
                              │ FRB (PageDescriptors)
                              ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                    Rust 阅读引擎 & 存储层                          │
-│  api/ │ reading/ │ parser/ │ storage/ │ search/ │ dictionary/   │
-│  77 个 #[frb] FFI 函数  │  SQLite + sled 双引擎                   │
-└────────────────────────────┬─────────────────────────────────────┘
-                             │ FRB (content + descriptors)
-                             ▼
-┌──────────────────────────────────────────────────────────────────┐
-│                    Flutter 渲染 & 诊断层                           │
-│  PaginatedModeRenderer → PaginatedPageViewport                  │
-│  SelectableText.rich + StrutStyle + TextHeightBehavior          │
-│  [LineBreak] overflow_dp ≤ 0.5  CI 门禁                         │
-│  Layer A-D 自动化测试套件                                        │
+│                    Flutter 渲染层（Rendering）                     │
+│  按 PageDescriptor 范围取文本 → SelectableText.rich 渲染到屏幕       │
+│  PaginatedPageViewport (SizedBox + ClipRect) — 约束视口            │
+│  [LineBreak] overflow_dp ≤ 0.5 — CI 门禁                          │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
