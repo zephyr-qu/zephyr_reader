@@ -542,7 +542,11 @@ impl BlockPaginator {
             .style
             .line_height
             .map(|lh| lh * effective_font_size)
-            .unwrap_or(self.metrics.line_height_px);
+            .unwrap_or_else(|| {
+                // 实测行高是基准字号的绝对值；非默认字号块按比例缩放
+                let height_ratio = effective_font_size / self.metrics.font_size_px.max(1.0);
+                (self.metrics.line_height_px * height_ratio).max(1.0)
+            });
         let font_scale = if self.metrics.font_size_px > 0.0 {
             effective_font_size / self.metrics.font_size_px
         } else {
