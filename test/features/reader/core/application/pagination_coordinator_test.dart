@@ -210,8 +210,7 @@ void main() {
       expect(params.fontSize, 16.0);
       expect(params.lineHeight, 1.6);
       expect(params.width, 375);
-      // effectiveHeight = 667 - 2*20 = 627, clamped to [100, 667]
-      expect(params.height, 627);
+      expect(params.height, 667);
       expect(params.padding, ReaderTypographyDefaults.padding);
       expect(params.devicePixelRatio, 2.0);
       expect(params.fontFamily, 'Source Han Sans');
@@ -223,10 +222,10 @@ void main() {
 
     test('does not clamp when pageHeight is small (clamp preserves min=max)', () {
       final coordinator = PaginationCoordinator(repo, config, chapterVM);
-      coordinator.pageHeight = 120; // 120 - 40 = 80, clamp(100, 120) → 100
+      coordinator.pageHeight = 120;
 
       final params = coordinator.buildPaginationParams();
-      expect(params.height, 100);
+      expect(params.height, 120);
     });
   });
 

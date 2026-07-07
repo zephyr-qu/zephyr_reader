@@ -6,7 +6,6 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_view_mode
 import 'package:zephyr_reader/features/reader/core/application/chapter_loader.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
-import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
@@ -140,10 +139,7 @@ class ChapterNavigator {
   Future<void> preloadAdjacentFirstPages(int centerIndex) async {
     final chapterList = _chapters.value.value ?? [];
     if (chapterList.isEmpty) return;
-    final effectiveHeight =
-        _pagination.pageHeight -
-        2 * ReaderRenderConfig.pageContentVerticalPadding -
-        _config.fontSize.value;
+    final effectiveHeight = _pagination.pageHeight;
 
     // 预加载下一章
     if (centerIndex + 1 < chapterList.length) {
@@ -155,7 +151,7 @@ class ChapterNavigator {
           fontSize: _config.fontSize.value,
           lineHeight: _config.lineHeight.value,
           width: _pagination.pageWidth,
-          height: effectiveHeight.clamp(100, _pagination.pageHeight),
+          height: effectiveHeight,
           padding: _config.padding.value,
           devicePixelRatio: _pagination.devicePixelRatio,
           fontFamily: _pagination.fontFamily,
@@ -173,7 +169,7 @@ class ChapterNavigator {
           fontSize: _config.fontSize.value,
           lineHeight: _config.lineHeight.value,
           width: _pagination.pageWidth,
-          height: effectiveHeight.clamp(100, _pagination.pageHeight),
+          height: effectiveHeight,
           padding: _config.padding.value,
           devicePixelRatio: _pagination.devicePixelRatio,
           fontFamily: _pagination.fontFamily,
@@ -195,11 +191,7 @@ class ChapterNavigator {
         fontSize: _config.fontSize.value,
         lineHeight: _config.lineHeight.value,
         width: _pagination.pageWidth,
-        height:
-            (_pagination.pageHeight -
-                    2 * ReaderRenderConfig.pageContentVerticalPadding -
-                    _config.fontSize.value)
-                .clamp(100, _pagination.pageHeight),
+        height: _pagination.pageHeight,
         padding: _config.padding.value,
         devicePixelRatio: _pagination.devicePixelRatio,
         fontFamily: _pagination.fontFamily,

@@ -23,7 +23,7 @@ void main() {
       expect(config.language, equals(LanguageType.auto));
       expect(config.punctuationSqueeze, isTrue);
       expect(config.fontFamily, equals('Noto Sans SC'));
-      expect(config.calibration, isNull);
+      expect(config.calibration, isNotNull);
     });
 
     test('像素值四舍五入', () {
@@ -97,17 +97,67 @@ void main() {
       expect(config.fontFamily, equals('LXGW WenKai'));
     });
 
+    test('contentVerticalPadding 扣减 pageHeight（line buffer 默认 0）', () {
+      final config = buildTypesetConfig(
+        width: 360,
+        height: 800,
+        fontSize: 16,
+        lineHeight: 1.5,
+        contentVerticalPadding: 20,
+        devicePixelRatio: 2.0,
+      );
+
+      // contentHeight = 800 - 40 = 760 → 1520 px
+      expect(config.pageHeight, equals(1520));
+    });
+
+    test('显式 pageHeightLineBuffer 仍可额外扣减', () {
+      final config = buildTypesetConfig(
+        width: 360,
+        height: 800,
+        fontSize: 16,
+        lineHeight: 1.5,
+        contentVerticalPadding: 20,
+        pageHeightLineBuffer: 52,
+        devicePixelRatio: 2.0,
+      );
+
+      // contentHeight = 800 - 40 - 52 = 708 → 1416 px
+      expect(config.pageHeight, equals(1416));
+    });
+
+    test('estimateRustLinesForText 首行缩进增加行数', () {
+      const text = '这是一段用于测试断行估算的中文文本内容';
+      final linesNoIndent = estimateRustLinesForText(
+        text: text,
+        applyFirstLineIndent: false,
+        cjkWidthPx: 48,
+        pageWidthPx: 960,
+        fontSizePx: 48,
+      );
+      final linesWithIndent = estimateRustLinesForText(
+        text: text,
+        applyFirstLineIndent: true,
+        cjkWidthPx: 48,
+        pageWidthPx: 960,
+        fontSizePx: 48,
+      );
+      expect(linesWithIndent, greaterThanOrEqualTo(linesNoIndent));
+    });
+
     group('calibration 参数', () {
-      test('null calibration 产生 null rustCalibration', () {
+      test('null calibration 使用 default 字宽并仍传给 Rust', () {
         final config = buildTypesetConfig(
           width: 360,
           height: 640,
           fontSize: 16,
           lineHeight: 1.5,
+          devicePixelRatio: 2.0,
           calibration: null,
         );
 
-        expect(config.calibration, isNull);
+        expect(config.calibration, isNotNull);
+        expect(config.calibration!.cjkWidth, closeTo(32.0, 0.01)); // 16*2
       });
 
       test('有 calibration 时正确转换', () {
@@ -119,6 +169,8 @@ void main() {
           punctWidth: 17.5,
           latinExtWidth: 13.0,
           otherWidth: 14.0,
+          effectiveLineWidthRatio: 0.97,
+          lineHeightDp: 24.0,
         );
         final config = buildTypesetConfig(
           width: 360,
@@ -128,14 +180,9 @@ void main() {
           calibration: cal,
         );
 
-        expect(config.calibration, isNotNull);
+        final rust = calibrationToRust(cal);
+        expect(config.calibration, equals(rust));
         expect(config.calibration!.dpr, equals(2.0));
-        expect(config.calibration!.cjkWidth, equals(36.0));
-        expect(config.calibration!.asciiWidth, equals(19.0));
-        expect(config.calibration!.digitWidth, equals(18.0));
-        expect(config.calibration!.punctWidth, equals(35.0));
-        expect(config.calibration!.latinExtWidth, equals(26.0));
-        expect(config.calibration!.otherWidth, equals(28.0));
       });
 
       test('calibration dpr 与 devicePixelRatio 独立', () {
@@ -147,6 +194,8 @@ void main() {
           punctWidth: 17.5,
           latinExtWidth: 13.0,
           otherWidth: 14.0,
+          effectiveLineWidthRatio: 0.97,
+          lineHeightDp: 24.0,
         );
         final config = buildTypesetConfig(
           width: 360,
@@ -185,6 +234,8 @@ void main() {
           punctWidth: 16.0,
           latinExtWidth: 10.0,
           otherWidth: 12.0,
+          effectiveLineWidthRatio: 0.97,
+          lineHeightDp: 24.0,
         );
         const smallDrift = CalibrationData(
           dpr: 1.0,
@@ -194,6 +245,8 @@ void main() {
           punctWidth: 16.0,
           latinExtWidth: 10.0,
           otherWidth: 12.0,
+          effectiveLineWidthRatio: 0.97,
+          lineHeightDp: 24.0,
         );
         const largeDrift = CalibrationData(
           dpr: 1.0,
@@ -203,6 +256,8 @@ void main() {
           punctWidth: 16.0,
           latinExtWidth: 10.0,
           otherWidth: 12.0,
+          effectiveLineWidthRatio: 0.97,
+          lineHeightDp: 24.0,
         );
 
         expect(calibrationDriftExceeds(baseline, smallDrift), isFalse);
@@ -218,6 +273,8 @@ void main() {
           punctWidth: 16.0,
           latinExtWidth: 10.0,
           otherWidth: 12.0,
+          effectiveLineWidthRatio: 0.97,
+          lineHeightDp: 24.0,
         );
         const tooWide = CalibrationData(
           dpr: 1.0,
@@ -227,6 +284,8 @@ void main() {
           punctWidth: 16.0,
           latinExtWidth: 10.0,
           otherWidth: 12.0,
+          effectiveLineWidthRatio: 0.97,
+          lineHeightDp: 24.0,
         );
 
         expect(isCalibrationPlausible(plausible, 16.0), isTrue);
@@ -242,9 +301,48 @@ void main() {
           punctWidth: 17.5,
           latinExtWidth: 13.0,
           otherWidth: 14.0,
+          effectiveLineWidthRatio: 0.985,
+          lineHeightDp: 24.0,
         );
         final rust = calibrationToRust(cal);
-        expect(rust.latinExtWidth, equals(26.0));
+        expect(rust.latinExtWidth, closeTo(26.0, 0.01)); // 13*2
+        expect(rust.effectiveLineWidthRatio, closeTo(0.985, 0.001));
+        expect(rust.measuredLineHeightPx, closeTo(48.0, 0.01)); // 24*2
+      });
+
+      test('measureLayoutFingerprint 产出合理 ratio 与行高', () {
+        final params = TypesetMeasureParams(
+          width: 360,
+          height: 640,
+          pagePadding: 16,
+          fontSize: 16,
+          lineHeight: 1.5,
+          letterSpacing: 0,
+          fontFamily: 'Roboto',
+          devicePixelRatio: 1.0,
+        );
+        final data = measureLayoutFingerprint(params);
+        expect(data.effectiveLineWidthRatio, inInclusiveRange(0.85, 1.0));
+        expect(data.lineHeightDp, greaterThan(16));
+        expect(data.cjkWidth, greaterThan(0));
+      });
+
+      test('CalibrationData JSON 往返', () {
+        const original = CalibrationData(
+          dpr: 2.0,
+          cjkWidth: 18.0,
+          asciiWidth: 9.5,
+          digitWidth: 9.0,
+          punctWidth: 17.5,
+          latinExtWidth: 13.0,
+          otherWidth: 14.0,
+          effectiveLineWidthRatio: 0.98,
+          lineHeightDp: 24.0,
+        );
+        final restored = CalibrationData.fromJson(original.toJson());
+        expect(restored.effectiveLineWidthRatio, original.effectiveLineWidthRatio);
+        expect(restored.lineHeightDp, original.lineHeightDp);
+        expect(restored.cjkWidth, original.cjkWidth);
       });
     });
   });

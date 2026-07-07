@@ -7,7 +7,6 @@ import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
-import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
@@ -35,16 +34,11 @@ class PaginationCoordinator {
   String fontFamily = 'Noto Sans SC';
 
   PaginationParams buildPaginationParams() {
-    // 渲染层上下 padding + 一行缓冲（补偿 Rust/Flutter 字体度量差异）
-    final effectiveHeight =
-        pageHeight -
-        2 * ReaderRenderConfig.pageContentVerticalPadding -
-        _config.fontSize.value;
     return PaginationParams(
       fontSize: _config.fontSize.value,
       lineHeight: _config.lineHeight.value,
       width: pageWidth,
-      height: effectiveHeight.clamp(100, pageHeight),
+      height: pageHeight,
       padding: _config.padding.value,
       devicePixelRatio: devicePixelRatio,
       calibration: calibration.value,
@@ -74,6 +68,11 @@ class PaginationCoordinator {
   /// 返回 BigInt（Rust u64 → Dart BigInt），不做截断。
   BigInt computeConfigHash() {
     final p = buildPaginationParams();
+    final layoutInsets = paginatedTypesetLayoutInsets(
+      fontSize: p.fontSize,
+      lineHeight: p.lineHeight,
+      paragraphSpacing: p.paragraphSpacing,
+    );
     return core_api.computeConfigHash(
       config: buildTypesetConfig(
         width: p.width,
@@ -81,6 +80,8 @@ class PaginationCoordinator {
         fontSize: p.fontSize,
         lineHeight: p.lineHeight,
         padding: p.padding,
+        contentVerticalPadding: layoutInsets.contentVerticalPadding,
+        pageHeightLineBuffer: layoutInsets.pageHeightLineBuffer,
         devicePixelRatio: p.devicePixelRatio,
         calibration: p.calibration,
         fontFamily: p.fontFamily,

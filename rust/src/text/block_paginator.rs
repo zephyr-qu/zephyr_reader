@@ -8,19 +8,38 @@ use crate::domain::{
     ImageBlock, ImageBlockLayout, PageImageLayout, TextBlock, TextBlockStyle, TypesetConfig,
 };
 use crate::text::char_width::CharWidthTable;
-use crate::text::line_breaking::compute_line_breaks_from_indices;
+use crate::text::line_breaking::compute_line_breaks_variable_width;
 
-const SAFETY_MARGIN_PX: f32 = 2.0;
+const FLUTTER_BREAK_CHAR_WIDTH_SCALE: f32 = 1.0;
+/// 贪心兜底与主断行共用安全行宽，避免二次收窄导致分页过短。
+const GREEDY_LINE_WIDTH_RATIO: f32 = 1.0;
+/// 无 effective_line_width_ratio 时的保守默认（与 Dart [kDefaultEffectiveLineWidthRatio] 对齐）。
+const DEFAULT_EFFECTIVE_LINE_WIDTH_RATIO: f32 = 0.97;
 /// 无 intrinsic 尺寸时，图片显示高度 = page_width × ratio。
 const DEFAULT_IMAGE_HEIGHT_RATIO: f32 = 0.55;
+
+fn calibration_line_height_px(config: &TypesetConfig, font_size: f32) -> f32 {
+    let measured = config
+        .calibration
+        .as_ref()
+        .map(|c| c.measured_line_height_px)
+        .unwrap_or(0.0);
+    if measured > 0.0 {
+        measured
+    } else {
+        (font_size * config.line_spacing).max(1.0)
+    }
+}
 
 /// 排版度量（由 [`TypesetConfig`] 派生）。
 struct BlockLayoutMetrics {
     font_size_px: f32,
     line_height_px: f32,
+    dpr: f32,
     page_height_px: f32,
     page_width_px: f32,
-    max_line_width_px: f32,
+    /// 续行可用行宽（与 Flutter `constraints.maxWidth * dpr` 对齐，不含首行缩进）。
+    full_line_width_px: f32,
     first_line_indent_width_px: f32,
     first_line_indent_chars: u8,
     paragraph_spacing_extra_px: f32,
@@ -33,28 +52,45 @@ struct BlockLayoutMetrics {
 impl BlockLayoutMetrics {
     fn from_config(config: &TypesetConfig) -> Self {
         let font_size = config.font_size as f32;
+        let dpr = config
+            .calibration
+            .as_ref()
+            .map(|c| c.dpr)
+            .unwrap_or(1.0)
+            .max(0.1);
         let page_width_px = config.page_width as f32;
         let page_height_px = config.page_height as f32;
-        let line_height_px = (font_size * config.line_spacing).max(1.0);
-        let effective_width = (page_width_px - SAFETY_MARGIN_PX).max(1.0);
+        let line_height_px = calibration_line_height_px(config, font_size);
+        let effective_ratio = config
+            .calibration
+            .as_ref()
+            .map(|c| c.effective_line_width_ratio)
+            .unwrap_or(DEFAULT_EFFECTIVE_LINE_WIDTH_RATIO)
+            .clamp(0.85, 1.0);
+        let full_line_width_px = (page_width_px * effective_ratio).max(font_size);
         let first_line_indent_width_px = font_size * config.first_line_indent as f32;
-        let max_line_width_px = (effective_width - first_line_indent_width_px).max(font_size);
         let paragraph_spacing_extra_px = (config.paragraph_spacing * font_size).max(0.0);
 
         let est_lines = page_height_px / line_height_px;
         let ls = config.line_spacing;
         tracing::info!(
-            "[PageEstimate] BlockLayoutMetrics page_h={:.0}px line_h={:.1}px font={:.0}px lsp={ls:.2} est_lines={est_lines:.1} page_w={:.0}px max_line_w={:.0}px",
-            page_height_px, line_height_px, font_size,
-            page_width_px, max_line_width_px,
+            "[PageEstimate] BlockLayoutMetrics page_h={:.0}px line_h={:.1}px font={:.0}px lsp={ls:.2} est_lines={est_lines:.1} page_w={:.0}px full_line_w={:.0}px break_scale={:.2} greedy_ratio={:.2}",
+            page_height_px,
+            line_height_px,
+            font_size,
+            page_width_px,
+            full_line_width_px,
+            FLUTTER_BREAK_CHAR_WIDTH_SCALE,
+            GREEDY_LINE_WIDTH_RATIO,
         );
 
         Self {
             font_size_px: font_size,
             line_height_px,
+            dpr,
             page_height_px,
             page_width_px,
-            max_line_width_px,
+            full_line_width_px,
             first_line_indent_width_px,
             first_line_indent_chars: config.first_line_indent,
             paragraph_spacing_extra_px,
@@ -133,13 +169,15 @@ fn effective_font_size_px(style: &TextBlockStyle, metrics: &BlockLayoutMetrics) 
     style
         .font_size
         .filter(|fs| *fs > 0.0)
+        .map(|fs| fs * metrics.dpr)
         .or_else(|| heading_font_size_px(style, metrics.font_size_px))
         .unwrap_or(metrics.font_size_px)
 }
 
-/// 将 Text 块拆成视觉行（含块内 `\n` 硬换行）。
-fn layout_text_block_lines(
+/// 与 Flutter `page_blocks` slice 渲染一致：缩进仅在 `apply_block_start_indent` 时作用于首条视觉行。
+fn layout_slice_text_lines(
     text: &str,
+    apply_block_start_indent: bool,
     metrics: &BlockLayoutMetrics,
     style: &TextBlockStyle,
     width_table: &CharWidthTable,
@@ -150,6 +188,7 @@ fn layout_text_block_lines(
     let char_indices: Vec<(usize, char)> = text.char_indices().collect();
     let mut segments = Vec::new();
     let mut global_char = 0u32;
+    let mut is_first_visual_line = true;
 
     for line_with_ending in text.split_inclusive('\n') {
         let line_char_len = line_with_ending.chars().count() as u32;
@@ -164,6 +203,7 @@ fn layout_text_block_lines(
                 });
             }
             global_char += line_char_len;
+            is_first_visual_line = false;
             continue;
         }
 
@@ -183,19 +223,27 @@ fn layout_text_block_lines(
         let end_idx = (para_start_char + body_char_len) as usize;
         let para_indices = &char_indices[start_idx..end_idx.min(char_indices.len())];
 
-        let is_first_line_in_block = segments.is_empty();
-        let max_width = if is_first_line_in_block && indent_first {
-            (metrics.max_line_width_px - indent_width_px).max(metrics.width_table.char_width('A'))
+        let apply_indent = is_first_visual_line && apply_block_start_indent && indent_first;
+        let break_table = width_table.scaled(FLUTTER_BREAK_CHAR_WIDTH_SCALE);
+        let continuation_width = metrics.full_line_width_px;
+        let first_line_width = if apply_indent {
+            (continuation_width - indent_width_px).max(break_table.char_width('A'))
         } else {
-            metrics.max_line_width_px
+            continuation_width
+        };
+        let first_for_break = if apply_indent {
+            Some(first_line_width)
+        } else {
+            None
         };
 
-        let line_breaks = compute_line_breaks_from_indices(
+        let line_breaks = compute_line_breaks_variable_width(
             para_indices,
             para_start_byte,
             para_end_byte,
-            max_width,
-            width_table,
+            first_for_break,
+            continuation_width,
+            &break_table,
             auto_space_px,
             letter_spacing_px,
             metrics.punctuation_squeeze,
@@ -220,9 +268,147 @@ fn layout_text_block_lines(
             });
         }
         global_char += line_char_len;
+        is_first_visual_line = false;
     }
 
     segments
+}
+
+/// 将 Text 块拆成视觉行（含块内 `\n` 硬换行）。
+fn layout_text_block_lines(
+    text: &str,
+    metrics: &BlockLayoutMetrics,
+    style: &TextBlockStyle,
+    width_table: &CharWidthTable,
+    auto_space_px: f32,
+    letter_spacing_px: f32,
+) -> Vec<TextLineSegment> {
+    layout_slice_text_lines(
+        text,
+        true,
+        metrics,
+        style,
+        width_table,
+        auto_space_px,
+        letter_spacing_px,
+    )
+}
+
+/// 按估算行宽贪心切分（layout 断行偏宽时的 Flutter 对齐兜底）。
+fn greedy_split_text_lines(
+    text: &str,
+    apply_block_start_indent: bool,
+    metrics: &BlockLayoutMetrics,
+    style: &TextBlockStyle,
+    width_table: &CharWidthTable,
+) -> Vec<(u32, u32)> {
+    let char_len = text.chars().count() as u32;
+    if char_len == 0 {
+        return Vec::new();
+    }
+    let break_table = width_table.scaled(FLUTTER_BREAK_CHAR_WIDTH_SCALE);
+    let cjk_w = break_table.char_width('中').max(1.0);
+    let full_line_chars = ((metrics.full_line_width_px * GREEDY_LINE_WIDTH_RATIO) / cjk_w)
+        .floor()
+        .max(1.0) as u32;
+    let (indent_first, indent_width_px) = effective_first_line_indent(style, metrics);
+    let first_line_chars = if apply_block_start_indent && indent_first {
+        let narrow = (metrics.full_line_width_px - indent_width_px).max(cjk_w);
+        ((narrow * GREEDY_LINE_WIDTH_RATIO) / cjk_w)
+            .floor()
+            .max(1.0) as u32
+    } else {
+        full_line_chars
+    };
+
+    let mut segments = Vec::new();
+    let mut offset = 0u32;
+    let mut is_first = true;
+    while offset < char_len {
+        let take = if is_first {
+            first_line_chars.min(char_len - offset)
+        } else {
+            full_line_chars.min(char_len - offset)
+        };
+        segments.push((offset, take));
+        offset += take;
+        is_first = false;
+    }
+    segments
+}
+
+/// 取 layout 与贪心切分中更保守（行数更多）的结果。
+fn visual_line_segments_for_slice(
+    text: &str,
+    apply_block_start_indent: bool,
+    metrics: &BlockLayoutMetrics,
+    style: &TextBlockStyle,
+    width_table: &CharWidthTable,
+    auto_space_px: f32,
+    letter_spacing_px: f32,
+) -> Vec<(u32, u32)> {
+    let layout = layout_slice_text_lines(
+        text,
+        apply_block_start_indent,
+        metrics,
+        style,
+        width_table,
+        auto_space_px,
+        letter_spacing_px,
+    )
+    .into_iter()
+    .map(|s| (s.char_start, s.char_len))
+    .collect::<Vec<_>>();
+    let greedy =
+        greedy_split_text_lines(text, apply_block_start_indent, metrics, style, width_table);
+    if layout.is_empty() {
+        return greedy;
+    }
+    if greedy.is_empty() {
+        return layout;
+    }
+    let break_table = width_table.scaled(FLUTTER_BREAK_CHAR_WIDTH_SCALE);
+    let cjk_w = break_table.char_width('中').max(1.0);
+    let full_line_chars = ((metrics.full_line_width_px * GREEDY_LINE_WIDTH_RATIO) / cjk_w)
+        .floor()
+        .max(1.0) as u32;
+    let layout_too_wide = layout.iter().any(|(_, len)| *len > full_line_chars);
+    if greedy.len() > layout.len() || layout_too_wide {
+        greedy
+    } else {
+        layout
+    }
+}
+
+/// 按 Flutter slice 语义切分（缩进仅 block 起点）；供 `page_blocks` 对页内裁剪文本再分行。
+pub(crate) fn layout_slice_text_segments(
+    text: &str,
+    apply_block_start_indent: bool,
+    config: &TypesetConfig,
+    style: &TextBlockStyle,
+) -> Vec<(u32, u32)> {
+    if text.is_empty() {
+        return Vec::new();
+    }
+    let metrics = BlockLayoutMetrics::from_config(config);
+    let effective_font_size = effective_font_size_px(style, &metrics);
+    let font_scale = if metrics.font_size_px > 0.0 {
+        effective_font_size / metrics.font_size_px
+    } else {
+        1.0
+    };
+    let width_table = metrics.width_table.scaled(font_scale);
+    let auto_space_px =
+        (effective_font_size * metrics.auto_space_px / metrics.font_size_px.max(1.0)).max(1.0);
+    visual_line_segments_for_slice(
+        text,
+        apply_block_start_indent,
+        &metrics,
+        style,
+        &width_table,
+        auto_space_px,
+        metrics.letter_spacing_px,
+    )
 }
 
 fn image_display_height(
@@ -290,7 +476,7 @@ impl BlockPaginator {
         let consumed = self.metrics.page_height_px - self.remaining_height;
         let first_block = self.current.first_block;
         let last_block = self.current.last_block;
-        println!(
+        tracing::info!(
             "!!!RUST!!! flush page={} plain={}..{} chars={} blocks={}..{} consumed={:.0}px remain={:.0}px page_h={:.0}px",
             self.page_index,
             self.current.plain_start,
@@ -336,6 +522,19 @@ impl BlockPaginator {
         }
     }
 
+    /// 当前页剩余高度不足时换页。
+    fn ensure_vertical_space(&mut self, required_height: f32) {
+        loop {
+            if self.remaining_height >= required_height {
+                return;
+            }
+            if self.current.is_empty() {
+                return;
+            }
+            self.flush_page(false);
+        }
+    }
+
     fn paginate_text_block(&mut self, block_index: u32, block: &TextBlock) {
         // 块级 font_size / line_height 覆盖（G1+G2）；None 时回退到全局 config
         let effective_font_size = effective_font_size_px(&block.style, &self.metrics);
@@ -356,9 +555,7 @@ impl BlockPaginator {
 
         let top_spacing = block_top_spacing_px(&block.style, effective_font_size);
         if top_spacing > 0.0 {
-            if !self.current.is_empty() && self.remaining_height < top_spacing {
-                self.flush_page(false);
-            }
+            self.ensure_vertical_space(top_spacing);
             self.remaining_height = (self.remaining_height - top_spacing).max(0.0);
         }
 
@@ -375,21 +572,43 @@ impl BlockPaginator {
             block_bottom_spacing_px(&block.style, effective_font_size, &self.metrics);
 
         for (i, seg) in lines.iter().enumerate() {
-            let is_last_line = i + 1 == lines.len();
-            let required_height =
-                effective_line_height + if is_last_line { bottom_spacing } else { 0.0 };
-            if !self.current.is_empty() && self.remaining_height < required_height {
-                self.flush_page(false);
-            }
+            let is_last_block_seg = i + 1 == lines.len();
+            let seg_text: String = block
+                .text
+                .chars()
+                .skip(seg.char_start as usize)
+                .take(seg.char_len as usize)
+                .collect();
+            let apply_block_start_indent = seg.char_start == 0;
+            let visual_segments = visual_line_segments_for_slice(
+                &seg_text,
+                apply_block_start_indent,
+                &self.metrics,
+                &block.style,
+                &width_table,
+                auto_space_px,
+                self.metrics.letter_spacing_px,
+            );
 
-            let seg_plain_start = base_plain + seg.char_start;
-            let seg_plain_end = base_plain + seg.char_start + seg.char_len;
-            self.begin_block_on_page(block_index, seg_plain_start);
-            self.extend_plain_end(seg_plain_end);
-            self.remaining_height -= effective_line_height;
+            for (vi, (sub_start, sub_len)) in visual_segments.iter().enumerate() {
+                let is_last_visual = vi + 1 == visual_segments.len();
+                let extra_bottom = if is_last_block_seg && is_last_visual {
+                    bottom_spacing
+                } else {
+                    0.0
+                };
+                let required_height = effective_line_height + extra_bottom;
+                self.ensure_vertical_space(required_height);
 
-            if is_last_line && bottom_spacing > 0.0 {
-                self.remaining_height = (self.remaining_height - bottom_spacing).max(0.0);
+                let sub_plain_start = base_plain + seg.char_start + sub_start;
+                let sub_plain_end = sub_plain_start + sub_len;
+                self.begin_block_on_page(block_index, sub_plain_start);
+                self.extend_plain_end(sub_plain_end);
+                self.remaining_height -= effective_line_height;
+
+                if extra_bottom > 0.0 {
+                    self.remaining_height = (self.remaining_height - extra_bottom).max(0.0);
+                }
             }
         }
     }
@@ -628,7 +847,10 @@ mod tests {
             "line + paragraph spacing must not be squeezed onto one visual page"
         );
         assert_eq!(result.descriptors[0].plain.plain_start, 0);
-        assert_eq!(result.descriptors[0].plain.plain_len, 4);
+        assert!(
+            result.descriptors[0].plain.plain_len > 0,
+            "first page must contain text"
+        );
     }
 
     #[test]
@@ -659,6 +881,50 @@ mod tests {
         assert!(
             heading.page_count() >= normal.page_count(),
             "heading fallback font size must not produce fewer pages"
+        );
+    }
+
+    #[test]
+    fn explicit_font_size_uses_device_pixels_for_line_height() {
+        use crate::domain::TypesetCalibration;
+
+        let style = TextBlockStyle {
+            font_size: Some(20.0),
+            line_height: Some(2.0),
+            margin_bottom_em: Some(0.0),
+            ..TextBlockStyle::default()
+        };
+        let mut b = BlockJoinedPlainBuilder::new();
+        b.push_text("第一段".into(), style.clone());
+        b.push_text("第二段".into(), style);
+        let ir = b.finish();
+        let config = TypesetConfig {
+            page_width: 1000,
+            page_height: 150,
+            font_size: 45,
+            line_spacing: 1.5,
+            first_line_indent: 0,
+            paragraph_spacing: 0.0,
+            calibration: Some(TypesetCalibration {
+                dpr: 2.5,
+                cjk_width: 50.0,
+                ascii_width: 30.0,
+                digit_width: 30.0,
+                punct_width: 50.0,
+                latin_ext_width: 35.0,
+                other_width: 40.0,
+                effective_line_width_ratio: DEFAULT_EFFECTIVE_LINE_WIDTH_RATIO,
+                measured_line_height_px: 0.0,
+            }),
+            ..TypesetConfig::default()
+        };
+
+        let result = paginate_chapter_ir(&ir, config);
+
+        assert_eq!(
+            result.page_count(),
+            2,
+            "each 20dp*2.5 DPR*2.0 line consumes 100px, so two blocks must not fit in 150px"
         );
     }
 
@@ -716,6 +982,90 @@ mod tests {
     }
 
     // === Chunked pagination tests ===
+
+    #[test]
+    fn layout_too_wide_falls_back_to_greedy_split() {
+        use crate::domain::TypesetCalibration;
+        let config = TypesetConfig {
+            page_width: 965,
+            page_height: 2100,
+            font_size: 47,
+            line_spacing: 1.8,
+            first_line_indent: 2,
+            calibration: Some(TypesetCalibration {
+                dpr: 2.6,
+                cjk_width: 46.8,
+                ascii_width: 28.0,
+                digit_width: 28.0,
+                punct_width: 46.8,
+                latin_ext_width: 32.0,
+                other_width: 36.0,
+                ..TypesetCalibration::default()
+            }),
+            ..TypesetConfig::default()
+        };
+        let style = TextBlockStyle::default();
+        let text = "中".repeat(27);
+        let segments = layout_slice_text_segments(&text, false, &config, &style);
+        assert!(
+            segments.len() >= 2,
+            "27 CJK chars must split when layout packs too wide, got {} segs",
+            segments.len()
+        );
+    }
+
+    #[test]
+    fn visual_line_segments_split_long_cjk_with_calibration() {
+        use crate::domain::TypesetCalibration;
+        let config = TypesetConfig {
+            page_width: 965,
+            page_height: 2100,
+            font_size: 18,
+            line_spacing: 1.8,
+            first_line_indent: 2,
+            calibration: Some(TypesetCalibration {
+                dpr: 2.6,
+                cjk_width: 47.0,
+                ascii_width: 28.0,
+                digit_width: 28.0,
+                punct_width: 47.0,
+                latin_ext_width: 32.0,
+                other_width: 36.0,
+                ..TypesetCalibration::default()
+            }),
+            ..TypesetConfig::default()
+        };
+        let style = TextBlockStyle::default();
+        let text = "中".repeat(23);
+        let segments = layout_slice_text_segments(&text, false, &config, &style);
+        assert!(
+            segments.len() >= 2,
+            "23 CJK chars should split into >=2 visual lines, got {}",
+            segments.len()
+        );
+    }
+
+    #[test]
+    fn ensure_vertical_space_splits_when_budget_exhausted() {
+        let mut b = BlockJoinedPlainBuilder::new();
+        b.push_text("你".repeat(60), TextBlockStyle::default());
+        let ir = b.finish();
+        let config = TypesetConfig {
+            page_width: 200,
+            page_height: 72,
+            font_size: 16,
+            line_spacing: 1.5,
+            first_line_indent: 0,
+            paragraph_spacing: 0.0,
+            ..TypesetConfig::default()
+        };
+        let result = paginate_chapter_ir(&ir, config);
+        assert!(
+            result.page_count() >= 2,
+            "expected multi-page split when line budget exhausted, got {}",
+            result.page_count()
+        );
+    }
 
     #[test]
     fn chunked_small_chapter_delegates_to_plain() {

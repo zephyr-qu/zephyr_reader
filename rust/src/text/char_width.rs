@@ -74,6 +74,7 @@ mod tests {
             punct_width: 32.0,
             latin_ext_width: 22.0,
             other_width: 25.6,
+            ..TypesetCalibration::default()
         }
     }
 

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/features/reader/core/data/epub_block_image_cache.dart';
 import 'package:zephyr_reader/features/reader/rendering/ir_text_block_style.dart';
 import 'package:zephyr_reader/features/reader/rendering/paginated_page_viewport.dart';
@@ -57,18 +58,95 @@ Widget buildBlockPageContent({
           tp.layout();
           final flutCjkDp = tp.width;
           final flutCjkPx = flutCjkDp * dpr;
-          // Rust max_line_width = pageWidth - SAFETY_MARGIN = 975 - 2 = 973px
-          const rustMaxLinePx = 973.0;
-          final rustEstCharsPerLine = flutCjkPx > 0
-              ? rustMaxLinePx / flutCjkPx
-              : 0;
+          final pageWidthPx = (constraints.maxWidth * dpr).round();
+          final fontSizePx = (config.fontSize * dpr).round();
+          final rustCjkPx = flutCjkPx * kRustCharWidthScale;
+          final rustEstCharsPerLine = estimateRustCharsPerLine(
+            cjkWidthPx: rustCjkPx,
+            pageWidthPx: pageWidthPx,
+            fontSizePx: fontSizePx,
+          );
+
           Logging.info(
             '[LineWidth] flutCjk=${flutCjkDp.toStringAsFixed(1)}dp'
-            ' ${flutCjkPx.toStringAsFixed(0)}px'
+            ' ${flutCjkPx.toStringAsFixed(0)}px rustCjk=${rustCjkPx.toStringAsFixed(0)}px'
             ' fontSize=${config.fontSize}dp'
             ' lineH=${config.lineHeight}'
+            ' pageW_px=$pageWidthPx'
+            ' rustScale=$kRustCharWidthScale'
+            ' safety=$kRustLineWidthSafetyRatio'
             ' estCharsPerLine=${rustEstCharsPerLine.toStringAsFixed(1)}'
             ' viewportW=${constraints.maxWidth.toStringAsFixed(1)}dp',
+          );
+
+          // Diagnostic: accumulate total Flutter lines & height across ALL text blocks
+          var totalChars = 0;
+          var totalFlutterLines = 0;
+          var totalRustLines = 0;
+          var totalTpHeight = 0.0;
+          for (final block in blocks) {
+            final slice = block.whenOrNull(text: (s) => s);
+            if (slice != null && slice.text.isNotEmpty) {
+              final irStyle = slice.style;
+              final blockFontSize = IrTextBlockStyle.effectiveFontSize(
+                irStyle,
+                config,
+              );
+              final blockLineHeight = IrTextBlockStyle.effectiveLineHeight(
+                irStyle,
+                config,
+              );
+              final textStyle = config.buildTextStyle(
+                fontFamily: irStyle.fontFamily,
+                fontSizeMultiplier: blockFontSize / config.fontSize,
+              ).copyWith(height: blockLineHeight);
+              final indentPx = slice.isBlockStart
+                  ? IrTextBlockStyle.resolveFirstLineIndentPx(irStyle, config)
+                  : 0.0;
+              final blockPadding = slice.isBlockStart
+                  ? IrTextBlockStyle.resolveBlockPadding(irStyle, config)
+                  : EdgeInsets.zero;
+              final layoutMaxWidth = (constraints.maxWidth - blockPadding.horizontal)
+                  .clamp(1.0, constraints.maxWidth);
+              final strutStyle = config.buildStrutStyle(
+                fontFamily: irStyle.fontFamily,
+                fontSizeMultiplier: blockFontSize / config.fontSize,
+                lineHeight: blockLineHeight,
+              );
+              final measured = _measureSliceLayout(
+                text: slice.text,
+                style: textStyle,
+                strutStyle: strutStyle,
+                maxWidth: layoutMaxWidth,
+                firstLineIndentPx: slice.isBlockStart ? indentPx : 0.0,
+              );
+              totalChars += slice.text.length;
+              totalFlutterLines += measured.lines;
+              totalRustLines += estimateRustLinesForText(
+                text: slice.text,
+                applyFirstLineIndent: slice.isBlockStart,
+                cjkWidthPx: rustCjkPx,
+                pageWidthPx: pageWidthPx,
+                fontSizePx: fontSizePx,
+              );
+              totalTpHeight +=
+                  measured.height + blockPadding.vertical + (slice.isBlockEnd &&
+                          irStyle.marginBottomEm == null &&
+                          config.paragraphSpacing > 0
+                      ? config.paragraphSpacing
+                      : 0.0);
+            }
+          }
+          final overflowDp = (totalTpHeight - bodyHeight).clamp(0.0, double.infinity);
+          Logging.info(
+            '[LineBreak] TOTAL chars=$totalChars'
+            ' flutLines=$totalFlutterLines rustEstLines=$totalRustLines'
+            ' tpHeight=${totalTpHeight.toStringAsFixed(1)}dp'
+            ' overflow=${overflowDp.toStringAsFixed(1)}dp'
+            ' charsPerLine=${rustEstCharsPerLine.toStringAsFixed(1)}'
+            ' rustScale=$kRustCharWidthScale'
+            ' lineH_dp=${config.textRowHeight.toStringAsFixed(1)}'
+            ' blocks=${blocks.length}',
           );
 
           final children = <Widget>[];
@@ -361,11 +439,69 @@ class _ContentMeasurerState extends State<_ContentMeasurer> {
           final w = box.size.width;
           Logging.info(
             '[ContentHeight] ${widget.label} actualH=${h.toStringAsFixed(1)}dp'
-            ' actualW=${w.toStringAsFixed(1)}dp',
+            ' actualW=${w.toStringAsFixed(1)}dp'
+            ' (constrained; see [LineBreak] overflow for intrinsic)',
           );
         }
       });
     }
     return widget.child;
   }
+}
+
+/// TextPainter 不支持 WidgetSpan；用首行缩进宽度模拟与渲染一致的行数/高度。
+({int lines, double height}) _measureSliceLayout({
+  required String text,
+  required TextStyle style,
+  required StrutStyle strutStyle,
+  required double maxWidth,
+  required double firstLineIndentPx,
+}) {
+  if (text.isEmpty) {
+    return (lines: 0, height: 0.0);
+  }
+
+  final tp = TextPainter(
+    textDirection: TextDirection.ltr,
+    strutStyle: strutStyle,
+    textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
+  );
+
+  if (firstLineIndentPx <= 0) {
+    tp.text = TextSpan(text: text, style: style);
+    tp.layout(maxWidth: maxWidth);
+    return (lines: tp.computeLineMetrics().length, height: tp.height);
+  }
+
+  final narrowWidth = (maxWidth - firstLineIndentPx).clamp(1.0, maxWidth);
+  var firstLineChars = text.length;
+  for (var n = 1; n <= text.length; n++) {
+    tp.text = TextSpan(text: text.substring(0, n), style: style);
+    tp.layout(maxWidth: narrowWidth);
+    if (tp.computeLineMetrics().length > 1) {
+      firstLineChars = n - 1;
+      break;
+    }
+  }
+  if (firstLineChars <= 0) {
+    firstLineChars = 1;
+  }
+
+  if (firstLineChars >= text.length) {
+    tp.text = TextSpan(text: text, style: style);
+    tp.layout(maxWidth: narrowWidth);
+    return (lines: tp.computeLineMetrics().length, height: tp.height);
+  }
+
+  tp.text = TextSpan(text: text.substring(0, firstLineChars), style: style);
+  tp.layout(maxWidth: narrowWidth);
+  final firstHeight = tp.height;
+
+  final remainder = text.substring(firstLineChars);
+  tp.text = TextSpan(text: remainder, style: style);
+  tp.layout(maxWidth: maxWidth);
+  return (
+    lines: 1 + tp.computeLineMetrics().length,
+    height: firstHeight + tp.height,
+  );
 }
