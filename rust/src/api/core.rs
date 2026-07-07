@@ -246,12 +246,13 @@ pub fn supports_chunked_pagination(book_id: String) -> bool {
 }
 
 /// P4-1：加载整章 ContentBlock IR + plain 投影（scroll 路径；不创建 session）。
+/// M2: `book_id` 替代 `file_path`（ADR-014）。
 #[frb]
 pub async fn get_chapter_content_ir(
-    file_path: String,
+    book_id: String,
     chapter_index: i32,
 ) -> Result<ChapterContentIr, AppError> {
     ReadingOrchestrator::global()
-        .get_chapter_content_ir(file_path, chapter_index)
+        .get_chapter_content_ir(book_id, chapter_index)
         .await
 }

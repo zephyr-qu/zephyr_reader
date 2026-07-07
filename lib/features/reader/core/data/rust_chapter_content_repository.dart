@@ -113,19 +113,22 @@ class RustChapterContentRepository implements ChapterContentRepository {
   }
 
   /// scroll 模式优先走 IR（EPUB/TXT）；双语仍走 rich 路径。
+  /// M2: book_id 替代 file_path（ADR-014）。
   Future<ScrollChapterPayload?> _tryLoadScrollIr({
-    required String filePath,
+    required String bookId,
     required int chapterId,
     required ReadingMode? readingMode,
   }) async {
     if (readingMode != ReadingMode.scroll) return null;
-    final lower = filePath.toLowerCase();
-    if (!lower.endsWith('.epub') && !lower.endsWith('.txt')) return null;
+    final book = await _getBook(bookId);
+    // Rust 侧 resolve_book_path 负责 bookId → filePath 解析；
+    // filePath 在此仅用于本地 scrollIrPayload 构造，不传给 FFI
+    final filePath = book.filePath;
 
     final sw = Stopwatch()..start();
     try {
       final ir = await core_api.getChapterContentIr(
-        filePath: filePath,
+        bookId: bookId,
         chapterIndex: chapterId,
       );
       if (ir.blocks.isEmpty || ir.plainText.isEmpty) return null;
@@ -274,7 +277,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
 
       if (readingMode == ReadingMode.scroll) {
         return _loadScrollModePayload(
-          filePath: filePath,
+          bookId: bookId,
           chapterId: chapterId,
           sw: sw,
         );
@@ -294,12 +297,16 @@ class RustChapterContentRepository implements ChapterContentRepository {
 
   /// Scroll 主路径：IR → plain 回退；不走 rich / epubRichSkipped（ADR-009 Phase D）。
   Future<ScrollChapterPayload> _loadScrollModePayload({
-    required String filePath,
+    required String bookId,
     required int chapterId,
     required Stopwatch sw,
   }) async {
+    // M2: 从 bookId 统一解析 filePath，供 Rust IR / plain 回退路径共用
+    final book = await _getBook(bookId);
+    final filePath = book.filePath;
+
     final irPayload = await _tryLoadScrollIr(
-      filePath: filePath,
+      bookId: bookId,
       chapterId: chapterId,
       readingMode: ReadingMode.scroll,
     );
@@ -359,9 +366,11 @@ class RustChapterContentRepository implements ChapterContentRepository {
             config: config,
           )
           .catchError((Object e) {
-        Logging.warning('getEpubChapterRichContent failed, falling back to plain text: $e');
-        return <RichParagraph>[];
-      });
+            Logging.warning(
+              'getEpubChapterRichContent failed, falling back to plain text: $e',
+            );
+            return <RichParagraph>[];
+          });
     }
 
     final results = await Future.wait([

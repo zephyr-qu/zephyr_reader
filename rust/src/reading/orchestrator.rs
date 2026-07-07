@@ -18,7 +18,6 @@ use crate::api::core::{ChapterContent, FirstSpineResult};
 use crate::storage::repos::BookRepository;
 use crate::storage::storage_pool;
 
-use crate::utils::security::validate_file_path;
 
 use super::chapter_access;
 
@@ -213,13 +212,14 @@ impl ReadingOrchestrator {
     }
 
     /// P4-1：加载整章 IR（scroll / 块渲染；不创建 pagination session）。
+    /// M2: book_id 替代 file_path（ADR-014）。
     pub async fn get_chapter_content_ir(
         &self,
-        file_path: String,
+        book_id: String,
         chapter_index: i32,
     ) -> Result<ChapterContentIr, AppError> {
-        let validated_path = validate_file_path(&file_path)?;
-        super::chapter_ir::load_chapter_content_ir(&validated_path, chapter_index).await
+        let file_path = Self::resolve_book_path(&book_id).await?;
+        super::chapter_ir::load_chapter_content_ir(&file_path, chapter_index).await
     }
 
     /// Phase 2: 存储 Flutter 预计算的行断点。
