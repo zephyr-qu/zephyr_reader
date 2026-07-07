@@ -26,7 +26,6 @@ pub(crate) enum PaginationEngine {
     Block(BlockPaginationState),
 }
 
-
 const PAGINATION_ENGINE_CACHE_CAPACITY: NonZeroUsize = match NonZeroUsize::new(16) {
     Some(v) => v,
     None => unreachable!(),
@@ -91,17 +90,18 @@ impl PaginationStore {
         PAGINATION_ENGINE_CACHE.lock().pop(key);
     }
 
-/// 清空内存 LRU（集成测试用：验证 sled 跨 session 命中，无 cfg(test) 防护）。
-pub fn clear_lru_for_test(&self) {
+    /// 清空内存 LRU（集成测试用：验证 sled 跨 session 命中，无 cfg(test) 防护）。
+    pub fn clear_lru_for_test(&self) {
         PAGINATION_ENGINE_CACHE.lock().clear();
     }
 
     /// config 变更时驱逐旧 key（repaginate）。
     pub(crate) fn evict_if_replaced(&self, prior: Option<&PaginationKey>, new_key: &PaginationKey) {
         if let Some(old) = prior
-            && old != new_key {
-                self.evict(old);
-            }
+            && old != new_key
+        {
+            self.evict(old);
+        }
     }
 
     /// Pop → 只读借用 → put back（path API 单页读取用）。
@@ -151,15 +151,15 @@ pub fn clear_lru_for_test(&self) {
         self.evict_if_replaced(prior_key, key);
 
         let engine = self.pop(key).ok_or_else(|| AppError::NotFound {
-            entity: format!(
-                "pagination engine (config_hash={:016x})",
-                key.config_hash
-            ),
+            entity: format!("pagination engine (config_hash={:016x})", key.config_hash),
         })?;
 
         let mode_ok = matches!(
             (&engine, expected_mode),
-            (PaginationEngine::Block(_), ChapterPaginationMode::ContentBlocks)
+            (
+                PaginationEngine::Block(_),
+                ChapterPaginationMode::ContentBlocks
+            )
         );
         if !mode_ok {
             self.put(key.clone(), engine);
@@ -178,9 +178,9 @@ pub fn clear_lru_for_test(&self) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::reading::block_state::BlockPaginationState;
     use crate::domain::TextBlockStyle;
     use crate::domain::{BlockJoinedPlainBuilder, TypesetConfig};
+    use crate::reading::block_state::BlockPaginationState;
     use crate::text::paginate_chapter_ir;
 
     fn make_key(book_id: &str, chapter_index: i32, config_hash: u64) -> PaginationKey {
@@ -192,8 +192,8 @@ mod tests {
         b.push_text("Hello World".into(), TextBlockStyle::default());
         let ir = b.finish();
         let config = TypesetConfig::default();
-        let result = paginate_chapter_ir(&ir, config);
-        let state = BlockPaginationState::new(ir, result, false);
+        let result = paginate_chapter_ir(&ir, config.clone());
+        let state = BlockPaginationState::new(ir, result, false, config);
         PaginationEngine::Block(state)
     }
 
@@ -202,8 +202,8 @@ mod tests {
         b.push_text("Partial".into(), TextBlockStyle::default());
         let ir = b.finish();
         let config = TypesetConfig::default();
-        let result = paginate_chapter_ir(&ir, config);
-        let state = BlockPaginationState::new(ir, result, true);
+        let result = paginate_chapter_ir(&ir, config.clone());
+        let state = BlockPaginationState::new(ir, result, true, config);
         PaginationEngine::Block(state)
     }
 

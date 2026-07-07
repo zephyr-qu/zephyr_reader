@@ -27,10 +27,8 @@ pub fn format_from_file_path(file_path: &str) -> Result<BookFormat, AppError> {
     let ext = std::path::Path::new(file_path)
         .extension()
         .and_then(|e| e.to_str())
-        .ok_or_else(|| {
-            AppError::UnsupportedFormat {
-                format: "file has no extension".into(),
-            }
+        .ok_or_else(|| AppError::UnsupportedFormat {
+            format: "file has no extension".into(),
         })?;
     registry::format_from_extension(ext)
 }
@@ -79,7 +77,9 @@ pub async fn get_chapter_bounds(
     // Resolve via DB and populate the cache for next time.
     let book = BookRepository::find_by_file_path(&pool, validated_path)
         .await?
-        .ok_or_else(|| AppError::FileNotFound { path: validated_path.into() })?;
+        .ok_or_else(|| AppError::FileNotFound {
+            path: validated_path.into(),
+        })?;
     let book_id = book.book_id.clone();
     {
         let mut cache = BOOK_ID_CACHE.lock();
@@ -88,11 +88,13 @@ pub async fn get_chapter_bounds(
 
     let chapter = ChapterRepository::find_by_index(&pool, &book_id, chapter_index)
         .await?
-        .ok_or_else(|| AppError::ChapterExtractError { index: chapter_index, reason: "chapter not found in DB".into() })?;
+        .ok_or_else(|| AppError::ChapterExtractError {
+            index: chapter_index,
+            reason: "chapter not found in DB".into(),
+        })?;
 
     Ok((chapter.start_index as i32, chapter.end_index as i32))
 }
-
 
 /// 构造 Pages 变体，当页数 > 100 时记录警告（防止偶发大章节 FFI 序列化瓶颈）
 fn chapter_content_pages(pages: Vec<PageContent>) -> ChapterContent {
@@ -123,9 +125,12 @@ pub(crate) async fn get_chapter_first_spine_only(
         let idx = chapter_index;
         let spine_start = start_idx;
         tokio::task::spawn_blocking(move || -> Result<String, AppError> {
-            let mut epub =
-                crate::parser::epub::unzip::EpubFile::open(&path)
-                    .map_err(|e| AppError::ChapterExtractError { index: idx, reason: e.to_string() })?;
+            let mut epub = crate::parser::epub::unzip::EpubFile::open(&path).map_err(|e| {
+                AppError::ChapterExtractError {
+                    index: idx,
+                    reason: e.to_string(),
+                }
+            })?;
             let spine = epub.spine();
             let start = spine_start.max(0) as usize;
             if start >= spine.len() {
@@ -135,22 +140,30 @@ pub(crate) async fn get_chapter_first_spine_only(
             let href = &spine[start];
             let html = epub
                 .read_resource(href)
-                .map_err(|e| AppError::ChapterExtractError { index: idx, reason: e.to_string() })?;
+                .map_err(|e| AppError::ChapterExtractError {
+                    index: idx,
+                    reason: e.to_string(),
+                })?;
 
             // 截断 HTML 到 8KB 避免 html_to_plain_text 处理大文件
             let truncated: String = html.chars().take(8 * 1024).collect();
-            let plain =
-                crate::parser::epub::provider::html_to_plain_text(&truncated);
+            let plain = crate::parser::epub::provider::html_to_plain_text(&truncated);
             // 只取前 2000 字符用作首屏
             Ok(plain.chars().take(2000).collect())
         })
         .await
-        .map_err(|e| AppError::TaskPanic { task_name: "first_spine".into(), details: e.to_string() })??
+        .map_err(|e| AppError::TaskPanic {
+            task_name: "first_spine".into(),
+            details: e.to_string(),
+        })??
     } else {
         // TXT/MD: 读前 2000 字符
         let content = tokio::fs::read_to_string(&validated_path)
             .await
-            .map_err(|e| AppError::FileReadError { path: validated_path, details: e.to_string() })?;
+            .map_err(|e| AppError::FileReadError {
+                path: validated_path,
+                details: e.to_string(),
+            })?;
         content.chars().take(2000).collect()
     };
 
@@ -235,15 +248,18 @@ pub(crate) async fn get_chapter(
                 if let Some((ir, block_result)) =
                     try_get_block_cached(&validated_path, chapter_index, None, config_hash).await
                 {
-                    let state = BlockPaginationState::new(ir, block_result, false);
-                    return Ok(chapter_content_pages(state.to_page_content_list(chapter_index)));
+                    let state = BlockPaginationState::new(ir, block_result, false, cfg.clone());
+                    return Ok(chapter_content_pages(
+                        state.to_page_content_list(chapter_index),
+                    ));
                 }
 
                 // Cache miss: load IR and paginate via BlockPaginator
                 let ir = load_chapter_content_ir(&validated_path, chapter_index).await?;
                 let ir_for_paginate = ir.clone();
+                let cfg_for_paginate = cfg.clone();
                 let block_result = tokio::task::spawn_blocking(move || {
-                    paginate_chapter_ir_chunked(&ir_for_paginate, cfg)
+                    paginate_chapter_ir_chunked(&ir_for_paginate, cfg_for_paginate)
                 })
                 .await
                 .map_err(|e| AppError::TaskPanic {
@@ -251,7 +267,8 @@ pub(crate) async fn get_chapter(
                     details: e.to_string(),
                 })?;
 
-                let state = BlockPaginationState::new(ir.clone(), block_result.clone(), false);
+                let state =
+                    BlockPaginationState::new(ir.clone(), block_result.clone(), false, cfg.clone());
                 let pages = state.to_page_content_list(chapter_index);
 
                 // Save to block sled cache
@@ -262,7 +279,8 @@ pub(crate) async fn get_chapter(
                     config_hash,
                     ir,
                     block_result,
-                ).await;
+                )
+                .await;
 
                 Ok(chapter_content_pages(pages))
             }
