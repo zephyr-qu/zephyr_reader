@@ -150,12 +150,12 @@ fn append_spine_html_to_builder(
 
 /// EPUB CSS → TextBlockStyle 映射。
 ///
-/// 当前为透传：所有 RichParagraph 上的 CSS 属性直接映射。
-///
-/// TODO(ponytail): 增加样式白名单过滤步骤。仅提取渲染/排版层实际使用的属性
-/// （font_size / text_indent / margin / font_family / line_height / text_align / is_heading）。
-/// 显式丢弃不支持的属性（color / background / border / float / position 等），
-/// 减少 IR 体积和 BlockPaginator 的无用分支。
+/// ✅ CSS 属性白名单已实现（ADR-015）：
+///   - 解析层（rich_text.rs::apply_declaration）仅提取 font-size / text-align /
+///     font-weight / font-style / text-indent / margin-top / margin-bottom；
+///   - font-family / line-height / color / text-decoration 在解析时丢弃。
+/// ✅ font_family / line_height 字段已从 TextBlockStyle 和 RichParagraph 移除（Phase 2）。
+/// ℹ️ 本函数现为扁平映射：RichParagraph 上保留的属性直传给 TextBlockStyle。
 fn rich_paragraph_style(p: &RichParagraph) -> TextBlockStyle {
     // text_indent_em：仅 EPUB/CSS 显式值；None → Flutter/Rust 侧用用户首行缩进设置。
     let text_indent_em = if p.is_heading {
@@ -207,8 +207,22 @@ pub fn chapter_ir_from_rich_paragraphs(paragraphs: &[RichParagraph]) -> ChapterC
 
 /// HTML 片段 → 章 IR（单元测试 / 无 EPUB 文件场景）。
 pub fn html_to_chapter_ir(html: &str) -> Result<ChapterContentIr, AppError> {
-    let paragraphs = rich_text::parse_html_to_rich_text(html)?;
-    Ok(chapter_ir_from_rich_paragraphs(&paragraphs))
+    match rich_text::parse_html_to_rich_text(html) {
+        Ok(paragraphs) => Ok(chapter_ir_from_rich_paragraphs(&paragraphs)),
+        Err(e) => {
+            let preview = html
+                .chars()
+                .take(120)
+                .collect::<String>()
+                .replace('\n', " ");
+            tracing::warn!(
+                target: "epub.malformed",
+                "[html_to_chapter_ir] parse failed: {e} (input {} bytes, preview: {preview:?})",
+                html.len(),
+            );
+            Err(e)
+        }
+    }
 }
 
 

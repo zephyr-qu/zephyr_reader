@@ -111,10 +111,6 @@ struct TextLineSegment {
     char_len: u32,
 }
 
-fn char_index_at_byte(text: &str, byte: usize) -> u32 {
-    text.char_indices().take_while(|(b, _)| *b < byte).count() as u32
-}
-
 /// 块级首行缩进（ADR-010）：IR 字段优先，否则 TypesetConfig。
 fn effective_first_line_indent(
     style: &TextBlockStyle,
@@ -249,15 +245,24 @@ fn layout_slice_text_lines(
             metrics.punctuation_squeeze,
         );
 
+        // 增量游标替代 char_index_at_byte O(N) 扫描：
+        // para_indices 本身就是 byte→char 映射表，游标跨 breaks 单调递增
+        let mut pi_cursor = 0usize;
         for (rel_start, rel_end) in line_breaks {
             let abs_start = para_start_byte + rel_start;
             let abs_end = para_start_byte + rel_end;
-            let char_start = char_index_at_byte(text, abs_start);
-            let char_end = char_index_at_byte(text, abs_end);
-            segments.push(TextLineSegment {
-                char_start,
-                char_len: char_end.saturating_sub(char_start),
-            });
+            while pi_cursor < para_indices.len() && para_indices[pi_cursor].0 < abs_start {
+                pi_cursor += 1;
+            }
+            let char_start = para_start_char + pi_cursor as u32;
+            let start_cursor = pi_cursor;
+            while pi_cursor < para_indices.len() && para_indices[pi_cursor].0 < abs_end {
+                pi_cursor += 1;
+            }
+            let char_len = pi_cursor.saturating_sub(start_cursor) as u32;
+            if char_len > 0 {
+                segments.push(TextLineSegment { char_start, char_len });
+            }
         }
 
         let newline_chars = line_char_len.saturating_sub(body_char_len);
@@ -299,6 +304,10 @@ fn layout_text_block_lines(
 /// TODO(ponytail): 贪心断行在极端场景（高标点密度 + 中西混排 + 标点挤压）下仍可能偏宽。
 /// 若 `[LineBreak] overflow_dp` CI 门禁反复触发，评估引入 Knuth-Plass 简化版作为可选后端
 /// （仅对超宽行启用，避免主路径性能退化）。必须以 benchmark 为前提。
+///
+/// NOTE: Phase 2 `line_break_indices` 缓存路径无需此函数。当前仅用于
+/// 无预计算索引的旧数据。计划在 Phase 2 收尾时移除。
+#[deprecated(since = "0.9.0", note = "Replaced by layout_slice_text_lines + line_break_indices mapping; kept temporarily for backward compat")]
 fn greedy_split_text_lines(
     text: &str,
     apply_block_start_indent: bool,
@@ -780,6 +789,8 @@ pub const CHUNK_BLOCK_COUNT: usize = 200;
 
 /// 边界保护窗口：chunk 末尾 N 个块内如果出现 ImageBlock，扩展 chunk 使图片完整留在当前 chunk。
 const CHUNK_BOUNDARY_GUARD: usize = 5;
+/// 硬性上限：任何 chunk 的 block 数绝不超过此值（防极端恶意 EPUB）。
+const MAX_CHUNK_SIZE_HARD: usize = 300;
 
 /// 分 chunk 块分页：将 `ir.blocks` 按 [CHUNK_BLOCK_COUNT] 拆分，
 /// 每 chunk 独立分页后合并 page descriptors。
@@ -797,7 +808,8 @@ pub fn paginate_chapter_ir_chunked(
         return paginate_chapter_ir(ir, config);
     }
 
-    let config_hash = config.config_hash();
+    // 务必先 validate_and_fix，确保 hash 与 paginate_chapter_ir 内部一致
+    let config_hash = config.validate_and_fix().config_hash();
     let mut merged = BlockPaginateResult::new(vec![], config_hash, false);
 
     let mut offset = 0;
@@ -825,6 +837,16 @@ pub fn paginate_chapter_ir_chunked(
                     break; // 只需找到第一个图片即可触发扩展
                 }
             }
+        }
+
+        // 硬性上限：图片连续块扩展后仍不得超过 MAX_CHUNK_SIZE_HARD
+        let chunk_size = end - offset;
+        if chunk_size > MAX_CHUNK_SIZE_HARD {
+            end = offset + MAX_CHUNK_SIZE_HARD;
+            tracing::warn!(
+                "[ChunkGuard] chunk size capped to {} (was {}) due to continuous images near offset {}",
+                MAX_CHUNK_SIZE_HARD, chunk_size, offset,
+            );
         }
 
         let chunk = &ir.blocks[offset..end];
