@@ -76,7 +76,9 @@ class ReaderContentArea extends HookWidget {
       vm.config.paragraphSpacing.signal,
     );
     final double bPagemargin = useSignalValue(vm.config.padding.signal);
-    final CalibrationData? bCalibration = useSignalValue(vm.chapterManager.calibration);
+    final CalibrationData? bCalibration = useSignalValue(
+      vm.chapterManager.calibration,
+    );
     final int? bPendingjumpcharoffset = useSignalValue(
       vm.chapterManager.pendingJumpCharOffset,
     );
