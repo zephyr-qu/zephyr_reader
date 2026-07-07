@@ -562,6 +562,11 @@ fn traverse_dom(
             }
 
             _ => {
+                tracing::trace!(
+                    target: "epub.malformed",
+                    "traverse_dom: unknown block tag <{}> — content traversed as inline",
+                    name.local.as_ref(),
+                );
                 for child in node.children.borrow().iter() {
                     traverse_dom(
                         child,
@@ -678,9 +683,20 @@ fn collect_text_spans(
                 }
             }
 
-            "img" => {}
+            "img" => {
+                tracing::trace!(
+                    target: "epub.malformed",
+                    "collect_text_spans: img discarded in inline context (known <span><img> gap)",
+                );
+            }
 
-            "ul" | "ol" | "blockquote" | "pre" | "table" => {}
+            "ul" | "ol" | "blockquote" | "pre" | "table" => {
+                tracing::trace!(
+                    target: "epub.malformed",
+                    "collect_text_spans: {} silently skipped in inline context",
+                    name.local.as_ref(),
+                );
+            }
             "div" | "section" | "article" | "p" | "li" | "h1" | "h2" | "h3" | "h4" | "h5"
             | "h6" => {
                 for child in node.children.borrow().iter() {
@@ -857,5 +873,27 @@ mod tests {
         let text = result[0].full_text();
         assert!(text.contains("中文"));
         assert!(text.contains("English"));
+    }
+
+    #[test]
+    fn test_malformed_html_unclosed_tag_still_parses() {
+        // 未闭合的 <p> — html5ever 应该容错解析，不返回错误。
+        let html = "<p>unclosed paragraph";
+        let result = parse_html_to_rich_text(html);
+        assert!(
+            result.is_ok(),
+            "html5ever should tolerate unclosed tags: {result:?}"
+        );
+    }
+
+    #[test]
+    fn test_malformed_html_invalid_nesting_still_parses() {
+        // 非法嵌套 — html5ever 自动修复
+        let html = "<p>text <b>bold <i>both</b> only bold</i> end</p>";
+        let result = parse_html_to_rich_text(html);
+        assert!(
+            result.is_ok(),
+            "html5ever should auto-repair invalid nesting: {result:?}"
+        );
     }
 }
