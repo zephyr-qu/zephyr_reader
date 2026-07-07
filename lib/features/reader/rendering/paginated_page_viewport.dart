@@ -23,7 +23,9 @@ class PaginatedPageViewport extends StatelessWidget {
     return SizedBox(
       height: maxHeight,
       width: maxWidth,
-      child: child,
+      child: ClipRect(
+        child: Align(alignment: Alignment.topCenter, child: child),
+      ),
     );
   }
 }

@@ -311,7 +311,7 @@ void main() {
       });
 
       test('measureLayoutFingerprint 产出合理 ratio 与行高', () {
-        final params = TypesetMeasureParams(
+        final params = const TypesetMeasureParams(
           width: 360,
           height: 640,
           pagePadding: 16,
