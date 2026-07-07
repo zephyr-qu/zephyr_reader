@@ -80,6 +80,10 @@ class ChapterLoader {
       final data = await _contentRepo.getChapters(_chapterVM.bookId.value);
       chapters.value = AsyncState.data(data);
     } catch (e) {
+      Logging.error(
+        'Failed to load chapter list (book=${_chapterVM.bookId.value})',
+        exception: e,
+      );
       chapters.value = AsyncState.error(e);
       rethrow;
     }

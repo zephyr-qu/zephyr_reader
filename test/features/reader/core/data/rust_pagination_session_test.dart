@@ -130,4 +130,116 @@ void main() {
       expect(session.sessionFilePath, isNull);
     });
   });
+
+  group('lifecycle (create → partial → expand → dispose)', () {
+    late RustPaginationSession session;
+
+    setUp(() {
+      session = RustPaginationSession();
+    });
+
+    tearDown(() {
+      session.dispose();
+    });
+
+    test('I3: partial→expand maintains descriptors integrity', () {
+      // 1. Simulate partial result (first screen)
+      final partialResult = PaginateResult(
+        descriptors: [
+          const PageDescriptor(
+            pageIndex: 0,
+            startOffset: 0,
+            endOffset: 100,
+            firstParagraphIndex: 0,
+            lastParagraphIndex: 0,
+            isLastPage: false,
+          ),
+        ],
+        configHash: BigInt.from(123),
+        isPartial: true,
+        mode: ChapterPaginationMode.contentBlocks,
+      );
+      session.applyPaginateResult(partialResult);
+
+      expect(session.descriptors?.length, 1);
+      expect(session.sessionIsPartial, isTrue);
+      expect(session.sessionConfigHash, BigInt.from(123));
+
+      // 2. Simulate expand to full chapter
+      final fullResult = PaginateResult(
+        descriptors: [
+          const PageDescriptor(
+            pageIndex: 0,
+            startOffset: 0,
+            endOffset: 100,
+            firstParagraphIndex: 0,
+            lastParagraphIndex: 0,
+            isLastPage: false,
+          ),
+          const PageDescriptor(
+            pageIndex: 1,
+            startOffset: 100,
+            endOffset: 200,
+            firstParagraphIndex: 1,
+            lastParagraphIndex: 1,
+            isLastPage: true,
+          ),
+        ],
+        configHash: BigInt.from(123),
+        isPartial: false,
+        mode: ChapterPaginationMode.contentBlocks,
+      );
+      session.applyPaginateResult(fullResult);
+
+      expect(session.descriptors?.length, 2);
+      expect(session.sessionIsPartial, isFalse);
+
+      // 3. Dispose — all state cleared
+      session.dispose();
+      expect(session.descriptors, isNull);
+      expect(session.sessionConfigHash, isNull);
+    });
+
+    test('I9: configHash change updates internal state', () {
+      final result1 = PaginateResult(
+        descriptors: [
+          const PageDescriptor(
+            pageIndex: 0,
+            startOffset: 0,
+            endOffset: 50,
+            firstParagraphIndex: 0,
+            lastParagraphIndex: 0,
+            isLastPage: true,
+          ),
+        ],
+        configHash: BigInt.from(100),
+        isPartial: false,
+        mode: ChapterPaginationMode.contentBlocks,
+      );
+      session.applyPaginateResult(result1);
+      expect(session.sessionConfigHash, BigInt.from(100));
+      expect(session.descriptors?[0].endOffset, 50);
+
+      // Config change → new hash, new page mapping
+      final result2 = PaginateResult(
+        descriptors: [
+          const PageDescriptor(
+            pageIndex: 0,
+            startOffset: 0,
+            endOffset: 45,
+            firstParagraphIndex: 0,
+            lastParagraphIndex: 0,
+            isLastPage: true,
+          ),
+        ],
+        configHash: BigInt.from(200),
+        isPartial: false,
+        mode: ChapterPaginationMode.contentBlocks,
+      );
+      session.applyPaginateResult(result2);
+
+      expect(session.sessionConfigHash, BigInt.from(200));
+      expect(session.descriptors?[0].endOffset, 45);
+    });
+  });
 }

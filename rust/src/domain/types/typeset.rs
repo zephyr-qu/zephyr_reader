@@ -118,7 +118,11 @@ pub struct TypesetConfig {
     pub line_spacing: f32,
     /// 字间距（像素）
     pub letter_spacing: f32,
-    /// 段落间距（倍数）
+    /// 段落间距（相对于 font_size 的倍数）。
+    /// Dart 侧 `ReaderConfig.paragraphSpacing` 为 dp，
+    /// 由 `typeset_calibrator` 除以 fontSize 后传入 Rust。
+    /// Rust 侧 `block_paginator` 再乘以 fontSize 得到 px：
+    /// `paragraph_spacing_extra_px = config.paragraph_spacing * font_size`
     pub paragraph_spacing: f32,
     /// 首行缩进（字符数）
     pub first_line_indent: u8,
@@ -196,10 +200,13 @@ const LAYOUT_ALGORITHM_VERSION: u32 = 7;
 macro_rules! check_range {
     ($self:ident, $field:ident, $min:ident, $max:ident, $desc:expr, $unit:expr) => {
         if $self.$field < $min || $self.$field > $max {
-            return Err(AppError::TypesetConfigError { reason: format!(
-                concat!($desc, " must be between {} and {} ", $unit, ", got: {}"),
-                $min, $max, $self.$field
-            ).into() });
+            return Err(AppError::TypesetConfigError {
+                reason: format!(
+                    concat!($desc, " must be between {} and {} ", $unit, ", got: {}"),
+                    $min, $max, $self.$field
+                )
+                .into(),
+            });
         }
     };
 }
@@ -211,18 +218,70 @@ impl TypesetConfig {
     /// 如果任何参数超出允许范围，返回配置错误
     #[frb(sync)]
     pub fn validate(&self) -> Result<(), AppError> {
-        check_range!(self, page_width, MIN_PAGE_WIDTH, MAX_PAGE_WIDTH, "page width", "px");
-        check_range!(self, page_height, MIN_PAGE_HEIGHT, MAX_PAGE_HEIGHT, "page height", "px");
-        check_range!(self, font_size, MIN_FONT_SIZE, MAX_FONT_SIZE, "font size", "px");
-        check_range!(self, auto_space_ratio, MIN_AUTO_SPACE_RATIO, MAX_AUTO_SPACE_RATIO, "auto space ratio", "");
-        check_range!(self, line_spacing, MIN_LINE_SPACING, MAX_LINE_SPACING, "line spacing", "");
-        check_range!(self, letter_spacing, MIN_LETTER_SPACING, MAX_LETTER_SPACING, "letter spacing", "");
-        check_range!(self, paragraph_spacing, MIN_PARAGRAPH_SPACING, MAX_PARAGRAPH_SPACING, "paragraph spacing", "");
+        check_range!(
+            self,
+            page_width,
+            MIN_PAGE_WIDTH,
+            MAX_PAGE_WIDTH,
+            "page width",
+            "px"
+        );
+        check_range!(
+            self,
+            page_height,
+            MIN_PAGE_HEIGHT,
+            MAX_PAGE_HEIGHT,
+            "page height",
+            "px"
+        );
+        check_range!(
+            self,
+            font_size,
+            MIN_FONT_SIZE,
+            MAX_FONT_SIZE,
+            "font size",
+            "px"
+        );
+        check_range!(
+            self,
+            auto_space_ratio,
+            MIN_AUTO_SPACE_RATIO,
+            MAX_AUTO_SPACE_RATIO,
+            "auto space ratio",
+            ""
+        );
+        check_range!(
+            self,
+            line_spacing,
+            MIN_LINE_SPACING,
+            MAX_LINE_SPACING,
+            "line spacing",
+            ""
+        );
+        check_range!(
+            self,
+            letter_spacing,
+            MIN_LETTER_SPACING,
+            MAX_LETTER_SPACING,
+            "letter spacing",
+            ""
+        );
+        check_range!(
+            self,
+            paragraph_spacing,
+            MIN_PARAGRAPH_SPACING,
+            MAX_PARAGRAPH_SPACING,
+            "paragraph spacing",
+            ""
+        );
         if self.first_line_indent > MAX_FIRST_LINE_INDENT {
-            return Err(AppError::TypesetConfigError { reason: format!(
-                "first line indent must be between 0 and {} chars, got: {}",
-                MAX_FIRST_LINE_INDENT, self.first_line_indent
-            ).into() });
+            return Err(AppError::TypesetConfigError {
+                reason: format!(
+                    "first line indent must be between 0 and {} chars, got: {}",
+                    MAX_FIRST_LINE_INDENT, self.first_line_indent
+                )
+                .into(),
+            });
         }
         Ok(())
     }
@@ -238,9 +297,15 @@ impl TypesetConfig {
             page_height: self.page_height.clamp(MIN_PAGE_HEIGHT, MAX_PAGE_HEIGHT),
             font_size: self.font_size.clamp(MIN_FONT_SIZE, MAX_FONT_SIZE),
             line_spacing: self.line_spacing.clamp(MIN_LINE_SPACING, MAX_LINE_SPACING),
-            letter_spacing: self.letter_spacing.clamp(MIN_LETTER_SPACING, MAX_LETTER_SPACING),
-            paragraph_spacing: self.paragraph_spacing.clamp(MIN_PARAGRAPH_SPACING, MAX_PARAGRAPH_SPACING),
-            auto_space_ratio: self.auto_space_ratio.clamp(MIN_AUTO_SPACE_RATIO, MAX_AUTO_SPACE_RATIO),
+            letter_spacing: self
+                .letter_spacing
+                .clamp(MIN_LETTER_SPACING, MAX_LETTER_SPACING),
+            paragraph_spacing: self
+                .paragraph_spacing
+                .clamp(MIN_PARAGRAPH_SPACING, MAX_PARAGRAPH_SPACING),
+            auto_space_ratio: self
+                .auto_space_ratio
+                .clamp(MIN_AUTO_SPACE_RATIO, MAX_AUTO_SPACE_RATIO),
             first_line_indent: self.first_line_indent.clamp(0_u8, MAX_FIRST_LINE_INDENT),
             ..self.clone()
         }
@@ -368,7 +433,9 @@ impl TypesetConfig {
             },
             auto_space_ratio: {
                 let original = self.auto_space_ratio;
-                let fixed = self.auto_space_ratio.clamp(MIN_AUTO_SPACE_RATIO, MAX_AUTO_SPACE_RATIO);
+                let fixed = self
+                    .auto_space_ratio
+                    .clamp(MIN_AUTO_SPACE_RATIO, MAX_AUTO_SPACE_RATIO);
                 if (original - fixed).abs() > f32::EPSILON {
                     fixes.push(format!(
                         "auto space ratio: {} -> {} (clamped to {}-{})",
@@ -505,7 +572,6 @@ mod tests {
             "auto_space_ratio change must affect hash"
         );
     }
-
 
     /// 已知确定性值：确保 xxh3 在不同平台给出相同结果
     #[test]
