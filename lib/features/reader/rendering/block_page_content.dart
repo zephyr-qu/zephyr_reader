@@ -66,7 +66,7 @@ Widget buildBlockPageContent({
               kDefaultEffectiveLineWidthRatio;
           final cjkWidthPx = layoutCalibration != null
               ? layoutCalibration.cjkWidth * dpr
-              : flutCjkPx * kRustCharWidthScale;
+              : flutCjkPx * 1.0;
           final rustEstCharsPerLine = estimateRustCharsPerLine(
             cjkWidthPx: cjkWidthPx,
             pageWidthPx: pageWidthPx,
