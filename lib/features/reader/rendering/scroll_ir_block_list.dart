@@ -128,7 +128,6 @@ Widget buildScrollIrBlockItem({
         config,
       );
       final blockStrutStyle = config.buildStrutStyle(
-        fontFamily: tb.style.fontFamily,
         fontSizeMultiplier: blockFontSize / config.fontSize,
         lineHeight: IrTextBlockStyle.effectiveLineHeight(tb.style, config),
       );

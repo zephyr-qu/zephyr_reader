@@ -169,8 +169,6 @@ fn rich_paragraph_style(p: &RichParagraph) -> TextBlockStyle {
         text_indent_em,
         margin_top_em: p.margin_top_em,
         margin_bottom_em: p.margin_bottom_em,
-        font_family: p.font_family.clone(),
-        line_height: p.line_height,
         text_align: p.text_align.clone(),
         font_size: p.font_size,
     }

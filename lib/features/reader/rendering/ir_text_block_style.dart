@@ -35,8 +35,7 @@ abstract final class IrTextBlockStyle {
     TextBlockStyle style,
     ReaderRenderConfig config,
   ) {
-    final explicit = style.lineHeight;
-    if (explicit != null && explicit > 0) return explicit;
+    // ADR-015: EPUB line-height 已丢弃，统一使用用户设置
     return config.lineHeight;
   }
 
@@ -96,11 +95,7 @@ abstract final class IrTextBlockStyle {
     TextBlockStyle style,
     ReaderRenderConfig config,
   ) {
-    var textStyle = config.buildTextStyle(
-      fontFamily: style.fontFamily != null && style.fontFamily!.isNotEmpty
-          ? style.fontFamily
-          : null,
-    );
+    var textStyle = config.buildTextStyle();
     textStyle = textStyle.copyWith(height: effectiveLineHeight(style, config));
     if (style.isHeading && style.headingLevel > 0) {
       textStyle = textStyle.copyWith(fontWeight: FontWeight.bold);

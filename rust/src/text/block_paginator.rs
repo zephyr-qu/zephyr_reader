@@ -541,17 +541,10 @@ impl BlockPaginator {
     }
 
     fn paginate_text_block(&mut self, block_index: u32, block: &TextBlock) {
-        // 块级 font_size / line_height 覆盖（G1+G2）；None 时回退到全局 config
+        // 行高由全局 calibration line_height 按字号比例缩放（ADR-015)
         let effective_font_size = effective_font_size_px(&block.style, &self.metrics);
-        let effective_line_height = block
-            .style
-            .line_height
-            .map(|lh| lh * effective_font_size)
-            .unwrap_or_else(|| {
-                // 实测行高是基准字号的绝对值；非默认字号块按比例缩放
-                let height_ratio = effective_font_size / self.metrics.font_size_px.max(1.0);
-                (self.metrics.line_height_px * height_ratio).max(1.0)
-            });
+        let height_ratio = effective_font_size / self.metrics.font_size_px.max(1.0);
+        let effective_line_height = (self.metrics.line_height_px * height_ratio).max(1.0);
         let font_scale = if self.metrics.font_size_px > 0.0 {
             effective_font_size / self.metrics.font_size_px
         } else {
@@ -691,12 +684,11 @@ pub fn paginate_chapter_ir(ir: &ChapterContentIr, config: TypesetConfig) -> Bloc
     let config_hash = config.config_hash();
 
     // ── 缓存路径：有预计算行断点时，不跑贪心断行 ──
-    if let Some(ref indices) = ir.line_break_indices {
-        if !indices.is_empty() {
+    if let Some(ref indices) = ir.line_break_indices
+        && !indices.is_empty() {
             let metrics = BlockLayoutMetrics::from_config(&config);
             return paginate_from_line_breaks(indices, &ir.plain_text, &metrics, config_hash);
         }
-    }
 
     // ── 原始路径：块级贪心分页 ──
     tracing::info!(
@@ -965,7 +957,6 @@ mod tests {
 
         let style = TextBlockStyle {
             font_size: Some(20.0),
-            line_height: Some(2.0),
             margin_bottom_em: Some(0.0),
             ..TextBlockStyle::default()
         };
@@ -976,6 +967,7 @@ mod tests {
         let config = TypesetConfig {
             page_width: 1000,
             page_height: 150,
+            // 全局基准字号 45，calibration line_height=225px → 字号 20 时行高 100px
             font_size: 45,
             line_spacing: 1.5,
             first_line_indent: 0,
@@ -989,7 +981,8 @@ mod tests {
                 latin_ext_width: 35.0,
                 other_width: 40.0,
                 effective_line_width_ratio: DEFAULT_EFFECTIVE_LINE_WIDTH_RATIO,
-                measured_line_height_px: 0.0,
+                // 225px * (20/45) = 100px 行高 → 两段各 1 行 → 2 页
+                measured_line_height_px: 225.0,
             }),
             ..TypesetConfig::default()
         };
@@ -999,7 +992,7 @@ mod tests {
         assert_eq!(
             result.page_count(),
             2,
-            "each 20dp*2.5 DPR*2.0 line consumes 100px, so two blocks must not fit in 150px"
+            "20px font * 225/45 calib ratio = 100px/line, 2 blocks 2 lines won't fit 150px"
         );
     }
 

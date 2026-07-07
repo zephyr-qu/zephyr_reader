@@ -7,7 +7,10 @@
 //! 各子模块（session/pagination/chapter_access/*_cache）独立持有自己的全局状态；orchestrator 仅
 //! 提供"业务方法名 + 测试清理入口"，不引入额外适配层抽象。
 
+use std::collections::HashMap;
 use std::sync::LazyLock;
+
+use parking_lot::Mutex;
 
 use crate::domain::{AppError, ChapterContentIr, PageBlockSlice, PaginateResult, TypesetConfig};
 use crate::reading::types::PaginationSessionHandle;
@@ -219,11 +222,40 @@ impl ReadingOrchestrator {
         super::chapter_ir::load_chapter_content_ir(&validated_path, chapter_index).await
     }
 
-    /// 清理 PROVIDER_CACHE + BOOK_ID_CACHE + 分页内存 LRU（集成测试用，无 cfg(test) 防护）。
+    /// Phase 2: 存储 Flutter 预计算的行断点。
+    pub fn store_line_breaks(
+        &self,
+        book_id: String,
+        chapter_index: i32,
+        config_hash: u64,
+        line_breaks: Vec<u32>,
+    ) -> Result<(), AppError> {
+        let mut store = LINE_BREAKS_STORE.lock();
+        store.insert((book_id, chapter_index, config_hash), line_breaks);
+        Ok(())
+    }
+
+    /// Phase 2: 获取预存储的行断点（供 paginate_chapter 使用）。
+    pub fn take_line_breaks(
+        &self,
+        book_id: &str,
+        chapter_index: i32,
+        config_hash: u64,
+    ) -> Option<Vec<u32>> {
+        let mut store = LINE_BREAKS_STORE.lock();
+        store.remove(&(book_id.to_string(), chapter_index, config_hash))
+    }
+
+    /// 清理 PROVIDER_CACHE + BOOK_ID_CACHE + 分页内存 LRU + line_breaks（集成测试用）。
     pub fn clear_caches_for_test(&self) {
         super::provider_cache::clear_for_test();
         super::clear_for_test();
         super::pagination_store::PaginationStore::global().clear_lru_for_test();
+        LINE_BREAKS_STORE.lock().clear();
     }
 }
+
+/// Phase 2: 全局行断点缓存 (book_id, chapter_index, config_hash) → Vec<u32>。
+static LINE_BREAKS_STORE: LazyLock<Mutex<HashMap<(String, i32, u64), Vec<u32>>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 

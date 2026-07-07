@@ -104,7 +104,6 @@ Widget buildBlockPageContent({
               );
               final textStyle = config
                   .buildTextStyle(
-                    fontFamily: irStyle.fontFamily,
                     fontSizeMultiplier: blockFontSize / config.fontSize,
                   )
                   .copyWith(height: blockLineHeight);
@@ -120,7 +119,6 @@ Widget buildBlockPageContent({
                     constraints.maxWidth,
                   );
               final strutStyle = config.buildStrutStyle(
-                fontFamily: irStyle.fontFamily,
                 fontSizeMultiplier: blockFontSize / config.fontSize,
                 lineHeight: blockLineHeight,
               );
@@ -179,7 +177,6 @@ Widget buildBlockPageContent({
                   config,
                 );
                 final blockStrutStyle = config.buildStrutStyle(
-                  fontFamily: irStyle.fontFamily,
                   fontSizeMultiplier: blockFontSize / config.fontSize,
                   lineHeight: IrTextBlockStyle.effectiveLineHeight(
                     irStyle,
