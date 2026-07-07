@@ -6,7 +6,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 
 /// 富文本转换器
@@ -99,28 +98,10 @@ class RichTextConverter {
   /// 将单个 [RichTextSpan] 映射为 [TextStyle]。
   TextStyle spanToStyle(RichTextSpan span) {
     return span.when(
-      styled: (style, data) {
-        final base = switch (style) {
-          SpanStyle.plain => const TextStyle(),
-          SpanStyle.bold => const TextStyle(fontWeight: FontWeight.bold),
-          SpanStyle.italic => const TextStyle(fontStyle: FontStyle.italic),
-          SpanStyle.boldItalic => const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontStyle: FontStyle.italic,
-          ),
-          SpanStyle.underline => const TextStyle(
-            decoration: TextDecoration.underline,
-          ),
-          SpanStyle.strikethrough => const TextStyle(
-            decoration: TextDecoration.lineThrough,
-          ),
-          SpanStyle.code => const TextStyle(fontFamily: 'monospace'),
-        };
-        if (data.fontSize == null && data.color == null) return base;
-        return base.copyWith(
-          fontSize: data.fontSize,
-          color: data.color != null ? parseCssColor(data.color!) : null,
-        );
+      styled: (style, data) => switch (style) {
+        SpanStyle.plain => const TextStyle(),
+        SpanStyle.bold => const TextStyle(fontWeight: FontWeight.bold),
+        SpanStyle.italic => const TextStyle(fontStyle: FontStyle.italic),
       },
       link: (data, url) => const TextStyle(
         decoration: TextDecoration.underline,
@@ -157,9 +138,6 @@ class RichTextConverter {
     required double baseLineHeight,
   }) {
     TextStyle style = TextStyle(fontSize: baseFontSize, height: baseLineHeight);
-    if (p.lineHeight != null) {
-      style = style.copyWith(height: p.lineHeight);
-    }
     if (p.isHeading && p.headingLevel > 0) {
       final headingFs = switch (p.headingLevel) {
         1 => 24.0,
@@ -174,33 +152,5 @@ class RichTextConverter {
       style = style.copyWith(fontWeight: FontWeight.bold);
     }
     return style;
-  }
-
-  /// 解析 CSS 十六进制颜色字符串。
-  ///
-  /// 支持格式：
-  /// - `#RRGGBB`（6 位）
-  /// - `#RGB`（3 位，每位重复）
-  ///
-  /// 解析失败返回 `null`（不抛出异常）。
-  Color? parseCssColor(String hex) {
-    try {
-      final h = hex.replaceFirst('#', '');
-      if (h.length == 6) {
-        final r = int.parse(h.substring(0, 2), radix: 16);
-        final g = int.parse(h.substring(2, 4), radix: 16);
-        final b = int.parse(h.substring(4, 6), radix: 16);
-        return Color.fromARGB(255, r, g, b);
-      }
-      if (h.length == 3) {
-        final r = int.parse(h[0] * 2, radix: 16);
-        final g = int.parse(h[1] * 2, radix: 16);
-        final b = int.parse(h[2] * 2, radix: 16);
-        return Color.fromARGB(255, r, g, b);
-      }
-    } catch (e) {
-      Logging.debug('CSS 颜色解析失败(hex=$hex): $e');
-    }
-    return null;
   }
 }

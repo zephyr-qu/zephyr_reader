@@ -10,8 +10,8 @@
 use std::fmt;
 
 use super::content_ir::{
-    ChapterContentIr, ContentBlock, ImageBlock, TextBlock, TextBlockStyle,
-    IMAGE_PLAIN_CHAR_LEN, IMAGE_PLAIN_PLACEHOLDER,
+    ChapterContentIr, ContentBlock, ImageBlock, TextBlock, TextBlockStyle, IMAGE_PLAIN_CHAR_LEN,
+    IMAGE_PLAIN_PLACEHOLDER,
 };
 use super::rich_text::{RichTextSpan, RichTextSpanData};
 
@@ -27,27 +27,62 @@ pub enum PlainProjectionStyle {
 /// plain 投影校验失败原因。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PlainProjectionError {
-    ImagePlaceholderCountMismatch { blocks: usize, placeholders: usize },
-    PlainLengthMismatch { expected_len: u32, actual_len: u32 },
-    BlockPlainOutOfRange { block_index: usize, plain_start: u32, plain_len: u32, plain_len_total: u32 },
-    TextBlockContentMismatch { block_index: usize },
-    TextBlockPlainLenMismatch { block_index: usize, expected: u32, actual: u32 },
-    ImageBlockPlainLenInvalid { block_index: usize },
-    ImageBlockPlaceholderMismatch { block_index: usize, plain_start: u32 },
+    ImagePlaceholderCountMismatch {
+        blocks: usize,
+        placeholders: usize,
+    },
+    PlainLengthMismatch {
+        expected_len: u32,
+        actual_len: u32,
+    },
+    BlockPlainOutOfRange {
+        block_index: usize,
+        plain_start: u32,
+        plain_len: u32,
+        plain_len_total: u32,
+    },
+    TextBlockContentMismatch {
+        block_index: usize,
+    },
+    TextBlockPlainLenMismatch {
+        block_index: usize,
+        expected: u32,
+        actual: u32,
+    },
+    ImageBlockPlainLenInvalid {
+        block_index: usize,
+    },
+    ImageBlockPlaceholderMismatch {
+        block_index: usize,
+        plain_start: u32,
+    },
     RebuiltPlainMismatch,
-    SourcePreservedHasImageBlocks { count: usize },
+    SourcePreservedHasImageBlocks {
+        count: usize,
+    },
 }
 
 impl fmt::Display for PlainProjectionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::ImagePlaceholderCountMismatch { blocks, placeholders } => {
+            Self::ImagePlaceholderCountMismatch {
+                blocks,
+                placeholders,
+            } => {
                 write!(f, "image blocks ({blocks}) != FFFC count ({placeholders})")
             }
-            Self::PlainLengthMismatch { expected_len, actual_len } => {
+            Self::PlainLengthMismatch {
+                expected_len,
+                actual_len,
+            } => {
                 write!(f, "plain char len {actual_len} != expected {expected_len}")
             }
-            Self::BlockPlainOutOfRange { block_index, plain_start, plain_len, plain_len_total } => {
+            Self::BlockPlainOutOfRange {
+                block_index,
+                plain_start,
+                plain_len,
+                plain_len_total,
+            } => {
                 write!(
                     f,
                     "block {block_index} plain [{plain_start}, {}) exceeds plain len {plain_len_total}",
@@ -57,7 +92,11 @@ impl fmt::Display for PlainProjectionError {
             Self::TextBlockContentMismatch { block_index } => {
                 write!(f, "text block {block_index} text != plain slice")
             }
-            Self::TextBlockPlainLenMismatch { block_index, expected, actual } => {
+            Self::TextBlockPlainLenMismatch {
+                block_index,
+                expected,
+                actual,
+            } => {
                 write!(
                     f,
                     "text block {block_index} plain_len {actual} != text chars {expected}"
@@ -66,7 +105,10 @@ impl fmt::Display for PlainProjectionError {
             Self::ImageBlockPlainLenInvalid { block_index } => {
                 write!(f, "image block {block_index} plain_len != 1")
             }
-            Self::ImageBlockPlaceholderMismatch { block_index, plain_start } => {
+            Self::ImageBlockPlaceholderMismatch {
+                block_index,
+                plain_start,
+            } => {
                 write!(
                     f,
                     "image block {block_index} plain[{plain_start}] != U+FFFC"
@@ -74,7 +116,10 @@ impl fmt::Display for PlainProjectionError {
             }
             Self::RebuiltPlainMismatch => write!(f, "block-joined rebuild != plain_text"),
             Self::SourcePreservedHasImageBlocks { count } => {
-                write!(f, "source-preserved IR must not contain {count} image block(s)")
+                write!(
+                    f,
+                    "source-preserved IR must not contain {count} image block(s)"
+                )
             }
         }
     }
@@ -124,17 +169,9 @@ pub fn slice_rich_spans(spans: &[RichTextSpan], start: u32, len: u32) -> Vec<Ric
 
 fn clone_span_with_text(span: &RichTextSpan, text: String) -> RichTextSpan {
     match span {
-        RichTextSpan::Styled(style, data) => RichTextSpan::Styled(*style, RichTextSpanData {
-            text,
-            font_size: data.font_size,
-            color: data.color.clone(),
-        }),
-        RichTextSpan::Link { data, url } => RichTextSpan::Link {
-            data: RichTextSpanData {
-                text,
-                font_size: data.font_size,
-                color: data.color.clone(),
-            },
+        RichTextSpan::Styled(style, _) => RichTextSpan::Styled(*style, RichTextSpanData { text }),
+        RichTextSpan::Link { data: _, url } => RichTextSpan::Link {
+            data: RichTextSpanData { text },
             url: url.clone(),
         },
     }
@@ -296,7 +333,9 @@ pub fn validate_chapter_plain(
                 if !t.spans.is_empty() {
                     let joined: String = t.spans.iter().map(|s| s.text()).collect();
                     if joined != t.text {
-                        return Err(PlainProjectionError::TextBlockContentMismatch { block_index: i });
+                        return Err(PlainProjectionError::TextBlockContentMismatch {
+                            block_index: i,
+                        });
                     }
                 }
             }
@@ -394,7 +433,8 @@ mod tests {
         b.push_text("World".into(), TextBlockStyle::default());
         let ir = b.finish();
         assert_eq!(ir.plain_text, "Hello\nWorld");
-        ir.validate_plain(PlainProjectionStyle::BlockJoined).unwrap();
+        ir.validate_plain(PlainProjectionStyle::BlockJoined)
+            .unwrap();
     }
 
     #[test]
@@ -408,7 +448,8 @@ mod tests {
             ir.plain_text,
             format!("before\n{IMAGE_PLAIN_PLACEHOLDER}\nafter")
         );
-        ir.validate_plain(PlainProjectionStyle::BlockJoined).unwrap();
+        ir.validate_plain(PlainProjectionStyle::BlockJoined)
+            .unwrap();
         assert!(ir.is_image_placeholder_offset(7));
         assert_eq!(ir.tts_alt_at_offset(7), Some("cover"));
         assert!(!ir.is_searchable_offset(7));
@@ -419,8 +460,16 @@ mod tests {
     fn source_preserved_txt_validation() {
         let ir = ChapterContentIr::new(
             vec![
-                ContentBlock::Text(TextBlock::new(0, "First\n".into(), TextBlockStyle::default())),
-                ContentBlock::Text(TextBlock::new(7, "Second".into(), TextBlockStyle::default())),
+                ContentBlock::Text(TextBlock::new(
+                    0,
+                    "First\n".into(),
+                    TextBlockStyle::default(),
+                )),
+                ContentBlock::Text(TextBlock::new(
+                    7,
+                    "Second".into(),
+                    TextBlockStyle::default(),
+                )),
             ],
             "First\n\nSecond".to_string(),
         );
@@ -434,7 +483,11 @@ mod tests {
     #[test]
     fn validate_rejects_mismatched_plain() {
         let ir = ChapterContentIr::new(
-            vec![ContentBlock::Text(TextBlock::new(0, "Hi".into(), TextBlockStyle::default()))],
+            vec![ContentBlock::Text(TextBlock::new(
+                0,
+                "Hi".into(),
+                TextBlockStyle::default(),
+            ))],
             "Ho".into(),
         );
         assert_eq!(
@@ -457,24 +510,18 @@ mod tests {
                 SpanStyle::Plain,
                 RichTextSpanData {
                     text: "Hello ".into(),
-                    font_size: None,
-                    color: None,
                 },
             ),
             RichTextSpan::Styled(
                 SpanStyle::Bold,
                 RichTextSpanData {
                     text: "bold".into(),
-                    font_size: None,
-                    color: None,
                 },
             ),
             RichTextSpan::Styled(
                 SpanStyle::Plain,
                 RichTextSpanData {
                     text: " world".into(),
-                    font_size: None,
-                    color: None,
                 },
             ),
         ];
@@ -495,6 +542,7 @@ mod tests {
         let ir = b.finish();
         assert_eq!(ir.plain_text, format!("sample\n{IMAGE_PLAIN_PLACEHOLDER}"));
         assert_eq!(ir.blocks[1].plain_start(), 7);
-        ir.validate_plain(PlainProjectionStyle::BlockJoined).unwrap();
+        ir.validate_plain(PlainProjectionStyle::BlockJoined)
+            .unwrap();
     }
 }

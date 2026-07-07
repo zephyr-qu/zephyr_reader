@@ -75,25 +75,14 @@ pub fn parse_html_to_rich_text(html_content: &str) -> Result<Vec<RichParagraph>,
     Ok(paragraphs)
 }
 
-/// CSS 属性白名单 — 仅提取排版引擎和渲染层实际使用的属性。
-///
-/// 此集合即 EPUB CSS 的"白名单"：`parse_css` 对所有 `<style>` 声明无差别解析，
-/// 但 `apply_declaration` 仅消费以下属性。未列出的属性（background / border / float /
-/// position / display 等）在解析后被静默丢弃，不进入 IR。
-///
-/// 排版引擎消费：font_size / font_family / text_align / line_height /
-///               text_indent_em / margin_top_em / margin_bottom_em
-/// 渲染层（行内格式）消费：color / font_weight / font_style / text_decoration
+/// CSS 属性白名单 — ADR-015 精简后仅保留影响块级布局的属性。
+/// `font-family`/`line-height`/`color`/`text-decoration` 已在解析层丢弃。
 #[derive(Debug, Clone, Default)]
 struct ComputedStyle {
     font_size: Option<f32>,
-    color: Option<String>,
-    font_family: Option<String>,
     text_align: Option<String>,
-    line_height: Option<f32>,
     font_weight: Option<i32>,
     font_style: Option<String>,
-    text_decoration: Option<String>,
     text_indent_em: Option<f32>,
     margin_top_em: Option<f32>,
     margin_bottom_em: Option<f32>,
@@ -146,28 +135,10 @@ impl ComputedStyle {
                     self.font_size = Some(px);
                 }
             }
-            "color" => {
-                if let Some(c) = css::resolve_color(value) {
-                    self.color = Some(c);
-                }
-            }
-            "font-family" => {
-                let clean = value
-                    .trim_matches(|c: char| c == '\'' || c == '"' || c == ' ')
-                    .to_string();
-                if !clean.is_empty() && clean != "serif" && clean != "sans-serif" {
-                    self.font_family = Some(clean);
-                }
-            }
             "text-align" => {
                 let v = value.trim().to_lowercase();
                 if matches!(v.as_str(), "left" | "center" | "right" | "justify") {
                     self.text_align = Some(v);
-                }
-            }
-            "line-height" => {
-                if let Some(lh) = css::resolve_float(value, parent_px) {
-                    self.line_height = Some(lh);
                 }
             }
             "font-weight" => {
@@ -184,12 +155,6 @@ impl ComputedStyle {
                 let v = value.trim().to_lowercase();
                 if v == "italic" || v == "normal" {
                     self.font_style = Some(v);
-                }
-            }
-            "text-decoration" => {
-                let v = value.trim().to_lowercase();
-                if v.contains("underline") || v.contains("line-through") {
-                    self.text_decoration = Some(v);
                 }
             }
             "text-indent" => {
@@ -210,7 +175,14 @@ impl ComputedStyle {
                     self.margin_bottom_em = Some(em);
                 }
             }
-            _ => {}
+            _ => {
+                tracing::trace!(
+                    target: "epub.css.whitelist",
+                    "dropped unsupported CSS: {}={}",
+                    name,
+                    value,
+                );
+            }
         }
     }
 }
@@ -223,10 +195,8 @@ fn build_paragraph(
     heading_level: u8,
     class_name: Option<String>,
     text_align: Option<String>,
-    line_height: Option<f32>,
     margin_top_em: Option<f32>,
     margin_bottom_em: Option<f32>,
-    font_family: Option<String>,
     text_indent_em: Option<f32>,
     font_size: Option<f32>,
 ) -> RichParagraph {
@@ -237,10 +207,8 @@ fn build_paragraph(
         heading_level,
         class_name,
         text_align,
-        line_height,
         margin_top_em,
         margin_bottom_em,
-        font_family,
         text_indent_em,
         font_size,
         ..Default::default()
@@ -274,8 +242,6 @@ fn walk_paragraph_children(
                         SpanStyle::Plain,
                         RichTextSpanData {
                             text: "\n".to_string(),
-                            font_size: None,
-                            color: None,
                         },
                     ));
                 }
@@ -361,8 +327,6 @@ fn walk_inline_subtree(
                     SpanStyle::Plain,
                     RichTextSpanData {
                         text: "\n".to_string(),
-                        font_size: None,
-                        color: None,
                     },
                 ));
             }
@@ -397,22 +361,13 @@ fn walk_inline_subtree(
 
 /// 将 CSS 计算样式映射为行内 [SpanStyle]（`<span style="font-weight:bold">` 等）。
 fn span_style_from_computed(style: &ComputedStyle) -> SpanStyle {
-    let bold = style.font_weight.unwrap_or(400) >= 700;
-    let italic = style.font_style.as_deref() == Some("italic");
-    let deco = style.text_decoration.as_deref().unwrap_or("");
-
-    if deco.contains("line-through") {
-        return SpanStyle::Strikethrough;
+    if style.font_weight.unwrap_or(400) >= 700 {
+        return SpanStyle::Bold;
     }
-    if deco.contains("underline") {
-        return SpanStyle::Underline;
+    if style.font_style.as_deref() == Some("italic") {
+        return SpanStyle::Italic;
     }
-    match (bold, italic) {
-        (true, true) => SpanStyle::BoldItalic,
-        (true, false) => SpanStyle::Bold,
-        (false, true) => SpanStyle::Italic,
-        _ => SpanStyle::Plain,
-    }
+    SpanStyle::Plain
 }
 
 fn push_styled_text_span(spans: &mut Vec<RichTextSpan>, text: String, style: &ComputedStyle) {
@@ -421,11 +376,7 @@ fn push_styled_text_span(spans: &mut Vec<RichTextSpan>, text: String, style: &Co
     }
     spans.push(RichTextSpan::Styled(
         span_style_from_computed(style),
-        RichTextSpanData {
-            text,
-            font_size: style.font_size,
-            color: style.color.clone(),
-        },
+        RichTextSpanData { text },
     ));
 }
 
@@ -452,10 +403,8 @@ fn flush_text_paragraph(
         0,
         inherited_class,
         parent_style.text_align.clone(),
-        parent_style.line_height,
         parent_style.margin_top_em,
         parent_style.margin_bottom_em,
-        parent_style.font_family.clone(),
         parent_style.text_indent_em,
         parent_style.font_size,
     ));
@@ -558,26 +507,6 @@ fn traverse_dom(
                 collect_text_spans(handle, &mut spans, &merged_style, style_map);
 
                 // Build heading font size from level if not overridden by CSS
-                let heading_font_size = match merged_style.font_size {
-                    Some(fs) => Some(fs),
-                    None => {
-                        let base: f32 = match level {
-                            1 => 24.0,
-                            2 => 20.0,
-                            3 => 18.0,
-                            4 => 16.0,
-                            5 => 14.0,
-                            _ => 13.0,
-                        };
-                        Some(base)
-                    }
-                };
-                for span in &mut spans {
-                    if span.font_size().is_none() {
-                        span.set_font_size(heading_font_size);
-                    }
-                }
-
                 if !spans.is_empty() {
                     paragraphs.push(build_paragraph(
                         spans,
@@ -590,10 +519,8 @@ fn traverse_dom(
                             Some(current_class)
                         },
                         merged_style.text_align.clone().or(Some("left".to_string())),
-                        merged_style.line_height,
                         merged_style.margin_top_em,
                         merged_style.margin_bottom_em,
-                        merged_style.font_family.clone(),
                         Some(0.0),
                         merged_style.font_size,
                     ));
@@ -611,8 +538,6 @@ fn traverse_dom(
                             SpanStyle::Plain,
                             RichTextSpanData {
                                 text: "• ".to_string(),
-                                font_size: None,
-                                color: None,
                             },
                         ),
                     );
@@ -628,10 +553,8 @@ fn traverse_dom(
                             Some(current_class)
                         },
                         merged_style.text_align.clone(),
-                        merged_style.line_height,
                         merged_style.margin_top_em,
                         merged_style.margin_bottom_em,
-                        merged_style.font_family.clone(),
                         merged_style.text_indent_em,
                         merged_style.font_size,
                     ));
@@ -691,8 +614,6 @@ fn collect_text_spans(
                         SpanStyle::Bold,
                         RichTextSpanData {
                             text: inner_text.trim().to_string(),
-                            font_size: merged_style.font_size,
-                            color: merged_style.color.clone(),
                         },
                     ));
                 }
@@ -707,56 +628,21 @@ fn collect_text_spans(
                         SpanStyle::Italic,
                         RichTextSpanData {
                             text: inner_text.trim().to_string(),
-                            font_size: merged_style.font_size,
-                            color: merged_style.color.clone(),
                         },
                     ));
                 }
             }
 
-            "u" => {
+            "u" | "s" | "strike" | "del" | "code" => {
+                // 降级为 Plain：Underline/Strikethrough/Code 在移动端阅读中极少使用
                 let mut inner_text = String::new();
                 collect_plain_text(handle, &mut inner_text);
 
                 if !inner_text.trim().is_empty() {
                     spans.push(RichTextSpan::Styled(
-                        SpanStyle::Underline,
+                        SpanStyle::Plain,
                         RichTextSpanData {
                             text: inner_text.trim().to_string(),
-                            font_size: merged_style.font_size,
-                            color: merged_style.color.clone(),
-                        },
-                    ));
-                }
-            }
-
-            "s" | "strike" | "del" => {
-                let mut inner_text = String::new();
-                collect_plain_text(handle, &mut inner_text);
-
-                if !inner_text.trim().is_empty() {
-                    spans.push(RichTextSpan::Styled(
-                        SpanStyle::Strikethrough,
-                        RichTextSpanData {
-                            text: inner_text.trim().to_string(),
-                            font_size: merged_style.font_size,
-                            color: merged_style.color.clone(),
-                        },
-                    ));
-                }
-            }
-
-            "code" => {
-                let mut inner_text = String::new();
-                collect_plain_text(handle, &mut inner_text);
-
-                if !inner_text.trim().is_empty() {
-                    spans.push(RichTextSpan::Styled(
-                        SpanStyle::Code,
-                        RichTextSpanData {
-                            text: inner_text.trim().to_string(),
-                            font_size: merged_style.font_size,
-                            color: merged_style.color.clone(),
                         },
                     ));
                 }
@@ -771,8 +657,6 @@ fn collect_text_spans(
                     spans.push(RichTextSpan::Link {
                         data: RichTextSpanData {
                             text: inner_text.trim().to_string(),
-                            font_size: merged_style.font_size,
-                            color: merged_style.color.clone(),
                         },
                         url: href,
                     });
@@ -784,8 +668,6 @@ fn collect_text_spans(
                     SpanStyle::Plain,
                     RichTextSpanData {
                         text: "\n".to_string(),
-                        font_size: None,
-                        color: None,
                     },
                 ));
             }

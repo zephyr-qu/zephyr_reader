@@ -53,10 +53,6 @@ pub struct TextBlockStyle {
     pub margin_top_em: Option<f32>,
     /// 块下边距（em）。
     pub margin_bottom_em: Option<f32>,
-    /// CSS `font-family` 提示（首族名）。
-    pub font_family: Option<String>,
-    /// CSS `line-height` 倍数。
-    pub line_height: Option<f32>,
     /// CSS `text-align`：`left` | `center` | `right` | `justify`。
     pub text_align: Option<String>,
     /// CSS `font-size`（px）；`None` → 使用 [`TypesetConfig::font_size`]。

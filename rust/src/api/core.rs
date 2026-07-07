@@ -91,6 +91,19 @@ pub async fn paginate_chapter(
         .paginate_chapter(book_id, chapter_index, config, max_chars)
         .await
 }
+
+/// Phase 2: 存储 Flutter 预计算的行断点，供 `paginate_chapter` 使用。
+/// 同 (book_id, chapter_index, config_hash) 命中时跳过 Rust 贪心断行。
+#[frb(sync)]
+pub fn store_line_breaks(
+    book_id: String,
+    chapter_index: i32,
+    config_hash: u64,
+    line_breaks: Vec<u32>,
+) -> Result<(), AppError> {
+    ReadingOrchestrator::global()
+        .store_line_breaks(book_id, chapter_index, config_hash, line_breaks)
+}
 /// Fetch single page text synchronously from streamer/block cache.
 /// M2: `book_id` 替代 `file_path`（ADR-014）。
 #[frb(sync)]

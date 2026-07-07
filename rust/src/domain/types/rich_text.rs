@@ -27,14 +27,10 @@ pub struct RichParagraph {
     pub class_name: Option<String>,
     /// 文本对齐方式
     pub text_align: Option<String>,
-    /// 行高
-    pub line_height: Option<f32>,
     /// CSS 块上边距（em）
     pub margin_top_em: Option<f32>,
     /// CSS 块下边距（em）
     pub margin_bottom_em: Option<f32>,
-    /// CSS font-family 提示
-    pub font_family: Option<String>,
     /// CSS text-indent（em）；`None` 表示未指定
     pub text_indent_em: Option<f32>,
     /// CSS font-size（px）；`None` 表示未指定，回退到 TypesetConfig。
@@ -53,11 +49,10 @@ impl RichParagraph {
     /// 创建纯文本段落
     pub fn plain(text: String, indent: u8) -> Self {
         Self {
-            spans: vec![RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
-                text,
-                font_size: None,
-                color: None,
-            })],
+            spans: vec![RichTextSpan::Styled(
+                SpanStyle::Plain,
+                RichTextSpanData { text },
+            )],
             indent,
             ..Default::default()
         }
@@ -73,11 +68,10 @@ impl RichParagraph {
     /// 创建标题段落
     pub fn heading(text: String, level: u8) -> Self {
         Self {
-            spans: vec![RichTextSpan::Styled(SpanStyle::Bold, RichTextSpanData {
-                text,
-                font_size: None,
-                color: None,
-            })],
+            spans: vec![RichTextSpan::Styled(
+                SpanStyle::Bold,
+                RichTextSpanData { text },
+            )],
             is_heading: true,
             heading_level: level,
             ..Default::default()
@@ -114,7 +108,9 @@ impl RichParagraph {
 // ==================== 样式枚举 ====================
 
 /// 文本样式
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode,
+)]
 pub enum SpanStyle {
     /// 普通文本
     Plain,
@@ -122,14 +118,6 @@ pub enum SpanStyle {
     Bold,
     /// 斜体
     Italic,
-    /// 粗斜体
-    BoldItalic,
-    /// 下划线
-    Underline,
-    /// 删除线
-    Strikethrough,
-    /// 代码
-    Code,
 }
 
 // ==================== 富文本段数据 ====================
@@ -140,10 +128,6 @@ pub enum SpanStyle {
 pub struct RichTextSpanData {
     /// 文本内容
     pub text: String,
-    /// 字体大小
-    pub font_size: Option<f32>,
-    /// 颜色
-    pub color: Option<String>,
 }
 
 // ==================== 富文本段 ====================
@@ -156,10 +140,7 @@ pub enum RichTextSpan {
     /// 带样式的文本段
     Styled(SpanStyle, RichTextSpanData),
     /// 链接
-    Link {
-        data: RichTextSpanData,
-        url: String,
-    },
+    Link { data: RichTextSpanData, url: String },
 }
 
 impl RichTextSpan {
@@ -174,35 +155,6 @@ impl RichTextSpan {
     /// 判断是否为普通文本
     pub fn is_plain(&self) -> bool {
         matches!(self, Self::Styled(SpanStyle::Plain, _))
-    }
-
-    /// 应用 CSS 样式（字体大小、颜色）
-    pub fn with_css(self, font_size: Option<f32>, color: Option<String>) -> Self {
-        match self {
-            Self::Styled(style, data) => Self::Styled(style, RichTextSpanData {
-                text: data.text,
-                font_size,
-                color,
-            }),
-            Self::Link { data, url } => Self::Link {
-                data: RichTextSpanData { text: data.text, font_size, color },
-                url,
-            },
-        }
-    }
-
-    /// 获取字体大小
-    pub fn font_size(&self) -> Option<f32> {
-        match self {
-            Self::Styled(_, data) | Self::Link { data, .. } => data.font_size,
-        }
-    }
-
-    /// 设置字体大小
-    pub fn set_font_size(&mut self, fs: Option<f32>) {
-        match self {
-            Self::Styled(_, data) | Self::Link { data, .. } => data.font_size = fs,
-        }
     }
 }
 
