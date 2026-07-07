@@ -26,7 +26,7 @@ pub(crate) enum PaginationEngine {
     Block(BlockPaginationState),
 }
 
-const PAGINATION_ENGINE_CACHE_CAPACITY: NonZeroUsize = match NonZeroUsize::new(16) {
+const PAGINATION_ENGINE_CACHE_CAPACITY: NonZeroUsize = match NonZeroUsize::new(32) {
     Some(v) => v,
     None => unreachable!(),
 };

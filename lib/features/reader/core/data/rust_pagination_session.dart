@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'dart:math' as math;
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/data/epub_block_image_cache.dart';
@@ -156,6 +157,11 @@ class RustPaginationSession implements PaginationSession {
         ' ${descriptorsChanged ? "cacheCleared" : "cacheKept"}',
       );
     }
+  }
+
+  @visibleForTesting
+  void applyPaginateResult(PaginateResult result, {int? chapterIndex}) {
+    _applyPaginateResult(result, chapterIndex: chapterIndex);
   }
 
   void _notifyCacheUpdated() {

@@ -14,6 +14,7 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_view_mode
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
+import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
@@ -188,13 +189,15 @@ void main() {
     config = _MockConfig();
     chapterVM = ChapterViewModel(repo, config);
 
-    registerFallbackValue(const PaginationParams(
-      fontSize: 16,
-      lineHeight: 1.6,
-      width: 400,
-      height: 600,
-      padding: 20,
-    ));
+    registerFallbackValue(
+      const PaginationParams(
+        fontSize: 16,
+        lineHeight: 1.6,
+        width: 400,
+        height: 600,
+        padding: 20,
+      ),
+    );
   });
 
   group('buildPaginationParams', () {
@@ -215,18 +218,24 @@ void main() {
       expect(params.devicePixelRatio, 2.0);
       expect(params.fontFamily, 'Source Han Sans');
       expect(params.letterSpacing, 0.0);
-      expect(params.paragraphSpacing, ReaderTypographyDefaults.paragraphSpacing);
+      expect(
+        params.paragraphSpacing,
+        ReaderTypographyDefaults.paragraphSpacing,
+      );
       expect(params.punctuationSqueeze, true);
       expect(params.firstLineIndent, true);
     });
 
-    test('does not clamp when pageHeight is small (clamp preserves min=max)', () {
-      final coordinator = PaginationCoordinator(repo, config, chapterVM);
-      coordinator.pageHeight = 120;
+    test(
+      'does not clamp when pageHeight is small (clamp preserves min=max)',
+      () {
+        final coordinator = PaginationCoordinator(repo, config, chapterVM);
+        coordinator.pageHeight = 120;
 
-      final params = coordinator.buildPaginationParams();
-      expect(params.height, 120);
-    });
+        final params = coordinator.buildPaginationParams();
+        expect(params.height, 120);
+      },
+    );
   });
 
   group('isPaginationValid', () {
@@ -321,5 +330,57 @@ void main() {
       // 150 → page 1 via binary search
       expect(result.pageIndex, 1);
     });
+  });
+
+  group('calibration integration', () {
+    test('I4: buildPaginationParams includes calibration signal value', () {
+      final coordinator = PaginationCoordinator(repo, config, chapterVM);
+      coordinator.calibration.value = const CalibrationData(
+        dpr: 2.0,
+        cjkWidth: 11.0,
+        asciiWidth: 5.5,
+        digitWidth: 5.5,
+        punctWidth: 5.5,
+        latinExtWidth: 5.5,
+        otherWidth: 5.5,
+        effectiveLineWidthRatio: 0.94,
+        lineHeightDp: 27.0,
+      );
+
+      final params = coordinator.buildPaginationParams();
+
+      expect(params.calibration, isNotNull);
+      expect(params.calibration!.cjkWidth, 11.0);
+      expect(params.calibration!.effectiveLineWidthRatio, 0.94);
+      expect(params.calibration!.dpr, 2.0);
+    });
+
+    test(
+      'I4: repaginateAfterMetricsBackfeed delegates to repo.applySessionCalibration',
+      () async {
+        final coordinator = PaginationCoordinator(repo, config, chapterVM);
+        when(
+          () => repo.applySessionCalibration(
+            bookId: any(named: 'bookId'),
+            chapterIndex: any(named: 'chapterIndex'),
+            params: any(named: 'params'),
+            maxChars: any(named: 'maxChars'),
+          ),
+        ).thenAnswer((_) async => const (totalPages: 7, isPartial: false));
+
+        final result = await coordinator.repaginateAfterMetricsBackfeed();
+
+        expect(result.totalPages, 7);
+        expect(result.isPartial, isFalse);
+        verify(
+          () => repo.applySessionCalibration(
+            bookId: any(named: 'bookId'),
+            chapterIndex: any(named: 'chapterIndex'),
+            params: any(named: 'params'),
+            maxChars: any(named: 'maxChars'),
+          ),
+        ).called(1);
+      },
+    );
   });
 }
