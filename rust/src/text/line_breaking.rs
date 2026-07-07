@@ -192,8 +192,8 @@ pub(crate) fn compute_line_breaks_variable_width(
     lines
 }
 mod tests {
-    use super::*;
-    use crate::text::char_width::CharWidthTable;
+    
+    
 
     #[test]
     fn test_line_breaks_end_avoid_direct() {

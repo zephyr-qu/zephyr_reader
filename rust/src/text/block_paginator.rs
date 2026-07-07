@@ -776,6 +776,7 @@ pub fn paginate_chapter_ir_chunked(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::types::typeset::TypesetCalibration;
     use crate::domain::{BlockJoinedPlainBuilder, PlainProjectionStyle, TextBlockStyle};
 
     fn test_config() -> TypesetConfig {
@@ -1207,5 +1208,95 @@ mod tests {
             );
             prev_end = d.plain_end_exclusive();
         }
+    }
+
+    // ── Layer B: ratio / line_height ──
+
+    #[test]
+    fn b1_effective_ratio_sets_line_width() {
+        let mut config = test_config();
+        config.calibration = Some(TypesetCalibration {
+            effective_line_width_ratio: 0.95,
+            ..TypesetCalibration::default()
+        });
+
+        let ir = long_text_ir(100);
+        let result = paginate_chapter_ir(&ir, config);
+        assert!(
+            result.page_count() > 1,
+            "ratio=0.95 should produce multiple pages"
+        );
+    }
+
+    #[test]
+    fn b2_measured_line_height_affects_page_count() {
+        let mut config_default = test_config();
+        config_default.calibration = None;
+        let result_default = paginate_chapter_ir(&long_text_ir(80), config_default);
+
+        let mut config_large = test_config();
+        config_large.calibration = Some(TypesetCalibration {
+            measured_line_height_px: 48.0,
+            ..TypesetCalibration::default()
+        });
+        let result_large = paginate_chapter_ir(&long_text_ir(80), config_large);
+
+        // Larger line height → more pages (fewer lines fit)
+        assert!(
+            result_large.page_count() >= result_default.page_count(),
+            "larger line_height should produce >= pages ({} >= {})",
+            result_large.page_count(),
+            result_default.page_count()
+        );
+    }
+
+    #[test]
+    fn b3_wider_ratio_more_chars_per_page() {
+        let ir = long_text_ir(100);
+
+        let mut config_narrow = test_config();
+        config_narrow.calibration = Some(TypesetCalibration {
+            effective_line_width_ratio: 0.90,
+            ..TypesetCalibration::default()
+        });
+        let result_narrow = paginate_chapter_ir(&ir, config_narrow);
+
+        let mut config_wide = test_config();
+        config_wide.calibration = Some(TypesetCalibration {
+            effective_line_width_ratio: 0.99,
+            ..TypesetCalibration::default()
+        });
+        let result_wide = paginate_chapter_ir(&ir, config_wide);
+
+        // Wider ratio → fewer pages (more content fits per page)
+        assert!(
+            result_wide.page_count() <= result_narrow.page_count(),
+            "wider ratio(0.99) pages={} should be <= narrower(0.90) pages={}",
+            result_wide.page_count(),
+            result_narrow.page_count()
+        );
+    }
+
+    #[test]
+    fn b4_default_ratio_fallback() {
+        let mut config_with = test_config();
+        config_with.calibration = Some(TypesetCalibration {
+            effective_line_width_ratio: 0.97,
+            ..TypesetCalibration::default()
+        });
+
+        let mut config_without = test_config();
+        config_without.calibration = None;
+
+        let ir = long_text_ir(100);
+        let result_with = paginate_chapter_ir(&ir, config_with);
+        let result_without = paginate_chapter_ir(&ir, config_without);
+
+        // Same ratio (explicit 0.97 vs default 0.97) → same page count
+        assert_eq!(
+            result_with.page_count(),
+            result_without.page_count(),
+            "explicit 0.97 and None calibration should produce same page count"
+        );
     }
 }
