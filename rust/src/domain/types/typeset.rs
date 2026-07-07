@@ -65,6 +65,10 @@ pub struct TypesetCalibration {
     pub latin_ext_width: f32,
     /// 其他字符宽度（fallback），通常为 font_size * 0.8
     pub other_width: f32,
+    /// Flutter TextPainter 实测有效行宽比例（effective_width / page_width_px）。
+    pub effective_line_width_ratio: f32,
+    /// Flutter 实测单行高度（物理 px）；`<= 0` 时回退 `font_size × line_spacing`。
+    pub measured_line_height_px: f32,
 }
 
 impl Hash for TypesetCalibration {
@@ -76,6 +80,8 @@ impl Hash for TypesetCalibration {
         self.punct_width.to_bits().hash(state);
         self.latin_ext_width.to_bits().hash(state);
         self.other_width.to_bits().hash(state);
+        self.effective_line_width_ratio.to_bits().hash(state);
+        self.measured_line_height_px.to_bits().hash(state);
     }
 }
 impl Default for TypesetCalibration {
@@ -89,6 +95,8 @@ impl Default for TypesetCalibration {
             punct_width: 16.0,
             latin_ext_width: 11.2,
             other_width: 12.8,
+            effective_line_width_ratio: 0.97,
+            measured_line_height_px: 0.0,
         }
     }
 }
@@ -182,6 +190,9 @@ pub struct TypesetConfigFixReport {
 
 // ==================== 验证宏 ====================
 
+/// 分页/断行算法版本；逻辑变更时递增以使 sled / 内存缓存失效。
+const LAYOUT_ALGORITHM_VERSION: u32 = 7;
+
 macro_rules! check_range {
     ($self:ident, $field:ident, $min:ident, $max:ident, $desc:expr, $unit:expr) => {
         if $self.$field < $min || $self.$field > $max {
@@ -261,7 +272,10 @@ impl TypesetConfig {
             bytes.extend_from_slice(&cal.punct_width.to_le_bytes());
             bytes.extend_from_slice(&cal.latin_ext_width.to_le_bytes());
             bytes.extend_from_slice(&cal.other_width.to_le_bytes());
+            bytes.extend_from_slice(&cal.effective_line_width_ratio.to_le_bytes());
+            bytes.extend_from_slice(&cal.measured_line_height_px.to_le_bytes());
         }
+        bytes.extend_from_slice(&LAYOUT_ALGORITHM_VERSION.to_le_bytes());
         xxh3_64(&bytes)
     }
 

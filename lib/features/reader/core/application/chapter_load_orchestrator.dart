@@ -15,7 +15,10 @@ import 'package:zephyr_reader/features/reader/core/application/pagination_coordi
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_notice.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
+import 'package:zephyr_reader/features/reader/data/layout_calibration_store.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
+import 'package:zephyr_reader/core/local/preferences_service.dart';
+import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
@@ -136,13 +139,10 @@ class ChapterLoadOrchestrator {
               readingMode: request.readingMode,
             );
 
-      final calibFuture = _pagination.calibration.value != null
-          ? Future<CalibrationData?>.value(_pagination.calibration.value)
-          : calibrateSafely(
-              fontSize: _config.fontSize.value,
-              devicePixelRatio: _pagination.devicePixelRatio,
-              fontFamily: _pagination.fontFamily,
-            );
+      final calibFuture = resolveLayoutCalibration(
+        params: _typesetMeasureParams(),
+        prefs: getIt<PreferencesService>(),
+      );
 
       final ({int totalPages, bool isPartial})? quickResult;
 
@@ -265,9 +265,17 @@ class ChapterLoadOrchestrator {
         );
       }
 
-      // 所有分页操作完成后，更新校准信号供后续新 session 使用
+      // 所有分页操作完成后，更新校准信号并写入本地缓存供后续 session 使用
       if (refinedCalibration != null && !_isStale(gen)) {
         _pagination.calibration.value = refinedCalibration;
+        final params = _typesetMeasureParams();
+        unawaited(
+          LayoutCalibrationStore.save(
+            getIt<PreferencesService>(),
+            LayoutCalibrationStore.cacheKey(params),
+            refinedCalibration,
+          ),
+        );
       }
 
       Logging.info(
@@ -817,6 +825,21 @@ class ChapterLoadOrchestrator {
     );
   }
 
+  TypesetMeasureParams _typesetMeasureParams() {
+    return typesetMeasureParamsFromLayout(
+      pageWidth: _pagination.pageWidth,
+      pageHeight: _pagination.pageHeight,
+      pagePadding: _config.padding.value,
+      fontSize: _config.fontSize.value,
+      lineHeight: _config.lineHeight.value,
+      letterSpacing: _config.letterSpacing.value,
+      fontFamily: _pagination.fontFamily,
+      devicePixelRatio: _pagination.devicePixelRatio,
+      baselineAlign: _config.baselineAlign.value,
+      firstLineIndent: _config.firstLineIndent.value,
+    );
+  }
+
   /// 首屏渲染后从实际页文本采样 TextPainter metrics（P4-4 / ADR-013）。
   Future<CalibrationData?> _captureMetricsBackfeed(
     int gen,
@@ -838,6 +861,11 @@ class ChapterLoadOrchestrator {
         fontSize: _config.fontSize.value,
         devicePixelRatio: _pagination.devicePixelRatio,
         fontFamily: _pagination.fontFamily,
+        lineHeight: _config.lineHeight.value,
+        letterSpacing: _config.letterSpacing.value,
+        width: _pagination.pageWidth,
+        height: _pagination.pageHeight,
+        padding: _config.padding.value,
         baseline: baseline,
       );
       if (refined == null || !calibrationDriftExceeds(baseline, refined)) {

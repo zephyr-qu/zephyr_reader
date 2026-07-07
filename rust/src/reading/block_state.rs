@@ -14,6 +14,7 @@ pub(crate) struct BlockPaginationState {
     pub ir: ChapterContentIr,
     pub result: BlockPaginateResult,
     pub is_partial: bool,
+    pub typeset_config: TypesetConfig,
 }
 
 impl BlockPaginationState {
@@ -21,11 +22,13 @@ impl BlockPaginationState {
         ir: ChapterContentIr,
         result: BlockPaginateResult,
         is_partial: bool,
+        typeset_config: TypesetConfig,
     ) -> Self {
         Self {
             ir,
             result,
             is_partial,
+            typeset_config: typeset_config.validate_and_fix(),
         }
     }
 
@@ -119,17 +122,18 @@ impl BlockPaginationState {
                     let local_start = slice_start - block_start;
                     let local_len = slice_end - slice_start;
                     let text = slice_by_char_range(&t.text, local_start, local_len);
-                    let spans = slice_rich_spans(&t.spans, local_start, local_len);
-                    if !text.is_empty() {
-                        slices.push(PageBlockSlice::Text(PageTextBlockSlice {
-                            block_index: bi,
-                            text,
-                            is_block_start: local_start == 0,
-                            is_block_end: slice_end == block_end,
-                            style: t.style.clone(),
-                            spans,
-                        }));
+                    if text.is_empty() {
+                        continue;
                     }
+                    let spans = slice_rich_spans(&t.spans, local_start, local_len);
+                    slices.push(PageBlockSlice::Text(PageTextBlockSlice {
+                        block_index: bi,
+                        text,
+                        is_block_start: local_start == 0,
+                        is_block_end: slice_end == block_end,
+                        style: t.style.clone(),
+                        spans,
+                    }));
                 }
                 ContentBlock::Image(img) => {
                     let block_start = img.plain.plain_start;
@@ -150,6 +154,13 @@ impl BlockPaginationState {
                 }
             }
         }
+        if page_index + 3 >= total {
+            tracing::info!(
+                "[Trace] page_blocks p={page_index}/{total} slices={} plain_len={}",
+                slices.len(),
+                desc.plain.plain_len
+            );
+        }
         Some(slices)
     }
 
@@ -162,7 +173,10 @@ impl BlockPaginationState {
         &mut self,
         config: TypesetConfig,
     ) -> Result<PaginateResult, crate::domain::AppError> {
-        assert!(self.is_partial, "expand_to_full called on non-partial state");
+        assert!(
+            self.is_partial,
+            "expand_to_full called on non-partial state"
+        );
         let old_pages = self.result.page_count();
         let old_last_plain = self
             .result
@@ -176,8 +190,9 @@ impl BlockPaginationState {
             "[Trace] expand_to_full START partial_pages={old_pages} partial_last_plain_end={old_last_plain} ir_blocks={ir_blocks} ir_plain_len={ir_plain_len}"
         );
         let ir = self.ir.clone();
+        let config_for_paginate = config.clone();
         let block_result = tokio::task::spawn_blocking(move || {
-            crate::text::block_paginator::paginate_chapter_ir_chunked(&ir, config)
+            crate::text::block_paginator::paginate_chapter_ir_chunked(&ir, config_for_paginate)
         })
         .await
         .map_err(|e| crate::domain::AppError::TaskPanic {
@@ -186,6 +201,7 @@ impl BlockPaginationState {
         })?;
         self.result = block_result;
         self.is_partial = false;
+        self.typeset_config = config.validate_and_fix();
         let full_pages = self.result.page_count();
         let full_last_plain = self
             .result
@@ -241,18 +257,16 @@ mod tests {
     fn page_blocks_returns_text_and_image_slices() {
         let ir = sample_ir_with_image();
         let config = TypesetConfig::default();
-        let result = paginate_chapter_ir(&ir, config);
-        let state = BlockPaginationState::new(ir, result, false);
+        let result = paginate_chapter_ir(&ir, config.clone());
+        let state = BlockPaginationState::new(ir, result, false, config);
 
         let blocks = state.page_blocks(0).expect("page 0 blocks");
         assert!(!blocks.is_empty());
-        assert!(
-            blocks.iter().any(|s| matches!(
-                s,
-                PageBlockSlice::Image(PageImageBlockSlice { asset_id, .. })
-                    if asset_id == "img1"
-            ))
-        );
+        assert!(blocks.iter().any(|s| matches!(
+            s,
+            PageBlockSlice::Image(PageImageBlockSlice { asset_id, .. })
+                if asset_id == "img1"
+        )));
     }
 
     #[test]
@@ -269,7 +283,7 @@ mod tests {
             0,
             false,
         );
-        let state = BlockPaginationState::new(ir, result, false);
+        let state = BlockPaginationState::new(ir, result, false, TypesetConfig::default());
 
         let blocks = state.page_blocks(0).expect("page 0 blocks");
 
@@ -284,8 +298,8 @@ mod tests {
     fn page_blocks_marks_block_end_on_complete_text_slice() {
         let ir = sample_ir_with_image();
         let config = TypesetConfig::default();
-        let result = paginate_chapter_ir(&ir, config);
-        let state = BlockPaginationState::new(ir, result, false);
+        let result = paginate_chapter_ir(&ir, config.clone());
+        let state = BlockPaginationState::new(ir, result, false, config);
 
         let blocks = state.page_blocks(0).expect("page 0 blocks");
         let text_slices: Vec<_> = blocks
@@ -314,23 +328,32 @@ mod tests {
             paragraph_spacing: 0.0,
             ..TypesetConfig::default()
         };
-        let result = paginate_chapter_ir(&ir, config);
+        let result = paginate_chapter_ir(&ir, config.clone());
         let page_count = result.page_count();
         assert!(
             page_count > 1,
             "expected multi-page split, got {page_count}"
         );
-        let state = BlockPaginationState::new(ir, result, false);
+        let state = BlockPaginationState::new(ir, result, false, config);
 
         let page0 = state.page_blocks(0).expect("page 0");
-        let first = page0
+        let page0_text_slices: Vec<_> = page0
             .iter()
-            .find_map(|s| match s {
+            .filter_map(|s| match s {
                 PageBlockSlice::Text(t) => Some(t),
                 _ => None,
             })
-            .expect("page 0 text slice");
-        assert!(!first.is_block_end, "continuation slice must not be block end");
+            .collect();
+        assert_eq!(
+            page0_text_slices.len(),
+            1,
+            "a single Text block page range must render as one contiguous slice, not one slice per visual line"
+        );
+        let first = page0_text_slices[0];
+        assert!(
+            !first.is_block_end,
+            "continuation slice must not be block end"
+        );
 
         let last_page = state.page_blocks(page_count - 1).expect("last page");
         let last_text = last_page
@@ -348,8 +371,8 @@ mod tests {
     fn char_offset_maps_to_page() {
         let ir = sample_ir_with_image();
         let config = TypesetConfig::default();
-        let result = paginate_chapter_ir(&ir, config);
-        let state = BlockPaginationState::new(ir.clone(), result, false);
+        let result = paginate_chapter_ir(&ir, config.clone());
+        let state = BlockPaginationState::new(ir.clone(), result, false, config);
 
         assert_eq!(state.char_offset_to_page_index(0), Some(0));
         assert_eq!(
@@ -362,8 +385,8 @@ mod tests {
     fn page_plain_matches_descriptor_range() {
         let ir = sample_ir_with_image();
         let config = TypesetConfig::default();
-        let result = paginate_chapter_ir(&ir, config);
-        let state = BlockPaginationState::new(ir.clone(), result.clone(), false);
+        let result = paginate_chapter_ir(&ir, config.clone());
+        let state = BlockPaginationState::new(ir.clone(), result.clone(), false, config);
 
         for (i, desc) in result.descriptors.iter().enumerate() {
             let plain = state.page_plain_text(i).unwrap();
@@ -382,10 +405,8 @@ mod tests {
         let full_ir = b.finish();
 
         // 构造 partial IR：仅包含前两个 block
-        let partial_ir = ChapterContentIr::new(
-            full_ir.blocks[..2].to_vec(),
-            full_ir.plain_text.clone(),
-        );
+        let partial_ir =
+            ChapterContentIr::new(full_ir.blocks[..2].to_vec(), full_ir.plain_text.clone());
 
         let config = TypesetConfig {
             page_width: 400,
@@ -400,12 +421,15 @@ mod tests {
         let partial_page_count = partial_result.page_count();
         assert!(partial_page_count > 0);
 
-        let mut state = BlockPaginationState::new(full_ir, partial_result, true);
+        let mut state = BlockPaginationState::new(full_ir, partial_result, true, config.clone());
         assert!(state.is_partial);
 
         let full_result = state.expand_to_full(config).await.unwrap();
 
-        assert!(!full_result.is_partial, "expand_to_full should set is_partial=false");
+        assert!(
+            !full_result.is_partial,
+            "expand_to_full should set is_partial=false"
+        );
         assert!(!state.is_partial, "state.is_partial should be updated");
         assert_eq!(
             full_result.mode,
@@ -428,15 +452,13 @@ mod tests {
         b.push_text("More text".repeat(50), TextBlockStyle::default());
         let full_ir = b.finish();
 
-        let partial_ir = ChapterContentIr::new(
-            vec![full_ir.blocks[0].clone()],
-            full_ir.plain_text.clone(),
-        );
+        let partial_ir =
+            ChapterContentIr::new(vec![full_ir.blocks[0].clone()], full_ir.plain_text.clone());
 
         let config = TypesetConfig::default();
         let partial_result = paginate_chapter_ir(&partial_ir, config.clone());
 
-        let mut state = BlockPaginationState::new(full_ir, partial_result, true);
+        let mut state = BlockPaginationState::new(full_ir, partial_result, true, config.clone());
         let full_result = state.expand_to_full(config).await.unwrap();
 
         // 关键断言：mode 始终为 ContentBlocks，不会切到 PlainText
@@ -452,8 +474,8 @@ mod tests {
     async fn expand_to_full_panics_on_non_partial() {
         let ir = sample_ir_with_image();
         let config = TypesetConfig::default();
-        let result = paginate_chapter_ir(&ir, config);
-        let mut state = BlockPaginationState::new(ir, result, false);
+        let result = paginate_chapter_ir(&ir, config.clone());
+        let mut state = BlockPaginationState::new(ir, result, false, config);
         let _ = state.expand_to_full(TypesetConfig::default()).await;
     }
 }

@@ -155,25 +155,36 @@ class RustChapterContentRepository implements ChapterContentRepository {
     if (skipped) _pendingEpubRichSkipped = true;
   }
 
+  TypesetConfig _buildTypesetFromParams(PaginationParams p) {
+    final layoutInsets = paginatedTypesetLayoutInsets(
+      fontSize: p.fontSize,
+      lineHeight: p.lineHeight,
+      paragraphSpacing: p.paragraphSpacing,
+    );
+    return buildTypesetConfig(
+      width: p.width,
+      height: p.height,
+      fontSize: p.fontSize,
+      lineHeight: p.lineHeight,
+      padding: p.padding,
+      contentVerticalPadding: layoutInsets.contentVerticalPadding,
+      pageHeightLineBuffer: layoutInsets.pageHeightLineBuffer,
+      devicePixelRatio: p.devicePixelRatio,
+      calibration: p.calibration,
+      fontFamily: p.fontFamily,
+      letterSpacing: p.letterSpacing,
+      paragraphSpacing: p.paragraphSpacing,
+      punctuationSqueeze: p.punctuationSqueeze,
+      language: p.language,
+      autoSpaceRatio: p.autoSpaceRatio,
+      firstLineIndent: p.firstLineIndent ? 2 : 0,
+    );
+  }
+
   TypesetConfig _resolveTypesetConfig() {
     final p = _layoutParams;
     if (p != null) {
-      return buildTypesetConfig(
-        width: p.width,
-        height: p.height,
-        fontSize: p.fontSize,
-        lineHeight: p.lineHeight,
-        padding: p.padding,
-        devicePixelRatio: p.devicePixelRatio,
-        calibration: p.calibration,
-        fontFamily: p.fontFamily,
-        letterSpacing: p.letterSpacing,
-        paragraphSpacing: p.paragraphSpacing,
-        punctuationSqueeze: p.punctuationSqueeze,
-        language: p.language,
-        autoSpaceRatio: p.autoSpaceRatio,
-        firstLineIndent: p.firstLineIndent ? 2 : 0,
-      );
+      return _buildTypesetFromParams(p);
     }
     return buildTypesetConfig(
       width: 400,
@@ -181,6 +192,17 @@ class RustChapterContentRepository implements ChapterContentRepository {
       fontSize: _config.fontSize.value,
       lineHeight: _config.lineHeight.value,
       padding: _config.padding.value,
+      devicePixelRatio: _layoutParams?.devicePixelRatio ?? 1.0,
+      contentVerticalPadding: paginatedTypesetLayoutInsets(
+        fontSize: _config.fontSize.value,
+        lineHeight: _config.lineHeight.value,
+        paragraphSpacing: _config.paragraphSpacing.value,
+      ).contentVerticalPadding,
+      pageHeightLineBuffer: paginatedTypesetLayoutInsets(
+        fontSize: _config.fontSize.value,
+        lineHeight: _config.lineHeight.value,
+        paragraphSpacing: _config.paragraphSpacing.value,
+      ).pageHeightLineBuffer,
       fontFamily: 'Noto Sans SC',
       letterSpacing: _config.letterSpacing.value,
       paragraphSpacing: _config.paragraphSpacing.value,
@@ -496,22 +518,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
         devicePixelRatio: devicePixelRatio,
         fontFamily: fontFamily,
       );
-      final config = buildTypesetConfig(
-        width: p.width,
-        height: p.height,
-        fontSize: p.fontSize,
-        lineHeight: p.lineHeight,
-        padding: p.padding,
-        devicePixelRatio: p.devicePixelRatio,
-        calibration: p.calibration,
-        fontFamily: p.fontFamily,
-        letterSpacing: p.letterSpacing,
-        paragraphSpacing: p.paragraphSpacing,
-        punctuationSqueeze: p.punctuationSqueeze,
-        language: p.language,
-        autoSpaceRatio: p.autoSpaceRatio,
-        firstLineIndent: p.firstLineIndent ? 2 : 0,
-      );
+      final config = _buildTypesetFromParams(p);
 
       // P0: all chapters now use block pagination (maxChars=null → full chapter).
       final result = await core_api.paginateChapter(
@@ -573,22 +580,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
         devicePixelRatio: devicePixelRatio,
         fontFamily: fontFamily,
       );
-      final config = buildTypesetConfig(
-        width: p.width,
-        height: p.height,
-        fontSize: p.fontSize,
-        lineHeight: p.lineHeight,
-        padding: p.padding,
-        devicePixelRatio: p.devicePixelRatio,
-        calibration: p.calibration,
-        fontFamily: p.fontFamily,
-        letterSpacing: p.letterSpacing,
-        paragraphSpacing: p.paragraphSpacing,
-        punctuationSqueeze: p.punctuationSqueeze,
-        language: p.language,
-        autoSpaceRatio: p.autoSpaceRatio,
-        firstLineIndent: p.firstLineIndent ? 2 : 0,
-      );
+      final config = _buildTypesetFromParams(p);
 
       // Use maxChars: null to hit KV cache for full paginate
       final result = await core_api.paginateChapter(

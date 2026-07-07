@@ -1,12 +1,53 @@
-import 'dart:ui' as ui;
+import 'package:flutter/material.dart';
 
-import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
+import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/features/reader/data/layout_calibration_store.dart';
+import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
+import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 
-/// Flutter 侧字符宽度校准数据
-///
-/// 每组取 3-5 个代表字符，用 TextPainter 测量真实像素宽度后取平均。
-/// 注意：此类型在传递到 Rust 前会被转换为 FRB 生成的 `TypesetCalibration`。
+/// 无 Flutter 实测时的保守有效行宽比例（与 Rust `DEFAULT_EFFECTIVE_LINE_WIDTH_RATIO` 对齐）。
+const kDefaultEffectiveLineWidthRatio = 0.97;
+
+/// 诊断日志用别名（历史命名保留）。
+const kRustLineWidthSafetyRatio = kDefaultEffectiveLineWidthRatio;
+
+/// 诊断用字宽补偿（与 Rust `FLUTTER_BREAK_CHAR_WIDTH_SCALE` 对齐，勿写入 calibrationToRust）。
+const kRustCharWidthScale = 1.0;
+
+/// 统一测量输入：与阅读器渲染栈及 Rust [TypesetConfig] 对齐。
+class TypesetMeasureParams {
+  const TypesetMeasureParams({
+    required this.width,
+    required this.height,
+    required this.pagePadding,
+    required this.fontSize,
+    required this.lineHeight,
+    required this.letterSpacing,
+    required this.fontFamily,
+    required this.devicePixelRatio,
+    this.contentVerticalPadding = 0,
+    this.baselineAlign = true,
+    this.firstLineIndentChars = 2,
+  });
+
+  final double width;
+  final double height;
+  final double pagePadding;
+  final double contentVerticalPadding;
+  final double fontSize;
+  final double lineHeight;
+  final double letterSpacing;
+  final String fontFamily;
+  final double devicePixelRatio;
+  final bool baselineAlign;
+  final int firstLineIndentChars;
+
+  double get availableContentWidthDp =>
+      (width - 2 * pagePadding).clamp(1.0, width);
+}
+
+/// Flutter 侧排版指纹（传递到 Rust 前转换为 FRB [TypesetCalibration]）。
 class CalibrationData {
   final double dpr;
   final double cjkWidth;
@@ -15,6 +56,10 @@ class CalibrationData {
   final double punctWidth;
   final double latinExtWidth;
   final double otherWidth;
+  /// 有效行宽 / 可用行宽（逻辑 dp 维度，无量纲）。
+  final double effectiveLineWidthRatio;
+  /// TextPainter + StrutStyle 实测单行高度（逻辑 dp）。
+  final double lineHeightDp;
 
   const CalibrationData({
     required this.dpr,
@@ -24,7 +69,37 @@ class CalibrationData {
     required this.punctWidth,
     required this.latinExtWidth,
     required this.otherWidth,
+    required this.effectiveLineWidthRatio,
+    required this.lineHeightDp,
   });
+
+  Map<String, dynamic> toJson() => {
+    'dpr': dpr,
+    'cjkWidth': cjkWidth,
+    'asciiWidth': asciiWidth,
+    'digitWidth': digitWidth,
+    'punctWidth': punctWidth,
+    'latinExtWidth': latinExtWidth,
+    'otherWidth': otherWidth,
+    'effectiveLineWidthRatio': effectiveLineWidthRatio,
+    'lineHeightDp': lineHeightDp,
+  };
+
+  factory CalibrationData.fromJson(Map<String, dynamic> json) {
+    return CalibrationData(
+      dpr: (json['dpr'] as num).toDouble(),
+      cjkWidth: (json['cjkWidth'] as num).toDouble(),
+      asciiWidth: (json['asciiWidth'] as num).toDouble(),
+      digitWidth: (json['digitWidth'] as num).toDouble(),
+      punctWidth: (json['punctWidth'] as num).toDouble(),
+      latinExtWidth: (json['latinExtWidth'] as num).toDouble(),
+      otherWidth: (json['otherWidth'] as num).toDouble(),
+      effectiveLineWidthRatio:
+          (json['effectiveLineWidthRatio'] as num?)?.toDouble() ??
+          kDefaultEffectiveLineWidthRatio,
+      lineHeightDp: (json['lineHeightDp'] as num?)?.toDouble() ?? 0,
+    );
+  }
 }
 
 /// 校准采样字符（每组 3-5 个代表性字符）
@@ -35,109 +110,268 @@ const _punctSamples = '，。！';
 const _latinExtSamples = 'ñüé';
 const _otherSamples = '◇Ω☕';
 
-/// 执行字符宽度校准
-///
-/// 在字体已加载的前提下，测量 5 组 Unicode 区间的真实像素宽度。
-/// 总耗时目标 < 2ms（每组测量仅 3-5 个字符）。
-CalibrationData _calibrateCharacterWidths({
-  required double fontSize,
-  required double devicePixelRatio,
-  String fontFamily = 'Noto Sans SC',
-}) {
-  assert(fontSize > 0, 'fontSize must be positive');
-  assert(devicePixelRatio > 0, 'devicePixelRatio must be positive');
+({TextStyle textStyle, StrutStyle strutStyle}) _measureStyles(
+  TypesetMeasureParams params,
+) {
+  final config = ReaderRenderConfig(
+    textColor: Colors.black,
+    backgroundColor: Colors.white,
+    fontSize: params.fontSize,
+    lineHeight: params.lineHeight,
+    fontFamily: params.fontFamily,
+    letterSpacing: params.letterSpacing,
+    paragraphSpacing: 16,
+    pageMargin: params.pagePadding,
+    showVocabularyMark: false,
+    vocabularyWords: const {},
+    baselineAlign: params.baselineAlign,
+  );
+  return (
+    textStyle: config.buildTextStyle(),
+    strutStyle: config.buildStrutStyle(),
+  );
+}
 
-  final cjkWidth = _measureWidth(_cjkSamples, fontSize, fontFamily);
-  final asciiWidth = _measureWidth(_asciiSamples, fontSize, fontFamily);
-  final digitWidth = _measureWidth(_digitSamples, fontSize, fontFamily);
-  final punctWidth = _measureWidth(_punctSamples, fontSize, fontFamily);
-  final latinExtWidth = _measureWidth(_latinExtSamples, fontSize, fontFamily);
-  final otherWidth = _measureWidth(_otherSamples, fontSize, fontFamily);
+double _measureAvgCharWidth(
+  String text,
+  TextStyle textStyle,
+  StrutStyle strutStyle,
+) {
+  if (text.isEmpty) return 0;
+  final tp = TextPainter(
+    text: TextSpan(text: text, style: textStyle),
+    textDirection: TextDirection.ltr,
+    strutStyle: strutStyle,
+    textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
+  )..layout(maxWidth: double.infinity);
+  return tp.width / text.length;
+}
+
+/// 用 TextPainter 测量 Flutter 有效行宽比例。
+double measureEffectiveLineWidthRatio({
+  required TextStyle textStyle,
+  required StrutStyle strutStyle,
+  required double availableWidthDp,
+}) {
+  if (availableWidthDp <= 1.0) return kDefaultEffectiveLineWidthRatio;
+
+  final singleTp = TextPainter(
+    text: TextSpan(text: '中', style: textStyle),
+    textDirection: TextDirection.ltr,
+    strutStyle: strutStyle,
+    textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
+  )..layout();
+  final singleWidth = singleTp.width;
+  if (singleWidth <= 0) return kDefaultEffectiveLineWidthRatio;
+
+  final repeatCount =
+      ((availableWidthDp / singleWidth).ceil() * 3).clamp(1, 500);
+  final testStr = '中' * repeatCount;
+
+  final tp = TextPainter(
+    text: TextSpan(text: testStr, style: textStyle),
+    textDirection: TextDirection.ltr,
+    strutStyle: strutStyle,
+    textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
+  )..layout(maxWidth: availableWidthDp);
+
+  final metrics = tp.computeLineMetrics();
+  if (metrics.isEmpty) return kDefaultEffectiveLineWidthRatio;
+
+  final firstLineWidth = metrics.first.width;
+  final charsPerLine =
+      (firstLineWidth / singleWidth).round().clamp(1, repeatCount);
+  final effectiveWidth = charsPerLine * singleWidth;
+  final ratio =
+      (effectiveWidth / availableWidthDp).clamp(0.85, 1.0);
+
+  Logging.info(
+    '[LineWidthCalib] single=${singleWidth.toStringAsFixed(1)}dp'
+    ' charsPerLine=$charsPerLine'
+    ' effective=${effectiveWidth.toStringAsFixed(1)}dp'
+    ' available=${availableWidthDp.toStringAsFixed(1)}dp'
+    ' ratio=${ratio.toStringAsFixed(3)}',
+  );
+  return ratio;
+}
+
+/// 实测单行高度（逻辑 dp），与分页 [StrutStyle] 一致。
+double measureLineHeightDp({
+  required TextStyle textStyle,
+  required StrutStyle strutStyle,
+}) {
+  final tp = TextPainter(
+    text: TextSpan(text: '中', style: textStyle),
+    textDirection: TextDirection.ltr,
+    strutStyle: strutStyle,
+    textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
+  )..layout(maxWidth: double.infinity);
+  final metrics = tp.computeLineMetrics();
+  if (metrics.isEmpty) return textStyle.fontSize! * (textStyle.height ?? 1.0);
+  return metrics.first.height;
+}
+
+/// 统一排版指纹测量（字宽 + 行宽比 + 行高），使用与渲染相同的 TextPainter 栈。
+CalibrationData measureLayoutFingerprint(TypesetMeasureParams params) {
+  final styles = _measureStyles(params);
+  final cjkWidth = _measureAvgCharWidth(
+    _cjkSamples,
+    styles.textStyle,
+    styles.strutStyle,
+  );
+  final asciiWidth = _measureAvgCharWidth(
+    _asciiSamples,
+    styles.textStyle,
+    styles.strutStyle,
+  );
+  final digitWidth = _measureAvgCharWidth(
+    _digitSamples,
+    styles.textStyle,
+    styles.strutStyle,
+  );
+  final punctWidth = _measureAvgCharWidth(
+    _punctSamples,
+    styles.textStyle,
+    styles.strutStyle,
+  );
+  final latinExtWidth = _measureAvgCharWidth(
+    _latinExtSamples,
+    styles.textStyle,
+    styles.strutStyle,
+  );
+  final otherWidth = _measureAvgCharWidth(
+    _otherSamples,
+    styles.textStyle,
+    styles.strutStyle,
+  );
+  final lineWidthRatio = measureEffectiveLineWidthRatio(
+    textStyle: styles.textStyle,
+    strutStyle: styles.strutStyle,
+    availableWidthDp: params.availableContentWidthDp,
+  );
+  final lineHeightDp = measureLineHeightDp(
+    textStyle: styles.textStyle,
+    strutStyle: styles.strutStyle,
+  );
+
+  Logging.info(
+    '[LayoutCalib] measure complete cjk=${cjkWidth.toStringAsFixed(2)}dp'
+    ' lineH=${lineHeightDp.toStringAsFixed(2)}dp'
+    ' ratio=${lineWidthRatio.toStringAsFixed(3)}'
+    ' font=${params.fontFamily} size=${params.fontSize}',
+  );
 
   return CalibrationData(
-    dpr: devicePixelRatio,
+    dpr: params.devicePixelRatio,
     cjkWidth: cjkWidth,
     asciiWidth: asciiWidth,
     digitWidth: digitWidth,
     punctWidth: punctWidth,
     latinExtWidth: latinExtWidth,
     otherWidth: otherWidth,
+    effectiveLineWidthRatio: lineWidthRatio,
+    lineHeightDp: lineHeightDp,
   );
 }
 
-/// 安全执行的校准（带字体就绪检测 + 重试）
-///
-/// 返回 `null` 表示字体未就绪（调用方应使用保守默认值）。
-/// [maxRetries] 最大重试次数，[retryDelay] 每次重试间隔。
-Future<CalibrationData?> calibrateSafely({
-  required double fontSize,
-  required double devicePixelRatio,
-  String fontFamily = 'Noto Sans SC',
+/// 读本地缓存；未命中则 [measureLayoutFingerprint] 并写入缓存。
+Future<CalibrationData?> resolveLayoutCalibration({
+  required TypesetMeasureParams params,
+  required PreferencesService prefs,
   int maxRetries = 2,
   Duration retryDelay = const Duration(milliseconds: 100),
 }) async {
-  Logging.info(
-    '[FirstLoad] calibrateSafely start fontSize=$fontSize fontFamily=$fontFamily',
-  );
+  final key = LayoutCalibrationStore.cacheKey(params);
+  final cached = LayoutCalibrationStore.load(prefs, key);
+  if (cached != null && isCalibrationPlausible(cached, params.fontSize)) {
+    Logging.info('[LayoutCalib] cache hit key=$key');
+    return cached;
+  }
+
   for (int attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      final result = _calibrateCharacterWidths(
-        fontSize: fontSize,
-        devicePixelRatio: devicePixelRatio,
-        fontFamily: fontFamily,
-      );
-
-      // 防御性校验：CJK 宽度明显异常 => 字体未就绪
-      // cjkWidth 是 Flutter 逻辑像素（maxIntrinsicWidth / char count），
-      // fontSize 也是逻辑像素 — CJK 字符宽度 ≈ fontSize，比例应 ~1.0
-      final ratio = result.cjkWidth / fontSize;
+      final measured = measureLayoutFingerprint(params);
+      final ratio = measured.cjkWidth / params.fontSize;
       if (ratio < 0.5 || ratio > 1.5) {
         if (attempt < maxRetries) {
           Logging.info(
-            'calibrateSafely: CJK width ratio=$ratio (expected ~1.0), '
-            'retrying ($attempt/$maxRetries)',
+            '[LayoutCalib] CJK ratio=$ratio out of range, retry $attempt',
           );
           await Future<void>.delayed(retryDelay);
           continue;
         }
-        Logging.info(
-          'calibrateSafely: CJK width ratio=$ratio out of range, '
-          'returning null after $maxRetries retries',
+        Logging.info('[LayoutCalib] CJK ratio=$ratio, using defaults');
+        return defaultCalibrationData(
+          fontSize: params.fontSize,
+          lineHeight: params.lineHeight,
+          devicePixelRatio: params.devicePixelRatio,
         );
-        return null;
       }
-
-      return result;
+      await LayoutCalibrationStore.save(prefs, key, measured);
+      return measured;
     } catch (e) {
       if (attempt < maxRetries) {
-        Logging.error('calibrateSafely: error ($attempt/$maxRetries): $e');
+        Logging.error('[LayoutCalib] measure error ($attempt): $e');
         await Future<void>.delayed(retryDelay);
         continue;
       }
-      Logging.error(
-        'calibrateSafely: returning null after $maxRetries retries: $e',
-      );
+      Logging.error('[LayoutCalib] measure failed: $e');
       return null;
     }
   }
   return null;
 }
 
-double _measureWidth(String text, double fontSize, String fontFamily) {
-  final paragraph =
-      ui.ParagraphBuilder(
-          ui.ParagraphStyle(
-            textDirection: ui.TextDirection.ltr,
-            fontSize: fontSize,
-            fontFamily: fontFamily,
-          ),
-        )
-        ..pushStyle(ui.TextStyle(fontSize: fontSize, fontFamily: fontFamily))
-        ..addText(text);
-
-  final constraints = const ui.ParagraphConstraints(width: 10000);
-  final paragraphObj = paragraph.build()..layout(constraints);
-  return paragraphObj.maxIntrinsicWidth / text.length;
+/// 安全执行的校准（带字体就绪检测 + 重试）。
+///
+/// 返回 `null` 表示字体未就绪（调用方应使用保守默认值）。
+Future<CalibrationData?> calibrateSafely({
+  required double fontSize,
+  required double devicePixelRatio,
+  String fontFamily = 'Noto Sans SC',
+  double lineHeight = 1.5,
+  double letterSpacing = 0,
+  double width = 400,
+  double height = 600,
+  double padding = 16,
+  int maxRetries = 2,
+  Duration retryDelay = const Duration(milliseconds: 100),
+}) async {
+  Logging.info(
+    '[FirstLoad] calibrateSafely start fontSize=$fontSize fontFamily=$fontFamily',
+  );
+  final params = TypesetMeasureParams(
+    width: width,
+    height: height,
+    pagePadding: padding,
+    fontSize: fontSize,
+    lineHeight: lineHeight,
+    letterSpacing: letterSpacing,
+    fontFamily: fontFamily,
+    devicePixelRatio: devicePixelRatio,
+    contentVerticalPadding: ReaderRenderConfig.pageContentVerticalPadding,
+  );
+  for (int attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      final result = measureLayoutFingerprint(params);
+      final ratio = result.cjkWidth / fontSize;
+      if (ratio < 0.5 || ratio > 1.5) {
+        if (attempt < maxRetries) {
+          await Future<void>.delayed(retryDelay);
+          continue;
+        }
+        return null;
+      }
+      return result;
+    } catch (e) {
+      if (attempt < maxRetries) {
+        await Future<void>.delayed(retryDelay);
+        continue;
+      }
+      return null;
+    }
+  }
+  return null;
 }
 
 /// Unicode 分类，与 Rust `CharWidthTable::char_width` 区间对齐。
@@ -178,25 +412,41 @@ String _sampleCharsFromText(
 
 double? _avgWidthForCategory(
   String samples,
-  double fontSize,
-  String fontFamily,
+  TextStyle textStyle,
+  StrutStyle strutStyle,
 ) {
   if (samples.isEmpty) return null;
-  return _measureWidth(samples, fontSize, fontFamily);
+  return _measureAvgCharWidth(samples, textStyle, strutStyle);
 }
 
 /// 从首屏实际文本采样各 Unicode 区间字宽（P4-4 / ADR-013）。
-///
-/// 某类字符在 [pageText] 中不存在时，回退到 [baseline] 对应值。
 CalibrationData? calibrateFromPageText({
   required String pageText,
   required double fontSize,
   required double devicePixelRatio,
   required String fontFamily,
   CalibrationData? baseline,
+  double lineHeight = 1.5,
+  double letterSpacing = 0,
+  double width = 400,
+  double height = 600,
+  double padding = 16,
   int maxSamplesPerCategory = 24,
 }) {
   if (pageText.trim().isEmpty) return null;
+
+  final params = TypesetMeasureParams(
+    width: width,
+    height: height,
+    pagePadding: padding,
+    fontSize: fontSize,
+    lineHeight: lineHeight,
+    letterSpacing: letterSpacing,
+    fontFamily: fontFamily,
+    devicePixelRatio: devicePixelRatio,
+    contentVerticalPadding: ReaderRenderConfig.pageContentVerticalPadding,
+  );
+  final styles = _measureStyles(params);
 
   final cjkSamples = _sampleCharsFromText(
     pageText,
@@ -238,34 +488,50 @@ CalibrationData? calibrateFromPageText({
       otherSamples.isNotEmpty;
   if (!hasAnySamples) return baseline;
 
-  final fallback =
-      baseline ??
-      _calibrateCharacterWidths(
-        fontSize: fontSize,
-        devicePixelRatio: devicePixelRatio,
-        fontFamily: fontFamily,
-      );
+  final fallback = baseline ?? measureLayoutFingerprint(params);
 
   return CalibrationData(
     dpr: devicePixelRatio,
     cjkWidth:
-        _avgWidthForCategory(cjkSamples, fontSize, fontFamily) ??
+        _avgWidthForCategory(cjkSamples, styles.textStyle, styles.strutStyle) ??
         fallback.cjkWidth,
     asciiWidth:
-        _avgWidthForCategory(asciiSamples, fontSize, fontFamily) ??
+        _avgWidthForCategory(
+          asciiSamples,
+          styles.textStyle,
+          styles.strutStyle,
+        ) ??
         fallback.asciiWidth,
     digitWidth:
-        _avgWidthForCategory(digitSamples, fontSize, fontFamily) ??
+        _avgWidthForCategory(
+          digitSamples,
+          styles.textStyle,
+          styles.strutStyle,
+        ) ??
         fallback.digitWidth,
     punctWidth:
-        _avgWidthForCategory(punctSamples, fontSize, fontFamily) ??
+        _avgWidthForCategory(
+          punctSamples,
+          styles.textStyle,
+          styles.strutStyle,
+        ) ??
         fallback.punctWidth,
     latinExtWidth:
-        _avgWidthForCategory(latinExtSamples, fontSize, fontFamily) ??
+        _avgWidthForCategory(
+          latinExtSamples,
+          styles.textStyle,
+          styles.strutStyle,
+        ) ??
         fallback.latinExtWidth,
     otherWidth:
-        _avgWidthForCategory(otherSamples, fontSize, fontFamily) ??
+        _avgWidthForCategory(
+          otherSamples,
+          styles.textStyle,
+          styles.strutStyle,
+        ) ??
         fallback.otherWidth,
+    effectiveLineWidthRatio: fallback.effectiveLineWidthRatio,
+    lineHeightDp: fallback.lineHeightDp,
   );
 }
 
@@ -285,17 +551,112 @@ bool calibrationDriftExceeds(
       drift(baseline.digitWidth, refined.digitWidth) ||
       drift(baseline.punctWidth, refined.punctWidth) ||
       drift(baseline.latinExtWidth, refined.latinExtWidth) ||
-      drift(baseline.otherWidth, refined.otherWidth);
+      drift(baseline.otherWidth, refined.otherWidth) ||
+      drift(baseline.effectiveLineWidthRatio, refined.effectiveLineWidthRatio) ||
+      drift(baseline.lineHeightDp, refined.lineHeightDp);
 }
 
-/// CJK 宽度与 [fontSize] 比例是否在合理区间（与 calibrateSafely 一致）。
+CalibrationData defaultCalibrationData({
+  required double fontSize,
+  required double devicePixelRatio,
+  double lineHeight = 1.5,
+}) {
+  return CalibrationData(
+    dpr: devicePixelRatio,
+    cjkWidth: fontSize,
+    asciiWidth: fontSize * 0.6,
+    digitWidth: fontSize * 0.6,
+    punctWidth: fontSize,
+    latinExtWidth: fontSize * 0.7,
+    otherWidth: fontSize * 0.8,
+    effectiveLineWidthRatio: kDefaultEffectiveLineWidthRatio,
+    lineHeightDp: fontSize * lineHeight,
+  );
+}
+
+double estimateRustMaxLineWidthPx({
+  required int pageWidthPx,
+  required int fontSizePx,
+  double effectiveLineWidthRatio = kDefaultEffectiveLineWidthRatio,
+  int firstLineIndentChars = 2,
+  bool subtractFirstLineIndent = false,
+}) {
+  final effectiveWidth = pageWidthPx * effectiveLineWidthRatio;
+  if (!subtractFirstLineIndent) {
+    return effectiveWidth.clamp(fontSizePx.toDouble(), effectiveWidth);
+  }
+  final indentPx = fontSizePx * firstLineIndentChars;
+  return (effectiveWidth - indentPx).clamp(fontSizePx.toDouble(), effectiveWidth);
+}
+
+double estimateRustCharsPerLine({
+  required double cjkWidthPx,
+  required int pageWidthPx,
+  required int fontSizePx,
+  double effectiveLineWidthRatio = kDefaultEffectiveLineWidthRatio,
+  int firstLineIndentChars = 2,
+  bool subtractFirstLineIndent = false,
+}) {
+  if (cjkWidthPx <= 0) return 0;
+  final maxLinePx = estimateRustMaxLineWidthPx(
+    pageWidthPx: pageWidthPx,
+    fontSizePx: fontSizePx,
+    effectiveLineWidthRatio: effectiveLineWidthRatio,
+    firstLineIndentChars: firstLineIndentChars,
+    subtractFirstLineIndent: subtractFirstLineIndent,
+  );
+  return maxLinePx / cjkWidthPx;
+}
+
+int estimateRustLinesForText({
+  required String text,
+  required bool applyFirstLineIndent,
+  required double cjkWidthPx,
+  required int pageWidthPx,
+  required int fontSizePx,
+  double effectiveLineWidthRatio = kDefaultEffectiveLineWidthRatio,
+  int firstLineIndentChars = 2,
+}) {
+  final charCount = text.length;
+  if (charCount == 0) return 0;
+
+  final fullLineChars = estimateRustCharsPerLine(
+    cjkWidthPx: cjkWidthPx,
+    pageWidthPx: pageWidthPx,
+    fontSizePx: fontSizePx,
+    effectiveLineWidthRatio: effectiveLineWidthRatio,
+    firstLineIndentChars: firstLineIndentChars,
+  ).floor().clamp(1, charCount);
+
+  final firstLineChars = applyFirstLineIndent
+      ? estimateRustCharsPerLine(
+          cjkWidthPx: cjkWidthPx,
+          pageWidthPx: pageWidthPx,
+          fontSizePx: fontSizePx,
+          effectiveLineWidthRatio: effectiveLineWidthRatio,
+          firstLineIndentChars: firstLineIndentChars,
+          subtractFirstLineIndent: true,
+        ).floor().clamp(1, charCount)
+      : fullLineChars;
+
+  var remaining = charCount;
+  var lines = 0;
+  final firstTake = firstLineChars.clamp(1, remaining);
+  remaining -= firstTake;
+  lines = 1;
+  while (remaining > 0) {
+    remaining -= fullLineChars.clamp(1, remaining);
+    lines++;
+  }
+  return lines;
+}
+
 bool isCalibrationPlausible(CalibrationData data, double fontSize) {
   if (fontSize <= 0) return false;
   final ratio = data.cjkWidth / fontSize;
   return ratio >= 0.5 && ratio <= 1.5;
 }
 
-/// 将 [CalibrationData] 转为 Rust FRB 类型。
 TypesetCalibration calibrationToRust(CalibrationData data) {
   final dpr = data.dpr;
   return TypesetCalibration(
@@ -306,29 +667,31 @@ TypesetCalibration calibrationToRust(CalibrationData data) {
     punctWidth: data.punctWidth * dpr,
     otherWidth: data.otherWidth * dpr,
     latinExtWidth: data.latinExtWidth * dpr,
+    effectiveLineWidthRatio: data.effectiveLineWidthRatio,
+    measuredLineHeightPx: data.lineHeightDp * dpr,
   );
 }
 
-// ===== Typeset config builder =====
+({double contentVerticalPadding, double pageHeightLineBuffer})
+paginatedTypesetLayoutInsets({
+  required double fontSize,
+  required double lineHeight,
+  double paragraphSpacing = 16,
+}) {
+  return (
+    contentVerticalPadding: ReaderRenderConfig.pageContentVerticalPadding,
+    pageHeightLineBuffer: 0,
+  );
+}
 
-/// 将 Flutter UI 参数转换为 Rust TypesetConfig
-///
-/// [width] / [height]: 页面可用逻辑像素（dp），来自 MediaQuery.size - padding
-/// [fontSize]: 字体大小（逻辑像素 dp）
-/// [lineHeight]: 行高倍数（如 1.5）
-/// [padding]: 四边距（逻辑像素 dp）
-/// [devicePixelRatio]: 设备像素比
-/// [calibration]: 字符宽度校准数据（可选）
-/// [fontFamily]: 当前字体系列名
-/// [letterSpacing]: 字间距（逻辑像素 dp）
-/// [paragraphSpacing]: 段落间距（逻辑像素 dp）
-/// [language]: 语言类型
 TypesetConfig buildTypesetConfig({
   required double width,
   required double height,
   required double fontSize,
   required double lineHeight,
   double padding = 16,
+  double contentVerticalPadding = 0,
+  double pageHeightLineBuffer = 0,
   double devicePixelRatio = 1.0,
   double autoSpaceRatio = 0.25,
   int firstLineIndent = 2,
@@ -339,23 +702,45 @@ TypesetConfig buildTypesetConfig({
   bool punctuationSqueeze = true,
   LanguageType language = LanguageType.auto,
 }) {
-  final rustCalibration = calibration != null
-      ? calibrationToRust(calibration)
-      : null;
+  final effectiveCalibration =
+      calibration ??
+      defaultCalibrationData(
+        fontSize: fontSize,
+        devicePixelRatio: devicePixelRatio,
+        lineHeight: lineHeight,
+      );
+  final rustCalibration = calibrationToRust(effectiveCalibration);
+  final calibSource = calibration != null ? 'measured' : 'default';
 
-  final pageHeightPx = (height * devicePixelRatio).round();
+  final contentHeight = (height -
+          2 * contentVerticalPadding -
+          pageHeightLineBuffer)
+      .clamp(100.0, height);
+  final pageHeightPx = (contentHeight * devicePixelRatio).round();
   final pageWidthPx = ((width - 2 * padding) * devicePixelRatio).round();
-  final estLines = pageHeightPx > 0
-      ? pageHeightPx / (fontSize * lineHeight * devicePixelRatio)
+  final lineHeightPx = effectiveCalibration.lineHeightDp * devicePixelRatio;
+  final estLines = pageHeightPx > 0 && lineHeightPx > 0
+      ? pageHeightPx / lineHeightPx
       : 0;
   Logging.info(
     '[PageEstimate] buildTypesetConfig height_dp=${height.toStringAsFixed(1)}'
-    ' vHPad=2*$padding=${(2 * padding).toStringAsFixed(1)}'
+    ' contentVPad=2*$contentVerticalPadding=${(2 * contentVerticalPadding).toStringAsFixed(1)}'
+    ' lineBuf=${pageHeightLineBuffer.toStringAsFixed(1)}'
+    ' contentH_dp=${contentHeight.toStringAsFixed(1)}'
     ' dpr=${devicePixelRatio.toStringAsFixed(1)}'
     ' pageHeight=$pageHeightPx px'
     ' pageWidth=$pageWidthPx px'
     ' fontSize=${fontSize.toStringAsFixed(1)} dp'
-    ' lineH=$lineHeight estLinesPerPage=${estLines.toStringAsFixed(1)}',
+    ' lineH=${lineHeightPx.toStringAsFixed(1)}px'
+    ' ratio=${effectiveCalibration.effectiveLineWidthRatio.toStringAsFixed(3)}'
+    ' estLinesPerPage=${estLines.toStringAsFixed(1)}',
+  );
+  Logging.info(
+    '[PageEstimate] calib($calibSource) cjk=${rustCalibration.cjkWidth.toStringAsFixed(1)}'
+    ' ascii=${rustCalibration.asciiWidth.toStringAsFixed(1)}'
+    ' punct=${rustCalibration.punctWidth.toStringAsFixed(1)}'
+    ' dpr=${rustCalibration.dpr.toStringAsFixed(1)}'
+    ' fontPx=${(fontSize * devicePixelRatio).round()}',
   );
 
   return TypesetConfig(
@@ -371,5 +756,37 @@ TypesetConfig buildTypesetConfig({
     punctuationSqueeze: punctuationSqueeze,
     fontFamily: fontFamily,
     calibration: rustCalibration,
+  );
+}
+
+/// 从 [PaginationCoordinator] 当前布局参数构建测量输入。
+TypesetMeasureParams typesetMeasureParamsFromLayout({
+  required double pageWidth,
+  required double pageHeight,
+  required double pagePadding,
+  required double fontSize,
+  required double lineHeight,
+  required double letterSpacing,
+  required String fontFamily,
+  required double devicePixelRatio,
+  required bool baselineAlign,
+  required bool firstLineIndent,
+}) {
+  final layoutInsets = paginatedTypesetLayoutInsets(
+    fontSize: fontSize,
+    lineHeight: lineHeight,
+  );
+  return TypesetMeasureParams(
+    width: pageWidth,
+    height: pageHeight,
+    pagePadding: pagePadding,
+    contentVerticalPadding: layoutInsets.contentVerticalPadding,
+    fontSize: fontSize,
+    lineHeight: lineHeight,
+    letterSpacing: letterSpacing,
+    fontFamily: fontFamily,
+    devicePixelRatio: devicePixelRatio,
+    baselineAlign: baselineAlign,
+    firstLineIndentChars: firstLineIndent ? 2 : 0,
   );
 }

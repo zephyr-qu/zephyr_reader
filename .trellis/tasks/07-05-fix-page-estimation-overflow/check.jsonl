@@ -1,1 +1,1 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"_schema": "Manual verification records for phase6-verification.md. One JSON object per line.", "_required_fields": ["case", "device", "dpr", "overflow_dp", "pass", "ts"], "_optional_fields": ["fontSize", "ratio", "lineHeightDp", "flut_lines", "rust_est_lines", "cache_hit", "notes"]}

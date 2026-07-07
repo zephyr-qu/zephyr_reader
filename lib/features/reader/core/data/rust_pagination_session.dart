@@ -69,22 +69,31 @@ class RustPaginationSession implements PaginationSession {
     return book;
   }
 
-  TypesetConfig _buildConfig(PaginationParams p) => buildTypesetConfig(
-    width: p.width,
-    height: p.height,
-    fontSize: p.fontSize,
-    lineHeight: p.lineHeight,
-    padding: p.padding,
-    devicePixelRatio: p.devicePixelRatio,
-    calibration: p.calibration,
-    fontFamily: p.fontFamily,
-    letterSpacing: p.letterSpacing,
-    paragraphSpacing: p.paragraphSpacing,
-    punctuationSqueeze: p.punctuationSqueeze,
-    firstLineIndent: p.firstLineIndent ? 2 : 0,
-    language: p.language,
-    autoSpaceRatio: p.autoSpaceRatio,
-  );
+  TypesetConfig _buildConfig(PaginationParams p) {
+    final layoutInsets = paginatedTypesetLayoutInsets(
+      fontSize: p.fontSize,
+      lineHeight: p.lineHeight,
+      paragraphSpacing: p.paragraphSpacing,
+    );
+    return buildTypesetConfig(
+      width: p.width,
+      height: p.height,
+      fontSize: p.fontSize,
+      lineHeight: p.lineHeight,
+      padding: p.padding,
+      contentVerticalPadding: layoutInsets.contentVerticalPadding,
+      pageHeightLineBuffer: layoutInsets.pageHeightLineBuffer,
+      devicePixelRatio: p.devicePixelRatio,
+      calibration: p.calibration,
+      fontFamily: p.fontFamily,
+      letterSpacing: p.letterSpacing,
+      paragraphSpacing: p.paragraphSpacing,
+      punctuationSqueeze: p.punctuationSqueeze,
+      firstLineIndent: p.firstLineIndent ? 2 : 0,
+      language: p.language,
+      autoSpaceRatio: p.autoSpaceRatio,
+    );
+  }
 
   void _syncImageMaxWidth(PaginationParams params) {
     _imageMaxWidthPx = (params.width - 2 * params.padding).round().clamp(

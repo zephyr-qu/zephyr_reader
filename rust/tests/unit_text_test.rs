@@ -218,6 +218,7 @@ fn test_char_width_table() {
         punct_width: 16.0,
         latin_ext_width: 11.2,
         other_width: 12.8,
+        ..TypesetCalibration::default()
     };
     let table = CharWidthTable::from_calibration(&cal);
 

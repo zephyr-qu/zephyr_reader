@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 
-/// 分页单页视口：固定高度 + 裁剪溢出。DEBUG: 开启滚动以验证内容是否正好一页。
+/// 分页单页视口：固定高度，内容须由 Rust 分页保证不溢出。
 class PaginatedPageViewport extends StatelessWidget {
   const PaginatedPageViewport({
     super.key,
@@ -23,11 +23,7 @@ class PaginatedPageViewport extends StatelessWidget {
     return SizedBox(
       height: maxHeight,
       width: maxWidth,
-      child: ClipRect(
-        child: SingleChildScrollView(
-          child: Align(alignment: Alignment.topCenter, child: child),
-        ),
-      ),
+      child: child,
     );
   }
 }
