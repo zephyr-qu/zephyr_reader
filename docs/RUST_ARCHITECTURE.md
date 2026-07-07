@@ -77,7 +77,7 @@ Rust 分页引擎的本质是一个**确定性数学估算器**：它拿到 Flut
 | 2 | **测完再分页** | `resolveLayoutCalibration()` 先于 `paginate_chapter()`，首屏就对 |
 | 3 | **配置变更自动重测** | `config_hash` 变化 → cache miss → 重测 → 重分页 |
 | 4 | **块级字号按比例** | `effective_line_height = measured_base × (block_font / base_font)` |
-| 5 | **标量校准优先** | 断行位置差异通过 overflow 指标验收，不启动「行边界传递」重构 |
+| 5 | **标量校准优先** | 断行位置差异通过 overflow 指标验收；行边界传递为长期可选项 |
 | 6 | **所有 panic 禁止跨越 FFI** | 所有导出函数返回 `Result<T, AppError>` |
 | 7 | **零拷贝优先** | `Uint8List`/`String` 映射，避免 struct 序列化冗余 |
 | 8 | **双引擎存储** | SQLite（结构化数据）+ sled（KV 缓存） |
