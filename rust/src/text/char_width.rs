@@ -1,5 +1,9 @@
 //! 字符宽度查找表
 //! 基于 Flutter TextPainter 校准值的字符宽度查询，用于精确文本排版
+//!
+//! TODO(ponytail): 当前使用定长 `[f32; 7]` 覆盖 CJK / ASCII / 数字 / CJK标点 / Latin扩展。
+//! 若未来需要支持 Emoji 连字、阿拉伯文、天城文等 Unicode 区块，评估用 `hashbrown`/`phf`
+//! 替代固定数组，保持 `char_width()` 的 `#[inline(always)]` 性能特性不变。
 
 use crate::domain::types::typeset::TypesetCalibration;
 

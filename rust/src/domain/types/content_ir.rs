@@ -17,7 +17,9 @@ pub const IMAGE_PLAIN_CHAR_LEN: u32 = 1;
 /// 块级 plain 坐标：Unicode 标量字符索引（与 glossary「charOffset」语义一致）。
 ///
 /// `plain_start` 为章内从 0 起的字符下标；`plain_len` 为该块占用的字符数。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode,
+)]
 #[frb(non_opaque)]
 pub struct BlockPlainRange {
     pub plain_start: u32,
@@ -38,7 +40,9 @@ impl BlockPlainRange {
 }
 
 /// 文本块级样式（ADR-010；行内 span 后续扩展）。
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, bincode::Encode, bincode::Decode)]
+#[derive(
+    Debug, Clone, PartialEq, Serialize, Deserialize, Default, bincode::Encode, bincode::Decode,
+)]
 #[frb(non_opaque)]
 pub struct TextBlockStyle {
     pub is_heading: bool,
@@ -84,11 +88,7 @@ impl TextBlock {
     }
 
     /// EPUB 富文本段（[spans] 拼接须等于 [text]）。
-    pub fn with_spans(
-        plain_start: u32,
-        spans: Vec<RichTextSpan>,
-        style: TextBlockStyle,
-    ) -> Self {
+    pub fn with_spans(plain_start: u32, spans: Vec<RichTextSpan>, style: TextBlockStyle) -> Self {
         let text: String = spans.iter().map(|s| s.text()).collect();
         let plain_len = text.chars().count() as u32;
         Self {
@@ -125,11 +125,7 @@ impl ImageBlock {
         }
     }
 
-    pub fn with_intrinsic_size(
-        mut self,
-        width: Option<u32>,
-        height: Option<u32>,
-    ) -> Self {
+    pub fn with_intrinsic_size(mut self, width: Option<u32>, height: Option<u32>) -> Self {
         self.intrinsic_width = width;
         self.intrinsic_height = height;
         self
@@ -177,11 +173,30 @@ pub struct ChapterContentIr {
     pub blocks: Vec<ContentBlock>,
     /// 章级 plain（Text 块拼接 + 每 Image 一个 `\uFFFC`）。
     pub plain_text: String,
+    /// 预计算的行断点字符索引（绝对位置，在 plain_text 中）。
+    /// `Some` 时 Rust 跳过自身断行，直接用此列表分页。
+    pub line_break_indices: Option<Vec<u32>>,
 }
 
 impl ChapterContentIr {
     pub fn new(blocks: Vec<ContentBlock>, plain_text: String) -> Self {
-        Self { blocks, plain_text }
+        Self {
+            blocks,
+            plain_text,
+            line_break_indices: None,
+        }
+    }
+
+    pub fn with_line_breaks(
+        blocks: Vec<ContentBlock>,
+        plain_text: String,
+        line_break_indices: Vec<u32>,
+    ) -> Self {
+        Self {
+            blocks,
+            plain_text,
+            line_break_indices: Some(line_break_indices),
+        }
     }
 
     pub fn block_count(&self) -> usize {
@@ -194,7 +209,10 @@ impl ChapterContentIr {
 
     /// plain 中 `\uFFFC` 个数应等于 Image 块数（ADR-008）。
     pub fn image_placeholder_count(&self) -> usize {
-        self.plain_text.chars().filter(|&c| c == IMAGE_PLAIN_PLACEHOLDER).count()
+        self.plain_text
+            .chars()
+            .filter(|&c| c == IMAGE_PLAIN_PLACEHOLDER)
+            .count()
     }
 }
 
@@ -221,7 +239,11 @@ mod tests {
     fn chapter_ir_placeholder_count_matches_images() {
         let ir = ChapterContentIr::new(
             vec![
-                ContentBlock::Text(TextBlock::new(0, "before".into(), TextBlockStyle::default())),
+                ContentBlock::Text(TextBlock::new(
+                    0,
+                    "before".into(),
+                    TextBlockStyle::default(),
+                )),
                 ContentBlock::Image(ImageBlock::new(6, "a1".into(), None)),
                 ContentBlock::Image(ImageBlock::new(7, "a2".into(), None)),
             ],

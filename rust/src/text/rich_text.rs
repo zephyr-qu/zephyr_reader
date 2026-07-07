@@ -3,9 +3,9 @@
 
 use crate::domain::{AppError, RichParagraph, RichTextSpan, RichTextSpanData, SpanStyle};
 use crate::text::css;
-use html5ever::Attribute;
 use html5ever::parse_document;
 use html5ever::tendril::TendrilSink;
+use html5ever::Attribute;
 use markup5ever_rcdom::{Handle, NodeData, RcDom};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -34,7 +34,9 @@ pub fn parse_html_to_rich_text(html_content: &str) -> Result<Vec<RichParagraph>,
     let dom = parse_document(RcDom::default(), Default::default())
         .from_utf8()
         .read_from(&mut html_content.as_bytes())
-        .map_err(|e| AppError::EpubParseError { reason: format!("HTML parse failed: {}", e) })?;
+        .map_err(|e| AppError::EpubParseError {
+            reason: format!("HTML parse failed: {}", e),
+        })?;
 
     let mut paragraphs = Vec::new();
 
@@ -73,10 +75,16 @@ pub fn parse_html_to_rich_text(html_content: &str) -> Result<Vec<RichParagraph>,
     Ok(paragraphs)
 }
 
-#[derive(Debug, Clone, Default)]
-/// 计算后的样式表
+/// CSS 属性白名单 — 仅提取排版引擎和渲染层实际使用的属性。
 ///
-/// 存储解析后的字体大小、颜色、字体系列、对齐方式、行高、字重、字体样式、文本修饰等 CSS 属性
+/// 此集合即 EPUB CSS 的"白名单"：`parse_css` 对所有 `<style>` 声明无差别解析，
+/// 但 `apply_declaration` 仅消费以下属性。未列出的属性（background / border / float /
+/// position / display 等）在解析后被静默丢弃，不进入 IR。
+///
+/// 排版引擎消费：font_size / font_family / text_align / line_height /
+///               text_indent_em / margin_top_em / margin_bottom_em
+/// 渲染层（行内格式）消费：color / font_weight / font_style / text_decoration
+#[derive(Debug, Clone, Default)]
 struct ComputedStyle {
     font_size: Option<f32>,
     color: Option<String>,
@@ -250,23 +258,42 @@ fn walk_paragraph_children(
     let mut spans: Vec<RichTextSpan> = Vec::new();
 
     for child in handle.children.borrow().iter() {
-        if try_emit_image_paragraph(child, &mut spans, paragraphs, inherited_class.clone(), parent_style)
-        {
+        if try_emit_image_paragraph(
+            child,
+            &mut spans,
+            paragraphs,
+            inherited_class.clone(),
+            parent_style,
+        ) {
             continue;
         }
         if let NodeData::Element { ref name, .. } = child.data {
             match name.local.as_ref() {
                 "br" => {
-                    spans.push(RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
-                        text: "\n".to_string(),
-                        font_size: None,
-                        color: None,
-                    }));
+                    spans.push(RichTextSpan::Styled(
+                        SpanStyle::Plain,
+                        RichTextSpanData {
+                            text: "\n".to_string(),
+                            font_size: None,
+                            color: None,
+                        },
+                    ));
                 }
-                "p" | "div" | "section" | "article" | "h1" | "h2" | "h3" | "h4"
-                | "h5" | "h6" | "ul" | "ol" | "li" | "blockquote" | "table" | "pre" => {
-                    flush_text_paragraph(&mut spans, paragraphs, inherited_class.clone(), parent_style);
-                    traverse_dom(child, paragraphs, inherited_class.clone(), parent_style, style_map);
+                "p" | "div" | "section" | "article" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6"
+                | "ul" | "ol" | "li" | "blockquote" | "table" | "pre" => {
+                    flush_text_paragraph(
+                        &mut spans,
+                        paragraphs,
+                        inherited_class.clone(),
+                        parent_style,
+                    );
+                    traverse_dom(
+                        child,
+                        paragraphs,
+                        inherited_class.clone(),
+                        parent_style,
+                        style_map,
+                    );
                 }
                 _ => {
                     walk_inline_subtree(
@@ -303,7 +330,13 @@ fn walk_inline_subtree(
     parent_style: &ComputedStyle,
     style_map: &HashMap<String, Vec<css::CssRule>>,
 ) {
-    if try_emit_image_paragraph(handle, spans, paragraphs, inherited_class.clone(), parent_style) {
+    if try_emit_image_paragraph(
+        handle,
+        spans,
+        paragraphs,
+        inherited_class.clone(),
+        parent_style,
+    ) {
         return;
     }
 
@@ -324,17 +357,20 @@ fn walk_inline_subtree(
 
         match name.local.as_ref() {
             "br" => {
-                spans.push(RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
-                    text: "\n".to_string(),
-                    font_size: None,
-                    color: None,
-                }));
+                spans.push(RichTextSpan::Styled(
+                    SpanStyle::Plain,
+                    RichTextSpanData {
+                        text: "\n".to_string(),
+                        font_size: None,
+                        color: None,
+                    },
+                ));
             }
             "b" | "strong" | "i" | "em" | "u" | "s" | "strike" | "del" | "code" | "a" | "span" => {
                 collect_text_spans(handle, spans, parent_style, style_map);
             }
-            "p" | "div" | "section" | "article" | "h1" | "h2" | "h3" | "h4"
-            | "h5" | "h6" | "ul" | "ol" | "li" | "blockquote" | "table" | "pre" => {
+            "p" | "div" | "section" | "article" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6"
+            | "ul" | "ol" | "li" | "blockquote" | "table" | "pre" => {
                 flush_text_paragraph(spans, paragraphs, inherited_class.clone(), parent_style);
                 traverse_dom(handle, paragraphs, inherited_class, parent_style, style_map);
             }
@@ -432,7 +468,12 @@ fn try_emit_image_paragraph(
     inherited_class: Option<String>,
     parent_style: &ComputedStyle,
 ) -> bool {
-    if let NodeData::Element { ref name, ref attrs, .. } = handle.data {
+    if let NodeData::Element {
+        ref name,
+        ref attrs,
+        ..
+    } = handle.data
+    {
         if name.local.as_ref() != "img" {
             return false;
         }
@@ -486,7 +527,13 @@ fn traverse_dom(
 
             "div" | "section" | "article" => {
                 for child in node.children.borrow().iter() {
-                    traverse_dom(child, paragraphs, effective_class.clone(), &merged_style, style_map);
+                    traverse_dom(
+                        child,
+                        paragraphs,
+                        effective_class.clone(),
+                        &merged_style,
+                        style_map,
+                    );
                 }
             }
 
@@ -537,7 +584,11 @@ fn traverse_dom(
                         0,
                         true,
                         level,
-                        if current_class.is_empty() { inherited_class } else { Some(current_class) },
+                        if current_class.is_empty() {
+                            inherited_class
+                        } else {
+                            Some(current_class)
+                        },
                         merged_style.text_align.clone().or(Some("left".to_string())),
                         merged_style.line_height,
                         merged_style.margin_top_em,
@@ -547,7 +598,6 @@ fn traverse_dom(
                         merged_style.font_size,
                     ));
                 }
-
             }
 
             "li" => {
@@ -557,11 +607,14 @@ fn traverse_dom(
                 if !spans.is_empty() {
                     spans.insert(
                         0,
-                        RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
-                            text: "• ".to_string(),
-                            font_size: None,
-                            color: None,
-                        }),
+                        RichTextSpan::Styled(
+                            SpanStyle::Plain,
+                            RichTextSpanData {
+                                text: "• ".to_string(),
+                                font_size: None,
+                                color: None,
+                            },
+                        ),
                     );
 
                     paragraphs.push(build_paragraph(
@@ -569,7 +622,11 @@ fn traverse_dom(
                         0,
                         false,
                         0,
-                        if current_class.is_empty() { inherited_class } else { Some(current_class) },
+                        if current_class.is_empty() {
+                            inherited_class
+                        } else {
+                            Some(current_class)
+                        },
                         merged_style.text_align.clone(),
                         merged_style.line_height,
                         merged_style.margin_top_em,
@@ -579,7 +636,6 @@ fn traverse_dom(
                         merged_style.font_size,
                     ));
                 }
-
             }
 
             _ => {
@@ -631,11 +687,14 @@ fn collect_text_spans(
                 collect_plain_text(handle, &mut inner_text);
 
                 if !inner_text.trim().is_empty() {
-                    spans.push(RichTextSpan::Styled(SpanStyle::Bold, RichTextSpanData {
-                        text: inner_text.trim().to_string(),
-                        font_size: merged_style.font_size,
-                        color: merged_style.color.clone(),
-                    }));
+                    spans.push(RichTextSpan::Styled(
+                        SpanStyle::Bold,
+                        RichTextSpanData {
+                            text: inner_text.trim().to_string(),
+                            font_size: merged_style.font_size,
+                            color: merged_style.color.clone(),
+                        },
+                    ));
                 }
             }
 
@@ -644,11 +703,14 @@ fn collect_text_spans(
                 collect_plain_text(handle, &mut inner_text);
 
                 if !inner_text.trim().is_empty() {
-                    spans.push(RichTextSpan::Styled(SpanStyle::Italic, RichTextSpanData {
-                        text: inner_text.trim().to_string(),
-                        font_size: merged_style.font_size,
-                        color: merged_style.color.clone(),
-                    }));
+                    spans.push(RichTextSpan::Styled(
+                        SpanStyle::Italic,
+                        RichTextSpanData {
+                            text: inner_text.trim().to_string(),
+                            font_size: merged_style.font_size,
+                            color: merged_style.color.clone(),
+                        },
+                    ));
                 }
             }
 
@@ -657,11 +719,14 @@ fn collect_text_spans(
                 collect_plain_text(handle, &mut inner_text);
 
                 if !inner_text.trim().is_empty() {
-                    spans.push(RichTextSpan::Styled(SpanStyle::Underline, RichTextSpanData {
-                        text: inner_text.trim().to_string(),
-                        font_size: merged_style.font_size,
-                        color: merged_style.color.clone(),
-                    }));
+                    spans.push(RichTextSpan::Styled(
+                        SpanStyle::Underline,
+                        RichTextSpanData {
+                            text: inner_text.trim().to_string(),
+                            font_size: merged_style.font_size,
+                            color: merged_style.color.clone(),
+                        },
+                    ));
                 }
             }
 
@@ -670,11 +735,14 @@ fn collect_text_spans(
                 collect_plain_text(handle, &mut inner_text);
 
                 if !inner_text.trim().is_empty() {
-                    spans.push(RichTextSpan::Styled(SpanStyle::Strikethrough, RichTextSpanData {
-                        text: inner_text.trim().to_string(),
-                        font_size: merged_style.font_size,
-                        color: merged_style.color.clone(),
-                    }));
+                    spans.push(RichTextSpan::Styled(
+                        SpanStyle::Strikethrough,
+                        RichTextSpanData {
+                            text: inner_text.trim().to_string(),
+                            font_size: merged_style.font_size,
+                            color: merged_style.color.clone(),
+                        },
+                    ));
                 }
             }
 
@@ -683,11 +751,14 @@ fn collect_text_spans(
                 collect_plain_text(handle, &mut inner_text);
 
                 if !inner_text.trim().is_empty() {
-                    spans.push(RichTextSpan::Styled(SpanStyle::Code, RichTextSpanData {
-                        text: inner_text.trim().to_string(),
-                        font_size: merged_style.font_size,
-                        color: merged_style.color.clone(),
-                    }));
+                    spans.push(RichTextSpan::Styled(
+                        SpanStyle::Code,
+                        RichTextSpanData {
+                            text: inner_text.trim().to_string(),
+                            font_size: merged_style.font_size,
+                            color: merged_style.color.clone(),
+                        },
+                    ));
                 }
             }
 
@@ -709,11 +780,14 @@ fn collect_text_spans(
             }
 
             "br" => {
-                spans.push(RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
-                    text: "\n".to_string(),
-                    font_size: None,
-                    color: None,
-                }));
+                spans.push(RichTextSpan::Styled(
+                    SpanStyle::Plain,
+                    RichTextSpanData {
+                        text: "\n".to_string(),
+                        font_size: None,
+                        color: None,
+                    },
+                ));
             }
 
             "span" => {
@@ -725,7 +799,8 @@ fn collect_text_spans(
             "img" => {}
 
             "ul" | "ol" | "blockquote" | "pre" | "table" => {}
-            "div" | "section" | "article" | "p" | "li" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
+            "div" | "section" | "article" | "p" | "li" | "h1" | "h2" | "h3" | "h4" | "h5"
+            | "h6" => {
                 for child in node.children.borrow().iter() {
                     collect_text_spans(child, spans, &merged_style, style_map);
                 }
@@ -845,7 +920,11 @@ mod tests {
     fn test_parse_html_img_inside_paragraph() {
         let html = "<p>before<img src=\"inline.jpg\" alt=\"inline\"/>after</p>";
         let result = parse_html_to_rich_text(html).unwrap();
-        assert_eq!(result.len(), 3, "expected text + image + text, got {result:?}");
+        assert_eq!(
+            result.len(),
+            3,
+            "expected text + image + text, got {result:?}"
+        );
         assert!(!result[0].is_image);
         assert!(result[0].full_text().contains("before"));
         assert!(result[1].is_image);
@@ -859,7 +938,9 @@ mod tests {
         let html = "<p>see <span><img src=\"nested.jpg\" alt=\"n\"/></span> end</p>";
         let result = parse_html_to_rich_text(html).unwrap();
         assert!(
-            result.iter().any(|p| p.is_image && p.image_src.as_deref() == Some("nested.jpg")),
+            result
+                .iter()
+                .any(|p| p.is_image && p.image_src.as_deref() == Some("nested.jpg")),
             "nested img should produce image paragraph: {result:?}"
         );
     }
@@ -869,12 +950,10 @@ mod tests {
         let html = r#"<p><span style="font-weight: bold">bold</span> plain</p>"#;
         let result = parse_html_to_rich_text(html).unwrap();
         assert_eq!(result.len(), 1);
-        assert!(
-            result[0]
-                .spans
-                .iter()
-                .any(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Bold, _)))
-        );
+        assert!(result[0]
+            .spans
+            .iter()
+            .any(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Bold, _))));
     }
 
     #[test]
@@ -882,12 +961,10 @@ mod tests {
         let html = r#"<p><span style="font-style: italic">em</span></p>"#;
         let result = parse_html_to_rich_text(html).unwrap();
         assert_eq!(result.len(), 1);
-        assert!(
-            result[0]
-                .spans
-                .iter()
-                .any(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Italic, _)))
-        );
+        assert!(result[0]
+            .spans
+            .iter()
+            .any(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Italic, _))));
     }
 
     #[test]

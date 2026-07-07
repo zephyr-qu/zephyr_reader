@@ -148,6 +148,14 @@ fn append_spine_html_to_builder(
     Ok(())
 }
 
+/// EPUB CSS → TextBlockStyle 映射。
+///
+/// 当前为透传：所有 RichParagraph 上的 CSS 属性直接映射。
+///
+/// TODO(ponytail): 增加样式白名单过滤步骤。仅提取渲染/排版层实际使用的属性
+/// （font_size / text_indent / margin / font_family / line_height / text_align / is_heading）。
+/// 显式丢弃不支持的属性（color / background / border / float / position 等），
+/// 减少 IR 体积和 BlockPaginator 的无用分支。
 fn rich_paragraph_style(p: &RichParagraph) -> TextBlockStyle {
     // text_indent_em：仅 EPUB/CSS 显式值；None → Flutter/Rust 侧用用户首行缩进设置。
     let text_indent_em = if p.is_heading {
