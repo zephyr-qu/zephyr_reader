@@ -24,6 +24,7 @@ Widget buildBlockPageContent({
   required void Function(String text, int start, int end)? onSelectionChanged,
   required void Function(Offset?)? onSelectionGlobalPosition,
   required double maxContentWidth,
+  CalibrationData? layoutCalibration,
 }) {
   final vPad = ReaderRenderConfig.pageContentVerticalPadding;
   final imageMaxWidth = (maxContentWidth - 2 * config.pageMargin).clamp(
@@ -60,21 +61,26 @@ Widget buildBlockPageContent({
           final flutCjkPx = flutCjkDp * dpr;
           final pageWidthPx = (constraints.maxWidth * dpr).round();
           final fontSizePx = (config.fontSize * dpr).round();
-          final rustCjkPx = flutCjkPx * kRustCharWidthScale;
+          final ratio =
+              layoutCalibration?.effectiveLineWidthRatio ??
+              kDefaultEffectiveLineWidthRatio;
+          final cjkWidthPx = layoutCalibration != null
+              ? layoutCalibration.cjkWidth * dpr
+              : flutCjkPx * kRustCharWidthScale;
           final rustEstCharsPerLine = estimateRustCharsPerLine(
-            cjkWidthPx: rustCjkPx,
+            cjkWidthPx: cjkWidthPx,
             pageWidthPx: pageWidthPx,
             fontSizePx: fontSizePx,
+            effectiveLineWidthRatio: ratio,
           );
 
           Logging.info(
             '[LineWidth] flutCjk=${flutCjkDp.toStringAsFixed(1)}dp'
-            ' ${flutCjkPx.toStringAsFixed(0)}px rustCjk=${rustCjkPx.toStringAsFixed(0)}px'
+            ' ${flutCjkPx.toStringAsFixed(0)}px cjkPx=${cjkWidthPx.toStringAsFixed(0)}px'
             ' fontSize=${config.fontSize}dp'
             ' lineH=${config.lineHeight}'
             ' pageW_px=$pageWidthPx'
-            ' rustScale=$kRustCharWidthScale'
-            ' safety=$kRustLineWidthSafetyRatio'
+            ' ratio=${ratio.toStringAsFixed(3)}'
             ' estCharsPerLine=${rustEstCharsPerLine.toStringAsFixed(1)}'
             ' viewportW=${constraints.maxWidth.toStringAsFixed(1)}dp',
           );
@@ -96,18 +102,23 @@ Widget buildBlockPageContent({
                 irStyle,
                 config,
               );
-              final textStyle = config.buildTextStyle(
-                fontFamily: irStyle.fontFamily,
-                fontSizeMultiplier: blockFontSize / config.fontSize,
-              ).copyWith(height: blockLineHeight);
+              final textStyle = config
+                  .buildTextStyle(
+                    fontFamily: irStyle.fontFamily,
+                    fontSizeMultiplier: blockFontSize / config.fontSize,
+                  )
+                  .copyWith(height: blockLineHeight);
               final indentPx = slice.isBlockStart
                   ? IrTextBlockStyle.resolveFirstLineIndentPx(irStyle, config)
                   : 0.0;
               final blockPadding = slice.isBlockStart
                   ? IrTextBlockStyle.resolveBlockPadding(irStyle, config)
                   : EdgeInsets.zero;
-              final layoutMaxWidth = (constraints.maxWidth - blockPadding.horizontal)
-                  .clamp(1.0, constraints.maxWidth);
+              final layoutMaxWidth =
+                  (constraints.maxWidth - blockPadding.horizontal).clamp(
+                    1.0,
+                    constraints.maxWidth,
+                  );
               final strutStyle = config.buildStrutStyle(
                 fontFamily: irStyle.fontFamily,
                 fontSizeMultiplier: blockFontSize / config.fontSize,
@@ -125,26 +136,32 @@ Widget buildBlockPageContent({
               totalRustLines += estimateRustLinesForText(
                 text: slice.text,
                 applyFirstLineIndent: slice.isBlockStart,
-                cjkWidthPx: rustCjkPx,
+                cjkWidthPx: cjkWidthPx,
                 pageWidthPx: pageWidthPx,
                 fontSizePx: fontSizePx,
+                effectiveLineWidthRatio: ratio,
               );
               totalTpHeight +=
-                  measured.height + blockPadding.vertical + (slice.isBlockEnd &&
+                  measured.height +
+                  blockPadding.vertical +
+                  (slice.isBlockEnd &&
                           irStyle.marginBottomEm == null &&
                           config.paragraphSpacing > 0
                       ? config.paragraphSpacing
                       : 0.0);
             }
           }
-          final overflowDp = (totalTpHeight - bodyHeight).clamp(0.0, double.infinity);
+          final overflowDp = (totalTpHeight - bodyHeight).clamp(
+            0.0,
+            double.infinity,
+          );
           Logging.info(
             '[LineBreak] TOTAL chars=$totalChars'
             ' flutLines=$totalFlutterLines rustEstLines=$totalRustLines'
             ' tpHeight=${totalTpHeight.toStringAsFixed(1)}dp'
             ' overflow=${overflowDp.toStringAsFixed(1)}dp'
             ' charsPerLine=${rustEstCharsPerLine.toStringAsFixed(1)}'
-            ' rustScale=$kRustCharWidthScale'
+            ' ratio=${ratio.toStringAsFixed(3)}'
             ' lineH_dp=${config.textRowHeight.toStringAsFixed(1)}'
             ' blocks=${blocks.length}',
           );
