@@ -381,6 +381,7 @@ fn visual_line_segments_for_slice(
 }
 
 /// 按 Flutter slice 语义切分（缩进仅 block 起点）；供 `page_blocks` 对页内裁剪文本再分行。
+#[cfg(test)]
 pub(crate) fn layout_slice_text_segments(
     text: &str,
     apply_block_start_indent: bool,

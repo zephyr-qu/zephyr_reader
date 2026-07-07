@@ -9,12 +9,6 @@ import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 /// 无 Flutter 实测时的保守有效行宽比例（与 Rust `DEFAULT_EFFECTIVE_LINE_WIDTH_RATIO` 对齐）。
 const kDefaultEffectiveLineWidthRatio = 0.97;
 
-/// 诊断日志用别名（历史命名保留）。
-const kRustLineWidthSafetyRatio = kDefaultEffectiveLineWidthRatio;
-
-/// 诊断用字宽补偿（与 Rust `FLUTTER_BREAK_CHAR_WIDTH_SCALE` 对齐，勿写入 calibrationToRust）。
-const kRustCharWidthScale = 1.0;
-
 /// 统一测量输入：与阅读器渲染栈及 Rust [TypesetConfig] 对齐。
 class TypesetMeasureParams {
   const TypesetMeasureParams({
@@ -56,8 +50,10 @@ class CalibrationData {
   final double punctWidth;
   final double latinExtWidth;
   final double otherWidth;
+
   /// 有效行宽 / 可用行宽（逻辑 dp 维度，无量纲）。
   final double effectiveLineWidthRatio;
+
   /// TextPainter + StrutStyle 实测单行高度（逻辑 dp）。
   final double lineHeightDp;
 
@@ -164,8 +160,10 @@ double measureEffectiveLineWidthRatio({
   final singleWidth = singleTp.width;
   if (singleWidth <= 0) return kDefaultEffectiveLineWidthRatio;
 
-  final repeatCount =
-      ((availableWidthDp / singleWidth).ceil() * 3).clamp(1, 500);
+  final repeatCount = ((availableWidthDp / singleWidth).ceil() * 3).clamp(
+    1,
+    500,
+  );
   final testStr = '中' * repeatCount;
 
   final tp = TextPainter(
@@ -179,11 +177,12 @@ double measureEffectiveLineWidthRatio({
   if (metrics.isEmpty) return kDefaultEffectiveLineWidthRatio;
 
   final firstLineWidth = metrics.first.width;
-  final charsPerLine =
-      (firstLineWidth / singleWidth).round().clamp(1, repeatCount);
+  final charsPerLine = (firstLineWidth / singleWidth).round().clamp(
+    1,
+    repeatCount,
+  );
   final effectiveWidth = charsPerLine * singleWidth;
-  final ratio =
-      (effectiveWidth / availableWidthDp).clamp(0.85, 1.0);
+  final ratio = (effectiveWidth / availableWidthDp).clamp(0.85, 1.0);
 
   Logging.info(
     '[LineWidthCalib] single=${singleWidth.toStringAsFixed(1)}dp'
@@ -316,58 +315,6 @@ Future<CalibrationData?> resolveLayoutCalibration({
         continue;
       }
       Logging.error('[LayoutCalib] measure failed: $e');
-      return null;
-    }
-  }
-  return null;
-}
-
-/// 安全执行的校准（带字体就绪检测 + 重试）。
-///
-/// 返回 `null` 表示字体未就绪（调用方应使用保守默认值）。
-Future<CalibrationData?> calibrateSafely({
-  required double fontSize,
-  required double devicePixelRatio,
-  String fontFamily = 'Noto Sans SC',
-  double lineHeight = 1.5,
-  double letterSpacing = 0,
-  double width = 400,
-  double height = 600,
-  double padding = 16,
-  int maxRetries = 2,
-  Duration retryDelay = const Duration(milliseconds: 100),
-}) async {
-  Logging.info(
-    '[FirstLoad] calibrateSafely start fontSize=$fontSize fontFamily=$fontFamily',
-  );
-  final params = TypesetMeasureParams(
-    width: width,
-    height: height,
-    pagePadding: padding,
-    fontSize: fontSize,
-    lineHeight: lineHeight,
-    letterSpacing: letterSpacing,
-    fontFamily: fontFamily,
-    devicePixelRatio: devicePixelRatio,
-    contentVerticalPadding: ReaderRenderConfig.pageContentVerticalPadding,
-  );
-  for (int attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      final result = measureLayoutFingerprint(params);
-      final ratio = result.cjkWidth / fontSize;
-      if (ratio < 0.5 || ratio > 1.5) {
-        if (attempt < maxRetries) {
-          await Future<void>.delayed(retryDelay);
-          continue;
-        }
-        return null;
-      }
-      return result;
-    } catch (e) {
-      if (attempt < maxRetries) {
-        await Future<void>.delayed(retryDelay);
-        continue;
-      }
       return null;
     }
   }
@@ -552,7 +499,10 @@ bool calibrationDriftExceeds(
       drift(baseline.punctWidth, refined.punctWidth) ||
       drift(baseline.latinExtWidth, refined.latinExtWidth) ||
       drift(baseline.otherWidth, refined.otherWidth) ||
-      drift(baseline.effectiveLineWidthRatio, refined.effectiveLineWidthRatio) ||
+      drift(
+        baseline.effectiveLineWidthRatio,
+        refined.effectiveLineWidthRatio,
+      ) ||
       drift(baseline.lineHeightDp, refined.lineHeightDp);
 }
 
@@ -586,7 +536,10 @@ double estimateRustMaxLineWidthPx({
     return effectiveWidth.clamp(fontSizePx.toDouble(), effectiveWidth);
   }
   final indentPx = fontSizePx * firstLineIndentChars;
-  return (effectiveWidth - indentPx).clamp(fontSizePx.toDouble(), effectiveWidth);
+  return (effectiveWidth - indentPx).clamp(
+    fontSizePx.toDouble(),
+    effectiveWidth,
+  );
 }
 
 double estimateRustCharsPerLine({
@@ -712,10 +665,11 @@ TypesetConfig buildTypesetConfig({
   final rustCalibration = calibrationToRust(effectiveCalibration);
   final calibSource = calibration != null ? 'measured' : 'default';
 
-  final contentHeight = (height -
-          2 * contentVerticalPadding -
-          pageHeightLineBuffer)
-      .clamp(100.0, height);
+  final contentHeight =
+      (height - 2 * contentVerticalPadding - pageHeightLineBuffer).clamp(
+        100.0,
+        height,
+      );
   final pageHeightPx = (contentHeight * devicePixelRatio).round();
   final pageWidthPx = ((width - 2 * padding) * devicePixelRatio).round();
   final lineHeightPx = effectiveCalibration.lineHeightDp * devicePixelRatio;

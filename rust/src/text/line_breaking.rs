@@ -8,6 +8,7 @@ use crate::text::constants::{
 };
 
 /// 使用预计算的 char_indices 计算行分割
+#[cfg(test)]
 pub(crate) fn compute_line_breaks_from_indices(
     para_char_indices: &[(usize, char)],
     para_start: usize,
