@@ -192,14 +192,13 @@ pub(crate) fn compute_line_breaks_variable_width(
 
     lines
 }
+#[cfg(test)]
 mod tests {
-    
-    
-
     #[test]
     fn test_line_breaks_end_avoid_direct() {
         // 直接测试 compute_line_breaks_from_indices 的避尾逻辑
         use crate::text::char_width::CharWidthTable;
+        use crate::text::line_breaking::compute_line_breaks_from_indices;
 
         // 文本中开括号（《是避尾标点，不应出现在行尾
         let text = "你好世界（《重要内容》更多文字继续写下去还有内容";

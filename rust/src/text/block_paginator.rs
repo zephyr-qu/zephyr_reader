@@ -295,6 +295,10 @@ fn layout_text_block_lines(
 }
 
 /// 按估算行宽贪心切分（layout 断行偏宽时的 Flutter 对齐兜底）。
+///
+/// TODO(ponytail): 贪心断行在极端场景（高标点密度 + 中西混排 + 标点挤压）下仍可能偏宽。
+/// 若 `[LineBreak] overflow_dp` CI 门禁反复触发，评估引入 Knuth-Plass 简化版作为可选后端
+/// （仅对超宽行启用，避免主路径性能退化）。必须以 benchmark 为前提。
 fn greedy_split_text_lines(
     text: &str,
     apply_block_start_indent: bool,
@@ -680,9 +684,21 @@ impl BlockPaginator {
 }
 
 /// 对章 IR 执行块分页。
+///
+/// 若 IR 含 [`line_break_indices`]，跳过断行计算，直接用预计算索引分页（纯数学映射）。
 pub fn paginate_chapter_ir(ir: &ChapterContentIr, config: TypesetConfig) -> BlockPaginateResult {
     let config = config.validate_and_fix();
     let config_hash = config.config_hash();
+
+    // ── 缓存路径：有预计算行断点时，不跑贪心断行 ──
+    if let Some(ref indices) = ir.line_break_indices {
+        if !indices.is_empty() {
+            let metrics = BlockLayoutMetrics::from_config(&config);
+            return paginate_from_line_breaks(indices, &ir.plain_text, &metrics, config_hash);
+        }
+    }
+
+    // ── 原始路径：块级贪心分页 ──
     tracing::info!(
         "[PageEstimate] paginate_chapter_ir blocks={} config: w={} h={} font={} lsp={:.2} indent={}",
         ir.blocks.len(),
@@ -712,6 +728,59 @@ pub fn paginate_chapter_ir(ir: &ChapterContentIr, config: TypesetConfig) -> Bloc
     let mut result = paginator.finish();
     result.config_hash = config_hash;
     result
+}
+
+/// 缓存路径：用 Flutter 预计算的行断点直接分页（零断行计算）。
+///
+/// `indices` 是每行结束字符在 `plain_text` 中的绝对位置。
+/// 每行高度 = `metrics.line_height_px`（均匀行高假设，分页模式下成立）。
+fn paginate_from_line_breaks(
+    indices: &[u32],
+    _plain_text: &str,
+    metrics: &BlockLayoutMetrics,
+    config_hash: u64,
+) -> BlockPaginateResult {
+    let lines_per_page = (metrics.page_height_px / metrics.line_height_px).floor() as usize;
+
+    tracing::info!(
+        "[PageEstimate] paginate_from_line_breaks indices={} lines_per_page={} page_h={:.0} line_h={:.1}",
+        indices.len(),
+        lines_per_page,
+        metrics.page_height_px,
+        metrics.line_height_px,
+    );
+
+    let mut pages = Vec::new();
+    let total_lines = indices.len();
+    let mut line_idx = 0;
+    let mut page_idx = 0i32;
+
+    while line_idx < total_lines {
+        let page_start_idx = line_idx;
+        let page_end_idx = (line_idx + lines_per_page).min(total_lines);
+
+        let start_char = if page_start_idx == 0 {
+            0
+        } else {
+            indices[page_start_idx - 1]
+        };
+        let end_char = indices[page_end_idx - 1];
+
+        let is_last = page_end_idx >= total_lines;
+        let descriptor = BlockPageDescriptor::new(
+            page_idx,
+            0, // first_block_index: irrelevant for line-break path
+            1, // last_block_index
+            BlockPlainRange::new(start_char, end_char.saturating_sub(start_char)),
+            is_last,
+        );
+        pages.push(descriptor);
+
+        line_idx = page_end_idx;
+        page_idx += 1;
+    }
+
+    BlockPaginateResult::new(pages, config_hash, false)
 }
 
 /// 块数阈值：超过此值时分 chunk 独立分页，避免单次 `BlockPaginator` O(pathological_size)。
@@ -1303,5 +1372,171 @@ mod tests {
             result_without.page_count(),
             "explicit 0.97 and None calibration should produce same page count"
         );
+    }
+
+    // ── 属性测试（Property-based） ──
+
+    /// I1: 任意配置下，所有非尾页的 plain_start < plain_end。
+    fn assert_pages_non_empty(descriptors: &[BlockPageDescriptor]) {
+        for d in descriptors {
+            assert!(
+                d.plain.plain_start < d.plain_end_exclusive() || d.is_last_page,
+                "page={}: plain_start={} >= plain_end={}",
+                d.page_index,
+                d.plain.plain_start,
+                d.plain_end_exclusive()
+            );
+        }
+    }
+
+    /// I2: plain 范围单调不重叠。允许 1 字符间隙（换行符 / \uFFFC 跨页边界导致）。
+    fn assert_plain_ranges_contiguous(descriptors: &[BlockPageDescriptor], ir_plain_len: usize) {
+        let mut prev_end = 0u32;
+        for d in descriptors {
+            assert!(
+                d.plain.plain_start >= prev_end.saturating_sub(1),
+                "page={}: plain_start={} < prev_end={} (gap > 1)",
+                d.page_index,
+                d.plain.plain_start,
+                prev_end
+            );
+            prev_end = d.plain_end_exclusive();
+        }
+        assert_eq!(
+            prev_end as usize, ir_plain_len,
+            "plain_end={} != ir_plain_len={}",
+            prev_end, ir_plain_len
+        );
+    }
+
+    /// I3: 所有块的 block 索引在 IR 块数范围内。
+    fn assert_block_indices_valid(descriptors: &[BlockPageDescriptor], ir_block_count: usize) {
+        for d in descriptors {
+            assert!(
+                (d.first_block_index as usize) < ir_block_count,
+                "page={}: first_block={} >= ir_block_count={}",
+                d.page_index,
+                d.first_block_index,
+                ir_block_count
+            );
+            assert!(
+                (d.last_block_index as usize) <= ir_block_count,
+                "page={}: last_block={} > ir_block_count={}",
+                d.page_index,
+                d.last_block_index,
+                ir_block_count
+            );
+            if !d.is_last_page || d.last_block_index > d.first_block_index {
+                assert!(
+                    d.first_block_index < d.last_block_index,
+                    "page={}: first_block={} >= last_block={}",
+                    d.page_index,
+                    d.first_block_index,
+                    d.last_block_index
+                );
+            }
+        }
+    }
+
+    /// I4: page_index 从 0 开始连续递增。
+    fn assert_page_indices_sequential(descriptors: &[BlockPageDescriptor]) {
+        for (i, d) in descriptors.iter().enumerate() {
+            assert_eq!(d.page_index as usize, i, "page_index gap at descriptor {i}");
+        }
+    }
+
+    /// 综合属性测试：构造多块 IR → 分页 → 验证四条不变量。
+    fn run_property_checks(ir: &ChapterContentIr, config: &TypesetConfig) {
+        let ir_plain_len = ir.plain_text.chars().count();
+        let ir_block_count = ir.block_count();
+        let result = paginate_chapter_ir(ir, config.clone());
+        assert!(result.page_count() > 0, "must produce at least 1 page");
+
+        assert_pages_non_empty(&result.descriptors);
+        assert_plain_ranges_contiguous(&result.descriptors, ir_plain_len);
+        assert_block_indices_valid(&result.descriptors, ir_block_count);
+        assert_page_indices_sequential(&result.descriptors);
+    }
+
+    #[test]
+    fn prop_single_text_block() {
+        let ir = long_text_ir(50);
+        run_property_checks(&ir, &test_config());
+    }
+
+    #[test]
+    fn prop_many_small_text_blocks() {
+        let mut b = BlockJoinedPlainBuilder::new();
+        for i in 0..20 {
+            b.push_text(format!("Block {i}: short text."), TextBlockStyle::default());
+        }
+        let ir = b.finish();
+        run_property_checks(&ir, &test_config());
+    }
+
+    #[test]
+    fn prop_image_only_chapter() {
+        let mut b = BlockJoinedPlainBuilder::new();
+        b.push_image("cover.jpg".into(), Some("Cover".into()));
+        b.push_image("illustration.png".into(), None);
+        let ir = b.finish();
+        run_property_checks(&ir, &test_config());
+    }
+
+    #[test]
+    fn prop_mixed_text_and_images() {
+        let mut b = BlockJoinedPlainBuilder::new();
+        b.push_text("Before image.".into(), TextBlockStyle::default());
+        b.push_image("img1.jpg".into(), Some("Image 1".into()));
+        b.push_text("Between images.".into(), TextBlockStyle::default());
+        b.push_image("img2.png".into(), None);
+        b.push_text("After images.".into(), TextBlockStyle::default());
+        let ir = b.finish();
+        run_property_checks(&ir, &test_config());
+    }
+
+    #[test]
+    fn prop_varied_block_styles() {
+        let mut b = BlockJoinedPlainBuilder::new();
+        b.push_text(
+            "Heading".into(),
+            TextBlockStyle {
+                is_heading: true,
+                heading_level: 1,
+                font_size: Some(24.0),
+                ..TextBlockStyle::default()
+            },
+        );
+        for i in 0..10 {
+            b.push_text(
+                format!("Paragraph {i}: some longer text that should wrap across lines."),
+                TextBlockStyle {
+                    text_indent_em: Some(2.0),
+                    margin_bottom_em: Some(1.0),
+                    ..TextBlockStyle::default()
+                },
+            );
+        }
+        let ir = b.finish();
+        run_property_checks(&ir, &test_config());
+    }
+
+    #[test]
+    fn prop_empty_chapter() {
+        let ir = ChapterContentIr::new(vec![], String::new());
+        let result = paginate_chapter_ir(&ir, test_config());
+        assert_eq!(result.page_count(), 1);
+    }
+
+    #[test]
+    fn prop_chunked_preserves_contiguity() {
+        // 构造 >200 块以命中 chunked 路径，验证合并后不变量保持
+        let mut b = BlockJoinedPlainBuilder::new();
+        for i in 0..CHUNK_BLOCK_COUNT + 10 {
+            b.push_text(format!("Block {i}: text."), TextBlockStyle::default());
+        }
+        let ir = b.finish();
+        assert!(ir.block_count() > CHUNK_BLOCK_COUNT);
+        run_property_checks(&ir, &test_config());
     }
 }
