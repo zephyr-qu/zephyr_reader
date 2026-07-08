@@ -747,7 +747,10 @@ class ChapterLoadOrchestrator {
   /// Phase 6: 分页前预加载全文 → 提取 ICU 行断点 → 存入 Rust 缓存。
   /// 渲染完成后 _storeLineBreaks 会再次触发（覆盖完整索引），
   /// 但预加载确保分页引擎在首次 paginate 时就能拿到索引。
-  Future<String> _loadAndMeasureContent(int gen, ChapterLoadRequest request) async {
+  Future<String> _loadAndMeasureContent(
+    int gen,
+    ChapterLoadRequest request,
+  ) async {
     final text = await _contentRepo.loadChapterContent(
       _chapterVM.bookId.value,
       request.chapterIndex,
