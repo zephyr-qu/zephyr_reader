@@ -255,7 +255,7 @@ impl ReadingOrchestrator {
     }
 }
 
-/// Phase 2: 全局行断点缓存 (book_id, chapter_index, config_hash) → Vec<u32>。
-static LINE_BREAKS_STORE: LazyLock<Mutex<HashMap<(String, i32, u64), Vec<u32>>>> =
+/// Phase 6: 全局行断点缓存 (book_id, chapter_index, config_hash) → Vec<u32>。
+pub(crate) static LINE_BREAKS_STORE: LazyLock<Mutex<HashMap<(String, i32, u64), Vec<u32>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 

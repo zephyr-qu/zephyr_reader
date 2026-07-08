@@ -17,6 +17,7 @@ use super::chapter_access::format_from_file_path;
 use super::chapter_ir::load_chapter_content_ir;
 use super::layout_cache::{try_get_block_cached, try_save_block_cached};
 use super::pagination_store::PaginationEngine;
+use super::orchestrator::LINE_BREAKS_STORE;
 use super::pagination_store::{PaginationKey, PaginationStore};
 
 /// 全章统一走 BlockPaginator。
@@ -115,6 +116,32 @@ fn filter_blocks_to_chars(blocks: &[ContentBlock], max_chars: u64) -> Vec<Conten
     filtered
 }
 
+/// Phase 6: 从全局行断点缓存中取出预计算索引并注入 IR。
+///
+/// 如缓存中存在 `(book_id, chapter_index, config_hash)` 的索引，
+/// 通过 `with_line_breaks()` 注入 IR，使 `paginate_chapter_ir`
+/// 走精确的 `paginate_from_line_breaks` 路径（跳过贪心断行）。
+fn inject_line_breaks(
+    mut ir: ChapterContentIr,
+    book_id: &str,
+    chapter_index: i32,
+    config_hash: u64,
+) -> ChapterContentIr {
+    if let Some(indices) = LINE_BREAKS_STORE
+        .lock()
+        .remove(&(book_id.to_string(), chapter_index, config_hash))
+        && !indices.is_empty() {
+            tracing::info!(
+                "[LineBreaks] inject {} indices for ch={} hash={:016x}",
+                indices.len(),
+                chapter_index,
+                config_hash,
+            );
+            ir.line_break_indices = Some(indices);
+        }
+    ir
+}
+
 async fn try_paginate_chapter_blocks(
     book_id: &str,
     validated_path: &str,
@@ -184,6 +211,10 @@ async fn try_paginate_chapter_blocks(
     // Cache miss: load IR and paginate (chunked if large)
     // P0: ALL chapters now go through block pagination, regardless of
     let full_ir = load_chapter_content_ir(validated_path, chapter_index).await?;
+
+    // Phase 6: 注入 Flutter 预计算的行断点索引（如存在），
+    // 使 paginate_chapter_ir 走精确的 paginate_from_line_breaks 路径
+    let full_ir = inject_line_breaks(full_ir, book_id, chapter_index, config_hash);
 
     let config = config.clone();
 
