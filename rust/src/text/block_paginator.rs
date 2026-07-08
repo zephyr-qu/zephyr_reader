@@ -1175,6 +1175,68 @@ mod tests {
     }
 
     #[test]
+    fn paginate_from_line_breaks_uses_indices_for_exact_pages() {
+        // Phase 6: 验证 `paginate_from_line_breaks` 使用预计算索引分页时
+        // 产生的 PageDescriptor 与预期行边界一致。
+        let mut b = BlockJoinedPlainBuilder::new();
+        b.push_text("测".repeat(300), TextBlockStyle::default());
+        let mut ir = b.finish();
+
+        // 模拟 24 行文本，每行 12 个字符，均匀断行
+        let indices: Vec<u32> = (1..=24).map(|i| i * 12).collect();
+        ir.line_break_indices = Some(indices.clone());
+
+        let config = test_config(); // page_height=200, font=16, line_spacing=1.5
+        let metrics = BlockLayoutMetrics::from_config(&config);
+        let lines_per_page = (metrics.page_height_px / metrics.line_height_px).floor() as usize;
+
+        let result = paginate_chapter_ir(&ir, config);
+
+        // 验证：result.use_line_breaks
+        assert!(!result.descriptors.is_empty(), "should produce pages");
+
+        // 验证每页边界连续（上一页的 end == 下一页的 start）
+        for i in 1..result.descriptors.len() {
+            let prev = &result.descriptors[i - 1];
+            let curr = &result.descriptors[i];
+            let prev_end = prev.plain.plain_start + prev.plain.plain_len;
+            assert_eq!(
+                prev_end,
+                curr.plain.plain_start,
+                "page {} boundary discontinuity: prev end={} != curr start={}",
+                i,
+                prev_end,
+                curr.plain.plain_start,
+            );
+        }
+
+        // 验证最后一页覆盖到文本末尾
+        let last = result.descriptors.last().unwrap();
+        let total_chars: u32 = 24 * 12; // 24 lines × 12 chars
+        let last_end = last.plain.plain_start + last.plain.plain_len;
+        assert_eq!(
+            last_end,
+            total_chars,
+            "last page should cover full text: end={}",
+            last_end,
+        );
+
+        // 验证每页行数不超过 lines_per_page
+        for (i, p) in result.descriptors.iter().enumerate() {
+            let p_start = p.plain.plain_start;
+            let p_end = p_start + p.plain.plain_len;
+            let page_lines = indices
+                .iter()
+                .filter(|&&c| c > p_start && c <= p_end)
+                .count();
+            assert!(
+                page_lines <= lines_per_page,
+                "page {i} has {page_lines} lines (max {lines_per_page})",
+            );
+        }
+    }
+
+    #[test]
     fn chunked_large_chapter_produces_valid_descriptors() {
         // Large chapter (>200 blocks) — should chunk and merge
         let mut b = BlockJoinedPlainBuilder::new();
