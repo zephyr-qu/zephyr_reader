@@ -211,10 +211,11 @@ class PaginationCoordinator {
   /// Rust `paginate_from_line_breaks` 直接使用这些索引做纯数学映射。
   Future<void> storeLineBreaks(String content) async {
     if (content.isEmpty) return;
-    final configHash = computeConfigHash();
-    final params = buildPaginationParams();
 
     try {
+      final configHash = computeConfigHash();
+      final params = buildPaginationParams();
+
       final indices = computeLineBreakIndices(
         text: content,
         style: TextStyle(
