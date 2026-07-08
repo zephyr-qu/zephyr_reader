@@ -300,6 +300,12 @@ class ChapterLoadOrchestrator {
         content,
         scheduleSearchIndex: scheduleSearchIndex,
       );
+
+      // Phase 6: 分页模式下预计算行断点并存入 Rust 缓存
+      if (_needsPagination(request.readingMode)) {
+        unawaited(_pagination.storeLineBreaks(content));
+      }
+
       _setPhase(gen, ChapterLoadPhase.completed);
       _applyIfCurrent(gen, () {
         _loadPhase.value = ChapterLoadPhase.idle;

@@ -1,4 +1,6 @@
+import 'package:flutter/painting.dart' show TextStyle;
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 
 import 'package:zephyr_reader/core/utils/logging.dart';
@@ -201,5 +203,42 @@ class PaginationCoordinator {
   bool isPaginationValid(int total) {
     final descriptors = _repo.descriptors;
     return total > 0 && descriptors != null && descriptors.isNotEmpty;
+  }
+
+  /// Phase 6: 提取当前章节的行断点索引并存入 Rust 缓存。
+  ///
+  /// 在全章分页完成后调用（finalize 后）。下次同 config_hash 分页时
+  /// Rust `paginate_from_line_breaks` 直接使用这些索引做纯数学映射。
+  Future<void> storeLineBreaks(String content) async {
+    if (content.isEmpty) return;
+    final configHash = computeConfigHash();
+    final params = buildPaginationParams();
+
+    try {
+      final indices = computeLineBreakIndices(
+        text: content,
+        style: TextStyle(
+          fontSize: params.fontSize,
+          height: params.lineHeight,
+          fontFamily: params.fontFamily,
+        ),
+        maxWidth: params.width - 2 * params.padding,
+      );
+
+      if (indices.isEmpty) return;
+
+      core_api.storeLineBreaks(
+        bookId: _chapterVM.bookId.value,
+        chapterIndex: _chapterVM.chapterIndex.value,
+        configHash: configHash,
+        lineBreaks: indices,
+      );
+      Logging.info(
+        '[LineBreaks] stored ${indices.length} indices '
+        'ch=${_chapterVM.chapterIndex.value} hash=${configHash.toString().padLeft(16, '0')}',
+      );
+    } catch (e, st) {
+      Logging.warning('[LineBreaks] extraction failed: $e\n$st');
+    }
   }
 }
