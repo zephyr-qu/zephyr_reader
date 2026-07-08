@@ -129,15 +129,19 @@ class ChapterLoadOrchestrator {
         );
       }
 
-      // P3 (Bug A) 修复：stagingPromote 路径不需要冗余 loadChapterContent，
-      // 内容已由 staging 缓存提供。提前跳过，避免无谓 IO 和未处理 Future 错误。
-      final chapterPlainFuture = isStagingPromote
-          ? Future<String>.value('')
-          : _contentRepo.loadChapterContent(
-              _chapterVM.bookId.value,
-              request.chapterIndex,
-              readingMode: request.readingMode,
-            );
+      // Phase 6: 分页前预加载全文并提取 ICU 行断点索引。
+      // 使首次分页即走精确的 paginate_from_line_breaks 路径，
+      // 而非先贪心后修正。
+      final chapterContent = isStagingPromote
+          ? ''
+          : await _loadAndMeasureContent(gen, request);
+      if (_isStale(gen)) {
+        _setPhase(gen, ChapterLoadPhase.cancelled);
+        return;
+      }
+
+      // 文本已预加载，后续不再重复 loadChapterContent
+      final chapterPlainFuture = Future<String>.value(chapterContent);
 
       final calibFuture = resolveLayoutCalibration(
         params: _typesetMeasureParams(),
@@ -738,6 +742,26 @@ class ChapterLoadOrchestrator {
     if (request.onChapterLoaded != null) {
       await request.onChapterLoaded!();
     }
+  }
+
+  /// Phase 6: 分页前预加载全文 → 提取 ICU 行断点 → 存入 Rust 缓存。
+  /// 渲染完成后 _storeLineBreaks 会再次触发（覆盖完整索引），
+  /// 但预加载确保分页引擎在首次 paginate 时就能拿到索引。
+  Future<String> _loadAndMeasureContent(int gen, ChapterLoadRequest request) async {
+    final text = await _contentRepo.loadChapterContent(
+      _chapterVM.bookId.value,
+      request.chapterIndex,
+      readingMode: request.readingMode,
+    );
+    // 提取/存储失败不阻塞分页，退化到贪心路径
+    if (!_isStale(gen) && text.isNotEmpty) {
+      try {
+        await _pagination.storeLineBreaks(text);
+      } catch (e) {
+        Logging.warning('[LineBreaks] pre-measure store failed: $e');
+      }
+    }
+    return text;
   }
 
   Future<void> _postLoadTasks(
