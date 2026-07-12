@@ -19,8 +19,8 @@ void main() {
     baselineAlign: true,
   );
 
-  test('kFlutterPaginationSpike defaults to false', () {
-    expect(kFlutterPaginationSpike, isFalse);
+  test('kFlutterPaginationSpike is enabled on explore branch', () {
+    expect(kFlutterPaginationSpike, isTrue);
   });
 
   test('short text fits on one page', () {
@@ -124,7 +124,7 @@ void main() {
     expect(pages.single.slices, hasLength(2));
   });
 
-  test('stopAfterPlainOffset yields partial pages before full text', () {
+  test('stopAfterPlainOffset fills current page then stops', () {
     final plain = List.filled(40, '这是一段用来测试首屏截断的中文内容。').join();
     final ir = ChapterContentIr(
       blocks: [
@@ -151,7 +151,8 @@ void main() {
     expect(pages, isNotEmpty);
     expect(pages.last.isLastPage, isFalse);
     expect(pages.last.endOffset, lessThan(plain.length));
-    expect(pages.last.endOffset, greaterThanOrEqualTo(80));
+    // 越过 stop 后仍装满当前页，故末页终点应明显大于 stop 阈值。
+    expect(pages.last.endOffset, greaterThan(80));
   });
 
   test('paginateAsync cancel throws PaginationCancelledException', () async {
@@ -179,7 +180,7 @@ void main() {
         config: config,
         contentWidthDp: 200,
         contentHeightDp: 60,
-        yieldEveryBlocks: 1,
+        yieldEveryChunks: 1,
         isCancelled: () => true,
       ),
       throwsA(isA<PaginationCancelledException>()),
@@ -213,7 +214,7 @@ void main() {
       config: config,
       contentWidthDp: 200,
       contentHeightDp: 80,
-      yieldEveryBlocks: 1,
+      yieldEveryChunks: 1,
     );
     expect(async.isPartial, isFalse);
     expect(async.pages.length, sync.length);

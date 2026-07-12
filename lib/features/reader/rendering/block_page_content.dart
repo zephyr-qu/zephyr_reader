@@ -7,6 +7,10 @@ import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/data/page_overflow_diagnosis.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/features/reader/core/data/epub_block_image_cache.dart';
+import 'package:zephyr_reader/features/reader/spike/flutter_pagination_spike_flag.dart';
+import 'package:zephyr_reader/features/reader/spike/flutter_block_paginator.dart';
+import 'package:zephyr_reader/features/reader/spike/spike_active_chapter_ir.dart';
+import 'package:zephyr_reader/features/reader/spike/spike_viewport_metrics.dart';
 import 'package:zephyr_reader/features/reader/rendering/ir_text_block_style.dart';
 import 'package:zephyr_reader/features/reader/rendering/paginated_page_viewport.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
@@ -45,6 +49,12 @@ Widget buildBlockPageContent({
             0.0,
             constraints.maxHeight,
           );
+          if (kFlutterPaginationSpike) {
+            SpikeViewportMetrics.note(
+              width: constraints.maxWidth,
+              height: bodyHeight,
+            );
+          }
           Logging.info(
             '[PageRender] blockPage maxH_dp=${constraints.maxHeight.toStringAsFixed(1)}'
             ' vPad=$vPad bodyHeight_dp=${bodyHeight.toStringAsFixed(1)}'
@@ -289,6 +299,12 @@ Widget buildBlockPageContent({
               },
               image: (slice) {
                 final isFullPage = slice.layout == ImageBlockLayout.fullPage;
+                final inlineMaxH = isFullPage
+                    ? null
+                    : _inlineImageDisplayHeightDp(
+                        assetId: slice.assetId,
+                        contentWidthDp: imageMaxWidth,
+                      );
                 children.add(
                   EpubBlockImage(
                     filePath: epubFilePath,
@@ -297,7 +313,7 @@ Widget buildBlockPageContent({
                     maxWidthPx: imageMaxWidth.round().clamp(1, 4096),
                     maxHeightPx: isFullPage
                         ? bodyHeight.round().clamp(1, 4096)
-                        : null,
+                        : inlineMaxH?.round().clamp(1, 4096),
                     fullPage: isFullPage,
                   ),
                 );
@@ -326,6 +342,19 @@ Widget buildBlockPageContent({
         },
       ),
     ),
+  );
+}
+
+/// 内联图显示高度（不含 padding），与装箱 [imageDisplayHeightDp] 同源。
+double _inlineImageDisplayHeightDp({
+  required String assetId,
+  required double contentWidthDp,
+}) {
+  final img = SpikeActiveChapterIr.findImage(assetId);
+  return imageDisplayHeightDp(
+    contentWidthDp: contentWidthDp,
+    intrinsicWidth: img?.intrinsicWidth,
+    intrinsicHeight: img?.intrinsicHeight,
   );
 }
 
@@ -418,34 +447,38 @@ class _EpubBlockImageState extends State<EpubBlockImage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_error != null) {
-      return _sizedPlaceholder(icon: Icons.broken_image_outlined);
-    }
-    final bytes = _imageBytes;
-    if (bytes == null) {
-      return _sizedPlaceholder(icon: Icons.image_outlined);
-    }
-
     final maxW = widget.maxWidthPx.toDouble();
     final maxH = widget.maxHeightPx?.toDouble();
-    final dpr = MediaQuery.devicePixelRatioOf(context);
-    final image = Image.memory(
-      bytes,
-      width: maxW,
-      height: maxH,
-      fit: BoxFit.contain,
-      cacheWidth: (maxW * dpr).ceil().clamp(1, 8192),
-      semanticLabel: widget.alt,
-      errorBuilder: (_, _, _) =>
-          _sizedPlaceholder(icon: Icons.broken_image_outlined),
-    );
+
+    late final Widget content;
+    if (_error != null) {
+      content = _sizedPlaceholder(icon: Icons.broken_image_outlined);
+    } else {
+      final bytes = _imageBytes;
+      if (bytes == null) {
+        content = _sizedPlaceholder(icon: Icons.image_outlined);
+      } else {
+        final dpr = MediaQuery.devicePixelRatioOf(context);
+        content = Image.memory(
+          bytes,
+          width: maxW,
+          height: maxH,
+          fit: BoxFit.contain,
+          cacheWidth: (maxW * dpr).ceil().clamp(1, 8192),
+          semanticLabel: widget.alt,
+          errorBuilder: (_, _, _) =>
+              _sizedPlaceholder(icon: Icons.broken_image_outlined),
+        );
+      }
+    }
 
     if (widget.fullPage) {
-      return SizedBox(width: maxW, height: maxH, child: image);
+      return SizedBox(width: maxW, height: maxH, child: content);
     }
+    // 与装箱 [kInlineImageVerticalPaddingDp] 对齐：占位与成图同一套 padding。
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: image,
+      child: content,
     );
   }
 
@@ -453,17 +486,10 @@ class _EpubBlockImageState extends State<EpubBlockImage> {
   Widget _sizedPlaceholder({required IconData icon}) {
     final maxW = widget.maxWidthPx.toDouble();
     final maxH = widget.maxHeightPx?.toDouble();
-    if (maxH != null) {
-      return SizedBox(
-        width: maxW,
-        height: math.min(maxH, 1200),
-        child: Center(child: Icon(icon, size: 28, color: Colors.grey)),
-      );
-    }
-    // 内联图片无固定高度：按 16:9 估算占位
+    final h = maxH ?? (maxW * kDefaultImageHeightRatio);
     return SizedBox(
       width: maxW,
-      height: maxW * 9 / 16,
+      height: math.min(h, 1200),
       child: Center(child: Icon(icon, size: 28, color: Colors.grey)),
     );
   }

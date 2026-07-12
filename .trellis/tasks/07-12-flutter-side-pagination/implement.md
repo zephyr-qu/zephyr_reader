@@ -39,8 +39,21 @@
 
 ## T5 收敛（对比合并后）
 
-- [ ] 对比报告  
-- [ ] 胜出则 Accept ADR-016 + 关校准路径；否则归档本分支  
+- [x] TXT 真机满意 → [compare-txt.md](./compare-txt.md) **TXT Go**
+- [x] EPUB 真机满意 → [compare-epub.md](./compare-epub.md) **EPUB Go**
+- [x] ADR-016 → **条件接受**（合主线后正式 Accept）
+- [ ] 合主线：关 Rust 装箱/校准写回主路径；flag 默认 true 或去掉旁路
+- [ ] （次）删除/归档 explore 旁路命名（spike → 正式模块名）
+
+### EPUB 工程缺口
+
+- [x] 内联图装箱计入 ±4dp padding
+- [x] 占位高度与 `imageDisplayHeightDp` 对齐
+- [x] 渲染侧 inline `maxHeight` 与 IR intrinsic 一致（`SpikeActiveChapterIr`）
+- [x] staging 用 `SpikeViewportMetrics` + 图 prefetch
+- [x] session dispose 清 `epubBlockImageCache` + IR holder
+- [x] 切片保留 EPUB spans
+- [x] spike 路径不传 `layoutCalibration`（避免主线校准诊断噪声）
 
 ## 验证命令
 

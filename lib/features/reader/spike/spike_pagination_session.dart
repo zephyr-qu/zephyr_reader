@@ -5,9 +5,12 @@ import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
+import 'package:zephyr_reader/features/reader/spike/flutter_pagination_spike_flag.dart';
 import 'package:zephyr_reader/features/reader/spike/flutter_block_paginator.dart';
+import 'package:zephyr_reader/features/reader/spike/spike_active_chapter_ir.dart';
 import 'package:zephyr_reader/features/reader/spike/spike_page.dart';
 import 'package:zephyr_reader/features/reader/spike/spike_staging_store.dart';
+import 'package:zephyr_reader/features/reader/spike/spike_viewport_metrics.dart';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
@@ -20,9 +23,14 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 /// **T3**：主 isolate 分块 `paginateAsync`（TextPainter 不能进普通 isolate）+
 /// generation 取消；`maxChars` 首屏截断后由 [expandToFullChapter] 补全。
 class SpikePaginationSession implements PaginationSession {
-  SpikePaginationSession({this._onCacheUpdated});
+  SpikePaginationSession({void Function()? onCacheUpdated})
+    : _onCacheUpdated = onCacheUpdated;
 
   final void Function()? _onCacheUpdated;
+
+  /// expand 过程中推进 UI 总页数（翻页不会卡在首屏页数）。
+  /// 优先 [onPaginationProgress]，否则 [spikePaginationProgressHook]。
+  void Function(int totalPages, bool isPartial)? onPaginationProgress;
 
   List<PageDescriptor>? _descriptors;
   final Map<int, String> _pageCache = {};
@@ -201,6 +209,8 @@ class SpikePaginationSession implements PaginationSession {
     _configHash = null;
     _sessionFilePath = null;
     _sessionIsPartial = false;
+    SpikeActiveChapterIr.clear();
+    epubBlockImageCache.clear();
   }
 
   Future<Book> _getBook(String bookId) async {
@@ -265,12 +275,22 @@ class SpikePaginationSession implements PaginationSession {
     String? filePath,
   }) async {
     final gen = ++_paginateGen;
-    final contentWidth = (params.width - 2 * params.padding).clamp(
-      1.0,
-      params.width,
-    );
+    final contentWidth =
+        (SpikeViewportMetrics.contentWidthDp ??
+                (params.width - 2 * params.padding))
+            .clamp(1.0, 4096.0);
     final vPad = ReaderRenderConfig.pageContentVerticalPadding;
-    final contentHeight = (params.height - 2 * vPad).clamp(1.0, params.height);
+    final estimatedHeight = (params.height - 2 * vPad).clamp(1.0, 8192.0);
+    // 实测 body 高度不得被 params.height 截断——估矮时正是底空来源。
+    final measured = SpikeViewportMetrics.contentHeightDp;
+    final contentHeight = (measured ?? estimatedHeight).clamp(1.0, 8192.0);
+    Logging.info(
+      '[SpikeSession] pack body '
+      '${contentWidth.toStringAsFixed(0)}x${contentHeight.toStringAsFixed(0)} '
+      'measured=${measured?.toStringAsFixed(0) ?? "null"} '
+      'estH=${estimatedHeight.toStringAsFixed(0)} '
+      'paramsH=${params.height.toStringAsFixed(0)}',
+    );
 
     final renderConfig = lineBreakMeasureRenderConfig(
       fontSize: params.fontSize,
@@ -292,6 +312,17 @@ class SpikePaginationSession implements PaginationSession {
         contentHeightDp: contentHeight,
         stopAfterPlainOffset: maxChars?.toInt(),
         isCancelled: () => gen != _paginateGen,
+        onProgress: maxChars == null
+            ? (pages, partial) {
+                if (gen != _paginateGen) return;
+                _sessionIsPartial = partial;
+                _applyPages(pages);
+                ensureWindow(0);
+                _onCacheUpdated?.call();
+                onPaginationProgress?.call(pages.length, partial);
+                spikePaginationProgressHook?.call(pages.length, partial);
+              }
+            : null,
       );
     } on PaginationCancelledException {
       Logging.info('[SpikeSession] paginate cancelled gen=$gen');
@@ -310,6 +341,7 @@ class SpikePaginationSession implements PaginationSession {
 
     _chapterIndex = chapterIndex;
     _ir = ir;
+    SpikeActiveChapterIr.set(ir);
     _configHash = BigInt.zero;
     if (filePath != null) _sessionFilePath = filePath;
     _sessionIsPartial = outcome.isPartial;
@@ -358,6 +390,7 @@ class SpikePaginationSession implements PaginationSession {
     _paginateGen++;
     _chapterIndex = ready.chapterIndex;
     _ir = ready.ir;
+    SpikeActiveChapterIr.set(ready.ir);
     _sessionFilePath = ready.filePath;
     _configHash = BigInt.zero;
     _sessionIsPartial = false;
