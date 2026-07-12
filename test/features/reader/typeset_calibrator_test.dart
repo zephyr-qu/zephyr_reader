@@ -118,22 +118,22 @@ void main() {
       expect(config.pageHeight, equals(1520));
     });
 
-    test('paginatedTypesetLayoutInsets 用实测行高留满一行 buffer', () {
+    test('paginatedTypesetLayoutInsets 用实测行高留半行 buffer', () {
       final insets = paginatedTypesetLayoutInsets(
         fontSize: 18,
         lineHeight: 1.5, // 27dp 名义行高
-        measuredLineHeightDp: 32, // strut 实测
+        measuredLineHeightDp: 32, // 正文平均行高
       );
       expect(insets.contentVerticalPadding, 20);
-      expect(insets.pageHeightLineBuffer, closeTo(32.0, 0.01));
+      expect(insets.pageHeightLineBuffer, closeTo(16.0, 0.01));
     });
 
-    test('paginatedTypesetLayoutInsets 无实测时用 fontSize×lineHeight', () {
+    test('paginatedTypesetLayoutInsets 无实测时用 fontSize×lineHeight 的一半', () {
       final insets = paginatedTypesetLayoutInsets(
         fontSize: 16,
         lineHeight: 1.5, // 24dp
       );
-      expect(insets.pageHeightLineBuffer, closeTo(24.0, 0.01));
+      expect(insets.pageHeightLineBuffer, closeTo(12.0, 0.01));
     });
 
     test('显式 pageHeightLineBuffer 仍可额外扣减', () {

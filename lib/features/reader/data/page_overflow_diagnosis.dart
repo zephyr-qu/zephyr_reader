@@ -145,13 +145,14 @@ PageOverflowDiagnosis diagnosePageOverflow(PageOverflowMetrics m) {
       );
     }
     if (underfill > underfillThreshold) {
-      final cause = m.lineDelta <= -kLineDeltaThreshold
-          ? PageOverflowCause.charWidthOrRatio
-          : PageOverflowCause.underfill;
-      final summary = cause == PageOverflowCause.charWidthOrRatio
-          ? '底部空白偏大且 Flutter 行数明显少于 Rust → 字宽/ratio 偏保守（少装）'
-          : '底部空白偏大（>${underfillThreshold.toStringAsFixed(1)}dp）→ 查行高预算或 Rust 过早翻页';
-      return PageOverflowDiagnosis(cause: cause, metrics: m, summary: summary);
+      // ICU 断行路径下 rustEstLines（贪心字宽估算）与真值无关；
+      // 负 lineDelta + underfill 多半是装箱行高/buffer 偏大，不是字宽。
+      return PageOverflowDiagnosis(
+        cause: PageOverflowCause.underfill,
+        metrics: m,
+        summary:
+            '底部空白偏大（>${underfillThreshold.toStringAsFixed(1)}dp）→ 查行高预算或 Rust 过早翻页',
+      );
     }
     return PageOverflowDiagnosis(
       cause: PageOverflowCause.ok,

@@ -195,7 +195,7 @@ pub struct TypesetConfigFixReport {
 // ==================== 验证宏 ====================
 
 /// 分页/断行算法版本；逻辑变更时递增以使 sled / 内存缓存失效。
-const LAYOUT_ALGORITHM_VERSION: u32 = 13;
+const LAYOUT_ALGORITHM_VERSION: u32 = 14;
 
 macro_rules! check_range {
     ($self:ident, $field:ident, $min:ident, $max:ident, $desc:expr, $unit:expr) => {

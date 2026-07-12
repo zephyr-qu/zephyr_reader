@@ -120,7 +120,7 @@ void main() {
       expect(d.cause, PageOverflowCause.underfill);
     });
 
-    test('underfill + fewer flut lines → charWidthOrRatio (少装)', () {
+    test('underfill + fewer flut lines still underfill (ICU 路径不误判字宽)', () {
       final d = diagnosePageOverflow(
         _m(
           bodyHeightDp: 400,
@@ -130,8 +130,8 @@ void main() {
           flutLineHeightDp: 24,
         ),
       );
-      expect(d.cause, PageOverflowCause.charWidthOrRatio);
-      expect(d.summary, contains('少装'));
+      expect(d.cause, PageOverflowCause.underfill);
+      expect(d.summary, contains('行高预算'));
     });
 
     test('mixed when width drift and padding budget both hit', () {
