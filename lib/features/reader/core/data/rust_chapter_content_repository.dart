@@ -12,6 +12,7 @@ import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_staging_preloader.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_staging_store.dart';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
+import 'package:zephyr_reader/src/rust/api/types.dart' as types_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/chapter.dart' as chapter_api;
 import 'package:zephyr_reader/src/rust/api/epub.dart' as epub_api;
@@ -383,7 +384,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
       else
         Future<Object?>.value(null),
     ]);
-    var content = (results[0] as core_api.ChapterContent).when(
+    var content = (results[0] as types_api.ChapterContent).when(
       raw: (text) => text,
       pages: (pages) => pages.map((p) => p.content).join('\n\n'),
     );

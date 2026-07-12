@@ -9,6 +9,7 @@ use crate::domain::{
 };
 
 /// 块路径分页状态（session / `PAGINATION_ENGINE_CACHE` 持有）。
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub(crate) struct BlockPaginationState {
     pub ir: ChapterContentIr,
@@ -17,6 +18,7 @@ pub(crate) struct BlockPaginationState {
     pub typeset_config: TypesetConfig,
 }
 
+#[allow(dead_code)]
 impl BlockPaginationState {
     pub fn new(
         ir: ChapterContentIr,
@@ -225,6 +227,7 @@ impl BlockPaginationState {
     }
 }
 
+#[allow(dead_code)]
 trait PaginateResultPatch {
     fn into_with_config_hash(self, config_hash: u64) -> PaginateResult;
 }

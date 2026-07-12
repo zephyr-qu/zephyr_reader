@@ -13,7 +13,7 @@ use crate::storage::repos::{BookRepository, ChapterRepository};
 use crate::storage::storage_pool;
 
 use super::BOOK_ID_CACHE;
-use crate::api::core::{ChapterContent, FirstSpineResult};
+use crate::api::types::{ChapterContent, FirstSpineResult};
 use crate::domain::PageContent;
 use crate::reading::block_state::BlockPaginationState;
 use crate::reading::chapter_ir::load_chapter_content_ir;

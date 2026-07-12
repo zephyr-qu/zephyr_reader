@@ -4,6 +4,8 @@ pub mod bilingual;
 pub mod core;
 pub mod cover;
 pub mod data;
+pub mod import;
+pub mod types;
 pub mod dictionary;
 pub mod epub;
 pub mod phase2_ir;
@@ -12,7 +14,8 @@ pub mod vocab_marker;
 
 // 导出各模块的结构体
 pub use bilingual::{AlignedSegment, BilingualAlignment};
-pub use core::{ChapterContent, parse_book};
+pub use types::ChapterContent;
+pub use import::parse_book;
 pub use epub::{EpubImageInfo, ImageFormat};
 
 pub use crate::dictionary::{DictEntry, DictSearchResult};

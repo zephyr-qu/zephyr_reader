@@ -21,8 +21,10 @@ use crate::reading::block_state::BlockPaginationState;
 
 /// Session / 内存 LRU 持有的分页引擎。
 /// 全章分页统一走 `Block(BlockPaginationState)`。
+#[allow(dead_code)]
 #[derive(Clone)]
 pub(crate) enum PaginationEngine {
+    #[allow(dead_code)]
     Block(BlockPaginationState),
 }
 
@@ -39,6 +41,7 @@ pub(crate) struct PaginationKey {
     pub config_hash: u64,
 }
 
+#[allow(dead_code)]
 impl PaginationKey {
     pub fn new(book_id: &str, chapter_index: i32, config_hash: u64) -> Self {
         Self {
@@ -59,6 +62,7 @@ pub(crate) struct PaginationStore {
     _marker: PhantomData<()>,
 }
 
+#[allow(dead_code)]
 impl PaginationStore {
     const fn new() -> Self {
         Self {

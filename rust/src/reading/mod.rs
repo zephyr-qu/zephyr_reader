@@ -17,10 +17,8 @@ pub mod chapter_access;
 pub mod chapter_ir;
 pub(crate) mod layout_cache;
 pub mod orchestrator;
-pub(crate) mod pagination;
 pub(crate) mod pagination_store;
 pub(crate) mod provider_cache;
-pub(crate) mod session;
 pub mod types;
 
 // ── book_id_cache (inlined) ──
