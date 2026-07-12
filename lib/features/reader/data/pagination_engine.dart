@@ -1,31 +1,10 @@
-import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
-import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 import 'package:zephyr_reader/features/reader/domain/model/page_info.dart';
 
 /// 无状态分页引擎。
 ///
-/// 封装 Rust 全量分页、部分分页算法。
-/// 所有方法为纯计算或 FFI 调用，不持有任何可变状态。
+/// 封装分页工具方法。
 class PaginationEngine {
-  /// Rust 分页排版。
-  ///
-  /// 返回完整的 [PaginateResult]（含 isPartial 标记）。
-  /// 调用方负责缓存描述符和预加载页面内容。
-  Future<PaginateResult> paginateChapter({
-    required String filePath,
-    required int chapterIndex,
-    required TypesetConfig config,
-    BigInt? maxChars,
-  }) async {
-    return core_api.paginateChapter(
-      bookId: filePath,
-      chapterIndex: chapterIndex,
-      config: config,
-      maxChars: maxChars,
-    );
-  }
-
   /// 首屏快速分页截止字符数（2000 字符）。
   static final BigInt firstScreenMaxChars = BigInt.from(2000);
 

@@ -104,14 +104,6 @@ criterion = { version = "0.8.2", features = ["html_reports"] }
 pretty_assertions = "1.4"
 zip = "3.0"
 
-[[bin]]
-name = "stress_test"
-path = "tools/stress_test.rs"
-
-[[bench]]
-name = "parsing_benchmark"
-harness = false
-
 [profile.release]
 opt-level = 3
 lto = true

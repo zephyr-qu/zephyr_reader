@@ -7,9 +7,6 @@ use tempfile::TempDir;
 use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
-use rust_lib_zephyr_reader::api::core::{
-    get_session_page_content, PaginationSessionHandle,
-};
 use rust_lib_zephyr_reader::api::data::init::init_storage;
 use rust_lib_zephyr_reader::domain::{LanguageType, PageDescriptor, TypesetConfig};
 
@@ -176,34 +173,3 @@ pub fn assert_monotonic_descriptors(descriptors: &[PageDescriptor]) {
 
 /// Adjacent pages must not duplicate content: `page[N+1]` must NOT start with
 /// the full text of `page[N]`.
-pub async fn assert_no_cross_page_duplicate(
-    handle: &PaginationSessionHandle,
-    max_pages: i32,
-) {
-    let count = max_pages;
-    for i in 0..count.saturating_sub(1) {
-        let p0 = get_session_page_content(handle.clone(), i)
-            .expect("get_session_page_content should succeed");
-        let p1 = get_session_page_content(handle.clone(), i + 1)
-            .expect("get_session_page_content should succeed");
-        assert!(
-            !p1.starts_with(&p0),
-            "page {} content is duplicated as prefix of page {}",
-            i,
-            i + 1,
-        );
-    }
-}
-
-/// After a `partial → full` upgrade, page 0 must stay stable.
-pub async fn assert_partial_full_page0_stable(
-    handle: &PaginationSessionHandle,
-    page0_partial: &str,
-) {
-    let page0_full = get_session_page_content(handle.clone(), 0)
-        .expect("get_session_page_content should succeed");
-    assert_eq!(
-        page0_partial, page0_full,
-        "page 0 must stay stable after partial→full upgrade",
-    );
-}
