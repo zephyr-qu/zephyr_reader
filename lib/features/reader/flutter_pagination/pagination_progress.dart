@@ -1,11 +1,11 @@
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
-import 'package:zephyr_reader/features/reader/spike/spike_page.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 
 /// Spike 进度：charOffset ↔ pageIndex（ADR-001 半开区间语义）。
-abstract final class SpikeProgress {
+abstract final class PaginationProgress {
   /// 章级 [charOffset] 落在哪一页（与 [PaginationEngine.resolvePageIndexForOffset] 一致）。
-  static int pageIndexAtCharOffset(List<SpikePage> pages, int charOffset) {
+  static int pageIndexAtCharOffset(List<PackedPage> pages, int charOffset) {
     if (pages.isEmpty) return 0;
     return PaginationEngine.resolvePageIndexForOffset(
       [
@@ -26,7 +26,7 @@ abstract final class SpikeProgress {
   /// 翻页写回用的锚点：页内偏移（避免边界落在上一页）。
   ///
   /// 与 [ChapterNavigator.loadPage] 对齐：`end > start + 1` 时用 `start + 1`。
-  static int charOffsetForPage(List<SpikePage> pages, int pageIndex) {
+  static int charOffsetForPage(List<PackedPage> pages, int pageIndex) {
     if (pages.isEmpty) return 0;
     final i = pageIndex.clamp(0, pages.length - 1);
     final p = pages[i];
@@ -37,7 +37,7 @@ abstract final class SpikeProgress {
 
   /// 重装箱后：旧 [charOffset] 是否仍落在解析出的页区间内（或章末夹紧）。
   static bool offsetStillOnResolvedPage({
-    required List<SpikePage> pages,
+    required List<PackedPage> pages,
     required int charOffset,
   }) {
     if (pages.isEmpty) return charOffset == 0;

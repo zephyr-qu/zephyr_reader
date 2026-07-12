@@ -2,11 +2,10 @@ import 'package:flutter/painting.dart';
 import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
 import 'package:zephyr_reader/features/reader/rendering/ir_text_block_style.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/features/reader/spike/slice_rich_spans.dart';
-import 'package:zephyr_reader/features/reader/spike/spike_page.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/slice_rich_spans.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
-import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 
 /// 无 intrinsic 时图片高度 = 内容宽 × 此比（与 Rust `DEFAULT_IMAGE_HEIGHT_RATIO` 对齐）。
 const kDefaultImageHeightRatio = 0.55;
@@ -35,7 +34,7 @@ class FlutterPaginateOutcome {
     required this.isPartial,
   });
 
-  final List<SpikePage> pages;
+  final List<PackedPage> pages;
   final bool isPartial;
 }
 
@@ -59,7 +58,7 @@ double imageDisplayHeightDp({
 /// Flutter 侧页装箱（方案三）。
 abstract final class FlutterBlockPaginator {
   /// 同步装箱（单测 / 小章）。
-  static List<SpikePage> paginate(
+  static List<PackedPage> paginate(
     ChapterContentIr ir, {
     required ReaderRenderConfig config,
     required double contentWidthDp,
@@ -70,7 +69,7 @@ abstract final class FlutterBlockPaginator {
     final maxH = contentHeightDp.clamp(1.0, 8192.0);
     if (ir.plainText.isEmpty && ir.blocks.isEmpty) {
       return const [
-        SpikePage(
+        PackedPage(
           pageIndex: 0,
           startOffset: 0,
           endOffset: 0,
@@ -121,7 +120,7 @@ abstract final class FlutterBlockPaginator {
     bool Function()? isCancelled,
     int yieldEveryChunks = 1,
     int? stopAfterPlainOffset,
-    void Function(List<SpikePage> pagesSoFar, bool isPartial)? onProgress,
+    void Function(List<PackedPage> pagesSoFar, bool isPartial)? onProgress,
   }) async {
     void checkCancel() {
       if (isCancelled?.call() == true) {
@@ -136,7 +135,7 @@ abstract final class FlutterBlockPaginator {
     if (ir.plainText.isEmpty && ir.blocks.isEmpty) {
       return const FlutterPaginateOutcome(
         pages: [
-          SpikePage(
+          PackedPage(
             pageIndex: 0,
             startOffset: 0,
             endOffset: 0,
@@ -235,8 +234,8 @@ class _PagePacker {
   final ReaderRenderConfig config;
   final int? stopAfterPlainOffset;
 
-  final List<SpikePage> _pages = [];
-  final List<SpikeBlockSlice> _slices = [];
+  final List<PackedPage> _pages = [];
+  final List<PackedBlockSlice> _slices = [];
   int? _pageStart;
   int _pageEnd = 0;
   double _used = 0;
@@ -257,10 +256,10 @@ class _PagePacker {
     return stop != null && plainEnd >= stop && hasEmittedPages;
   }
 
-  List<SpikePage> snapshotPages({required bool forcePartial}) {
-    final out = <SpikePage>[
+  List<PackedPage> snapshotPages({required bool forcePartial}) {
+    final out = <PackedPage>[
       for (final p in _pages)
-        SpikePage(
+        PackedPage(
           pageIndex: p.pageIndex,
           startOffset: p.startOffset,
           endOffset: p.endOffset,
@@ -270,11 +269,11 @@ class _PagePacker {
     ];
     if (_pageHasContent || _slices.isNotEmpty) {
       out.add(
-        SpikePage(
+        PackedPage(
           pageIndex: out.length,
           startOffset: _pageStart ?? 0,
           endOffset: _pageEnd,
-          slices: List.unmodifiable(List<SpikeBlockSlice>.from(_slices)),
+          slices: List.unmodifiable(List<PackedBlockSlice>.from(_slices)),
           isLastPage: !forcePartial,
         ),
       );
@@ -447,7 +446,7 @@ class _PagePacker {
       _pageStart ??= start;
       _pageEnd = end;
       _slices.add(
-        SpikeBlockSlice.image(
+        PackedBlockSlice.image(
           blockIndex: blockIndex,
           assetId: block.assetId,
           alt: block.alt,
@@ -465,7 +464,7 @@ class _PagePacker {
     _pageStart = start;
     _pageEnd = end;
     _slices.add(
-      SpikeBlockSlice.image(
+      PackedBlockSlice.image(
         blockIndex: blockIndex,
         assetId: block.assetId,
         alt: block.alt,
@@ -481,7 +480,7 @@ class _PagePacker {
   void _flushPage() {
     if (!_pageHasContent && _slices.isEmpty) return;
     _pages.add(
-      SpikePage(
+      PackedPage(
         pageIndex: _pages.length,
         startOffset: _pageStart ?? 0,
         endOffset: _pageEnd,
@@ -497,10 +496,10 @@ class _PagePacker {
     _sliceHeight = 0;
   }
 
-  List<SpikePage> finish({bool forcePartial = false}) {
+  List<PackedPage> finish({bool forcePartial = false}) {
     if (_pageHasContent || _slices.isNotEmpty || _pages.isEmpty) {
       _pages.add(
-        SpikePage(
+        PackedPage(
           pageIndex: _pages.length,
           startOffset: _pageStart ?? 0,
           endOffset: _pageEnd,
@@ -511,7 +510,7 @@ class _PagePacker {
     } else {
       final last = _pages.removeLast();
       _pages.add(
-        SpikePage(
+        PackedPage(
           pageIndex: last.pageIndex,
           startOffset: last.startOffset,
           endOffset: last.endOffset,
@@ -625,7 +624,7 @@ class _TextPackContext {
     packer._pageStart ??= absStart;
     packer._pageEnd = absEnd;
     packer._slices.add(
-      SpikeBlockSlice.text(
+      PackedBlockSlice.text(
         blockIndex: blockIndex,
         text: text,
         isBlockStart: sliceIsBlockStart,

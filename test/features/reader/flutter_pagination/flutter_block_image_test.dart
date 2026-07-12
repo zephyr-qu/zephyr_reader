@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
-import 'package:zephyr_reader/features/reader/spike/flutter_block_paginator.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_block_paginator.dart';
 import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 

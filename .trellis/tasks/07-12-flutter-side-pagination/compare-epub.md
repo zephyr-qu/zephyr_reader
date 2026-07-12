@@ -18,7 +18,7 @@
 - [x] 内联图包装箱计入 ±4dp padding  
 - [x] 占位高度与 `imageDisplayHeightDp` 对齐（勿用 16:9）  
 - [x] 渲染侧 inline `maxHeight` 与装箱一致（读 IR intrinsic）  
-- [x] staging 用 `SpikeViewportMetrics` + 图 prefetch  
+- [x] staging 用 `PaginationViewportMetrics` + 图 prefetch  
 - [x] session dispose 清 `epubBlockImageCache`  
 - [x] 切片保留 EPUB spans  
 - [x] spike 路径不传 layoutCalibration  

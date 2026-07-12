@@ -1,7 +1,7 @@
 /// 渲染 LayoutBuilder 实测的正文区尺寸（方案三）。
 ///
 /// 装箱预算应尽量用这里的值，而不是 `MediaQuery` 估算——二者差一截就会整页留白。
-abstract final class SpikeViewportMetrics {
+abstract final class PaginationViewportMetrics {
   static double? contentWidthDp;
   static double? contentHeightDp;
 

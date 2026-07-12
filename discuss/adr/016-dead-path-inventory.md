@@ -14,4 +14,7 @@
 | 回传 | `pagination_coordinator.repaginateAfterMetricsBackfeed` | 方法文档 |
 | 回传 | `chapter_load_orchestrator._captureMetricsBackfeed` | 方法文档 |
 
-检索：`ADR-016 DEAD PATH`
+| 检索 | `ADR-016 DEAD PATH` |
+| 产品路径 | `lib/features/reader/flutter_pagination/`（已去 spike 命名） |
+| session 工厂 | 固定 `FlutterPaginationSession` |
+| staging | 固定 `FlutterStagingPreloader` |

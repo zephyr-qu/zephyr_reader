@@ -22,8 +22,8 @@ import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
-import 'package:zephyr_reader/features/reader/spike/flutter_pagination_spike_flag.dart';
-import 'package:zephyr_reader/features/reader/spike/spike_viewport_metrics.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_progress_hook.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_viewport_metrics.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
@@ -117,28 +117,29 @@ class ChapterLoadOrchestrator {
         return;
       }
 
-      // 方案三：Flutter 精确分页旁路（explore 分支 flag 默认开）
-      if (kFlutterPaginationSpike) {
-        if (intent == ChapterPaginationIntent.stagingPromoteForward ||
-            intent == ChapterPaginationIntent.stagingPromoteBackward) {
-          await _runFlutterStagingPromote(
-            gen,
-            request,
-            isForward: intent == ChapterPaginationIntent.stagingPromoteForward,
-            scheduleSearchIndex: scheduleSearchIndex,
-            preloadAdjacentFirstPages: preloadAdjacentFirstPages,
-          );
-          return;
-        }
-        await _runFlutterPaginationSpike(
+      // ADR-016：Flutter 精确分页为唯一产品路径（Rust 装箱+校准见 DEAD PATH）。
+      if (intent == ChapterPaginationIntent.stagingPromoteForward ||
+          intent == ChapterPaginationIntent.stagingPromoteBackward) {
+        await _runFlutterStagingPromote(
           gen,
           request,
+          isForward: intent == ChapterPaginationIntent.stagingPromoteForward,
           scheduleSearchIndex: scheduleSearchIndex,
           preloadAdjacentFirstPages: preloadAdjacentFirstPages,
         );
         return;
       }
+      await _runFlutterPagination(
+        gen,
+        request,
+        scheduleSearchIndex: scheduleSearchIndex,
+        preloadAdjacentFirstPages: preloadAdjacentFirstPages,
+      );
+      return;
 
+      // ADR-016 DEAD PATH — 原 Rust BlockPaginator + 校准写回主路径（关主路径后保留至删除提交）
+      // ignore: dead_code
+      if (false) {
       await _runStarting(
         gen,
         effectivePreserveContent: effectivePreserveContent,
@@ -339,6 +340,7 @@ class ChapterLoadOrchestrator {
       _applyIfCurrent(gen, () {
         _loadPhase.value = ChapterLoadPhase.idle;
       });
+      } // end ADR-016 DEAD PATH
     } catch (e) {
       _applyIfCurrent(gen, () {
         // P3 (Bug A) 修复：stagingPromote 已成功设置信号后，
@@ -387,7 +389,7 @@ class ChapterLoadOrchestrator {
   }) async {
     final sw = Stopwatch()..start();
     Logging.info(
-      '[Spike] promote ${isForward ? "forward" : "backward"} '
+      '[FlutterPagination] promote ${isForward ? "forward" : "backward"} '
       'chapter=${request.chapterIndex}',
     );
     await _runStarting(gen, effectivePreserveContent: true);
@@ -453,19 +455,19 @@ class ChapterLoadOrchestrator {
       _loadPhase.value = ChapterLoadPhase.idle;
     });
     Logging.info(
-      '[Spike] promote done pages=${result.totalPages} '
+      '[FlutterPagination] promote done pages=${result.totalPages} '
       'page=$pageIndex ${sw.elapsedMilliseconds}ms',
     );
   }
 
-  /// Flutter 分页实验旁路（[kFlutterPaginationSpike]）。
+  /// Flutter 精确分页（ADR-016 产品路径）。
   ///
-  /// 只拉章内容 + 走 [SpikePaginationSession]（工厂在 flag 开时创建）；
+  /// 只拉章内容 + 走 [FlutterPaginationSession]；
   /// 不跑 calibration / metrics backfeed / storeLineBreaks。
   ///
   /// 进度：用 [ChapterLoadRequest.initialCharOffset] 落页（字号变更时由
   /// ViewModel 传入当前 charOffset）；翻页写回仍走现有 renderer → navigator。
-  Future<void> _runFlutterPaginationSpike(
+  Future<void> _runFlutterPagination(
     int gen,
     ChapterLoadRequest request, {
     required Future<void> Function(int chapterIndex, String content)?
@@ -474,7 +476,7 @@ class ChapterLoadOrchestrator {
   }) async {
     final preserve = request.preserveContent ?? false;
     Logging.info(
-      '[Spike] gen=$gen chapter=${request.chapterIndex} '
+      '[FlutterPagination] gen=$gen chapter=${request.chapterIndex} '
       'off=${request.initialCharOffset} preserve=$preserve '
       '(no Rust paginate)',
     );
@@ -533,20 +535,20 @@ class ChapterLoadOrchestrator {
         _setPhase(gen, ChapterLoadPhase.cancelled);
         return;
       }
-      if (SpikeViewportMetrics.contentHeightDp != null) break;
+      if (PaginationViewportMetrics.contentHeightDp != null) break;
     }
     Logging.info(
-      '[Spike] gen=$gen viewport ready '
-      'H=${SpikeViewportMetrics.contentHeightDp?.toStringAsFixed(0) ?? "null"} '
-      'W=${SpikeViewportMetrics.contentWidthDp?.toStringAsFixed(0) ?? "null"}',
+      '[FlutterPagination] gen=$gen viewport ready '
+      'H=${PaginationViewportMetrics.contentHeightDp?.toStringAsFixed(0) ?? "null"} '
+      'W=${PaginationViewportMetrics.contentWidthDp?.toStringAsFixed(0) ?? "null"}',
     );
 
     var totalPages = quick.totalPages;
     // 有实测视口则整章重装；否则仅 expand 补全。
     Logging.info(
-      '[Spike] gen=$gen rebox after first-screen pages=${quick.totalPages}',
+      '[FlutterPagination] gen=$gen rebox after first-screen pages=${quick.totalPages}',
     );
-    spikePaginationProgressHook = (pages, partial) {
+    paginationProgressHook = (pages, partial) {
       _applyIfCurrent(gen, () {
         if (pages > _totalPages.value) {
           _totalPages.value = pages;
@@ -557,7 +559,7 @@ class ChapterLoadOrchestrator {
       final full = await _pagination.paginateFullChapter(request.chapterIndex);
       totalPages = full.totalPages;
     } finally {
-      spikePaginationProgressHook = null;
+      paginationProgressHook = null;
     }
     if (_isStale(gen)) {
       _setPhase(gen, ChapterLoadPhase.cancelled);
@@ -585,7 +587,7 @@ class ChapterLoadOrchestrator {
       _loadPhase.value = ChapterLoadPhase.idle;
     });
     Logging.info(
-      '[Spike] gen=$gen done pages=$totalPages '
+      '[FlutterPagination] gen=$gen done pages=$totalPages '
       'partialWas=${quick.isPartial} '
       'page=${_pageIndex.value} off=${_chapterVM.currentCharOffset.value} '
       'contentLen=${content.length}',

@@ -8,8 +8,6 @@ import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
-import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
-import 'package:zephyr_reader/features/reader/spike/flutter_pagination_spike_flag.dart';
 import 'package:zephyr_reader/features/reader/annotations/presentation/reader_annotation_dialog.dart';
 import 'package:zephyr_reader/features/reader/annotations/presentation/reader_highlight_sheet.dart';
 import 'package:zephyr_reader/features/reader/rendering/paginated_renderer.dart';
@@ -77,9 +75,6 @@ class ReaderContentArea extends HookWidget {
       vm.config.paragraphSpacing.signal,
     );
     final double bPagemargin = useSignalValue(vm.config.padding.signal);
-    final CalibrationData? bCalibration = useSignalValue(
-      vm.chapterManager.calibration,
-    );
     final int? bPendingjumpcharoffset = useSignalValue(
       vm.chapterManager.pendingJumpCharOffset,
     );
@@ -233,8 +228,7 @@ class ReaderContentArea extends HookWidget {
                   onSelectionChanged: vm.annotations.updateSelection,
                   onSelectionGlobalPosition: (pos) =>
                       selectionGlobalPos.value = pos,
-                  layoutCalibration:
-                      kFlutterPaginationSpike ? null : bCalibration,
+                  layoutCalibration: null, // ADR-016：不再回传校准给 Rust 装箱
                 ),
                 onPageChanged: vm.loadPage,
                 onRetry: () => vm.loadChapter(

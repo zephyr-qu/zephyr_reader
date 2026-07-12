@@ -45,7 +45,7 @@
 | 模块 | 职责 | 来源 / 路径建议 |
 |------|------|-----------------|
 | `FlutterBlockPaginator` | IR → pages | 升格自 `spike/flutter_block_paginator.dart` |
-| `FlutterPaginationSession` | 持 IR、descriptors、按页切片、offset↔page | 升格自 `spike_pagination_session.dart` |
+| `FlutterPaginationSession` | 持 IR、descriptors、按页切片、offset↔page | 升格自 `flutter_pagination_session.dart` |
 | Staging 适配 | 预取相邻章 IR + 后台 `paginate`；缓存首/末屏 | 改 `NextChapterStaging` / orchestrator 交接 |
 | Orchestrator | session 实现切换；intent 复用 | 最小侵入；flag → 日后默认 |
 | 渲染 | `buildBlockPageContent` 等 | **复用**，不第二套 Widget 树 |
