@@ -118,6 +118,8 @@ pub(crate) async fn apply_session_repagination(
 
 /// Create a pagination session and run initial pagination for the chapter.
 /// M2: `book_id` 用于 PaginationKey，`file_path` 由 orchestrator 预解析（ADR-014）。
+///
+/// ADR-016 DEAD PATH：合入 Flutter 分页后删除。
 pub(crate) async fn create_pagination_session(
     book_id: String,
     file_path: String,
@@ -222,6 +224,8 @@ pub(crate) async fn repaginate_session(
 }
 
 /// Apply Flutter-measured calibration to an existing session and repaginate in-place.
+///
+/// ADR-016 DEAD PATH：校准写回环合入 Flutter 分页后删除。
 pub(crate) async fn apply_session_calibration(
     handle: PaginationSessionHandle,
     calibration: crate::domain::types::typeset::TypesetCalibration,

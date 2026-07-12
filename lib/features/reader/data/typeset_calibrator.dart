@@ -6,6 +6,11 @@ import 'package:zephyr_reader/features/reader/data/layout_calibration_store.dart
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 
+/// 排版测量 / 校准（ADR-013）。
+///
+/// ADR-016 DEAD PATH：Flutter→Rust 校准写回环将随精确分页合入后移除。
+/// 测量工具可保留作诊断；勿再扩展写回 session 的路径。
+///
 /// 无 Flutter 实测时的默认有效行宽比例（与 Rust `DEFAULT_EFFECTIVE_LINE_WIDTH_RATIO` 对齐）。
 /// 主断行已用满页宽；此值主要用于诊断估算与缺省校准。
 const kDefaultEffectiveLineWidthRatio = 1.0;

@@ -16,6 +16,10 @@ import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
+/// Rust 分页 session（ADR-006/013）。
+///
+/// ADR-016 DEAD PATH：将被 Flutter 精确装箱 session 取代
+///（`explore/flutter-side-pagination`）。合入后删除本类；合并前勿扩展。
 class RustPaginationSession implements PaginationSession {
   RustPaginationSession({this._onCacheUpdated});
 
