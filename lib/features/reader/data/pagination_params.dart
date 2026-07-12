@@ -1,4 +1,3 @@
-import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 
@@ -13,7 +12,6 @@ class PaginationParams {
   final double height;
   final double padding;
   final double devicePixelRatio;
-  final CalibrationData? calibration;
   final String fontFamily;
   final double letterSpacing;
   final double paragraphSpacing;
@@ -29,7 +27,6 @@ class PaginationParams {
     required this.height,
     required this.padding,
     this.devicePixelRatio = 1.0,
-    this.calibration,
     this.fontFamily = 'Noto Sans SC',
     this.letterSpacing = 0,
     this.paragraphSpacing = ReaderTypographyDefaults.paragraphSpacing,

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/features/reader/data/layout_calibration_store.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 
@@ -212,7 +210,8 @@ double measureLineHeightDp({
 }) {
   final maxW = layoutMaxWidthDp.clamp(32.0, 4096.0);
   // 足够换行的 CJK 样本，贴近正文段落而非无限宽单字。
-  const sample = '国国国国国国国国国国国国国国国国国国国国'
+  const sample =
+      '国国国国国国国国国国国国国国国国国国国国'
       '国国国国国国国国国国国国国国国国国国国国';
   final tp = TextPainter(
     text: TextSpan(text: sample, style: textStyle),
@@ -292,54 +291,6 @@ CalibrationData measureLayoutFingerprint(TypesetMeasureParams params) {
     effectiveLineWidthRatio: lineWidthRatio,
     lineHeightDp: lineHeightDp,
   );
-}
-
-/// 读本地缓存；未命中则 [measureLayoutFingerprint] 并写入缓存。
-Future<CalibrationData?> resolveLayoutCalibration({
-  required TypesetMeasureParams params,
-  required PreferencesService prefs,
-  int maxRetries = 2,
-  Duration retryDelay = const Duration(milliseconds: 100),
-}) async {
-  final key = LayoutCalibrationStore.cacheKey(params);
-  final cached = LayoutCalibrationStore.load(prefs, key);
-  if (cached != null && isCalibrationPlausible(cached, params.fontSize)) {
-    Logging.info('[LayoutCalib] cache hit key=$key');
-    return cached;
-  }
-
-  for (int attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      final measured = measureLayoutFingerprint(params);
-      final ratio = measured.cjkWidth / params.fontSize;
-      if (ratio < 0.5 || ratio > 1.5) {
-        if (attempt < maxRetries) {
-          Logging.info(
-            '[LayoutCalib] CJK ratio=$ratio out of range, retry $attempt',
-          );
-          await Future<void>.delayed(retryDelay);
-          continue;
-        }
-        Logging.info('[LayoutCalib] CJK ratio=$ratio, using defaults');
-        return defaultCalibrationData(
-          fontSize: params.fontSize,
-          lineHeight: params.lineHeight,
-          devicePixelRatio: params.devicePixelRatio,
-        );
-      }
-      await LayoutCalibrationStore.save(prefs, key, measured);
-      return measured;
-    } catch (e) {
-      if (attempt < maxRetries) {
-        Logging.error('[LayoutCalib] measure error ($attempt): $e');
-        await Future<void>.delayed(retryDelay);
-        continue;
-      }
-      Logging.error('[LayoutCalib] measure failed: $e');
-      return null;
-    }
-  }
-  return null;
 }
 
 /// Unicode 分类，与 Rust `CharWidthTable::char_width` 区间对齐。

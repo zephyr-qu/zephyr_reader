@@ -60,10 +60,9 @@ class ChapterLoader {
     );
   }
 
-  /// 设置字体信息并重新校准
+  /// 设置字体信息
   void updateFont(String fontFamily) {
     _pagination.fontFamily = fontFamily;
-    _pagination.calibration.value = null;
   }
 
   /// 加载章节列表
