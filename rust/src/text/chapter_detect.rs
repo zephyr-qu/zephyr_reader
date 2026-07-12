@@ -2,7 +2,9 @@
 //! 识别中文和英文小说的章节标题
 
 use crate::storage::models::Chapter;
-use crate::text::constants::{CHAPTER_PATTERN_DIGIT, CHAPTER_PATTERN_EN, CHAPTER_PATTERN_ZH};
+use crate::text::constants::{
+    CHAPTER_PATTERN_DIGIT, CHAPTER_PATTERN_EN, CHAPTER_PATTERN_ZH, CHAPTER_PATTERN_ZH_ENUM,
+};
 use regex::Regex;
 
 /// 从文本中提取章节信息
@@ -12,9 +14,10 @@ use regex::Regex;
 /// * `max_chapters` - 最大章节数
 /// * `book_id` - 所属书籍 ID，填入每个章节的 book_id 字段
 pub fn extract_chapters(content: &str, max_chapters: i32, book_id: &str) -> Vec<Chapter> {
-    // 尝试多种章节模式，按优先级排序（中文 -> 英文 -> 数字）
-    let patterns: [&Regex; 3] = [
+    // 中文「章回」→ 中文「一、」枚举 → 英文 → 数字
+    let patterns: [&Regex; 4] = [
         &*CHAPTER_PATTERN_ZH,
+        &*CHAPTER_PATTERN_ZH_ENUM,
         &*CHAPTER_PATTERN_EN,
         &*CHAPTER_PATTERN_DIGIT,
     ];
@@ -70,6 +73,15 @@ fn extract_chapters_with_pattern(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_extract_chapters_zh_enum() {
+        let content = "一、开端\n内容甲\n\n二、发展\n内容乙\n\n三、结局\n内容丙\n";
+        let chapters = extract_chapters(content, 100, "test_book");
+        assert_eq!(chapters.len(), 3);
+        assert!(chapters[0].title.starts_with("一、"));
+        assert!(chapters[1].title.starts_with("二、"));
+    }
 
     #[test]
     fn test_extract_chapters_zh() {

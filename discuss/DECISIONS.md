@@ -18,6 +18,8 @@
 | [012](./adr/012-staging-prefetch-guarantee.md) | Staging 预取硬保证，零可见 loading | **已接受** | 2026-06-25 |
 | [013](./adr/013-flutter-metrics-calibration.md) | Rust 初筛 + Flutter metrics 回传 | **已接受** | 2026-06-25 |
 | [014](./adr/014-api-path-unification.md) | 分页 API 路径统一 | **已接受** | 2026-07-03 |
+| [015](./adr/015-css-style-whitelist-pruning.md) | CSS 样式白名单裁剪 | **已接受** | 2026-07 |
+| [016](./adr/016-flutter-pagination-engine-proposed.md) | 分页装箱迁 Flutter | **提案**（Phase 5 后毕业） | 2026-07-12 |
 
 ## 问卷归档
 

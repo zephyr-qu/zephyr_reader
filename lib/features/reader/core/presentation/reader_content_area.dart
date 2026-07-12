@@ -9,6 +9,7 @@ import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.d
 import 'package:zephyr_reader/features/reader/core/application/reader_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
+import 'package:zephyr_reader/features/reader/spike/flutter_pagination_spike_flag.dart';
 import 'package:zephyr_reader/features/reader/annotations/presentation/reader_annotation_dialog.dart';
 import 'package:zephyr_reader/features/reader/annotations/presentation/reader_highlight_sheet.dart';
 import 'package:zephyr_reader/features/reader/rendering/paginated_renderer.dart';
@@ -232,7 +233,8 @@ class ReaderContentArea extends HookWidget {
                   onSelectionChanged: vm.annotations.updateSelection,
                   onSelectionGlobalPosition: (pos) =>
                       selectionGlobalPos.value = pos,
-                  layoutCalibration: bCalibration,
+                  layoutCalibration:
+                      kFlutterPaginationSpike ? null : bCalibration,
                 ),
                 onPageChanged: vm.loadPage,
                 onRetry: () => vm.loadChapter(
