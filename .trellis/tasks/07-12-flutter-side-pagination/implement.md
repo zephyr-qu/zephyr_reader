@@ -48,6 +48,8 @@
 - [ ] 删除 Rust BlockPaginator / apply_session_calibration / RustPaginationSession
 - [ ] 正式 Accept ADR-016
 
+**后续收口规划（P6–P10）** → [followup-plan.md](./followup-plan.md)
+
 ### EPUB 工程缺口
 
 - [x] 内联图装箱计入 ±4dp padding

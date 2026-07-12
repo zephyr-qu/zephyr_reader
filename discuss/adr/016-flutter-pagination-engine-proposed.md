@@ -36,7 +36,7 @@
 2. ~~T3 大章不 ANR~~（真机满意）
 3. ~~真机 S1–S3 + overflow~~（TXT+EPUB Go）
 4. ~~与主线对比报告，择优~~（Flutter 胜出）
-5. **待做**：合主线 + 正式 Accept 本 ADR + 关旧校准路径 / 删或归档 Rust 装箱主路径
+5. **进行中**：已合 `phase/stage6-line-width-calib` 且 Flutter 为主路径；待删 DEAD PATH 后正式 Accept（见 [followup-plan.md](../../.trellis/tasks/07-12-flutter-side-pagination/followup-plan.md)）
 
 ## 不做
 
