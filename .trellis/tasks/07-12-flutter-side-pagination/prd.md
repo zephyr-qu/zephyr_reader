@@ -1,52 +1,59 @@
-# Flutter侧分页实验 — 方案 2（Rust 出 IR）
+# 方案三：Flutter 精确分页（North Star）
 
 ## Goal
 
-在分支 `explore/flutter-side-pagination` 做隔离实验：
+**页边界真理在 Flutter**；Rust 只出 IR（+ 可选粗估 hint，默认不做）；用 isolate/预取满足 staging；**不做** metrics 回传环。
 
-- **Rust**：只输出章 IR（`ContentBlock[]` + `plainText`），不做页装箱 / pagination session / metrics 回传。
-- **Flutter**：分页装箱 + 排版测量 + 渲染，全部用同一套 `TextPainter` 真理。
+本分支 `explore/flutter-side-pagination` **完整实现方案三（T0–T3，T4 可选）**，完成后与主线对比，完成度更高且核心更稳的一方合并。
 
-验证单侧真理能否消掉 overflow / 校准环；**默认不合并主线**。
+相对方案 2：同一真理；补上「相邻章精确预装箱 + 大章不卡」产品层。方案 2 = **T0**；方案 3 = **T0→T5**。
 
-## Background
+## Verdict 策略
 
-| 项 | 说明 |
-|----|------|
-| 基线提交 | `d69c4df`（stage6 行高/buffer 修复已落在 `phase/stage6-line-width-calib`） |
-| 契约选择 | **方案 2**：Rust 仍 `get_chapter_content_ir`；实验路径禁止分页 FFI |
-| ADR | 实验刻意偏离 ADR-006/013；合并前必须新 ADR |
-| Phase 5 | 不插队真机签退 |
+| 阶段 | 主线关系 |
+|------|----------|
+| 开发中 | 仅 explore 分支；`kFlutterPaginationSpike` 默认关 |
+| 对比后 | 与主线（Rust+校准）比：overflow、换章、大章、可维护性 |
+| 合并 | 胜出方进主线；输方归档。**禁止长期双真理** |
+
+## Hard Contracts
+
+1. 正式翻页/书签只认 Flutter 精确页。  
+2. Rust 粗结果若存在，不得写入正式 session。  
+3. 测量与装箱同侧；禁止 Flutter→Rust 校准写回。  
+4. Staging 预取必须用**同算法**精确装箱，禁止粗页冒充真页。
 
 ## Requirements
 
-- R1：feature flag（如 `flutterPaginationSpike`），默认关；关 = 现网 Rust 分页不变。
-- R2：flag 开时：零 `create_pagination_session` / `paginate_chapter` / `apply_session_calibration` / `store_line_breaks`。
-- R3：Flutter 对 IR 装箱 → 页描述符 → 复用/旁路现有块渲染；同页 overflow 诊断 `ok`（≤0.5dp）。
-- R4：进度仍 `chapterIndex + charOffset`；实验内实现 `charOffset → pageIndex`。
-- R5：首轮含 Text 块；Image 块至少不丢字（可先整页占位或延后）。
-- R6：`design.md` + `implement.md` 可执行；spike 结束写 Go/No-Go。
+- R1：flag 门控；关 = 现网 Rust 路径。  
+- R2：flag 开 = 零分页 session / calibration / store_line_breaks FFI。  
+- R3：T0 精确分页（TXT + 进度 + 图）。  
+- R4：T2 相邻章 staging，跨章无 spinner（ADR-012）。  
+- R5：T3 大章主 isolate 分块 yield + 首屏优先（TextPainter 不能进 compute）。  
+- R6：T5 前不删 Rust 引擎；对比后再收敛。  
+- R7：T4 粗 hint 默认 Out of Scope。
 
-## Acceptance Criteria
+## Acceptance（总）
 
-- [ ] AC1：flag 开，指定 TXT 章走 Flutter 分页，日志可证明无 Rust 分页 FFI。
-- [ ] AC2：翻页无丢字/重字；诊断 `ok`。
-- [ ] AC3：改字号重装箱后，charOffset 书签落在正确句附近。
-- [ ] AC4：flag 关，烟测与 stage6 基线一致。
-- [ ] AC5：文档结论：Go（开 ADR）/ No-Go（收工保留分支）/ Conditional（缺什么再 spike）。
+- [x] T0：单测绿；flag 关回归绿（真机 overflow 抽样记入对比清单）  
+- [ ] T1：正式 session 形态 + PageView/图路径稳定  
+- [ ] T2：forward/backward staging promote 无可见 loading  
+- [x] T3：大章装箱不在 UI isolate 阻塞（主 isolate 分块 yield）  
+- [ ] 对比报告：相对主线的 Must 场景表  
+- [ ] T5：ADR-016 Accept 或本方案归档（合并时二选一）
 
-## Out of Scope（首轮）
+## Out of Scope（直到明确开闸）
 
-- staging / 跨章预取
-- sled layout 分页缓存
-- 双语、curl 皮肤打磨
-- 删除 Rust `BlockPaginator`
-- WebView / 完整 CSS（Won't）
+- T4 Rust 粗 hint  
+- WebView / 复杂 CSS  
+- Phase 5 主线 silent 切换  
+- 双语专项
 
-## Decisions Locked
+## Decisions
 
 | # | 决策 |
 |---|------|
-| D1 | 方案 2：Rust 输出 IR，不算页 |
-| D2 | 实验分支隔离，flag 门控 |
-| D3 | 首轮 TXT 竖切优先，EPUB 图第二刀 |
+| D1 | 方案三 = 最终 explore 目标 |
+| D2 | 与主线对比后合并，不提前 Accept ADR |
+| D3 | Staging = 精确预装箱，不是粗页 |
+| D4 | T4 可永久不做 |

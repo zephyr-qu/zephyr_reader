@@ -9,6 +9,9 @@ import 'package:zephyr_reader/features/reader/core/domain/chapter_content_reposi
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/data/rich_text_converter.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
+import 'package:zephyr_reader/features/reader/spike/flutter_pagination_spike_flag.dart';
+import 'package:zephyr_reader/features/reader/spike/flutter_staging_preloader.dart';
+import 'package:zephyr_reader/features/reader/spike/spike_staging_store.dart';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/chapter.dart' as chapter_api;
@@ -515,6 +518,29 @@ class RustChapterContentRepository implements ChapterContentRepository {
     double devicePixelRatio = 1.0,
     String fontFamily = 'Noto Sans SC',
   }) async {
+    if (kFlutterPaginationSpike) {
+      final gen = ++_stagingGen;
+      final p = _resolveStagingParams(
+        fontSize: fontSize,
+        lineHeight: lineHeight,
+        width: width,
+        height: height,
+        padding: padding,
+        devicePixelRatio: devicePixelRatio,
+        fontFamily: fontFamily,
+      );
+      final staging = await FlutterStagingPreloader.preload(
+        bookId: bookId,
+        chapterIndex: chapterIndex,
+        params: p,
+        forNext: true,
+      );
+      if (gen != _stagingGen) return;
+      _nextChapterStaging = staging;
+      if (staging != null) preloadGeneration.value++;
+      return;
+    }
+
     final gen = ++_stagingGen;
     final sw = Stopwatch()..start();
     try {
@@ -577,6 +603,29 @@ class RustChapterContentRepository implements ChapterContentRepository {
     double devicePixelRatio = 1.0,
     String fontFamily = 'Noto Sans SC',
   }) async {
+    if (kFlutterPaginationSpike) {
+      final gen = ++_stagingGen;
+      final p = _resolveStagingParams(
+        fontSize: fontSize,
+        lineHeight: lineHeight,
+        width: width,
+        height: height,
+        padding: padding,
+        devicePixelRatio: devicePixelRatio,
+        fontFamily: fontFamily,
+      );
+      final staging = await FlutterStagingPreloader.preload(
+        bookId: bookId,
+        chapterIndex: chapterIndex,
+        params: p,
+        forNext: false,
+      );
+      if (gen != _stagingGen) return;
+      _prevChapterStaging = staging;
+      if (staging != null) preloadGeneration.value++;
+      return;
+    }
+
     final gen = ++_stagingGen;
     final sw = Stopwatch()..start();
     try {
@@ -630,6 +679,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
   void clearNextChapterStaging() {
     _stagingGen++;
     _nextChapterStaging = null;
+    if (kFlutterPaginationSpike) SpikeStagingStore.clearNext();
   }
 
   @override
@@ -637,5 +687,6 @@ class RustChapterContentRepository implements ChapterContentRepository {
     _stagingGen++;
     _nextChapterStaging = null;
     _prevChapterStaging = null;
+    if (kFlutterPaginationSpike) SpikeStagingStore.clearAll();
   }
 }
