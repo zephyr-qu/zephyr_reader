@@ -1,14 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
-import 'package:zephyr_reader/features/reader/spike/flutter_block_paginator.dart';
-import 'package:zephyr_reader/features/reader/spike/spike_pagination_session.dart';
-import 'package:zephyr_reader/features/reader/spike/spike_staging_store.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_block_paginator.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_pagination_session.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_staging_store.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  tearDown(SpikeStagingStore.clearAll);
+  tearDown(PaginationStagingStore.clearAll);
 
   test('installFromReady restores descriptors and page blocks', () {
     final config = lineBreakMeasureRenderConfig(
@@ -43,7 +43,7 @@ void main() {
     );
     expect(pages.length, greaterThan(1));
 
-    final ready = SpikeChapterReady(
+    final ready = PaginationChapterReady(
       bookId: 'b1',
       chapterIndex: 2,
       filePath: '/tmp/book.epub',
@@ -52,10 +52,10 @@ void main() {
       contentWidthDp: 200,
       contentHeightDp: 90,
     );
-    SpikeStagingStore.next = ready;
+    PaginationStagingStore.next = ready;
 
-    final session = SpikePaginationSession();
-    final taken = SpikeStagingStore.takeForChapter(2, forward: true);
+    final session = FlutterPaginationSession();
+    final taken = PaginationStagingStore.takeForChapter(2, forward: true);
     expect(taken, isNotNull);
     final result = session.installFromReady(taken!);
     expect(result.totalPages, pages.length);

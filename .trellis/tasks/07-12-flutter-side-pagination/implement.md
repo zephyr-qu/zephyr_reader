@@ -4,7 +4,7 @@
 
 - [x] Flag + spike session + orchestrator 旁路  
 - [x] TextPainter 装箱、进度、EPUB 图  
-- [x] 单测 `test/features/reader/spike/`  
+- [x] 单测 `test/features/reader/flutter_pagination/`  
 - [ ] 真机 TXT overflow / 书签抽样（对比清单，不阻塞 T1）
 
 **门控**：单测不过 → 停。真机抽样记入对比报告。
@@ -18,7 +18,7 @@
 
 ## T2 staging（精确预装箱）
 
-- [x] `SpikeStagingStore`：next/prev 持 ir+pages+filePath  
+- [x] `PaginationStagingStore`：next/prev 持 ir+pages+filePath  
 - [x] flag 开时 `preloadNext/PreviousChapterStaging` 走 Flutter 装箱  
 - [x] 填充 `NextChapterStaging` 供虚拟页  
 - [x] promote：`installFromReady`，不 Rust adopt  
@@ -42,15 +42,18 @@
 - [x] TXT 真机满意 → [compare-txt.md](./compare-txt.md) **TXT Go**
 - [x] EPUB 真机满意 → [compare-epub.md](./compare-epub.md) **EPUB Go**
 - [x] ADR-016 → **条件接受**（合主线后正式 Accept）
-- [ ] 合主线：关 Rust 装箱/校准写回主路径；flag 默认 true 或去掉旁路
-- [ ] （次）删除/归档 explore 旁路命名（spike → 正式模块名）
+- [x] 合入 `phase/stage6-line-width-calib`：Flutter 为唯一分页主路径
+- [x] 去掉 explore/spike 旁路命名 → `lib/features/reader/flutter_pagination/`
+- [x] 关 Rust 装箱/校准写回主路径（DEAD PATH 保留至删除提交）
+- [ ] 删除 Rust BlockPaginator / apply_session_calibration / RustPaginationSession
+- [ ] 正式 Accept ADR-016
 
 ### EPUB 工程缺口
 
 - [x] 内联图装箱计入 ±4dp padding
 - [x] 占位高度与 `imageDisplayHeightDp` 对齐
-- [x] 渲染侧 inline `maxHeight` 与 IR intrinsic 一致（`SpikeActiveChapterIr`）
-- [x] staging 用 `SpikeViewportMetrics` + 图 prefetch
+- [x] 渲染侧 inline `maxHeight` 与 IR intrinsic 一致（`ActiveChapterIr`）
+- [x] staging 用 `PaginationViewportMetrics` + 图 prefetch
 - [x] session dispose 清 `epubBlockImageCache` + IR holder
 - [x] 切片保留 EPUB spans
 - [x] spike 路径不传 `layoutCalibration`（避免主线校准诊断噪声）
@@ -58,7 +61,7 @@
 ## 验证命令
 
 ```bash
-flutter test test/features/reader/spike/
+flutter test test/features/reader/flutter_pagination/
 flutter test test/features/reader/core/application/chapter_load_orchestrator_test.dart
 ```
 

@@ -3,8 +3,8 @@ import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 
 /// Spike 页内块切片。
-class SpikeBlockSlice {
-  const SpikeBlockSlice.text({
+class PackedBlockSlice {
+  const PackedBlockSlice.text({
     required this.blockIndex,
     required this.text,
     required this.isBlockStart,
@@ -16,7 +16,7 @@ class SpikeBlockSlice {
        alt = null,
        imageLayout = null;
 
-  const SpikeBlockSlice.image({
+  const PackedBlockSlice.image({
     required this.blockIndex,
     required this.assetId,
     required this.imageLayout,
@@ -43,8 +43,8 @@ class SpikeBlockSlice {
 }
 
 /// Flutter 装箱产出的一页。
-class SpikePage {
-  const SpikePage({
+class PackedPage {
+  const PackedPage({
     required this.pageIndex,
     required this.startOffset,
     required this.endOffset,
@@ -57,6 +57,6 @@ class SpikePage {
   /// 章级 plain Unicode 半开区间 [startOffset, endOffset)。
   final int startOffset;
   final int endOffset;
-  final List<SpikeBlockSlice> slices;
+  final List<PackedBlockSlice> slices;
   final bool isLastPage;
 }

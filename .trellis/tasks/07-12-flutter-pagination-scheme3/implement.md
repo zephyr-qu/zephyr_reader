@@ -25,7 +25,7 @@
 - [x] Conditional Go + ADR-016 提案
 - [x] flag 默认关
 
-**验证**：`flutter test test/features/reader/spike/`
+**验证**：`flutter test test/features/reader/flutter_pagination/`
 
 ---
 
@@ -40,7 +40,7 @@
 **验证**
 
 ```bash
-flutter test test/features/reader/spike/
+flutter test test/features/reader/flutter_pagination/
 # 升格后改为正式目录测试
 flutter test test/features/reader/core/
 ```

@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/features/reader/spike/flutter_block_paginator.dart';
-import 'package:zephyr_reader/features/reader/spike/spike_page.dart';
-import 'package:zephyr_reader/features/reader/spike/spike_progress.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_block_paginator.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_progress.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 
 void main() {
@@ -49,7 +49,7 @@ void main() {
     expect(pages.length, greaterThan(1));
 
     for (var off = 0; off < ir.plainText.length; off++) {
-      final idx = SpikeProgress.pageIndexAtCharOffset(pages, off);
+      final idx = PaginationProgress.pageIndexAtCharOffset(pages, off);
       expect(idx, inInclusiveRange(0, pages.length - 1));
       final p = pages[idx];
       if (off == ir.plainText.length) {
@@ -61,7 +61,7 @@ void main() {
     }
 
     // 章末夹紧
-    final endIdx = SpikeProgress.pageIndexAtCharOffset(
+    final endIdx = PaginationProgress.pageIndexAtCharOffset(
       pages,
       ir.plainText.length,
     );
@@ -70,14 +70,14 @@ void main() {
 
   test('charOffsetForPage matches navigator inside-offset rule', () {
     const pages = [
-      SpikePage(
+      PackedPage(
         pageIndex: 0,
         startOffset: 0,
         endOffset: 10,
         slices: [],
         isLastPage: false,
       ),
-      SpikePage(
+      PackedPage(
         pageIndex: 1,
         startOffset: 10,
         endOffset: 11,
@@ -85,8 +85,8 @@ void main() {
         isLastPage: true,
       ),
     ];
-    expect(SpikeProgress.charOffsetForPage(pages, 0), 1);
-    expect(SpikeProgress.charOffsetForPage(pages, 1), 10);
+    expect(PaginationProgress.charOffsetForPage(pages, 0), 1);
+    expect(PaginationProgress.charOffsetForPage(pages, 1), 10);
   });
 
   test('font size change rebox keeps bookmark offset on a valid page', () {
@@ -113,24 +113,24 @@ void main() {
     expect(small.last.endOffset, ir.plainText.length);
 
     expect(
-      SpikeProgress.offsetStillOnResolvedPage(
+      PaginationProgress.offsetStillOnResolvedPage(
         pages: large,
         charOffset: bookmark,
       ),
       isTrue,
     );
     expect(
-      SpikeProgress.offsetStillOnResolvedPage(
+      PaginationProgress.offsetStillOnResolvedPage(
         pages: small,
         charOffset: bookmark,
       ),
       isTrue,
     );
 
-    final pageAfter = SpikeProgress.pageIndexAtCharOffset(large, bookmark);
-    final anchor = SpikeProgress.charOffsetForPage(large, pageAfter);
+    final pageAfter = PaginationProgress.pageIndexAtCharOffset(large, bookmark);
+    final anchor = PaginationProgress.charOffsetForPage(large, pageAfter);
     expect(
-      SpikeProgress.offsetStillOnResolvedPage(
+      PaginationProgress.offsetStillOnResolvedPage(
         pages: large,
         charOffset: anchor,
       ),

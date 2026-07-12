@@ -9,15 +9,12 @@ import 'package:zephyr_reader/features/reader/core/domain/chapter_content_reposi
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/data/rich_text_converter.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
-import 'package:zephyr_reader/features/reader/spike/flutter_pagination_spike_flag.dart';
-import 'package:zephyr_reader/features/reader/spike/flutter_staging_preloader.dart';
-import 'package:zephyr_reader/features/reader/spike/spike_staging_store.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_staging_preloader.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_staging_store.dart';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/chapter.dart' as chapter_api;
 import 'package:zephyr_reader/src/rust/api/epub.dart' as epub_api;
-import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
@@ -466,45 +463,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
   @override
   NextChapterStaging? get prevChapterStaging => _prevChapterStaging;
 
-  /// 构建 staging 锚页内容（plain 或 block）。
-  /// M2: `filePath` → `bookId`（ADR-014）。
-  NextChapterStaging _buildStaging({
-    required int chapterIndex,
-    required PaginateResult result,
-    required String bookId,
-    required int anchorPageIndex,
-  }) {
-    final mode = result.mode;
-    final configHash = result.configHash;
-    final pageContent = core_api.getPageContent(
-      bookId: bookId,
-      chapterIndex: chapterIndex,
-      configHash: result.configHash,
-      pageIndex: anchorPageIndex,
-    );
-    List<PageBlockSlice>? blocks;
-    if (mode == ChapterPaginationMode.contentBlocks) {
-      blocks = core_api.getPageBlocks(
-        bookId: bookId,
-        chapterIndex: chapterIndex,
-        configHash: result.configHash,
-        pageIndex: anchorPageIndex,
-      );
-      if (blocks.isEmpty) {
-        blocks = null;
-      }
-    }
-    return NextChapterStaging(
-      chapterIndex: chapterIndex,
-      configHash: configHash,
-      descriptors: result.descriptors,
-      firstPageContent: pageContent,
-      isPartial: result.isPartial,
-      paginationMode: mode,
-      bookId: bookId,
-      anchorPageBlocks: blocks,
-    );
-  }
+  // ADR-016：原 Rust paginateChapter staging（_buildStaging）已移除；见 FlutterStagingPreloader。
 
   @override
   Future<void> preloadNextChapterStaging(
@@ -518,77 +477,26 @@ class RustChapterContentRepository implements ChapterContentRepository {
     double devicePixelRatio = 1.0,
     String fontFamily = 'Noto Sans SC',
   }) async {
-    if (kFlutterPaginationSpike) {
-      final gen = ++_stagingGen;
-      final p = _resolveStagingParams(
-        fontSize: fontSize,
-        lineHeight: lineHeight,
-        width: width,
-        height: height,
-        padding: padding,
-        devicePixelRatio: devicePixelRatio,
-        fontFamily: fontFamily,
-      );
-      final staging = await FlutterStagingPreloader.preload(
-        bookId: bookId,
-        chapterIndex: chapterIndex,
-        params: p,
-        forNext: true,
-      );
-      if (gen != _stagingGen) return;
-      _nextChapterStaging = staging;
-      if (staging != null) preloadGeneration.value++;
-      return;
-    }
-
+    // ADR-016：staging 仅走 Flutter 精确预装箱。
     final gen = ++_stagingGen;
-    final sw = Stopwatch()..start();
-    try {
-      final book = await _getBook(bookId);
-      if (book.filePath.isEmpty) return;
-
-      final p = _resolveStagingParams(
-        fontSize: fontSize,
-        lineHeight: lineHeight,
-        width: width,
-        height: height,
-        padding: padding,
-        devicePixelRatio: devicePixelRatio,
-        fontFamily: fontFamily,
-      );
-      final config = _buildTypesetFromParams(p);
-
-      // P0: all chapters now use block pagination (maxChars=null → full chapter).
-      final result = await core_api.paginateChapter(
-        bookId: bookId,
-        chapterIndex: chapterIndex,
-        config: config,
-        maxChars: null,
-      );
-      if (gen != _stagingGen) return;
-
-      Logging.info(
-        '[Timing] preloadNextChapterStaging: ${sw.elapsedMilliseconds}ms '
-        '(chapter=$chapterIndex, mode=${result.mode}, isPartial=${result.isPartial}, pages=${result.descriptors.length})',
-      );
-
-      if (result.descriptors.isEmpty) return;
-
-      _nextChapterStaging = _buildStaging(
-        chapterIndex: chapterIndex,
-        result: result,
-        bookId: bookId,
-        anchorPageIndex: 0,
-      );
-      preloadGeneration.value++;
-      Logging.info(
-        '[Timing] preloadNextChapterStaging complete: ${sw.elapsedMilliseconds}ms '
-        '(staging ready for chapter=$chapterIndex)',
-      );
-    } catch (e) {
-      if (gen == _stagingGen) _nextChapterStaging = null;
-      Logging.debug('[Preload] next chapter staging failed: $e');
-    }
+    final p = _resolveStagingParams(
+      fontSize: fontSize,
+      lineHeight: lineHeight,
+      width: width,
+      height: height,
+      padding: padding,
+      devicePixelRatio: devicePixelRatio,
+      fontFamily: fontFamily,
+    );
+    final staging = await FlutterStagingPreloader.preload(
+      bookId: bookId,
+      chapterIndex: chapterIndex,
+      params: p,
+      forNext: true,
+    );
+    if (gen != _stagingGen) return;
+    _nextChapterStaging = staging;
+    if (staging != null) preloadGeneration.value++;
   }
 
   @override
@@ -603,83 +511,33 @@ class RustChapterContentRepository implements ChapterContentRepository {
     double devicePixelRatio = 1.0,
     String fontFamily = 'Noto Sans SC',
   }) async {
-    if (kFlutterPaginationSpike) {
-      final gen = ++_stagingGen;
-      final p = _resolveStagingParams(
-        fontSize: fontSize,
-        lineHeight: lineHeight,
-        width: width,
-        height: height,
-        padding: padding,
-        devicePixelRatio: devicePixelRatio,
-        fontFamily: fontFamily,
-      );
-      final staging = await FlutterStagingPreloader.preload(
-        bookId: bookId,
-        chapterIndex: chapterIndex,
-        params: p,
-        forNext: false,
-      );
-      if (gen != _stagingGen) return;
-      _prevChapterStaging = staging;
-      if (staging != null) preloadGeneration.value++;
-      return;
-    }
-
+    // ADR-016：staging 仅走 Flutter 精确预装箱。
     final gen = ++_stagingGen;
-    final sw = Stopwatch()..start();
-    try {
-      final book = await _getBook(bookId);
-      if (book.filePath.isEmpty) return;
-
-      final p = _resolveStagingParams(
-        fontSize: fontSize,
-        lineHeight: lineHeight,
-        width: width,
-        height: height,
-        padding: padding,
-        devicePixelRatio: devicePixelRatio,
-        fontFamily: fontFamily,
-      );
-      final config = _buildTypesetFromParams(p);
-
-      // Use maxChars: null to hit KV cache for full paginate
-      final result = await core_api.paginateChapter(
-        bookId: bookId,
-        chapterIndex: chapterIndex,
-        config: config,
-        maxChars: null,
-      );
-      if (gen != _stagingGen) return;
-
-      final descriptors = result.descriptors;
-      if (descriptors.isEmpty) return;
-
-      final lastPageIndex = descriptors.length - 1;
-      if (gen != _stagingGen) return;
-
-      _prevChapterStaging = _buildStaging(
-        chapterIndex: chapterIndex,
-        result: result,
-        bookId: bookId,
-        anchorPageIndex: lastPageIndex,
-      );
-      preloadGeneration.value++;
-      Logging.info(
-        '[Timing] preloadPreviousChapterStaging: ${sw.elapsedMilliseconds}ms '
-        '(chapter=$chapterIndex, lastPage=$lastPageIndex)',
-      );
-    } catch (e) {
-      if (gen == _stagingGen) _prevChapterStaging = null;
-      Logging.debug('[Preload] prev chapter staging failed: $e');
-    }
+    final p = _resolveStagingParams(
+      fontSize: fontSize,
+      lineHeight: lineHeight,
+      width: width,
+      height: height,
+      padding: padding,
+      devicePixelRatio: devicePixelRatio,
+      fontFamily: fontFamily,
+    );
+    final staging = await FlutterStagingPreloader.preload(
+      bookId: bookId,
+      chapterIndex: chapterIndex,
+      params: p,
+      forNext: false,
+    );
+    if (gen != _stagingGen) return;
+    _prevChapterStaging = staging;
+    if (staging != null) preloadGeneration.value++;
   }
 
   @override
   void clearNextChapterStaging() {
     _stagingGen++;
     _nextChapterStaging = null;
-    if (kFlutterPaginationSpike) SpikeStagingStore.clearNext();
+    PaginationStagingStore.clearNext();
   }
 
   @override
@@ -687,6 +545,6 @@ class RustChapterContentRepository implements ChapterContentRepository {
     _stagingGen++;
     _nextChapterStaging = null;
     _prevChapterStaging = null;
-    if (kFlutterPaginationSpike) SpikeStagingStore.clearAll();
+    PaginationStagingStore.clearAll();
   }
 }

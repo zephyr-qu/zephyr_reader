@@ -4,11 +4,11 @@ import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dar
 import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/features/reader/spike/flutter_block_paginator.dart';
-import 'package:zephyr_reader/features/reader/spike/spike_page.dart';
-import 'package:zephyr_reader/features/reader/spike/spike_pagination_session.dart';
-import 'package:zephyr_reader/features/reader/spike/spike_staging_store.dart';
-import 'package:zephyr_reader/features/reader/spike/spike_viewport_metrics.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_block_paginator.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_pagination_session.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_staging_store.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_viewport_metrics.dart';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
@@ -21,7 +21,7 @@ abstract final class FlutterStagingPreloader {
     required PaginationParams params,
     required bool forNext,
   }) async {
-    final gen = SpikeStagingStore.generation;
+    final gen = PaginationStagingStore.generation;
     final sw = Stopwatch()..start();
     try {
       final book = await book_api.getBook(bookId: bookId);
@@ -31,15 +31,15 @@ abstract final class FlutterStagingPreloader {
         bookId: bookId,
         chapterIndex: chapterIndex,
       );
-      if (!SpikeStagingStore.isCurrent(gen)) return null;
+      if (!PaginationStagingStore.isCurrent(gen)) return null;
 
       final contentWidth =
-          (SpikeViewportMetrics.contentWidthDp ??
+          (PaginationViewportMetrics.contentWidthDp ??
                   (params.width - 2 * params.padding))
               .clamp(1.0, 4096.0);
       final vPad = ReaderRenderConfig.pageContentVerticalPadding;
       final estimatedHeight = (params.height - 2 * vPad).clamp(1.0, 8192.0);
-      final measured = SpikeViewportMetrics.contentHeightDp;
+      final measured = PaginationViewportMetrics.contentHeightDp;
       final contentHeight = (measured ?? estimatedHeight).clamp(1.0, 8192.0);
       final imageMaxWidthPx = contentWidth.round().clamp(1, 4096);
       final config = lineBreakMeasureRenderConfig(
@@ -53,20 +53,20 @@ abstract final class FlutterStagingPreloader {
         baselineAlign: true,
       );
 
-      late final List<SpikePage> pages;
+      late final List<PackedPage> pages;
       try {
         final outcome = await FlutterBlockPaginator.paginateAsync(
           ir,
           config: config,
           contentWidthDp: contentWidth,
           contentHeightDp: contentHeight,
-          isCancelled: () => !SpikeStagingStore.isCurrent(gen),
+          isCancelled: () => !PaginationStagingStore.isCurrent(gen),
         );
         pages = outcome.pages;
       } on PaginationCancelledException {
         return null;
       }
-      if (!SpikeStagingStore.isCurrent(gen) || pages.isEmpty) return null;
+      if (!PaginationStagingStore.isCurrent(gen) || pages.isEmpty) return null;
 
       // 预解码首/末附近页图片，promote 后翻页少骨架。
       final prefetchPages = forNext
@@ -75,12 +75,12 @@ abstract final class FlutterStagingPreloader {
       for (final p in prefetchPages) {
         epubBlockImageCache.prefetchBlocks(
           filePath: book.filePath,
-          blocks: SpikePaginationSession.slicesToPageBlocks(p.slices),
+          blocks: FlutterPaginationSession.slicesToPageBlocks(p.slices),
           maxWidthPx: imageMaxWidthPx,
         );
       }
 
-      final ready = SpikeChapterReady(
+      final ready = PaginationChapterReady(
         bookId: bookId,
         chapterIndex: chapterIndex,
         filePath: book.filePath,
@@ -90,28 +90,28 @@ abstract final class FlutterStagingPreloader {
         contentHeightDp: contentHeight,
       );
       if (forNext) {
-        SpikeStagingStore.next = ready;
+        PaginationStagingStore.next = ready;
       } else {
-        SpikeStagingStore.prev = ready;
+        PaginationStagingStore.prev = ready;
       }
 
       final anchorIndex = forNext ? 0 : pages.length - 1;
       final staging = _toNextChapterStaging(ready, anchorIndex);
       Logging.info(
-        '[SpikeStaging] preload ${forNext ? "next" : "prev"} '
+        '[FlutterStaging] preload ${forNext ? "next" : "prev"} '
         'chapter=$chapterIndex pages=${pages.length} '
         'body=${contentWidth.toStringAsFixed(0)}x${contentHeight.toStringAsFixed(0)} '
         '${sw.elapsedMilliseconds}ms',
       );
       return staging;
     } catch (e) {
-      Logging.debug('[SpikeStaging] preload failed: $e');
+      Logging.debug('[FlutterStaging] preload failed: $e');
       return null;
     }
   }
 
   static NextChapterStaging _toNextChapterStaging(
-    SpikeChapterReady ready,
+    PaginationChapterReady ready,
     int anchorIndex,
   ) {
     final pages = ready.pages;
@@ -138,7 +138,7 @@ abstract final class FlutterStagingPreloader {
       isPartial: false,
       paginationMode: ChapterPaginationMode.contentBlocks,
       bookId: ready.bookId,
-      anchorPageBlocks: SpikePaginationSession.slicesToPageBlocks(anchor.slices),
+      anchorPageBlocks: FlutterPaginationSession.slicesToPageBlocks(anchor.slices),
     );
   }
 }

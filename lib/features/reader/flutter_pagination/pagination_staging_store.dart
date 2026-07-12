@@ -1,11 +1,11 @@
-import 'package:zephyr_reader/features/reader/spike/spike_page.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 
 /// 相邻章精确预装箱结果（方案三 T2）。
 ///
 /// 与 Rust 粗分页隔离：只存 Flutter [FlutterBlockPaginator] 产出。
-class SpikeChapterReady {
-  const SpikeChapterReady({
+class PaginationChapterReady {
+  const PaginationChapterReady({
     required this.bookId,
     required this.chapterIndex,
     required this.filePath,
@@ -19,15 +19,15 @@ class SpikeChapterReady {
   final int chapterIndex;
   final String filePath;
   final ChapterContentIr ir;
-  final List<SpikePage> pages;
+  final List<PackedPage> pages;
   final double contentWidthDp;
   final double contentHeightDp;
 }
 
 /// 进程内 next/prev staging（flag 开时使用）。
-abstract final class SpikeStagingStore {
-  static SpikeChapterReady? next;
-  static SpikeChapterReady? prev;
+abstract final class PaginationStagingStore {
+  static PaginationChapterReady? next;
+  static PaginationChapterReady? prev;
   static int _generation = 0;
 
   static int bumpGeneration() => ++_generation;
@@ -46,7 +46,7 @@ abstract final class SpikeStagingStore {
     prev = null;
   }
 
-  static SpikeChapterReady? takeForChapter(int chapterIndex, {required bool forward}) {
+  static PaginationChapterReady? takeForChapter(int chapterIndex, {required bool forward}) {
     if (forward) {
       final n = next;
       if (n != null && n.chapterIndex == chapterIndex) {

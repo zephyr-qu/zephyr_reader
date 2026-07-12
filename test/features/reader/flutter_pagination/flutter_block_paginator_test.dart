@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
-import 'package:zephyr_reader/features/reader/spike/flutter_block_paginator.dart';
-import 'package:zephyr_reader/features/reader/spike/flutter_pagination_spike_flag.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_block_paginator.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 
 void main() {
@@ -18,10 +17,6 @@ void main() {
     firstLineIndent: false,
     baselineAlign: true,
   );
-
-  test('kFlutterPaginationSpike is enabled on explore branch', () {
-    expect(kFlutterPaginationSpike, isTrue);
-  });
 
   test('short text fits on one page', () {
     const ir = ChapterContentIr(blocks: [], plainText: '你好世界');

@@ -1,7 +1,7 @@
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 
 /// 当前 spike session 持有的章 IR（供渲染查 Image intrinsic，避免改 FRB）。
-abstract final class SpikeActiveChapterIr {
+abstract final class ActiveChapterIr {
   static ChapterContentIr? current;
 
   static void set(ChapterContentIr? ir) => current = ir;

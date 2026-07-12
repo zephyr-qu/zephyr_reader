@@ -7,10 +7,9 @@ import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/data/page_overflow_diagnosis.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/features/reader/core/data/epub_block_image_cache.dart';
-import 'package:zephyr_reader/features/reader/spike/flutter_pagination_spike_flag.dart';
-import 'package:zephyr_reader/features/reader/spike/flutter_block_paginator.dart';
-import 'package:zephyr_reader/features/reader/spike/spike_active_chapter_ir.dart';
-import 'package:zephyr_reader/features/reader/spike/spike_viewport_metrics.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_block_paginator.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/active_chapter_ir.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_viewport_metrics.dart';
 import 'package:zephyr_reader/features/reader/rendering/ir_text_block_style.dart';
 import 'package:zephyr_reader/features/reader/rendering/paginated_page_viewport.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
@@ -49,12 +48,10 @@ Widget buildBlockPageContent({
             0.0,
             constraints.maxHeight,
           );
-          if (kFlutterPaginationSpike) {
-            SpikeViewportMetrics.note(
-              width: constraints.maxWidth,
-              height: bodyHeight,
-            );
-          }
+          PaginationViewportMetrics.note(
+            width: constraints.maxWidth,
+            height: bodyHeight,
+          );
           Logging.info(
             '[PageRender] blockPage maxH_dp=${constraints.maxHeight.toStringAsFixed(1)}'
             ' vPad=$vPad bodyHeight_dp=${bodyHeight.toStringAsFixed(1)}'
@@ -350,7 +347,7 @@ double _inlineImageDisplayHeightDp({
   required String assetId,
   required double contentWidthDp,
 }) {
-  final img = SpikeActiveChapterIr.findImage(assetId);
+  final img = ActiveChapterIr.findImage(assetId);
   return imageDisplayHeightDp(
     contentWidthDp: contentWidthDp,
     intrinsicWidth: img?.intrinsicWidth,

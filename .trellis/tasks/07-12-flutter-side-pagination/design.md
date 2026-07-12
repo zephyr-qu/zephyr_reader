@@ -30,9 +30,9 @@ Flutter
 | 模块 | 路径 / 职责 |
 |------|-------------|
 | Flag | `kFlutterPaginationSpike`（方案三总开关） |
-| `FlutterBlockPaginator` | IR → `SpikePage[]` |
+| `FlutterBlockPaginator` | IR → `PackedPage[]` |
 | `FlutterPaginationSession` | = 升格后的 spike session（持 IR、descriptors、blocks） |
-| `SpikeStagingStore` | 相邻章精确预装箱结果（IR+pages+filePath） |
+| `PaginationStagingStore` | 相邻章精确预装箱结果（IR+pages+filePath） |
 | Staging → `NextChapterStaging` | 填 renderer 虚拟页所需 descriptors/锚页 |
 | Orchestrator | flag 开：spike 加载；staging promote 走精确交接 |
 | Rust | `get_chapter_content_ir` + 图解码；分页 API 并存至对比结束 |
@@ -43,11 +43,11 @@ Flutter
 preloadAdjacent
   → getChapterContentIr
   → FlutterBlockPaginator.paginate（同当前章算法）
-  → SpikeStagingStore.{next|prev} = {ir, pages, filePath}
+  → PaginationStagingStore.{next|prev} = {ir, pages, filePath}
   → NextChapterStaging(descriptors, anchorBlocks, plain) 供虚拟页
 
 promote (adjacentCrossChapter)
-  → SpikeSession.install(SpikeStagingStore)
+  → SpikeSession.install(PaginationStagingStore)
   → 设 pageIndex 首/末
   → clear staging + 预取新相邻章
   ✗ 不调用 Rust adopt / 不重跑校准
