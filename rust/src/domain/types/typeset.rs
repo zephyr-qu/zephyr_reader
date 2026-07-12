@@ -95,7 +95,7 @@ impl Default for TypesetCalibration {
             punct_width: 16.0,
             latin_ext_width: 11.2,
             other_width: 12.8,
-            effective_line_width_ratio: 0.97,
+            effective_line_width_ratio: 1.0,
             measured_line_height_px: 0.0,
         }
     }
@@ -195,7 +195,7 @@ pub struct TypesetConfigFixReport {
 // ==================== 验证宏 ====================
 
 /// 分页/断行算法版本；逻辑变更时递增以使 sled / 内存缓存失效。
-const LAYOUT_ALGORITHM_VERSION: u32 = 7;
+const LAYOUT_ALGORITHM_VERSION: u32 = 13;
 
 macro_rules! check_range {
     ($self:ident, $field:ident, $min:ident, $max:ident, $desc:expr, $unit:expr) => {

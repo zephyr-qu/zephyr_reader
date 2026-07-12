@@ -163,6 +163,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
       fontSize: p.fontSize,
       lineHeight: p.lineHeight,
       paragraphSpacing: p.paragraphSpacing,
+      measuredLineHeightDp: p.calibration?.lineHeightDp,
     );
     return buildTypesetConfig(
       width: p.width,
@@ -200,11 +201,13 @@ class RustChapterContentRepository implements ChapterContentRepository {
         fontSize: _config.fontSize.value,
         lineHeight: _config.lineHeight.value,
         paragraphSpacing: _config.paragraphSpacing.value,
+        measuredLineHeightDp: _layoutParams?.calibration?.lineHeightDp,
       ).contentVerticalPadding,
       pageHeightLineBuffer: paginatedTypesetLayoutInsets(
         fontSize: _config.fontSize.value,
         lineHeight: _config.lineHeight.value,
         paragraphSpacing: _config.paragraphSpacing.value,
+        measuredLineHeightDp: _layoutParams?.calibration?.lineHeightDp,
       ).pageHeightLineBuffer,
       fontFamily: 'Noto Sans SC',
       letterSpacing: _config.letterSpacing.value,

@@ -116,7 +116,7 @@ void main() {
       when(() => prefs.getString(key)).thenReturn(partialJson);
       final loaded = LayoutCalibrationStore.load(prefs, key);
       expect(loaded, isNotNull);
-      expect(loaded!.effectiveLineWidthRatio, 0.97); // default
+      expect(loaded!.effectiveLineWidthRatio, 1.0); // default
       expect(loaded.lineHeightDp, 0); // default
     });
   });

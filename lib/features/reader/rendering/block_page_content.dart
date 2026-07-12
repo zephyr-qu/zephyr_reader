@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/features/reader/data/page_overflow_diagnosis.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/features/reader/core/data/epub_block_image_cache.dart';
 import 'package:zephyr_reader/features/reader/rendering/ir_text_block_style.dart';
@@ -71,7 +72,7 @@ Widget buildBlockPageContent({
             cjkWidthPx: cjkWidthPx,
             pageWidthPx: pageWidthPx,
             fontSizePx: fontSizePx,
-            effectiveLineWidthRatio: ratio,
+            effectiveLineWidthRatio: 1.0,
           );
 
           Logging.info(
@@ -81,16 +82,19 @@ Widget buildBlockPageContent({
             ' lineH=${config.lineHeight}'
             ' pageW_px=$pageWidthPx'
             ' ratio=${ratio.toStringAsFixed(3)}'
+            ' packRatio=1.000'
             ' estCharsPerLine=${rustEstCharsPerLine.toStringAsFixed(1)}'
             ' viewportW=${constraints.maxWidth.toStringAsFixed(1)}dp',
           );
 
-          // Diagnostic: accumulate total Flutter lines & height across ALL text blocks
+          // Diagnostic: accumulate Flutter lines & height; split text vs spacing
           var totalChars = 0;
           var totalFlutterLines = 0;
           var totalRustLines = 0;
-          var totalTpHeight = 0.0;
-          for (final block in blocks) {
+          var textHeightDp = 0.0;
+          var spacingHeightDp = 0.0;
+          for (var blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
+            final block = blocks[blockIndex];
             final slice = block.whenOrNull(text: (s) => s);
             if (slice != null && slice.text.isNotEmpty) {
               final irStyle = slice.style;
@@ -122,7 +126,7 @@ Widget buildBlockPageContent({
                 fontSizeMultiplier: blockFontSize / config.fontSize,
                 lineHeight: blockLineHeight,
               );
-              final measured = _measureSliceLayout(
+              final measured = measureSliceLayout(
                 text: slice.text,
                 style: textStyle,
                 strutStyle: strutStyle,
@@ -137,37 +141,77 @@ Widget buildBlockPageContent({
                 cjkWidthPx: cjkWidthPx,
                 pageWidthPx: pageWidthPx,
                 fontSizePx: fontSizePx,
-                effectiveLineWidthRatio: ratio,
+                effectiveLineWidthRatio: 1.0,
+                asciiWidthPx: layoutCalibration != null
+                    ? layoutCalibration.asciiWidth * dpr
+                    : null,
+                digitWidthPx: layoutCalibration != null
+                    ? layoutCalibration.digitWidth * dpr
+                    : null,
+                punctWidthPx: layoutCalibration != null
+                    ? layoutCalibration.punctWidth * dpr
+                    : null,
+                latinExtWidthPx: layoutCalibration != null
+                    ? layoutCalibration.latinExtWidth * dpr
+                    : null,
+                otherWidthPx: layoutCalibration != null
+                    ? layoutCalibration.otherWidth * dpr
+                    : null,
               );
-              totalTpHeight +=
-                  measured.height +
-                  blockPadding.vertical +
-                  (slice.isBlockEnd &&
-                          irStyle.marginBottomEm == null &&
-                          config.paragraphSpacing > 0
-                      ? config.paragraphSpacing
-                      : 0.0);
+              textHeightDp += measured.height;
+              spacingHeightDp += blockPadding.vertical;
+              // 页末最后一块不加段距（与 Rust pending flush 丢弃对齐）。
+              final hasFollowing = blockIndex < blocks.length - 1;
+              if (hasFollowing &&
+                  slice.isBlockEnd &&
+                  irStyle.marginBottomEm == null &&
+                  config.paragraphSpacing > 0) {
+                spacingHeightDp += config.paragraphSpacing;
+              }
             }
           }
+          final totalTpHeight = textHeightDp + spacingHeightDp;
           final overflowDp = (totalTpHeight - bodyHeight).clamp(
             0.0,
             double.infinity,
+          );
+          final flutLineH =
+              layoutCalibration?.lineHeightDp ?? config.textRowHeight;
+          final rustLineH = flutLineH;
+          // rustPageHeightBudgetDp：渲染层无法直接读 TypesetConfig.pageHeight，
+          // 传 null；pageHeightPadding 归因依赖日志中的 [PageEstimate] 对照，
+          // 或单元测试注入合成预算。
+          final diagnosis = diagnosePageOverflow(
+            PageOverflowMetrics(
+              bodyHeightDp: bodyHeight,
+              textHeightDp: textHeightDp,
+              spacingHeightDp: spacingHeightDp,
+              flutLines: totalFlutterLines,
+              rustEstLines: totalRustLines,
+              flutLineHeightDp: flutLineH,
+              rustLineHeightDp: rustLineH,
+            ),
           );
           Logging.info(
             '[LineBreak] TOTAL chars=$totalChars'
             ' flutLines=$totalFlutterLines rustEstLines=$totalRustLines'
             ' tpHeight=${totalTpHeight.toStringAsFixed(1)}dp'
+            ' textH=${textHeightDp.toStringAsFixed(1)}'
+            ' spacingH=${spacingHeightDp.toStringAsFixed(1)}'
             ' overflow=${overflowDp.toStringAsFixed(1)}dp'
             ' charsPerLine=${rustEstCharsPerLine.toStringAsFixed(1)}'
             ' ratio=${ratio.toStringAsFixed(3)}'
             ' lineH_dp=${config.textRowHeight.toStringAsFixed(1)}'
             ' blocks=${blocks.length}',
           );
+          Logging.info(diagnosis.toLogLine());
 
           final children = <Widget>[];
           var runningOffset = startOffset;
 
-          for (final block in blocks) {
+          for (var blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
+            final block = blocks[blockIndex];
+            final hasFollowing = blockIndex < blocks.length - 1;
             block.when(
               text: (slice) {
                 if (slice.text.isEmpty) return;
@@ -219,28 +263,25 @@ Widget buildBlockPageContent({
                     contextMenuBuilder: (_, _) => const SizedBox.shrink(),
                   ),
                 );
-                if (slice.isBlockEnd) {
-                  // 段落间距：marginBottomEm 由 blockPadding.bottom 处理，
-                  // 此处仅对无显式 margin 的块补 paragraphSpacing
-                  final extraSpacing =
-                      irStyle.marginBottomEm == null &&
-                          config.paragraphSpacing > 0
-                      ? config.paragraphSpacing
-                      : 0.0;
-                  if (extraSpacing > 0) {
-                    children.add(
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          textWidget,
-                          SizedBox(height: extraSpacing),
-                        ],
-                      ),
-                    );
-                  } else {
-                    children.add(textWidget);
-                  }
+                // 段距只加在块与块之间；页末最后一块不加（对齐 Rust pending flush）。
+                final extraSpacing =
+                    hasFollowing &&
+                        slice.isBlockEnd &&
+                        irStyle.marginBottomEm == null &&
+                        config.paragraphSpacing > 0
+                    ? config.paragraphSpacing
+                    : 0.0;
+                if (extraSpacing > 0) {
+                  children.add(
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        textWidget,
+                        SizedBox(height: extraSpacing),
+                      ],
+                    ),
+                  );
                 } else {
                   children.add(textWidget);
                 }
@@ -463,59 +504,3 @@ class _ContentMeasurerState extends State<_ContentMeasurer> {
   }
 }
 
-/// TextPainter 不支持 WidgetSpan；用首行缩进宽度模拟与渲染一致的行数/高度。
-({int lines, double height}) _measureSliceLayout({
-  required String text,
-  required TextStyle style,
-  required StrutStyle strutStyle,
-  required double maxWidth,
-  required double firstLineIndentPx,
-}) {
-  if (text.isEmpty) {
-    return (lines: 0, height: 0.0);
-  }
-
-  final tp = TextPainter(
-    textDirection: TextDirection.ltr,
-    strutStyle: strutStyle,
-    textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
-  );
-
-  if (firstLineIndentPx <= 0) {
-    tp.text = TextSpan(text: text, style: style);
-    tp.layout(maxWidth: maxWidth);
-    return (lines: tp.computeLineMetrics().length, height: tp.height);
-  }
-
-  final narrowWidth = (maxWidth - firstLineIndentPx).clamp(1.0, maxWidth);
-  var firstLineChars = text.length;
-  for (var n = 1; n <= text.length; n++) {
-    tp.text = TextSpan(text: text.substring(0, n), style: style);
-    tp.layout(maxWidth: narrowWidth);
-    if (tp.computeLineMetrics().length > 1) {
-      firstLineChars = n - 1;
-      break;
-    }
-  }
-  if (firstLineChars <= 0) {
-    firstLineChars = 1;
-  }
-
-  if (firstLineChars >= text.length) {
-    tp.text = TextSpan(text: text, style: style);
-    tp.layout(maxWidth: narrowWidth);
-    return (lines: tp.computeLineMetrics().length, height: tp.height);
-  }
-
-  tp.text = TextSpan(text: text.substring(0, firstLineChars), style: style);
-  tp.layout(maxWidth: narrowWidth);
-  final firstHeight = tp.height;
-
-  final remainder = text.substring(firstLineChars);
-  tp.text = TextSpan(text: remainder, style: style);
-  tp.layout(maxWidth: maxWidth);
-  return (
-    lines: 1 + tp.computeLineMetrics().length,
-    height: firstHeight + tp.height,
-  );
-}

@@ -1,57 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zephyr_reader/features/reader/data/page_overflow_diagnosis.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
-
-/// Inline version of _measureSliceLayout for CI use.
-({int lines, double height}) _measureSliceLayout({
-  required String text,
-  required TextStyle style,
-  required double maxWidth,
-  double firstLineIndentPx = 0,
-}) {
-  if (text.isEmpty) return (lines: 0, height: 0.0);
-
-  final tp = TextPainter(
-    textDirection: TextDirection.ltr,
-    textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
-  );
-
-  if (firstLineIndentPx <= 0) {
-    tp.text = TextSpan(text: text, style: style);
-    tp.layout(maxWidth: maxWidth);
-    return (lines: tp.computeLineMetrics().length, height: tp.height);
-  }
-
-  final narrowWidth = (maxWidth - firstLineIndentPx).clamp(1.0, maxWidth);
-  var firstLineChars = text.length;
-  for (var n = 1; n <= text.length; n++) {
-    tp.text = TextSpan(text: text.substring(0, n), style: style);
-    tp.layout(maxWidth: narrowWidth);
-    if (tp.computeLineMetrics().length > 1) {
-      firstLineChars = n - 1;
-      break;
-    }
-  }
-  if (firstLineChars <= 0) firstLineChars = 1;
-  if (firstLineChars >= text.length) {
-    tp.text = TextSpan(text: text, style: style);
-    tp.layout(maxWidth: narrowWidth);
-    return (lines: tp.computeLineMetrics().length, height: tp.height);
-  }
-
-  tp.text = TextSpan(text: text.substring(0, firstLineChars), style: style);
-  tp.layout(maxWidth: narrowWidth);
-  final firstHeight = tp.height;
-
-  final remainder = text.substring(firstLineChars);
-  tp.text = TextSpan(text: remainder, style: style);
-  tp.layout(maxWidth: maxWidth);
-  return (
-    lines: 1 + tp.computeLineMetrics().length,
-    height: firstHeight + tp.height,
-  );
-}
 
 const _sampleCjk =
     '这是一段用于验收统一测量指纹的中文文本。'
@@ -92,10 +43,17 @@ void main() {
         fontFamily: 'Roboto',
         height: 1.5,
       );
+      final strut = const StrutStyle(
+        fontSize: 16,
+        height: 1.5,
+        forceStrutHeight: true,
+        fontFamily: 'Roboto',
+      );
 
-      final measured = _measureSliceLayout(
+      final measured = measureSliceLayout(
         text: _sampleCjk,
         style: textStyle,
+        strutStyle: strut,
         maxWidth: _params.availableContentWidthDp,
         firstLineIndentPx: 32.0, // 2 chars * 16px
       );
@@ -115,31 +73,76 @@ void main() {
         lessThanOrEqualTo(1),
         reason: 'TextPainter=${measured.lines} vs Rust=$rustLines must be ≤1',
       );
+
+      // Factor diagnosis on a synthetic page using measured heights
+      final bodyH = (_params.height - 2 * _params.contentVerticalPadding).clamp(
+        100.0,
+        _params.height,
+      );
+      final diag = diagnosePageOverflow(
+        PageOverflowMetrics(
+          bodyHeightDp: bodyH,
+          textHeightDp: measured.height,
+          spacingHeightDp: 0,
+          flutLines: measured.lines,
+          rustEstLines: rustLines,
+          flutLineHeightDp: fingerprint.lineHeightDp,
+          rustLineHeightDp: fingerprint.lineHeightDp,
+          rustPageHeightBudgetDp: bodyH,
+        ),
+      );
+      // Single short sample should not overflow a full page
+      expect(diag.cause, isNot(PageOverflowCause.pageHeightPadding));
+      expect(measured.height, lessThan(bodyH));
     });
 
-    test('C2 wider ratio produces fewer estimated lines', () {
-      final linesNarrow = estimateRustLinesForText(
+    test('C2 narrower glyphs produce more estimated lines', () {
+      final linesNarrowGlyph = estimateRustLinesForText(
         text: _sampleCjk,
         applyFirstLineIndent: true,
-        cjkWidthPx: fingerprint.cjkWidth * _dpr,
+        cjkWidthPx: fingerprint.cjkWidth * 1.15 * _dpr,
         pageWidthPx: _pageWidthPx,
         fontSizePx: _fontSizePx,
-        effectiveLineWidthRatio: 0.90,
       );
-      final linesWide = estimateRustLinesForText(
+      final linesWideGlyph = estimateRustLinesForText(
         text: _sampleCjk,
         applyFirstLineIndent: true,
-        cjkWidthPx: fingerprint.cjkWidth * _dpr,
+        cjkWidthPx: fingerprint.cjkWidth * 0.85 * _dpr,
         pageWidthPx: _pageWidthPx,
         fontSizePx: _fontSizePx,
-        effectiveLineWidthRatio: 0.99,
       );
 
       expect(
-        linesWide,
-        lessThanOrEqualTo(linesNarrow),
+        linesWideGlyph,
+        lessThanOrEqualTo(linesNarrowGlyph),
         reason:
-            'wider(0.99)=$linesWide should be <= narrower(0.90)=$linesNarrow',
+            'narrowerGlyph=$linesWideGlyph should be <= widerGlyph=$linesNarrowGlyph',
+      );
+    });
+
+    test('C2b mixed Latin uses ascii width not CJK (no inflate)', () {
+      const mixed = 'Hello世界Hello世界English混排测试文本足够长触发多行';
+      final asCjkOnly = estimateRustLinesForText(
+        text: mixed,
+        applyFirstLineIndent: false,
+        cjkWidthPx: 16,
+        pageWidthPx: 320,
+        fontSizePx: 16,
+        // force all-as-cjk by making ascii equally wide
+        asciiWidthPx: 16,
+      );
+      final variable = estimateRustLinesForText(
+        text: mixed,
+        applyFirstLineIndent: false,
+        cjkWidthPx: 16,
+        pageWidthPx: 320,
+        fontSizePx: 16,
+        asciiWidthPx: 9.6,
+      );
+      expect(
+        variable,
+        lessThanOrEqualTo(asCjkOnly),
+        reason: 'variable-width must not inflate Latin to CJK width',
       );
     });
 
@@ -181,6 +184,60 @@ void main() {
       expect(
         config.calibration!.effectiveLineWidthRatio,
         closeTo(fingerprint.effectiveLineWidthRatio, 0.001),
+      );
+    });
+
+    test('C5 full-page packing: diagnose classifies overflow factors', () {
+      // Pack enough CJK to exceed body when Rust underestimates lines.
+      final longCjk = _sampleCjk * 8;
+      final textStyle = TextStyle(
+        fontSize: _params.fontSize,
+        fontFamily: _params.fontFamily,
+        height: _params.lineHeight,
+      );
+      final strut = ReaderRenderConfig(
+        textColor: const Color(0xFF000000),
+        backgroundColor: const Color(0xFFFFFFFF),
+        fontSize: _params.fontSize,
+        lineHeight: _params.lineHeight,
+        fontFamily: _params.fontFamily,
+        letterSpacing: 0,
+        paragraphSpacing: 0,
+        pageMargin: 16,
+        showVocabularyMark: false,
+        vocabularyWords: const {},
+        baselineAlign: true,
+      ).buildStrutStyle();
+
+      final measured = measureSliceLayout(
+        text: longCjk,
+        style: textStyle,
+        strutStyle: strut,
+        maxWidth: _params.availableContentWidthDp,
+      );
+
+      // Intentionally optimistic rust estimate (fewer lines) → charWidth
+      final optimisticRustLines = (measured.lines - 3).clamp(1, measured.lines);
+      final bodyH = measured.height - 48; // force overflow
+      final diag = diagnosePageOverflow(
+        PageOverflowMetrics(
+          bodyHeightDp: bodyH,
+          textHeightDp: measured.height,
+          spacingHeightDp: 0,
+          flutLines: measured.lines,
+          rustEstLines: optimisticRustLines,
+          flutLineHeightDp: fingerprint.lineHeightDp,
+          rustLineHeightDp: fingerprint.lineHeightDp,
+        ),
+      );
+
+      expect(diag.metrics.overflowDp, greaterThan(kOverflowOkDp));
+      expect(
+        diag.cause == PageOverflowCause.charWidthOrRatio ||
+            diag.cause == PageOverflowCause.lineHeight ||
+            diag.cause == PageOverflowCause.mixed,
+        isTrue,
+        reason: 'unexpected cause=${diag.cause} ${diag.summary}',
       );
     });
   });

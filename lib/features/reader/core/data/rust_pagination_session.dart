@@ -75,6 +75,7 @@ class RustPaginationSession implements PaginationSession {
       fontSize: p.fontSize,
       lineHeight: p.lineHeight,
       paragraphSpacing: p.paragraphSpacing,
+      measuredLineHeightDp: p.calibration?.lineHeightDp,
     );
     return buildTypesetConfig(
       width: p.width,
