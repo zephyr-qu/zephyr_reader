@@ -6,7 +6,7 @@ import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 
 /// 本地持久化 Flutter 统一排版测量结果（按设备 + 排版参数指纹缓存）。
 abstract final class LayoutCalibrationStore {
-  static const _keyPrefix = 'layout_calib_v1_';
+  static const _keyPrefix = 'layout_calib_v2_';
 
   /// 由 [TypesetMeasureParams] 生成稳定缓存键（同设备同排版设置命中缓存）。
   static String cacheKey(TypesetMeasureParams params) {

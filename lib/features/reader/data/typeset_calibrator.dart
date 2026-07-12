@@ -195,20 +195,34 @@ double measureEffectiveLineWidthRatio({
   return ratio;
 }
 
-/// 实测单行高度（逻辑 dp），与分页 [StrutStyle] 一致。
+/// 实测行高（逻辑 dp），与分页正文多行布局对齐。
+///
+/// 单字 `metrics.height` 在部分机型/字体上会高于段落 `tp.height/lines`
+///（真机常见 32 vs 29），若 Rust 按偏大值装箱会系统性少装 2–3 行。
+/// 因此用与 [measureSliceLayout] 相同的多行样本取平均行高。
 double measureLineHeightDp({
   required TextStyle textStyle,
   required StrutStyle strutStyle,
+  double layoutMaxWidthDp = 360,
 }) {
+  final maxW = layoutMaxWidthDp.clamp(32.0, 4096.0);
+  // 足够换行的 CJK 样本，贴近正文段落而非无限宽单字。
+  const sample = '国国国国国国国国国国国国国国国国国国国国'
+      '国国国国国国国国国国国国国国国国国国国国';
   final tp = TextPainter(
-    text: TextSpan(text: '中', style: textStyle),
+    text: TextSpan(text: sample, style: textStyle),
     textDirection: TextDirection.ltr,
     strutStyle: strutStyle,
     textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
-  )..layout(maxWidth: double.infinity);
-  final metrics = tp.computeLineMetrics();
-  if (metrics.isEmpty) return textStyle.fontSize! * (textStyle.height ?? 1.0);
-  return metrics.first.height;
+  )..layout(maxWidth: maxW);
+
+  final lines = tp.computeLineMetrics().length;
+  if (lines > 0 && tp.height > 0) {
+    return tp.height / lines;
+  }
+
+  final fontSize = textStyle.fontSize ?? 16;
+  return fontSize * (textStyle.height ?? 1.0);
 }
 
 /// 统一排版指纹测量（字宽 + 行宽比 + 行高），使用与渲染相同的 TextPainter 栈。
@@ -252,6 +266,7 @@ CalibrationData measureLayoutFingerprint(TypesetMeasureParams params) {
   final lineHeightDp = measureLineHeightDp(
     textStyle: styles.textStyle,
     strutStyle: styles.strutStyle,
+    layoutMaxWidthDp: params.availableContentWidthDp,
   );
 
   Logging.info(
@@ -750,16 +765,14 @@ paginatedTypesetLayoutInsets({
   double paragraphSpacing = 16,
   double? measuredLineHeightDp,
 }) {
-  // 实测行高优先（strut 常为 32，而 fontSize×倍数可能只有 27）。
+  // 实测行高优先（与正文多行平均对齐）。
   final row = (measuredLineHeightDp != null && measuredLineHeightDp > 0)
       ? measuredLineHeightDp
       : fontSize * lineHeight;
-  // 一次做对：Rust 与 Flutter 双引擎无法像素级一致。
-  // 留满 1 行安全高，保证永不裁切（接受每页约 1 行底空）。
-  // 真机残余漂移曾到 ~8–20dp；半行 buffer 仍会出现 paragraphSpacing overflow。
+  // ICU 按块断行后残余漂移通常 < 0.5 行；满行 buffer 会造成系统性底空 ~1 行。
   return (
     contentVerticalPadding: ReaderRenderConfig.pageContentVerticalPadding,
-    pageHeightLineBuffer: row.clamp(16.0, 48.0),
+    pageHeightLineBuffer: (row * 0.5).clamp(8.0, 24.0),
   );
 }
 
