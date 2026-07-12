@@ -1,13 +1,8 @@
-import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mocktail/mocktail.dart';
-import 'package:zephyr_reader/core/local/preferences_service.dart';
-import 'package:zephyr_reader/features/reader/data/layout_calibration_store.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 
-class _MockPrefs extends Mock implements PreferencesService {}
 
 void main() {
   group('buildTypesetConfig', () {
@@ -372,45 +367,6 @@ void main() {
         expect(restored.lineHeightDp, original.lineHeightDp);
         expect(restored.cjkWidth, original.cjkWidth);
       });
-      test('A6 resolveLayoutCalibration cache hit', () async {
-        final prefs = _MockPrefs();
-        final params = const TypesetMeasureParams(
-          width: 360,
-          height: 640,
-          pagePadding: 16,
-          fontSize: 16,
-          lineHeight: 1.5,
-          letterSpacing: 0,
-          fontFamily: 'Roboto',
-          devicePixelRatio: 1.0,
-        );
-        // Pre-seed cache with a valid calibration
-        final key = LayoutCalibrationStore.cacheKey(params);
-        const cached = CalibrationData(
-          dpr: 1.0,
-          cjkWidth: 16.0,
-          asciiWidth: 9.6,
-          digitWidth: 9.6,
-          punctWidth: 16.0,
-          latinExtWidth: 11.2,
-          otherWidth: 12.8,
-          effectiveLineWidthRatio: 0.98,
-          lineHeightDp: 24.0,
-        );
-        when(
-          () => prefs.getString(key),
-        ).thenReturn(jsonEncode(cached.toJson()));
-
-        final result = await resolveLayoutCalibration(
-          params: params,
-          prefs: prefs,
-        );
-        expect(result, isNotNull);
-        expect(result!.effectiveLineWidthRatio, 0.98);
-        // Should NOT call measure — cache hit returns immediately
-        verifyNever(() => prefs.setString(any(), any()));
-      });
-
       test('A7 defaultCalibrationData line height', () {
         final cal = defaultCalibrationData(
           fontSize: 16,

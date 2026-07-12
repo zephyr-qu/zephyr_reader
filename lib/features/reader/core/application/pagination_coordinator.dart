@@ -10,7 +10,6 @@ import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
-import 'package:signals_flutter/signals_flutter.dart';
 
 /// 分页排版协调器：构建参数、局部分页、全量分页及 Dart 回退。
 class PaginationCoordinator {
@@ -29,9 +28,6 @@ class PaginationCoordinator {
   /// 设备像素比，用于 dp → px 转换
   double devicePixelRatio = 1.0;
 
-  /// 字符宽度校准数据
-  Signal<CalibrationData?> calibration = signal<CalibrationData?>(null);
-
   /// 当前字体系列名
   String fontFamily = 'Noto Sans SC';
 
@@ -43,7 +39,6 @@ class PaginationCoordinator {
       height: pageHeight,
       padding: _config.padding.value,
       devicePixelRatio: devicePixelRatio,
-      calibration: calibration.value,
       fontFamily: fontFamily,
       letterSpacing: _config.letterSpacing.value,
       paragraphSpacing: _config.paragraphSpacing.value,
@@ -74,7 +69,6 @@ class PaginationCoordinator {
       fontSize: p.fontSize,
       lineHeight: p.lineHeight,
       paragraphSpacing: p.paragraphSpacing,
-      measuredLineHeightDp: p.calibration?.lineHeightDp,
     );
     return core_api.computeConfigHash(
       config: buildTypesetConfig(
@@ -86,7 +80,6 @@ class PaginationCoordinator {
         contentVerticalPadding: layoutInsets.contentVerticalPadding,
         pageHeightLineBuffer: layoutInsets.pageHeightLineBuffer,
         devicePixelRatio: p.devicePixelRatio,
-        calibration: p.calibration,
         fontFamily: p.fontFamily,
         letterSpacing: p.letterSpacing,
         paragraphSpacing: p.paragraphSpacing,

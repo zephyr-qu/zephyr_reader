@@ -30,7 +30,6 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_view_mode
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
-import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
@@ -238,9 +237,6 @@ void main() {
       loadPhase: loadPhase,
     );
 
-    when(
-      () => pagination.calibration,
-    ).thenReturn(signal<CalibrationData?>(null));
     when(() => pagination.computeConfigHash()).thenReturn(BigInt.from(12345));
     when(
       () => pagination.paginateFirstScreen(any()),

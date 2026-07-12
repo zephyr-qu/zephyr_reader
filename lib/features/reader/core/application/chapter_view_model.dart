@@ -13,7 +13,6 @@ import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.d
 import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dart';
 import 'package:zephyr_reader/features/reader/core/application/search_index_lifecycle.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
-import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
@@ -123,8 +122,6 @@ class ChapterViewModel {
     _pagination.syncChapterTypesetLayoutToRepo();
   }
 
-  Signal<CalibrationData?> get calibration => _pagination.calibration;
-
   late final ReadonlySignal<String> progressText = computed(() {
     final totalChapters = chapters.value.value?.length ?? 0;
     if (totalChapters == 0) return '0%';
@@ -145,7 +142,6 @@ class ChapterViewModel {
   String get fontFamily => _pagination.fontFamily;
   set fontFamily(String value) {
     _pagination.fontFamily = value;
-    _pagination.calibration.value = null;
   }
 
   void updateFont(String fontFamily) {
