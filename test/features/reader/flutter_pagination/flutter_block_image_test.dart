@@ -43,18 +43,18 @@ void main() {
 
   test('small image inline-contains with preceding text', () {
     const text = '前文';
-    final ir = ChapterContentIr(
+    final ir = const ChapterContentIr(
       blocks: [
         ContentBlock.text(
           TextBlock(
-            plain: const BlockPlainRange(plainStart: 0, plainLen: 2),
+            plain: BlockPlainRange(plainStart: 0, plainLen: 2),
             text: text,
-            style: const TextBlockStyle(isHeading: false, headingLevel: 0),
-            spans: const [],
+            style: TextBlockStyle(isHeading: false, headingLevel: 0),
+            spans: [],
           ),
         ),
         ContentBlock.image(
-          const ImageBlock(
+          ImageBlock(
             plain: BlockPlainRange(plainStart: 2, plainLen: 1),
             assetId: 'img1',
             intrinsicWidth: 100,
@@ -82,14 +82,14 @@ void main() {
   test('tall image gets full-page after flushing text', () {
     const text = '前文一段';
     const after = '后文';
-    final ir = ChapterContentIr(
+    final ir = const ChapterContentIr(
       blocks: [
         ContentBlock.text(
           TextBlock(
             plain: BlockPlainRange(plainStart: 0, plainLen: text.length),
             text: text,
-            style: const TextBlockStyle(isHeading: false, headingLevel: 0),
-            spans: const [],
+            style: TextBlockStyle(isHeading: false, headingLevel: 0),
+            spans: [],
           ),
         ),
         ContentBlock.image(
@@ -107,8 +107,8 @@ void main() {
               plainLen: after.length,
             ),
             text: after,
-            style: const TextBlockStyle(isHeading: false, headingLevel: 0),
-            spans: const [],
+            style: TextBlockStyle(isHeading: false, headingLevel: 0),
+            spans: [],
           ),
         ),
       ],
@@ -134,18 +134,18 @@ void main() {
   test('inline image packing includes vertical padding in budget', () {
     // 前文吃掉大部分页高，剩余仅够「裸图高」不够「图+8dp padding」→ 应独占页。
     const text = '前文';
-    final ir = ChapterContentIr(
+    final ir = const ChapterContentIr(
       blocks: [
         ContentBlock.text(
           TextBlock(
-            plain: const BlockPlainRange(plainStart: 0, plainLen: 2),
+            plain: BlockPlainRange(plainStart: 0, plainLen: 2),
             text: text,
-            style: const TextBlockStyle(isHeading: false, headingLevel: 0),
-            spans: const [],
+            style: TextBlockStyle(isHeading: false, headingLevel: 0),
+            spans: [],
           ),
         ),
         ContentBlock.image(
-          const ImageBlock(
+          ImageBlock(
             plain: BlockPlainRange(plainStart: 2, plainLen: 1),
             assetId: 'pad',
             intrinsicWidth: 200,

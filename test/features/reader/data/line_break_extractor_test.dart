@@ -248,20 +248,20 @@ void main() {
     test('merges per-block absolute indices across BlockJoined separators', () {
       // Hello\nWorld — block0 [0,5), block1 [6,11)
       final blocks = [
-        ContentBlock.text(
+        const ContentBlock.text(
           TextBlock(
-            plain: const BlockPlainRange(plainStart: 0, plainLen: 5),
+            plain: BlockPlainRange(plainStart: 0, plainLen: 5),
             text: 'Hello',
-            style: const TextBlockStyle(isHeading: false, headingLevel: 0),
-            spans: const [],
+            style: TextBlockStyle(isHeading: false, headingLevel: 0),
+            spans: [],
           ),
         ),
-        ContentBlock.text(
+        const ContentBlock.text(
           TextBlock(
-            plain: const BlockPlainRange(plainStart: 6, plainLen: 5),
+            plain: BlockPlainRange(plainStart: 6, plainLen: 5),
             text: 'World',
-            style: const TextBlockStyle(isHeading: false, headingLevel: 0),
-            spans: const [],
+            style: TextBlockStyle(isHeading: false, headingLevel: 0),
+            spans: [],
           ),
         ),
       ];
@@ -285,16 +285,16 @@ void main() {
 
     test('image block contributes FFFC end index', () {
       final blocks = [
-        ContentBlock.text(
+        const ContentBlock.text(
           TextBlock(
-            plain: const BlockPlainRange(plainStart: 0, plainLen: 2),
+            plain: BlockPlainRange(plainStart: 0, plainLen: 2),
             text: '前文',
-            style: const TextBlockStyle(isHeading: false, headingLevel: 0),
-            spans: const [],
+            style: TextBlockStyle(isHeading: false, headingLevel: 0),
+            spans: [],
           ),
         ),
-        ContentBlock.image(
-          const ImageBlock(
+        const ContentBlock.image(
+          ImageBlock(
             plain: BlockPlainRange(plainStart: 3, plainLen: 1),
             assetId: 'img1',
           ),

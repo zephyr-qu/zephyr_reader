@@ -9,7 +9,7 @@ import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  ReaderRenderConfig _cfg({double fontSize = 16}) =>
+  ReaderRenderConfig cfg({double fontSize = 16}) =>
       lineBreakMeasureRenderConfig(
         fontSize: fontSize,
         lineHeight: 1.5,
@@ -21,7 +21,7 @@ void main() {
         baselineAlign: true,
       );
 
-  ChapterContentIr _longIr() {
+  ChapterContentIr longIr() {
     final plain = List.filled(60, '书签恢复与改字号重装箱测试段落。').join();
     return ChapterContentIr(
       blocks: [
@@ -39,10 +39,10 @@ void main() {
   }
 
   test('pageIndexAtCharOffset covers every char in some page', () {
-    final ir = _longIr();
+    final ir = longIr();
     final pages = FlutterBlockPaginator.paginate(
       ir,
-      config: _cfg(),
+      config: cfg(),
       contentWidthDp: 200,
       contentHeightDp: 100,
     );
@@ -90,18 +90,18 @@ void main() {
   });
 
   test('font size change rebox keeps bookmark offset on a valid page', () {
-    final ir = _longIr();
+    final ir = longIr();
     final bookmark = ir.plainText.length ~/ 3;
 
     final small = FlutterBlockPaginator.paginate(
       ir,
-      config: _cfg(fontSize: 14),
+      config: cfg(fontSize: 14),
       contentWidthDp: 220,
       contentHeightDp: 120,
     );
     final large = FlutterBlockPaginator.paginate(
       ir,
-      config: _cfg(fontSize: 22),
+      config: cfg(fontSize: 22),
       contentWidthDp: 220,
       contentHeightDp: 120,
     );

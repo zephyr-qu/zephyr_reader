@@ -77,7 +77,7 @@ class ChapterViewModel {
       },
     );
     _pagination = PaginationCoordinator(repo, config, this);
-    _loader = ChapterLoader(repo, config, this, _pagination);
+    _loader = ChapterLoader(repo, this, _pagination);
     _searchIndex = SearchIndexLifecycle(this, _loader.chapters);
     _loader.scheduleSearchIndex = _searchIndex.scheduleIndex;
     _navigator = ChapterNavigator(

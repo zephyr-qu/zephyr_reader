@@ -23,8 +23,7 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 /// **T3**：主 isolate 分块 `paginateAsync`（TextPainter 不能进普通 isolate）+
 /// generation 取消；`maxChars` 首屏截断后由 [expandToFullChapter] 补全。
 class FlutterPaginationSession implements PaginationSession {
-  FlutterPaginationSession({void Function()? onCacheUpdated})
-    : _onCacheUpdated = onCacheUpdated;
+  FlutterPaginationSession({this._onCacheUpdated});
 
   final void Function()? _onCacheUpdated;
 
@@ -122,18 +121,6 @@ class FlutterPaginationSession implements PaginationSession {
     params: params,
     maxChars: maxChars,
   );
-
-  @override
-  Future<({int totalPages, bool isPartial})> applySessionCalibration({
-    required String bookId,
-    required int chapterIndex,
-    required PaginationParams params,
-    BigInt? maxChars,
-  }) async {
-    final n = _descriptors?.length ?? 0;
-    Logging.info('[FlutterPagination] applySessionCalibration no-op pages=$n');
-    return (totalPages: n, isPartial: _sessionIsPartial);
-  }
 
   @override
   Future<({int totalPages, bool isPartial})> expandToFullChapter({
@@ -355,10 +342,7 @@ class FlutterPaginationSession implements PaginationSession {
       'plainLen=${ir.plainText.length} blocks=${ir.blocks.length} '
       'body=${contentWidth.toStringAsFixed(0)}x${contentHeight.toStringAsFixed(0)}',
     );
-    return (
-      totalPages: outcome.pages.length,
-      isPartial: outcome.isPartial,
-    );
+    return (totalPages: outcome.pages.length, isPartial: outcome.isPartial);
   }
 
   void _applyPages(List<PackedPage> pages) {
@@ -382,7 +366,9 @@ class FlutterPaginationSession implements PaginationSession {
   }
 
   /// 从精确预装箱结果安装 session（staging promote，零重装箱）。
-  ({int totalPages, bool isPartial}) installFromReady(PaginationChapterReady ready) {
+  ({int totalPages, bool isPartial}) installFromReady(
+    PaginationChapterReady ready,
+  ) {
     Logging.info(
       '[FlutterPagination] installFromReady chapter=${ready.chapterIndex} '
       'pages=${ready.pages.length}',
@@ -401,7 +387,9 @@ class FlutterPaginationSession implements PaginationSession {
     return (totalPages: ready.pages.length, isPartial: false);
   }
 
-  static List<PageBlockSlice> slicesToPageBlocks(List<PackedBlockSlice> slices) {
+  static List<PageBlockSlice> slicesToPageBlocks(
+    List<PackedBlockSlice> slices,
+  ) {
     return [
       for (final s in slices)
         if (s.isImage)
