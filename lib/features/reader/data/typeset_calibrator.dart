@@ -6,8 +6,9 @@ import 'package:zephyr_reader/features/reader/data/layout_calibration_store.dart
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 
-/// 无 Flutter 实测时的保守有效行宽比例（与 Rust `DEFAULT_EFFECTIVE_LINE_WIDTH_RATIO` 对齐）。
-const kDefaultEffectiveLineWidthRatio = 0.97;
+/// 无 Flutter 实测时的默认有效行宽比例（与 Rust `DEFAULT_EFFECTIVE_LINE_WIDTH_RATIO` 对齐）。
+/// 主断行已用满页宽；此值主要用于诊断估算与缺省校准。
+const kDefaultEffectiveLineWidthRatio = 1.0;
 
 /// 统一测量输入：与阅读器渲染栈及 Rust [TypesetConfig] 对齐。
 class TypesetMeasureParams {
@@ -531,6 +532,7 @@ double estimateRustMaxLineWidthPx({
   int firstLineIndentChars = 2,
   bool subtractFirstLineIndent = false,
 }) {
+  // 与 Rust 主断行对齐：使用满页宽。ratio 参数保留以兼容旧测试调用，但默认 1.0。
   final effectiveWidth = pageWidthPx * effectiveLineWidthRatio;
   if (!subtractFirstLineIndent) {
     return effectiveWidth.clamp(fontSizePx.toDouble(), effectiveWidth);
@@ -551,16 +553,48 @@ double estimateRustCharsPerLine({
   bool subtractFirstLineIndent = false,
 }) {
   if (cjkWidthPx <= 0) return 0;
+  // 与 Rust BlockLayoutMetrics 对齐：断行使用满页宽，不再乘 ratio。
   final maxLinePx = estimateRustMaxLineWidthPx(
     pageWidthPx: pageWidthPx,
     fontSizePx: fontSizePx,
-    effectiveLineWidthRatio: effectiveLineWidthRatio,
+    effectiveLineWidthRatio: 1.0,
     firstLineIndentChars: firstLineIndentChars,
     subtractFirstLineIndent: subtractFirstLineIndent,
   );
   return maxLinePx / cjkWidthPx;
 }
 
+/// 与 Rust [CharWidthTable::char_width] 区间对齐的单字符宽度（物理 px）。
+double rustCharWidthPx({
+  required int rune,
+  required double cjkWidthPx,
+  double? asciiWidthPx,
+  double? digitWidthPx,
+  double? punctWidthPx,
+  double? latinExtWidthPx,
+  double? otherWidthPx,
+}) {
+  final ascii = asciiWidthPx ?? cjkWidthPx * 0.6;
+  final digit = digitWidthPx ?? ascii;
+  final punct = punctWidthPx ?? cjkWidthPx;
+  final latinExt = latinExtWidthPx ?? cjkWidthPx * 0.7;
+  final other = otherWidthPx ?? cjkWidthPx * 0.8;
+
+  if ((rune >= 0x4E00 && rune <= 0x9FFF) ||
+      (rune >= 0x3400 && rune <= 0x4DBF)) {
+    return cjkWidthPx;
+  }
+  if (rune >= 0x0030 && rune <= 0x0039) return digit;
+  if (rune >= 0x0020 && rune <= 0x007F) return ascii;
+  if ((rune >= 0x3000 && rune <= 0x303F) ||
+      (rune >= 0xFF00 && rune <= 0xFFEF)) {
+    return punct;
+  }
+  if (rune >= 0x00C0 && rune <= 0x024F) return latinExt;
+  return other;
+}
+
+/// 变宽贪心行数估算（对齐 Rust CharWidthTable + 满页宽断行；不含 auto_space/标点挤压）。
 int estimateRustLinesForText({
   required String text,
   required bool applyFirstLineIndent,
@@ -569,38 +603,63 @@ int estimateRustLinesForText({
   required int fontSizePx,
   double effectiveLineWidthRatio = kDefaultEffectiveLineWidthRatio,
   int firstLineIndentChars = 2,
+  double? asciiWidthPx,
+  double? digitWidthPx,
+  double? punctWidthPx,
+  double? latinExtWidthPx,
+  double? otherWidthPx,
 }) {
-  final charCount = text.length;
-  if (charCount == 0) return 0;
+  if (text.isEmpty) return 0;
 
-  final fullLineChars = estimateRustCharsPerLine(
-    cjkWidthPx: cjkWidthPx,
+  // Packing 与 Rust 一致用满页宽；ratio 仅保留 API 兼容（诊断不再用其收窄）。
+  assert(effectiveLineWidthRatio > 0);
+
+  final fullLinePx = estimateRustMaxLineWidthPx(
     pageWidthPx: pageWidthPx,
     fontSizePx: fontSizePx,
-    effectiveLineWidthRatio: effectiveLineWidthRatio,
+    effectiveLineWidthRatio: 1.0,
     firstLineIndentChars: firstLineIndentChars,
-  ).floor().clamp(1, charCount);
-
-  final firstLineChars = applyFirstLineIndent
-      ? estimateRustCharsPerLine(
-          cjkWidthPx: cjkWidthPx,
+  );
+  final firstLinePx = applyFirstLineIndent
+      ? estimateRustMaxLineWidthPx(
           pageWidthPx: pageWidthPx,
           fontSizePx: fontSizePx,
-          effectiveLineWidthRatio: effectiveLineWidthRatio,
+          effectiveLineWidthRatio: 1.0,
           firstLineIndentChars: firstLineIndentChars,
           subtractFirstLineIndent: true,
-        ).floor().clamp(1, charCount)
-      : fullLineChars;
+        )
+      : fullLinePx;
 
-  var remaining = charCount;
-  var lines = 0;
-  final firstTake = firstLineChars.clamp(1, remaining);
-  remaining -= firstTake;
-  lines = 1;
-  while (remaining > 0) {
-    remaining -= fullLineChars.clamp(1, remaining);
-    lines++;
+  var lines = 1;
+  var current = 0.0;
+  var isFirstLine = true;
+
+  for (final rune in text.runes) {
+    if (rune == 0x0A) {
+      lines++;
+      current = 0.0;
+      isFirstLine = false;
+      continue;
+    }
+    final w = rustCharWidthPx(
+      rune: rune,
+      cjkWidthPx: cjkWidthPx,
+      asciiWidthPx: asciiWidthPx,
+      digitWidthPx: digitWidthPx,
+      punctWidthPx: punctWidthPx,
+      latinExtWidthPx: latinExtWidthPx,
+      otherWidthPx: otherWidthPx,
+    );
+    final limit = isFirstLine ? firstLinePx : fullLinePx;
+    if (current > 0 && current + w > limit) {
+      lines++;
+      current = w;
+      isFirstLine = false;
+    } else {
+      current += w;
+    }
   }
+
   return lines;
 }
 
@@ -608,6 +667,65 @@ bool isCalibrationPlausible(CalibrationData data, double fontSize) {
   if (fontSize <= 0) return false;
   final ratio = data.cjkWidth / fontSize;
   return ratio >= 0.5 && ratio <= 1.5;
+}
+
+/// TextPainter 不支持 WidgetSpan；用首行缩进宽度模拟与渲染一致的行数/高度。
+///
+/// 与 [buildBlockPageContent] 诊断及 CI 对齐测试共用，避免双份实现漂移。
+({int lines, double height}) measureSliceLayout({
+  required String text,
+  required TextStyle style,
+  required double maxWidth,
+  StrutStyle? strutStyle,
+  double firstLineIndentPx = 0,
+}) {
+  if (text.isEmpty) {
+    return (lines: 0, height: 0.0);
+  }
+
+  final tp = TextPainter(
+    textDirection: TextDirection.ltr,
+    strutStyle: strutStyle,
+    textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
+  );
+
+  if (firstLineIndentPx <= 0) {
+    tp.text = TextSpan(text: text, style: style);
+    tp.layout(maxWidth: maxWidth);
+    return (lines: tp.computeLineMetrics().length, height: tp.height);
+  }
+
+  final narrowWidth = (maxWidth - firstLineIndentPx).clamp(1.0, maxWidth);
+  var firstLineChars = text.length;
+  for (var n = 1; n <= text.length; n++) {
+    tp.text = TextSpan(text: text.substring(0, n), style: style);
+    tp.layout(maxWidth: narrowWidth);
+    if (tp.computeLineMetrics().length > 1) {
+      firstLineChars = n - 1;
+      break;
+    }
+  }
+  if (firstLineChars <= 0) {
+    firstLineChars = 1;
+  }
+
+  if (firstLineChars >= text.length) {
+    tp.text = TextSpan(text: text, style: style);
+    tp.layout(maxWidth: narrowWidth);
+    return (lines: tp.computeLineMetrics().length, height: tp.height);
+  }
+
+  tp.text = TextSpan(text: text.substring(0, firstLineChars), style: style);
+  tp.layout(maxWidth: narrowWidth);
+  final firstHeight = tp.height;
+
+  final remainder = text.substring(firstLineChars);
+  tp.text = TextSpan(text: remainder, style: style);
+  tp.layout(maxWidth: maxWidth);
+  return (
+    lines: 1 + tp.computeLineMetrics().length,
+    height: firstHeight + tp.height,
+  );
 }
 
 TypesetCalibration calibrationToRust(CalibrationData data) {
@@ -630,10 +748,18 @@ paginatedTypesetLayoutInsets({
   required double fontSize,
   required double lineHeight,
   double paragraphSpacing = 16,
+  double? measuredLineHeightDp,
 }) {
+  // 实测行高优先（strut 常为 32，而 fontSize×倍数可能只有 27）。
+  final row = (measuredLineHeightDp != null && measuredLineHeightDp > 0)
+      ? measuredLineHeightDp
+      : fontSize * lineHeight;
+  // 一次做对：Rust 与 Flutter 双引擎无法像素级一致。
+  // 留满 1 行安全高，保证永不裁切（接受每页约 1 行底空）。
+  // 真机残余漂移曾到 ~8–20dp；半行 buffer 仍会出现 paragraphSpacing overflow。
   return (
     contentVerticalPadding: ReaderRenderConfig.pageContentVerticalPadding,
-    pageHeightLineBuffer: 0,
+    pageHeightLineBuffer: row.clamp(16.0, 48.0),
   );
 }
 

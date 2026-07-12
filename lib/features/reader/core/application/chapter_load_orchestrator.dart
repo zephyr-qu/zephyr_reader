@@ -756,8 +756,9 @@ class ChapterLoadOrchestrator {
       request.chapterIndex,
       readingMode: request.readingMode,
     );
-    // 提取/存储失败不阻塞分页，退化到贪心路径
-    if (!_isStale(gen) && text.isNotEmpty) {
+    // 提取/存储失败不阻塞分页，退化到贪心路径。
+    // 即使 plain 为空也尝试 IR 按块断行（图片-only 章等）。
+    if (!_isStale(gen)) {
       try {
         await _pagination.storeLineBreaks(text);
       } catch (e) {

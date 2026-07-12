@@ -74,6 +74,7 @@ class PaginationCoordinator {
       fontSize: p.fontSize,
       lineHeight: p.lineHeight,
       paragraphSpacing: p.paragraphSpacing,
+      measuredLineHeightDp: p.calibration?.lineHeightDp,
     );
     return core_api.computeConfigHash(
       config: buildTypesetConfig(
@@ -207,24 +208,69 @@ class PaginationCoordinator {
 
   /// Phase 6: 提取当前章节的行断点索引并存入 Rust 缓存。
   ///
-  /// 在全章分页完成后调用（finalize 后）。下次同 config_hash 分页时
-  /// Rust `paginate_from_line_breaks` 直接使用这些索引做纯数学映射。
+  /// 优先按 IR **文本块** 分别 ICU 断行（与分页渲染同构），再合并为章级绝对索引；
+  /// IR 不可用时退化为整章 plain 一次测量。[content] 仅作 fallback。
   Future<void> storeLineBreaks(String content) async {
-    if (content.isEmpty) return;
-
     try {
       final configHash = computeConfigHash();
       final params = buildPaginationParams();
-
-      final indices = computeLineBreakIndices(
-        text: content,
-        style: TextStyle(
-          fontSize: params.fontSize,
-          height: params.lineHeight,
-          fontFamily: params.fontFamily,
-        ),
-        maxWidth: params.width - 2 * params.padding,
+      final contentMaxWidth = (params.width - 2 * params.padding).clamp(
+        1.0,
+        params.width,
       );
+
+      List<int> indices;
+      var source = 'plain';
+
+      // 与分页主路径同源 IR（不依赖 scroll 是否已缓存 chapterIr）
+      try {
+        final ir = await core_api.getChapterContentIr(
+          bookId: _chapterVM.bookId.value,
+          chapterIndex: _chapterVM.chapterIndex.value,
+        );
+        if (ir.blocks.isNotEmpty) {
+          final measureConfig = lineBreakMeasureRenderConfig(
+            fontSize: params.fontSize,
+            lineHeight: params.lineHeight,
+            fontFamily: params.fontFamily,
+            letterSpacing: params.letterSpacing,
+            paragraphSpacing: params.paragraphSpacing,
+            pageMargin: params.padding,
+            firstLineIndent: params.firstLineIndent,
+            baselineAlign: true,
+          );
+          indices = computeChapterLineBreakIndicesFromBlocks(
+            blocks: ir.blocks,
+            config: measureConfig,
+            contentMaxWidth: contentMaxWidth,
+          );
+          source = 'blocks=${ir.blocks.length}';
+        } else if (content.isNotEmpty) {
+          indices = computeLineBreakIndices(
+            text: content,
+            style: TextStyle(
+              fontSize: params.fontSize,
+              height: params.lineHeight,
+              fontFamily: params.fontFamily,
+            ),
+            maxWidth: contentMaxWidth,
+          );
+        } else {
+          return;
+        }
+      } catch (e) {
+        Logging.warning('[LineBreaks] IR fetch failed, plain fallback: $e');
+        if (content.isEmpty) return;
+        indices = computeLineBreakIndices(
+          text: content,
+          style: TextStyle(
+            fontSize: params.fontSize,
+            height: params.lineHeight,
+            fontFamily: params.fontFamily,
+          ),
+          maxWidth: contentMaxWidth,
+        );
+      }
 
       if (indices.isEmpty) return;
 
@@ -235,7 +281,7 @@ class PaginationCoordinator {
         lineBreaks: indices,
       );
       Logging.info(
-        '[LineBreaks] stored ${indices.length} indices '
+        '[LineBreaks] stored ${indices.length} indices source=$source '
         'ch=${_chapterVM.chapterIndex.value} hash=${configHash.toString().padLeft(16, '0')}',
       );
     } catch (e, st) {

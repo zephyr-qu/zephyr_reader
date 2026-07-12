@@ -10,11 +10,14 @@ use crate::domain::{
 use crate::text::char_width::CharWidthTable;
 use crate::text::line_breaking::compute_line_breaks_variable_width;
 
-const FLUTTER_BREAK_CHAR_WIDTH_SCALE: f32 = 1.0;
-/// 贪心兜底与主断行共用安全行宽，避免二次收窄导致分页过短。
+/// 断行字宽略放大：Rust 比 Flutter 略早换行，避免「少计行高 → 页末裁切」。
+/// 与满行 [pageHeightLineBuffer] 一起构成永不溢出的双保险。
+const FLUTTER_BREAK_CHAR_WIDTH_SCALE: f32 = 1.03;
+/// 贪心兜底与主断行共用安全行宽（仅 fallback 路径；主路径已不再取 greedy）。
 const GREEDY_LINE_WIDTH_RATIO: f32 = 1.0;
-/// 无 effective_line_width_ratio 时的保守默认（与 Dart [kDefaultEffectiveLineWidthRatio] 对齐）。
-const DEFAULT_EFFECTIVE_LINE_WIDTH_RATIO: f32 = 0.97;
+/// 无 calibration 时的默认有效行宽比。主断行已按 Flutter `maxWidth` 使用满页宽；
+/// 此常量仅作校准缺省/诊断对齐（不再二次收窄 `full_line_width_px`）。
+const DEFAULT_EFFECTIVE_LINE_WIDTH_RATIO: f32 = 1.0;
 /// 无 intrinsic 尺寸时，图片显示高度 = page_width × ratio。
 const DEFAULT_IMAGE_HEIGHT_RATIO: f32 = 0.55;
 
@@ -67,14 +70,22 @@ impl BlockLayoutMetrics {
             .map(|c| c.effective_line_width_ratio)
             .unwrap_or(DEFAULT_EFFECTIVE_LINE_WIDTH_RATIO)
             .clamp(0.85, 1.0);
-        let full_line_width_px = (page_width_px * effective_ratio).max(font_size);
+        // Flutter SelectableText / TextPainter 使用满宽 constraints.maxWidth。
+        // 再用 measured ratio（≈0.97）二次收窄会导致系统性少装（底空 ~2–4 行）。
+        // ratio 仍记入日志与 config_hash，但不参与主断行行宽。
+        let full_line_width_px = page_width_px.max(font_size);
         let first_line_indent_width_px = font_size * config.first_line_indent as f32;
         let paragraph_spacing_extra_px = (config.paragraph_spacing * font_size).max(0.0);
+        // Flutter SelectableText 路径目前不插入中西文间距；若计入 auto_space，
+        // 混排页会多断行 → 少装（真机常见 underfill + lineDelta≪0）。
+        // auto_space_ratio 仍进 config_hash，待渲染侧对齐后再启用。
+        let auto_space_px = 0.0;
+        let _configured_auto_space = (font_size * config.auto_space_ratio).max(0.0);
 
         let est_lines = page_height_px / line_height_px;
         let ls = config.line_spacing;
         tracing::info!(
-            "[PageEstimate] BlockLayoutMetrics page_h={:.0}px line_h={:.1}px font={:.0}px lsp={ls:.2} est_lines={est_lines:.1} page_w={:.0}px full_line_w={:.0}px break_scale={:.2} greedy_ratio={:.2}",
+            "[PageEstimate] BlockLayoutMetrics page_h={:.0}px line_h={:.1}px font={:.0}px lsp={ls:.2} est_lines={est_lines:.1} page_w={:.0}px full_line_w={:.0}px calib_ratio={effective_ratio:.3} auto_space_cfg={_configured_auto_space:.1} auto_space_pack={auto_space_px:.1} break_scale={:.2} greedy_ratio={:.2}",
             page_height_px,
             line_height_px,
             font_size,
@@ -98,7 +109,7 @@ impl BlockLayoutMetrics {
                 config.calibration.as_ref(),
                 font_size,
             ),
-            auto_space_px: (font_size * config.auto_space_ratio).max(1.0),
+            auto_space_px,
             letter_spacing_px: config.letter_spacing,
             punctuation_squeeze: config.punctuation_squeeze,
         }
@@ -350,7 +361,8 @@ fn greedy_split_text_lines(
     segments
 }
 
-/// 取 layout 与贪心切分中更保守（行数更多）的结果。
+/// 按精确变宽断行切视觉行。不再与 greedy 取「更保守」结果——
+/// greedy（纯 CJK 字数估算）在混排上会多断行，导致系统性少装。
 fn visual_line_segments_for_slice(
     text: &str,
     apply_block_start_indent: bool,
@@ -372,24 +384,13 @@ fn visual_line_segments_for_slice(
     .into_iter()
     .map(|s| (s.char_start, s.char_len))
     .collect::<Vec<_>>();
-    let greedy =
-        greedy_split_text_lines(text, apply_block_start_indent, metrics, style, width_table);
-    if layout.is_empty() {
-        return greedy;
-    }
-    if greedy.is_empty() {
+    if !layout.is_empty() {
         return layout;
     }
-    let break_table = width_table.scaled(FLUTTER_BREAK_CHAR_WIDTH_SCALE);
-    let cjk_w = break_table.char_width('中').max(1.0);
-    let full_line_chars = ((metrics.full_line_width_px * GREEDY_LINE_WIDTH_RATIO) / cjk_w)
-        .floor()
-        .max(1.0) as u32;
-    let layout_too_wide = layout.iter().any(|(_, len)| *len > full_line_chars);
-    if greedy.len() > layout.len() || layout_too_wide {
-        greedy
-    } else {
-        layout
+    // 精确断行为空时的兜底（空串/异常）；主路径不应依赖 greedy。
+    #[allow(deprecated)]
+    {
+        greedy_split_text_lines(text, apply_block_start_indent, metrics, style, width_table)
     }
 }
 
@@ -459,6 +460,8 @@ struct BlockPaginator {
     pages: Vec<BlockPageDescriptor>,
     current: CurrentPage,
     page_index: i32,
+    /// 上一段落结束后的段距：在下一块内容前消耗；`flush_page` 时丢弃（页末不留尾随空白）。
+    pending_block_spacing_px: f32,
 }
 
 impl BlockPaginator {
@@ -476,6 +479,7 @@ impl BlockPaginator {
                 image_layouts: Vec::new(),
             },
             page_index: 0,
+            pending_block_spacing_px: 0.0,
         }
     }
 
@@ -513,6 +517,8 @@ impl BlockPaginator {
         self.pages.push(descriptor);
         self.page_index += 1;
         self.remaining_height = self.metrics.page_height_px;
+        // 页末不保留段距尾随，避免与 Flutter「最后一块不加 spacing」不一致导致 overflow。
+        self.pending_block_spacing_px = 0.0;
         self.current = CurrentPage {
             first_block: 0,
             last_block: 0,
@@ -520,6 +526,27 @@ impl BlockPaginator {
             plain_end: 0,
             image_layouts: Vec::new(),
         };
+    }
+
+    /// 在下一块内容前消耗挂起的段距；当前页放不下则翻页并丢弃（不带到页顶）。
+    fn apply_pending_spacing_before_content(&mut self) {
+        let pending = self.pending_block_spacing_px;
+        if pending <= 0.0 {
+            return;
+        }
+        self.pending_block_spacing_px = 0.0;
+        if self.current.is_empty() {
+            return;
+        }
+        if self.remaining_height < pending {
+            self.flush_page(false);
+            return;
+        }
+        self.remaining_height -= pending;
+    }
+
+    fn queue_block_bottom_spacing(&mut self, spacing: f32) {
+        self.pending_block_spacing_px = spacing.max(0.0);
     }
 
     fn begin_block_on_page(&mut self, block_index: u32, plain_char_start: u32) {
@@ -564,6 +591,8 @@ impl BlockPaginator {
             / self.metrics.font_size_px.max(1.0))
         .max(1.0);
 
+        self.apply_pending_spacing_before_content();
+
         let top_spacing = block_top_spacing_px(&block.style, effective_font_size);
         if top_spacing > 0.0 {
             self.ensure_vertical_space(top_spacing);
@@ -582,8 +611,7 @@ impl BlockPaginator {
         let bottom_spacing =
             block_bottom_spacing_px(&block.style, effective_font_size, &self.metrics);
 
-        for (i, seg) in lines.iter().enumerate() {
-            let is_last_block_seg = i + 1 == lines.len();
+        for seg in lines.iter() {
             let seg_text: String = block
                 .text
                 .chars()
@@ -601,14 +629,8 @@ impl BlockPaginator {
                 self.metrics.letter_spacing_px,
             );
 
-            for (vi, (sub_start, sub_len)) in visual_segments.iter().enumerate() {
-                let is_last_visual = vi + 1 == visual_segments.len();
-                let extra_bottom = if is_last_block_seg && is_last_visual {
-                    bottom_spacing
-                } else {
-                    0.0
-                };
-                let required_height = effective_line_height + extra_bottom;
+            for (sub_start, sub_len) in visual_segments.iter() {
+                let required_height = effective_line_height;
                 self.ensure_vertical_space(required_height);
 
                 let sub_plain_start = base_plain + seg.char_start + sub_start;
@@ -616,15 +638,16 @@ impl BlockPaginator {
                 self.begin_block_on_page(block_index, sub_plain_start);
                 self.extend_plain_end(sub_plain_end);
                 self.remaining_height -= effective_line_height;
-
-                if extra_bottom > 0.0 {
-                    self.remaining_height = (self.remaining_height - extra_bottom).max(0.0);
-                }
             }
         }
+
+        // 段距挂起：仅当页内还有后续块时才会被消耗；页末 flush 丢弃。
+        self.queue_block_bottom_spacing(bottom_spacing);
     }
 
     fn paginate_image_block(&mut self, block_index: u32, block: &ImageBlock) {
+        self.apply_pending_spacing_before_content();
+
         let height = image_display_height(
             self.metrics.page_width_px,
             block.intrinsic_width,
@@ -694,10 +717,11 @@ pub fn paginate_chapter_ir(ir: &ChapterContentIr, config: TypesetConfig) -> Bloc
 
     // ── 缓存路径：有预计算行断点时，不跑贪心断行 ──
     if let Some(ref indices) = ir.line_break_indices
-        && !indices.is_empty() {
-            let metrics = BlockLayoutMetrics::from_config(&config);
-            return paginate_from_line_breaks(indices, &ir.plain_text, &metrics, config_hash);
-        }
+        && !indices.is_empty()
+    {
+        let metrics = BlockLayoutMetrics::from_config(&config);
+        return paginate_from_line_breaks(indices, &ir.blocks, &metrics, config_hash);
+    }
 
     // ── 原始路径：块级贪心分页 ──
     tracing::info!(
@@ -731,54 +755,301 @@ pub fn paginate_chapter_ir(ir: &ChapterContentIr, config: TypesetConfig) -> Bloc
     result
 }
 
+/// 在 `blocks` 中查找覆盖 `char_offset` 的块下标（半开 plain 区间）。
+fn block_index_containing(blocks: &[ContentBlock], char_offset: u32) -> Option<usize> {
+    blocks.iter().position(|b| {
+        let start = b.plain_start();
+        let end = start + b.plain_len();
+        char_offset >= start && char_offset < end
+    })
+}
+
+/// plain `[start, end)` 覆盖的块半开区间 `[first, last)`。
+fn block_range_covering_plain(blocks: &[ContentBlock], start: u32, end: u32) -> (u32, u32) {
+    let mut first: Option<u32> = None;
+    let mut last_excl = 0u32;
+    for (i, b) in blocks.iter().enumerate() {
+        let bs = b.plain_start();
+        let be = bs + b.plain_len();
+        if be > start && bs < end {
+            if first.is_none() {
+                first = Some(i as u32);
+            }
+            last_excl = i as u32 + 1;
+        }
+    }
+    match first {
+        Some(f) => (f, last_excl.max(f + 1)),
+        None => (0, 0),
+    }
+}
+
+/// 将当前累计页写入 `pages`（与 [`BlockPaginator::flush_page`] 语义对齐）。
+fn flush_line_break_page(
+    pages: &mut Vec<BlockPageDescriptor>,
+    page_idx: &mut i32,
+    remaining: &mut f32,
+    pending_spacing: &mut f32,
+    page_plain_start: &mut Option<u32>,
+    page_plain_end: &mut u32,
+    page_image_layouts: &mut Vec<PageImageLayout>,
+    blocks: &[ContentBlock],
+    page_height_px: f32,
+) {
+    let Some(start) = *page_plain_start else {
+        return;
+    };
+    let end = *page_plain_end;
+    if end <= start && page_image_layouts.is_empty() {
+        *page_plain_start = None;
+        *page_plain_end = 0;
+        page_image_layouts.clear();
+        *remaining = page_height_px;
+        *pending_spacing = 0.0;
+        return;
+    }
+    let (mut first, mut last) = block_range_covering_plain(blocks, start, end);
+    for layout in page_image_layouts.iter() {
+        if last == 0 && first == 0 {
+            first = layout.block_index;
+            last = layout.block_index + 1;
+        } else {
+            first = first.min(layout.block_index);
+            last = last.max(layout.block_index + 1);
+        }
+    }
+    // 安全网：plain 有内容却未命中块时，避免写出 0..0 导致空页
+    if last <= first && end > start && !blocks.is_empty() {
+        first = 0;
+        last = blocks.len() as u32;
+    }
+    let descriptor = BlockPageDescriptor::new(
+        *page_idx,
+        first,
+        last,
+        BlockPlainRange::new(start, end.saturating_sub(start)),
+        false,
+    )
+    .with_image_layouts(std::mem::take(page_image_layouts));
+    pages.push(descriptor);
+    *page_idx += 1;
+    *page_plain_start = None;
+    *page_plain_end = 0;
+    *remaining = page_height_px;
+    *pending_spacing = 0.0;
+}
+
 /// 缓存路径：用 Flutter 预计算的行断点直接分页（零断行计算）。
 ///
-/// `indices` 是每行结束字符在 `plain_text` 中的绝对位置。
-/// 每行高度 = `metrics.line_height_px`（均匀行高假设，分页模式下成立）。
+/// `indices` 是每行结束字符在章级 plain 中的绝对位置。
+///
+/// **必须**写入真实的 `first_block_index..last_block_index`：`page_blocks` 按块半开
+/// 区间切片；若写死 `0..1`，多段落后续页会变成空页/半页（根因）。
+///
+/// 高度按行装箱，并在块边界计入段距；图片块用 [`image_display_height`]。
 fn paginate_from_line_breaks(
     indices: &[u32],
-    _plain_text: &str,
+    blocks: &[ContentBlock],
     metrics: &BlockLayoutMetrics,
     config_hash: u64,
 ) -> BlockPaginateResult {
-    let lines_per_page = (metrics.page_height_px / metrics.line_height_px).floor() as usize;
+    if indices.is_empty() {
+        return BlockPaginateResult::new(
+            vec![BlockPageDescriptor::new(
+                0,
+                0,
+                0,
+                BlockPlainRange::new(0, 0),
+                true,
+            )],
+            config_hash,
+            false,
+        );
+    }
 
     tracing::info!(
-        "[PageEstimate] paginate_from_line_breaks indices={} lines_per_page={} page_h={:.0} line_h={:.1}",
+        "[PageEstimate] paginate_from_line_breaks indices={} blocks={} page_h={:.0} line_h={:.1} para_sp={:.1}",
         indices.len(),
-        lines_per_page,
+        blocks.len(),
         metrics.page_height_px,
         metrics.line_height_px,
+        metrics.paragraph_spacing_extra_px,
     );
 
-    let mut pages = Vec::new();
-    let total_lines = indices.len();
-    let mut line_idx = 0;
+    let chapter_plain_start = blocks.first().map(|b| b.plain_start()).unwrap_or(0);
+    let page_height = metrics.page_height_px;
+
+    let mut pages: Vec<BlockPageDescriptor> = Vec::new();
     let mut page_idx = 0i32;
+    let mut remaining = page_height;
+    let mut pending_spacing = 0.0f32;
+    let mut page_plain_start: Option<u32> = None;
+    let mut page_plain_end: u32 = 0;
+    let mut page_image_layouts: Vec<PageImageLayout> = Vec::new();
+    let mut prev_line_end = chapter_plain_start;
 
-    while line_idx < total_lines {
-        let page_start_idx = line_idx;
-        let page_end_idx = (line_idx + lines_per_page).min(total_lines);
+    for &line_end in indices {
+        if line_end <= prev_line_end {
+            prev_line_end = line_end;
+            continue;
+        }
+        let line_start = prev_line_end;
 
-        let start_char = if page_start_idx == 0 {
-            0
-        } else {
-            indices[page_start_idx - 1]
+        let owner = block_index_containing(blocks, line_start);
+        let Some(bi) = owner else {
+            // plain 中间隔符（`\n`）：不计高度，只推进游标
+            prev_line_end = line_end;
+            if page_plain_start.is_some() && line_end > page_plain_end {
+                page_plain_end = line_end;
+            }
+            continue;
         };
-        let end_char = indices[page_end_idx - 1];
 
-        let is_last = page_end_idx >= total_lines;
-        let descriptor = BlockPageDescriptor::new(
-            page_idx,
-            0, // first_block_index: irrelevant for line-break path
-            1, // last_block_index
-            BlockPlainRange::new(start_char, end_char.saturating_sub(start_char)),
-            is_last,
-        );
-        pages.push(descriptor);
+        let (cost, is_image) = match &blocks[bi] {
+            ContentBlock::Image(img) => (
+                image_display_height(
+                    metrics.page_width_px,
+                    img.intrinsic_width,
+                    img.intrinsic_height,
+                ),
+                true,
+            ),
+            ContentBlock::Text(t) => {
+                let eff = effective_font_size_px(&t.style, metrics);
+                let ratio = eff / metrics.font_size_px.max(1.0);
+                ((metrics.line_height_px * ratio).max(1.0), false)
+            }
+        };
 
-        line_idx = page_end_idx;
-        page_idx += 1;
+        let spacing = if page_plain_start.is_some() && pending_spacing > 0.0 {
+            pending_spacing
+        } else {
+            0.0
+        };
+        let total_need = spacing + cost;
+
+        if page_plain_start.is_some() && remaining < total_need {
+            flush_line_break_page(
+                &mut pages,
+                &mut page_idx,
+                &mut remaining,
+                &mut pending_spacing,
+                &mut page_plain_start,
+                &mut page_plain_end,
+                &mut page_image_layouts,
+                blocks,
+                page_height,
+            );
+        }
+
+        // 图片独占：当前页非空则先翻页；仍放不下则 FullPage
+        let image_layout = if is_image {
+            if page_plain_start.is_some() && cost > remaining {
+                flush_line_break_page(
+                    &mut pages,
+                    &mut page_idx,
+                    &mut remaining,
+                    &mut pending_spacing,
+                    &mut page_plain_start,
+                    &mut page_plain_end,
+                    &mut page_image_layouts,
+                    blocks,
+                    page_height,
+                );
+            }
+            if cost > remaining {
+                Some(ImageBlockLayout::FullPage)
+            } else {
+                Some(ImageBlockLayout::InlineContain)
+            }
+        } else {
+            None
+        };
+
+        let spacing = if page_plain_start.is_some() && pending_spacing > 0.0 {
+            pending_spacing
+        } else {
+            0.0
+        };
+        if spacing > 0.0 {
+            remaining -= spacing;
+            pending_spacing = 0.0;
+        }
+
+        if page_plain_start.is_none() {
+            // 与上一页 plain 末尾衔接，吞掉块间 `\n` 间隙，避免 charOffset 落空
+            page_plain_start = Some(
+                pages
+                    .last()
+                    .map(|p| p.plain_end_exclusive())
+                    .unwrap_or(line_start),
+            );
+        }
+        page_plain_end = line_end;
+
+        if matches!(image_layout, Some(ImageBlockLayout::FullPage)) {
+            remaining = 0.0;
+        } else {
+            remaining = (remaining - cost).max(0.0);
+        }
+
+        if let Some(layout) = image_layout {
+            page_image_layouts.push(PageImageLayout {
+                block_index: bi as u32,
+                layout,
+            });
+        }
+
+        if let ContentBlock::Text(t) = &blocks[bi] {
+            let block_end = t.plain.end_exclusive();
+            if line_end >= block_end {
+                let eff = effective_font_size_px(&t.style, metrics);
+                pending_spacing = block_bottom_spacing_px(&t.style, eff, metrics);
+            }
+        }
+
+        prev_line_end = line_end;
+
+        if remaining <= 0.0 {
+            flush_line_break_page(
+                &mut pages,
+                &mut page_idx,
+                &mut remaining,
+                &mut pending_spacing,
+                &mut page_plain_start,
+                &mut page_plain_end,
+                &mut page_image_layouts,
+                blocks,
+                page_height,
+            );
+        }
+    }
+
+    flush_line_break_page(
+        &mut pages,
+        &mut page_idx,
+        &mut remaining,
+        &mut pending_spacing,
+        &mut page_plain_start,
+        &mut page_plain_end,
+        &mut page_image_layouts,
+        blocks,
+        page_height,
+    );
+
+    if pages.is_empty() {
+        pages.push(BlockPageDescriptor::new(
+            0,
+            0,
+            0,
+            BlockPlainRange::new(0, 0),
+            true,
+        ));
+    } else {
+        let last_idx = pages.len() - 1;
+        for (i, p) in pages.iter_mut().enumerate() {
+            p.is_last_page = i == last_idx;
+        }
     }
 
     BlockPaginateResult::new(pages, config_hash, false)
@@ -850,7 +1121,23 @@ pub fn paginate_chapter_ir_chunked(
         }
 
         let chunk = &ir.blocks[offset..end];
-        let sub_ir = ChapterContentIr::new(chunk.to_vec(), ir.plain_text.clone());
+        let mut sub_ir = ChapterContentIr::new(chunk.to_vec(), ir.plain_text.clone());
+        // 保留落入本 chunk plain 范围的行断点，避免大章丢失 ICU 路径
+        if let Some(ref indices) = ir.line_break_indices {
+            let chunk_start = chunk.first().map(|b| b.plain_start()).unwrap_or(0);
+            let chunk_end = chunk
+                .last()
+                .map(|b| b.plain_start() + b.plain_len())
+                .unwrap_or(0);
+            let filtered: Vec<u32> = indices
+                .iter()
+                .copied()
+                .filter(|&i| i > chunk_start && i <= chunk_end)
+                .collect();
+            if !filtered.is_empty() {
+                sub_ir.line_break_indices = Some(filtered);
+            }
+        }
         let mut result = paginate_chapter_ir(&sub_ir, config.clone());
         // 将 chunk-relative 的 block 索引转换为全章绝对索引
         result.offset_block_indices(offset as u32);
@@ -877,6 +1164,11 @@ mod tests {
             paragraph_spacing: 0.0,
             ..TypesetConfig::default()
         }
+    }
+
+    fn block_layout_metrics_for_test(config: &TypesetConfig) -> (f32, f32) {
+        let m = BlockLayoutMetrics::from_config(config);
+        (m.full_line_width_px, m.line_height_px)
     }
 
     fn long_text_ir(repeats: usize) -> ChapterContentIr {
@@ -939,6 +1231,71 @@ mod tests {
         assert!(
             result.descriptors[0].plain.plain_len > 0,
             "first page must contain text"
+        );
+    }
+
+    #[test]
+    fn trailing_paragraph_spacing_does_not_block_last_line_on_page() {
+        // 页高刚好放下 2 行；若尾随段距仍计入末行 required，会被迫少装一行。
+        let mut b = BlockJoinedPlainBuilder::new();
+        b.push_text("甲乙丙丁戊己庚辛".into(), TextBlockStyle::default());
+        let ir = b.finish();
+        let mut config = test_config();
+        config.page_width = 80; // ~2 CJK / line at font 16
+        config.page_height = 48; // exactly 2 lines at line_h=24
+        config.font_size = 16;
+        config.line_spacing = 1.5;
+        config.paragraph_spacing = 1.0; // would be +16px if trailing counted
+        config.calibration = Some(TypesetCalibration {
+            cjk_width: 16.0,
+            ascii_width: 9.6,
+            digit_width: 9.6,
+            punct_width: 16.0,
+            measured_line_height_px: 24.0,
+            effective_line_width_ratio: 1.0,
+            ..TypesetCalibration::default()
+        });
+
+        let result = paginate_chapter_ir(&ir, config);
+        let first_len = result.descriptors[0].plain.plain_len;
+        assert!(
+            first_len >= 4,
+            "without trailing spacing tax, first page should hold >=2 lines (~4 chars), got {first_len}"
+        );
+    }
+
+    #[test]
+    fn auto_space_ratio_does_not_reduce_mixed_pack_density() {
+        // 混排：若分页计入 auto_space 而 Flutter 不渲染，会少装。
+        let mut b = BlockJoinedPlainBuilder::new();
+        b.push_text(
+            "Hello世界Hello世界中文English混排测试文本内容足够长触发多行断行XYZ".into(),
+            TextBlockStyle::default(),
+        );
+        let ir = b.finish();
+
+        let mut with_space = test_config();
+        with_space.page_width = 320;
+        with_space.page_height = 400;
+        with_space.auto_space_ratio = 0.25;
+        with_space.calibration = Some(TypesetCalibration {
+            cjk_width: 16.0,
+            ascii_width: 9.6,
+            digit_width: 9.6,
+            punct_width: 16.0,
+            measured_line_height_px: 24.0,
+            effective_line_width_ratio: 1.0,
+            ..TypesetCalibration::default()
+        });
+
+        let mut no_space = with_space.clone();
+        no_space.auto_space_ratio = 0.0;
+
+        let pages_with = paginate_chapter_ir(&ir, with_space).page_count();
+        let pages_without = paginate_chapter_ir(&ir, no_space).page_count();
+        assert_eq!(
+            pages_with, pages_without,
+            "auto_space_ratio must not change pack density until Flutter renders it"
         );
     }
 
@@ -1074,7 +1431,7 @@ mod tests {
     // === Chunked pagination tests ===
 
     #[test]
-    fn layout_too_wide_falls_back_to_greedy_split() {
+    fn variable_width_layout_splits_long_cjk() {
         use crate::domain::TypesetCalibration;
         let config = TypesetConfig {
             page_width: 965,
@@ -1090,6 +1447,7 @@ mod tests {
                 punct_width: 46.8,
                 latin_ext_width: 32.0,
                 other_width: 36.0,
+                effective_line_width_ratio: 1.0,
                 ..TypesetCalibration::default()
             }),
             ..TypesetConfig::default()
@@ -1099,7 +1457,7 @@ mod tests {
         let segments = layout_slice_text_segments(&text, false, &config, &style);
         assert!(
             segments.len() >= 2,
-            "27 CJK chars must split when layout packs too wide, got {} segs",
+            "27 CJK chars must split on full page width, got {} segs",
             segments.len()
         );
     }
@@ -1192,7 +1550,6 @@ mod tests {
 
         let result = paginate_chapter_ir(&ir, config);
 
-        // 验证：result.use_line_breaks
         assert!(!result.descriptors.is_empty(), "should produce pages");
 
         // 验证每页边界连续（上一页的 end == 下一页的 start）
@@ -1221,7 +1578,19 @@ mod tests {
             last_end,
         );
 
-        // 验证每页行数不超过 lines_per_page
+        // 单块 IR：每页块范围必须覆盖 block 0（不能是空 0..0）
+        for (i, p) in result.descriptors.iter().enumerate() {
+            assert!(
+                p.first_block_index < p.last_block_index,
+                "page {i} must have non-empty block range, got {}..{}",
+                p.first_block_index,
+                p.last_block_index,
+            );
+            assert_eq!(p.first_block_index, 0);
+            assert_eq!(p.last_block_index, 1);
+        }
+
+        // 验证每页行数不超过 lines_per_page（段距为 0 时与高度装箱等价）
         for (i, p) in result.descriptors.iter().enumerate() {
             let p_start = p.plain.plain_start;
             let p_end = p_start + p.plain.plain_len;
@@ -1232,6 +1601,70 @@ mod tests {
             assert!(
                 page_lines <= lines_per_page,
                 "page {i} has {page_lines} lines (max {lines_per_page})",
+            );
+        }
+    }
+
+    #[test]
+    fn paginate_from_line_breaks_maps_multi_block_ranges() {
+        // 根因回归：多段落时不得写死 first=0/last=1，否则后续页 page_blocks 为空。
+        let mut b = BlockJoinedPlainBuilder::new();
+        for i in 0..8 {
+            b.push_text(format!("段落{i}内容足够长一些"), TextBlockStyle::default());
+        }
+        let mut ir = b.finish();
+        assert!(ir.blocks.len() >= 8);
+
+        // 每块约一行：用各块 end 作为行断点（外加块间 \n 跳过由引擎处理）
+        let mut indices = Vec::new();
+        for block in &ir.blocks {
+            indices.push(block.plain_start() + block.plain_len());
+        }
+        // 确保覆盖到 plain 末尾
+        let plain_len = ir.plain_text.chars().count() as u32;
+        if indices.last().copied() != Some(plain_len) {
+            indices.push(plain_len);
+        }
+        ir.line_break_indices = Some(indices);
+
+        let mut config = test_config();
+        config.paragraph_spacing = 1.0; // 段距参与装箱
+        let result = paginate_chapter_ir(&ir, config);
+
+        assert!(result.page_count() >= 1);
+        // 全章覆盖的块上界必须到达最后一块
+        let max_last = result
+            .descriptors
+            .iter()
+            .map(|d| d.last_block_index)
+            .max()
+            .unwrap_or(0);
+        assert_eq!(
+            max_last,
+            ir.blocks.len() as u32,
+            "line-break pages must cover all blocks, max_last={max_last}"
+        );
+
+        // 任意页的 plain 范围与块范围必须相交（否则渲染空页）
+        for (i, d) in result.descriptors.iter().enumerate() {
+            assert!(
+                d.last_block_index > d.first_block_index,
+                "page {i} empty block range {}..{}",
+                d.first_block_index,
+                d.last_block_index
+            );
+            let (expect_first, expect_last) = block_range_covering_plain(
+                &ir.blocks,
+                d.plain.plain_start,
+                d.plain_end_exclusive(),
+            );
+            assert_eq!(
+                d.first_block_index, expect_first,
+                "page {i} first_block mismatch"
+            );
+            assert_eq!(
+                d.last_block_index, expect_last,
+                "page {i} last_block mismatch"
             );
         }
     }
@@ -1364,18 +1797,17 @@ mod tests {
     // ── Layer B: ratio / line_height ──
 
     #[test]
-    fn b1_effective_ratio_sets_line_width() {
+    fn b1_full_line_width_equals_page_width_ignores_ratio() {
         let mut config = test_config();
+        config.page_width = 1000;
         config.calibration = Some(TypesetCalibration {
-            effective_line_width_ratio: 0.95,
+            effective_line_width_ratio: 0.90,
             ..TypesetCalibration::default()
         });
-
-        let ir = long_text_ir(100);
-        let result = paginate_chapter_ir(&ir, config);
+        let (full_w, _) = block_layout_metrics_for_test(&config);
         assert!(
-            result.page_count() > 1,
-            "ratio=0.95 should produce multiple pages"
+            (full_w - 1000.0).abs() < 0.1,
+            "full_line_w should equal page_width even when ratio=0.90, got {full_w}"
         );
     }
 
@@ -1402,52 +1834,69 @@ mod tests {
     }
 
     #[test]
-    fn b3_wider_ratio_more_chars_per_page() {
+    fn b3_narrower_cjk_width_more_chars_per_page() {
         let ir = long_text_ir(100);
 
-        let mut config_narrow = test_config();
-        config_narrow.calibration = Some(TypesetCalibration {
-            effective_line_width_ratio: 0.90,
+        let mut config_wide_glyph = test_config();
+        config_wide_glyph.calibration = Some(TypesetCalibration {
+            cjk_width: 20.0,
+            ascii_width: 12.0,
+            digit_width: 12.0,
+            punct_width: 20.0,
+            effective_line_width_ratio: 1.0,
             ..TypesetCalibration::default()
         });
-        let result_narrow = paginate_chapter_ir(&ir, config_narrow);
+        let result_wide_glyph = paginate_chapter_ir(&ir, config_wide_glyph);
 
-        let mut config_wide = test_config();
-        config_wide.calibration = Some(TypesetCalibration {
-            effective_line_width_ratio: 0.99,
+        let mut config_narrow_glyph = test_config();
+        config_narrow_glyph.calibration = Some(TypesetCalibration {
+            cjk_width: 14.0,
+            ascii_width: 8.0,
+            digit_width: 8.0,
+            punct_width: 14.0,
+            effective_line_width_ratio: 1.0,
             ..TypesetCalibration::default()
         });
-        let result_wide = paginate_chapter_ir(&ir, config_wide);
+        let result_narrow_glyph = paginate_chapter_ir(&ir, config_narrow_glyph);
 
-        // Wider ratio → fewer pages (more content fits per page)
         assert!(
-            result_wide.page_count() <= result_narrow.page_count(),
-            "wider ratio(0.99) pages={} should be <= narrower(0.90) pages={}",
-            result_wide.page_count(),
-            result_narrow.page_count()
+            result_narrow_glyph.page_count() <= result_wide_glyph.page_count(),
+            "narrower cjk pages={} should be <= wider cjk pages={}",
+            result_narrow_glyph.page_count(),
+            result_wide_glyph.page_count()
         );
     }
 
     #[test]
-    fn b4_default_ratio_fallback() {
-        let mut config_with = test_config();
-        config_with.calibration = Some(TypesetCalibration {
-            effective_line_width_ratio: 0.97,
+    fn b4_ratio_does_not_change_page_count() {
+        let mut config_a = test_config();
+        config_a.calibration = Some(TypesetCalibration {
+            effective_line_width_ratio: 0.90,
+            cjk_width: 16.0,
+            ascii_width: 9.6,
+            digit_width: 9.6,
+            punct_width: 16.0,
             ..TypesetCalibration::default()
         });
 
-        let mut config_without = test_config();
-        config_without.calibration = None;
+        let mut config_b = test_config();
+        config_b.calibration = Some(TypesetCalibration {
+            effective_line_width_ratio: 1.0,
+            cjk_width: 16.0,
+            ascii_width: 9.6,
+            digit_width: 9.6,
+            punct_width: 16.0,
+            ..TypesetCalibration::default()
+        });
 
         let ir = long_text_ir(100);
-        let result_with = paginate_chapter_ir(&ir, config_with);
-        let result_without = paginate_chapter_ir(&ir, config_without);
+        let result_a = paginate_chapter_ir(&ir, config_a);
+        let result_b = paginate_chapter_ir(&ir, config_b);
 
-        // Same ratio (explicit 0.97 vs default 0.97) → same page count
         assert_eq!(
-            result_with.page_count(),
-            result_without.page_count(),
-            "explicit 0.97 and None calibration should produce same page count"
+            result_a.page_count(),
+            result_b.page_count(),
+            "ratio must not affect packing page count after full-width break"
         );
     }
 

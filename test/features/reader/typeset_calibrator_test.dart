@@ -118,6 +118,24 @@ void main() {
       expect(config.pageHeight, equals(1520));
     });
 
+    test('paginatedTypesetLayoutInsets 用实测行高留满一行 buffer', () {
+      final insets = paginatedTypesetLayoutInsets(
+        fontSize: 18,
+        lineHeight: 1.5, // 27dp 名义行高
+        measuredLineHeightDp: 32, // strut 实测
+      );
+      expect(insets.contentVerticalPadding, 20);
+      expect(insets.pageHeightLineBuffer, closeTo(32.0, 0.01));
+    });
+
+    test('paginatedTypesetLayoutInsets 无实测时用 fontSize×lineHeight', () {
+      final insets = paginatedTypesetLayoutInsets(
+        fontSize: 16,
+        lineHeight: 1.5, // 24dp
+      );
+      expect(insets.pageHeightLineBuffer, closeTo(24.0, 0.01));
+    });
+
     test('显式 pageHeightLineBuffer 仍可额外扣减', () {
       final config = buildTypesetConfig(
         width: 360,
@@ -400,7 +418,7 @@ void main() {
           lineHeight: 1.5,
         );
         expect(cal.lineHeightDp, closeTo(24.0, 0.01)); // 16 * 1.5
-        expect(cal.effectiveLineWidthRatio, 0.97);
+        expect(cal.effectiveLineWidthRatio, 1.0);
       });
 
       test('A8 estimateRustMaxLineWidth uses ratio', () {

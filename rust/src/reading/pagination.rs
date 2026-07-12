@@ -224,7 +224,23 @@ async fn try_paginate_chapter_blocks(
         let ir_plain_len = full_ir.plain_text.chars().count();
         let partial_blocks = filter_blocks_to_chars(&full_ir.blocks, chars);
         let partial_block_count = partial_blocks.len();
-        let partial_ir = ChapterContentIr::new(partial_blocks, full_ir.plain_text.clone());
+        let mut partial_ir = ChapterContentIr::new(partial_blocks, full_ir.plain_text.clone());
+        // 保留落入 partial plain 范围的行断点，与全章 ICU 路径一致
+        if let Some(ref indices) = full_ir.line_break_indices {
+            let partial_end = partial_ir
+                .blocks
+                .last()
+                .map(|b| b.plain_start() + b.plain_len())
+                .unwrap_or(0);
+            let filtered: Vec<u32> = indices
+                .iter()
+                .copied()
+                .filter(|&i| i > 0 && i <= partial_end)
+                .collect();
+            if !filtered.is_empty() {
+                partial_ir.line_break_indices = Some(filtered);
+            }
+        }
         let ir_for_paginate = partial_ir.clone();
         let config_for_paginate = config.clone();
         let partial_result = tokio::task::spawn_blocking(move || {

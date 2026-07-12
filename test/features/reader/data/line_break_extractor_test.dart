@@ -14,6 +14,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
+import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 
 TextStyle _cjkStyle() =>
     const TextStyle(fontSize: 16, height: 1.5, fontFamily: 'Roboto');
@@ -240,6 +241,102 @@ void main() {
       expect(firstPage.pageEndChar, lessThanOrEqualTo(text.length));
       expect(firstPage.pageStartChar, greaterThanOrEqualTo(0));
       expect(firstPage.pageEndChar, greaterThan(firstPage.pageStartChar));
+    });
+  });
+
+  group('computeChapterLineBreakIndicesFromBlocks', () {
+    test('merges per-block absolute indices across BlockJoined separators', () {
+      // Hello\nWorld — block0 [0,5), block1 [6,11)
+      final blocks = [
+        ContentBlock.text(
+          TextBlock(
+            plain: const BlockPlainRange(plainStart: 0, plainLen: 5),
+            text: 'Hello',
+            style: const TextBlockStyle(isHeading: false, headingLevel: 0),
+            spans: const [],
+          ),
+        ),
+        ContentBlock.text(
+          TextBlock(
+            plain: const BlockPlainRange(plainStart: 6, plainLen: 5),
+            text: 'World',
+            style: const TextBlockStyle(isHeading: false, headingLevel: 0),
+            spans: const [],
+          ),
+        ),
+      ];
+      final config = lineBreakMeasureRenderConfig(
+        fontSize: 16,
+        lineHeight: 1.5,
+        fontFamily: 'Roboto',
+        letterSpacing: 0,
+        paragraphSpacing: 16,
+        pageMargin: 16,
+        firstLineIndent: false,
+        baselineAlign: true,
+      );
+      final indices = computeChapterLineBreakIndicesFromBlocks(
+        blocks: blocks,
+        config: config,
+        contentMaxWidth: 2000,
+      );
+      expect(indices, [5, 11]);
+    });
+
+    test('image block contributes FFFC end index', () {
+      final blocks = [
+        ContentBlock.text(
+          TextBlock(
+            plain: const BlockPlainRange(plainStart: 0, plainLen: 2),
+            text: '前文',
+            style: const TextBlockStyle(isHeading: false, headingLevel: 0),
+            spans: const [],
+          ),
+        ),
+        ContentBlock.image(
+          const ImageBlock(
+            plain: BlockPlainRange(plainStart: 3, plainLen: 1),
+            assetId: 'img1',
+          ),
+        ),
+      ];
+      final config = lineBreakMeasureRenderConfig(
+        fontSize: 16,
+        lineHeight: 1.5,
+        fontFamily: 'Roboto',
+        letterSpacing: 0,
+        paragraphSpacing: 16,
+        pageMargin: 16,
+        firstLineIndent: false,
+        baselineAlign: true,
+      );
+      final indices = computeChapterLineBreakIndicesFromBlocks(
+        blocks: blocks,
+        config: config,
+        contentMaxWidth: 400,
+      );
+      expect(indices.contains(4), isTrue); // image end at 3+1
+      expect(indices, containsAll([2, 4]));
+    });
+
+    test('first-line indent produces more or equal lines vs no indent', () {
+      const text =
+          '这是一段足够长的中文测试文本用来验证首行缩进会导致首行更早换行从而可能增加总行数。';
+      final style = _cjkStyle();
+      final noIndent = computeLineBreakIndices(
+        text: text,
+        style: style,
+        maxWidth: 200,
+        firstLineIndentPx: 0,
+      );
+      final withIndent = computeLineBreakIndices(
+        text: text,
+        style: style,
+        maxWidth: 200,
+        firstLineIndentPx: 32,
+      );
+      expect(withIndent.length, greaterThanOrEqualTo(noIndent.length));
+      expect(validateLineBreakIndices(withIndent, text), isTrue);
     });
   });
 }
