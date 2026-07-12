@@ -3,6 +3,7 @@
 import 'dart:async';
 
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/widgets.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/core/utils/app_error_mapper.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
@@ -21,6 +22,8 @@ import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
+import 'package:zephyr_reader/features/reader/spike/flutter_pagination_spike_flag.dart';
+import 'package:zephyr_reader/features/reader/spike/spike_viewport_metrics.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
@@ -110,6 +113,28 @@ class ChapterLoadOrchestrator {
           gen,
           request,
           scheduleSearchIndex: scheduleSearchIndex,
+        );
+        return;
+      }
+
+      // 方案三：Flutter 精确分页旁路（explore 分支 flag 默认开）
+      if (kFlutterPaginationSpike) {
+        if (intent == ChapterPaginationIntent.stagingPromoteForward ||
+            intent == ChapterPaginationIntent.stagingPromoteBackward) {
+          await _runFlutterStagingPromote(
+            gen,
+            request,
+            isForward: intent == ChapterPaginationIntent.stagingPromoteForward,
+            scheduleSearchIndex: scheduleSearchIndex,
+            preloadAdjacentFirstPages: preloadAdjacentFirstPages,
+          );
+          return;
+        }
+        await _runFlutterPaginationSpike(
+          gen,
+          request,
+          scheduleSearchIndex: scheduleSearchIndex,
+          preloadAdjacentFirstPages: preloadAdjacentFirstPages,
         );
         return;
       }
@@ -349,6 +374,222 @@ class ChapterLoadOrchestrator {
         _isLoading.value = true;
       });
     }
+  }
+
+  /// 方案三 T2：staging promote — 安装精确预装箱，零 Rust adopt / 零重装箱。
+  Future<void> _runFlutterStagingPromote(
+    int gen,
+    ChapterLoadRequest request, {
+    required bool isForward,
+    required Future<void> Function(int chapterIndex, String content)?
+    scheduleSearchIndex,
+    Future<void> Function(int chapterIndex)? preloadAdjacentFirstPages,
+  }) async {
+    final sw = Stopwatch()..start();
+    Logging.info(
+      '[Spike] promote ${isForward ? "forward" : "backward"} '
+      'chapter=${request.chapterIndex}',
+    );
+    await _runStarting(gen, effectivePreserveContent: true);
+    if (_isStale(gen)) {
+      _setPhase(gen, ChapterLoadPhase.cancelled);
+      return;
+    }
+
+    _pagination.syncChapterTypesetLayoutToRepo();
+    final result = await _pagination.paginateFirstScreenFromCache(
+      request.chapterIndex,
+    );
+    if (_isStale(gen)) {
+      _setPhase(gen, ChapterLoadPhase.cancelled);
+      return;
+    }
+
+    final content = await _contentRepo.loadChapterContent(
+      _chapterVM.bookId.value,
+      request.chapterIndex,
+      readingMode: request.readingMode,
+    );
+    if (_isStale(gen)) {
+      _setPhase(gen, ChapterLoadPhase.cancelled);
+      return;
+    }
+
+    final descriptors = _contentRepo.descriptors;
+    final pageIndex = isForward
+        ? 0
+        : ((descriptors?.length ?? 1) - 1).clamp(0, 0x7FFFFFFF);
+
+    _applyIfCurrent(gen, () {
+      _chapterVM.chapterContent.value = AsyncState.data(content);
+      _chapterVM.chapterIndex.value = request.chapterIndex;
+      _totalPages.value = result.totalPages;
+      _pageIndex.value = pageIndex;
+      _chapterVM.currentCharOffset.value =
+          descriptors != null && pageIndex < descriptors.length
+          ? descriptors[pageIndex].startOffset
+          : 0;
+      _chapterVM.pendingJumpCharOffset.value = null;
+      _error.value = null;
+      _isLoading.value = false;
+    });
+    if (pageIndex >= 0) {
+      _contentRepo.ensurePageWindow(pageIndex);
+    }
+
+    _contentRepo.clearAdjacentStaging();
+    unawaited(preloadAdjacentFirstPages?.call(request.chapterIndex));
+
+    await _runComplete(gen, request);
+    await _postLoadTasks(
+      gen,
+      request.chapterIndex,
+      content,
+      scheduleSearchIndex: scheduleSearchIndex,
+    );
+
+    _setPhase(gen, ChapterLoadPhase.completed);
+    _applyIfCurrent(gen, () {
+      _loadPhase.value = ChapterLoadPhase.idle;
+    });
+    Logging.info(
+      '[Spike] promote done pages=${result.totalPages} '
+      'page=$pageIndex ${sw.elapsedMilliseconds}ms',
+    );
+  }
+
+  /// Flutter 分页实验旁路（[kFlutterPaginationSpike]）。
+  ///
+  /// 只拉章内容 + 走 [SpikePaginationSession]（工厂在 flag 开时创建）；
+  /// 不跑 calibration / metrics backfeed / storeLineBreaks。
+  ///
+  /// 进度：用 [ChapterLoadRequest.initialCharOffset] 落页（字号变更时由
+  /// ViewModel 传入当前 charOffset）；翻页写回仍走现有 renderer → navigator。
+  Future<void> _runFlutterPaginationSpike(
+    int gen,
+    ChapterLoadRequest request, {
+    required Future<void> Function(int chapterIndex, String content)?
+    scheduleSearchIndex,
+    Future<void> Function(int chapterIndex)? preloadAdjacentFirstPages,
+  }) async {
+    final preserve = request.preserveContent ?? false;
+    Logging.info(
+      '[Spike] gen=$gen chapter=${request.chapterIndex} '
+      'off=${request.initialCharOffset} preserve=$preserve '
+      '(no Rust paginate)',
+    );
+    await _runStarting(gen, effectivePreserveContent: preserve);
+    if (_isStale(gen)) {
+      _setPhase(gen, ChapterLoadPhase.cancelled);
+      return;
+    }
+
+    _pagination.syncChapterTypesetLayoutToRepo();
+
+    _setPhase(gen, ChapterLoadPhase.fullPaginate);
+    // 正文加载与首屏装箱并行（避免串行等两遍大 TXT）。
+    final contentFuture = _contentRepo.loadChapterContent(
+      _chapterVM.bookId.value,
+      request.chapterIndex,
+      readingMode: request.readingMode,
+    );
+    final quickFuture = _pagination.paginateFirstScreen(request.chapterIndex);
+    final content = await contentFuture;
+    if (_isStale(gen)) {
+      _setPhase(gen, ChapterLoadPhase.cancelled);
+      return;
+    }
+    final quick = await quickFuture;
+    if (_isStale(gen)) {
+      _setPhase(gen, ChapterLoadPhase.cancelled);
+      return;
+    }
+
+    _applyIfCurrent(gen, () {
+      _chapterVM.chapterContent.value = AsyncState.data(content);
+      _chapterVM.chapterIndex.value = request.chapterIndex;
+    });
+
+    await _runFinalize(
+      gen,
+      request,
+      content: content,
+      total: quick.totalPages,
+    );
+    if (_isStale(gen)) {
+      _setPhase(gen, ChapterLoadPhase.cancelled);
+      return;
+    }
+
+    // 首屏已可翻：先关 loading（对齐主线 firstSpine），expand 在后台补全。
+    _applyIfCurrent(gen, () {
+      _isLoading.value = false;
+    });
+
+    // 等 LayoutBuilder 真正上报 bodyHeight（信号更新后往往要再等 1–2 帧）。
+    for (var i = 0; i < 5; i++) {
+      await WidgetsBinding.instance.endOfFrame;
+      if (_isStale(gen)) {
+        _setPhase(gen, ChapterLoadPhase.cancelled);
+        return;
+      }
+      if (SpikeViewportMetrics.contentHeightDp != null) break;
+    }
+    Logging.info(
+      '[Spike] gen=$gen viewport ready '
+      'H=${SpikeViewportMetrics.contentHeightDp?.toStringAsFixed(0) ?? "null"} '
+      'W=${SpikeViewportMetrics.contentWidthDp?.toStringAsFixed(0) ?? "null"}',
+    );
+
+    var totalPages = quick.totalPages;
+    // 有实测视口则整章重装；否则仅 expand 补全。
+    Logging.info(
+      '[Spike] gen=$gen rebox after first-screen pages=${quick.totalPages}',
+    );
+    spikePaginationProgressHook = (pages, partial) {
+      _applyIfCurrent(gen, () {
+        if (pages > _totalPages.value) {
+          _totalPages.value = pages;
+        }
+      });
+    };
+    try {
+      final full = await _pagination.paginateFullChapter(request.chapterIndex);
+      totalPages = full.totalPages;
+    } finally {
+      spikePaginationProgressHook = null;
+    }
+    if (_isStale(gen)) {
+      _setPhase(gen, ChapterLoadPhase.cancelled);
+      return;
+    }
+    _syncPaginationSignalsAfterRepaginate(
+      gen,
+      request,
+      totalPages: totalPages,
+      content: content,
+    );
+
+    unawaited(preloadAdjacentFirstPages?.call(request.chapterIndex));
+
+    await _runComplete(gen, request);
+    await _postLoadTasks(
+      gen,
+      request.chapterIndex,
+      content,
+      scheduleSearchIndex: scheduleSearchIndex,
+    );
+
+    _setPhase(gen, ChapterLoadPhase.completed);
+    _applyIfCurrent(gen, () {
+      _loadPhase.value = ChapterLoadPhase.idle;
+    });
+    Logging.info(
+      '[Spike] gen=$gen done pages=$totalPages '
+      'partialWas=${quick.isPartial} '
+      'page=${_pageIndex.value} off=${_chapterVM.currentCharOffset.value} '
+      'contentLen=${content.length}',
+    );
   }
 
   /// 滚动/双语模式：跳过所有分页 pipeline，直接加载全文渲染。

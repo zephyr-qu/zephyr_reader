@@ -26,6 +26,14 @@ pub static CHAPTER_PATTERN_ZH: LazyLock<Regex> = LazyLock::new(|| {
     ).expect("CHAPTER_PATTERN_ZH 正则表达式编译失败")
 });
 
+/// 中文枚举章节：行首「一、标题」「二．标题」（无「章回」字样）
+pub static CHAPTER_PATTERN_ZH_ENUM: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"(?m)^([零〇一二三四五六七八九十百千万壹贰叁肆伍陆柒捌玖拾佰仟]{1,8})\s*[、.．:：]\s*(\S.+)$",
+    )
+    .expect("CHAPTER_PATTERN_ZH_ENUM 正则表达式编译失败")
+});
+
 /// 英文章节匹配模式
 /// 识别英文小说的章节标题（如"Chapter 1"、"Part I"等）
 pub static CHAPTER_PATTERN_EN: LazyLock<Regex> = LazyLock::new(|| {
