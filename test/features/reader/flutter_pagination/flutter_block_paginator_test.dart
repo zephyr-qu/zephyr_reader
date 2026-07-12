@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_block_paginator.dart';
@@ -86,22 +85,22 @@ void main() {
   test('multi-block plain ranges stay contiguous', () {
     const a = '第一段文字。';
     const b = '第二段继续。';
-    final ir = ChapterContentIr(
+    final ir = const ChapterContentIr(
       blocks: [
         ContentBlock.text(
           TextBlock(
             plain: BlockPlainRange(plainStart: 0, plainLen: a.length),
             text: a,
-            style: const TextBlockStyle(isHeading: false, headingLevel: 0),
-            spans: const [],
+            style: TextBlockStyle(isHeading: false, headingLevel: 0),
+            spans: [],
           ),
         ),
         ContentBlock.text(
           TextBlock(
             plain: BlockPlainRange(plainStart: a.length, plainLen: b.length),
             text: b,
-            style: const TextBlockStyle(isHeading: false, headingLevel: 0),
-            spans: const [],
+            style: TextBlockStyle(isHeading: false, headingLevel: 0),
+            spans: [],
           ),
         ),
       ],

@@ -11,16 +11,16 @@ void main() {
   group('sliceRichSpans', () {
     test('clips mid-span and preserves style/link', () {
       final spans = [
-        RichTextSpan.styled(
+        const RichTextSpan.styled(
           SpanStyle.plain,
-          const RichTextSpanData(text: 'ab'),
+          RichTextSpanData(text: 'ab'),
         ),
-        RichTextSpan.styled(
+        const RichTextSpan.styled(
           SpanStyle.bold,
-          const RichTextSpanData(text: 'cdef'),
+          RichTextSpanData(text: 'cdef'),
         ),
-        RichTextSpan.link(
-          data: const RichTextSpanData(text: 'gh'),
+        const RichTextSpan.link(
+          data: RichTextSpanData(text: 'gh'),
           url: 'https://x',
         ),
       ];
@@ -50,9 +50,9 @@ void main() {
       );
       expect(
         sliceRichSpans([
-          RichTextSpan.styled(
+          const RichTextSpan.styled(
             SpanStyle.italic,
-            const RichTextSpanData(text: 'x'),
+            RichTextSpanData(text: 'x'),
           ),
         ], start: 0, len: 0),
         isEmpty,
@@ -72,25 +72,25 @@ void main() {
       baselineAlign: true,
     );
     const text = '粗体强调普通';
-    final ir = ChapterContentIr(
+    final ir = const ChapterContentIr(
       blocks: [
         ContentBlock.text(
           TextBlock(
             plain: BlockPlainRange(plainStart: 0, plainLen: text.length),
             text: text,
-            style: const TextBlockStyle(isHeading: false, headingLevel: 0),
+            style: TextBlockStyle(isHeading: false, headingLevel: 0),
             spans: [
               RichTextSpan.styled(
                 SpanStyle.bold,
-                const RichTextSpanData(text: '粗体'),
+                RichTextSpanData(text: '粗体'),
               ),
               RichTextSpan.styled(
                 SpanStyle.italic,
-                const RichTextSpanData(text: '强调'),
+                RichTextSpanData(text: '强调'),
               ),
               RichTextSpan.styled(
                 SpanStyle.plain,
-                const RichTextSpanData(text: '普通'),
+                RichTextSpanData(text: '普通'),
               ),
             ],
           ),

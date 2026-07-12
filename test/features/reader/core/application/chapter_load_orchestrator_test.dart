@@ -228,7 +228,6 @@ void main() {
 
     orchestrator = ChapterLoadOrchestrator(
       contentRepo: repo,
-      config: config,
       chapterVM: chapterVM,
       pagination: pagination,
       chapters: chapters,
@@ -462,14 +461,6 @@ void _stubAllRepo(_MockRepo repo) {
   ).thenAnswer((_) async => const (totalPages: 3, isPartial: true));
   when(
     () => repo.repaginateInPlace(
-      bookId: any(named: 'bookId'),
-      chapterIndex: any(named: 'chapterIndex'),
-      params: any(named: 'params'),
-      maxChars: any(named: 'maxChars'),
-    ),
-  ).thenAnswer((_) async => const (totalPages: 3, isPartial: true));
-  when(
-    () => repo.applySessionCalibration(
       bookId: any(named: 'bookId'),
       chapterIndex: any(named: 'chapterIndex'),
       params: any(named: 'params'),

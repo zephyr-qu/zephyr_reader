@@ -16,7 +16,6 @@ import 'package:zephyr_reader/src/rust/storage/models.dart';
 /// 负责章节列表、阅读进度、章节内容加载及预取。
 class ChapterLoader {
   final ReaderRepositoryInterface _contentRepo;
-  final ReaderConfig _config;
   final ChapterViewModel _chapterVM;
   final PaginationCoordinator _pagination;
   late final ChapterLoadOrchestrator _orchestrator;
@@ -47,15 +46,9 @@ class ChapterLoader {
   /// 首屏就绪后预加载相邻章节首页（由 [ChapterNavigator] 注入）。
   Future<void> Function(int chapterIndex)? preloadAdjacentFirstPages;
 
-  ChapterLoader(
-    this._contentRepo,
-    this._config,
-    this._chapterVM,
-    this._pagination,
-  ) {
+  ChapterLoader(this._contentRepo, this._chapterVM, this._pagination) {
     _orchestrator = ChapterLoadOrchestrator(
       contentRepo: _contentRepo,
-      config: _config,
       chapterVM: _chapterVM,
       pagination: _pagination,
       chapters: chapters,

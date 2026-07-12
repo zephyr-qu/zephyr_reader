@@ -60,14 +60,6 @@ abstract class ReaderRepositoryInterface {
     BigInt? maxChars,
   });
 
-  /// P4-4：Flutter metrics 回传校准后 repaginate。
-  Future<({int totalPages, bool isPartial})> applySessionCalibration({
-    required String bookId,
-    required int chapterIndex,
-    required PaginationParams params,
-    BigInt? maxChars,
-  });
-
   /// 异步拉取单页 plain text（首屏 metrics 采样）。
   Future<String?> fetchPageContent(int pageIndex);
 
