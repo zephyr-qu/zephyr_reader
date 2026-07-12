@@ -1,4 +1,5 @@
 import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/features/reader/core/data/epub_block_image_cache.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
@@ -7,6 +8,7 @@ import 'package:zephyr_reader/features/reader/spike/flutter_block_paginator.dart
 import 'package:zephyr_reader/features/reader/spike/spike_page.dart';
 import 'package:zephyr_reader/features/reader/spike/spike_pagination_session.dart';
 import 'package:zephyr_reader/features/reader/spike/spike_staging_store.dart';
+import 'package:zephyr_reader/features/reader/spike/spike_viewport_metrics.dart';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
@@ -31,12 +33,15 @@ abstract final class FlutterStagingPreloader {
       );
       if (!SpikeStagingStore.isCurrent(gen)) return null;
 
-      final contentWidth = (params.width - 2 * params.padding).clamp(
-        1.0,
-        params.width,
-      );
+      final contentWidth =
+          (SpikeViewportMetrics.contentWidthDp ??
+                  (params.width - 2 * params.padding))
+              .clamp(1.0, 4096.0);
       final vPad = ReaderRenderConfig.pageContentVerticalPadding;
-      final contentHeight = (params.height - 2 * vPad).clamp(1.0, params.height);
+      final estimatedHeight = (params.height - 2 * vPad).clamp(1.0, 8192.0);
+      final measured = SpikeViewportMetrics.contentHeightDp;
+      final contentHeight = (measured ?? estimatedHeight).clamp(1.0, 8192.0);
+      final imageMaxWidthPx = contentWidth.round().clamp(1, 4096);
       final config = lineBreakMeasureRenderConfig(
         fontSize: params.fontSize,
         lineHeight: params.lineHeight,
@@ -63,6 +68,18 @@ abstract final class FlutterStagingPreloader {
       }
       if (!SpikeStagingStore.isCurrent(gen) || pages.isEmpty) return null;
 
+      // 预解码首/末附近页图片，promote 后翻页少骨架。
+      final prefetchPages = forNext
+          ? pages.take(3)
+          : pages.reversed.take(3).toList().reversed;
+      for (final p in prefetchPages) {
+        epubBlockImageCache.prefetchBlocks(
+          filePath: book.filePath,
+          blocks: SpikePaginationSession.slicesToPageBlocks(p.slices),
+          maxWidthPx: imageMaxWidthPx,
+        );
+      }
+
       final ready = SpikeChapterReady(
         bookId: bookId,
         chapterIndex: chapterIndex,
@@ -83,6 +100,7 @@ abstract final class FlutterStagingPreloader {
       Logging.info(
         '[SpikeStaging] preload ${forNext ? "next" : "prev"} '
         'chapter=$chapterIndex pages=${pages.length} '
+        'body=${contentWidth.toStringAsFixed(0)}x${contentHeight.toStringAsFixed(0)} '
         '${sw.elapsedMilliseconds}ms',
       );
       return staging;

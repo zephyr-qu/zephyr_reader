@@ -130,4 +130,40 @@ void main() {
     expect(imgPage.slices.any((s) => !s.isImage), isFalse);
     expect(pages.last.endOffset, ir.plainText.length);
   });
+
+  test('inline image packing includes vertical padding in budget', () {
+    // 前文吃掉大部分页高，剩余仅够「裸图高」不够「图+8dp padding」→ 应独占页。
+    const text = '前文';
+    final ir = ChapterContentIr(
+      blocks: [
+        ContentBlock.text(
+          TextBlock(
+            plain: const BlockPlainRange(plainStart: 0, plainLen: 2),
+            text: text,
+            style: const TextBlockStyle(isHeading: false, headingLevel: 0),
+            spans: const [],
+          ),
+        ),
+        ContentBlock.image(
+          const ImageBlock(
+            plain: BlockPlainRange(plainStart: 2, plainLen: 1),
+            assetId: 'pad',
+            intrinsicWidth: 200,
+            intrinsicHeight: 40, // displayH @200w = 40
+          ),
+        ),
+      ],
+      plainText: '$text\uFFFC',
+    );
+
+    final pages = FlutterBlockPaginator.paginate(
+      ir,
+      config: config,
+      contentWidthDp: 200,
+      contentHeightDp: 70, // packBudget=68；文约 24+8，剩 ~36；图裸 40+8=48 > 36
+    );
+
+    final imgPage = pages.firstWhere((p) => p.slices.any((s) => s.isImage));
+    expect(imgPage.slices.single.imageLayout, ImageBlockLayout.fullPage);
+  });
 }

@@ -3,6 +3,7 @@
 import 'dart:async';
 
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/widgets.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/core/utils/app_error_mapper.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
@@ -22,6 +23,7 @@ import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/features/reader/spike/flutter_pagination_spike_flag.dart';
+import 'package:zephyr_reader/features/reader/spike/spike_viewport_metrics.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
@@ -115,7 +117,7 @@ class ChapterLoadOrchestrator {
         return;
       }
 
-      // 方案三：Flutter 精确分页旁路（默认关）
+      // 方案三：Flutter 精确分页旁路（explore 分支 flag 默认开）
       if (kFlutterPaginationSpike) {
         if (intent == ChapterPaginationIntent.stagingPromoteForward ||
             intent == ChapterPaginationIntent.stagingPromoteBackward) {
@@ -484,19 +486,20 @@ class ChapterLoadOrchestrator {
 
     _pagination.syncChapterTypesetLayoutToRepo();
 
-    final content = await _contentRepo.loadChapterContent(
+    _setPhase(gen, ChapterLoadPhase.fullPaginate);
+    // 正文加载与首屏装箱并行（避免串行等两遍大 TXT）。
+    final contentFuture = _contentRepo.loadChapterContent(
       _chapterVM.bookId.value,
       request.chapterIndex,
       readingMode: request.readingMode,
     );
+    final quickFuture = _pagination.paginateFirstScreen(request.chapterIndex);
+    final content = await contentFuture;
     if (_isStale(gen)) {
       _setPhase(gen, ChapterLoadPhase.cancelled);
       return;
     }
-
-    _setPhase(gen, ChapterLoadPhase.fullPaginate);
-    // T3：先首屏（maxChars）尽快出页，再 expand 补全；分块 async 装箱不堵死事件循环。
-    final quick = await _pagination.paginateFirstScreen(request.chapterIndex);
+    final quick = await quickFuture;
     if (_isStale(gen)) {
       _setPhase(gen, ChapterLoadPhase.cancelled);
       return;
@@ -518,23 +521,54 @@ class ChapterLoadOrchestrator {
       return;
     }
 
-    var totalPages = quick.totalPages;
-    if (quick.isPartial) {
-      Logging.info(
-        '[Spike] gen=$gen expand after first-screen pages=${quick.totalPages}',
-      );
-      totalPages = await _pagination.expandToFullChapter(request.chapterIndex);
+    // 首屏已可翻：先关 loading（对齐主线 firstSpine），expand 在后台补全。
+    _applyIfCurrent(gen, () {
+      _isLoading.value = false;
+    });
+
+    // 等 LayoutBuilder 真正上报 bodyHeight（信号更新后往往要再等 1–2 帧）。
+    for (var i = 0; i < 5; i++) {
+      await WidgetsBinding.instance.endOfFrame;
       if (_isStale(gen)) {
         _setPhase(gen, ChapterLoadPhase.cancelled);
         return;
       }
-      _syncPaginationSignalsAfterRepaginate(
-        gen,
-        request,
-        totalPages: totalPages,
-        content: content,
-      );
+      if (SpikeViewportMetrics.contentHeightDp != null) break;
     }
+    Logging.info(
+      '[Spike] gen=$gen viewport ready '
+      'H=${SpikeViewportMetrics.contentHeightDp?.toStringAsFixed(0) ?? "null"} '
+      'W=${SpikeViewportMetrics.contentWidthDp?.toStringAsFixed(0) ?? "null"}',
+    );
+
+    var totalPages = quick.totalPages;
+    // 有实测视口则整章重装；否则仅 expand 补全。
+    Logging.info(
+      '[Spike] gen=$gen rebox after first-screen pages=${quick.totalPages}',
+    );
+    spikePaginationProgressHook = (pages, partial) {
+      _applyIfCurrent(gen, () {
+        if (pages > _totalPages.value) {
+          _totalPages.value = pages;
+        }
+      });
+    };
+    try {
+      final full = await _pagination.paginateFullChapter(request.chapterIndex);
+      totalPages = full.totalPages;
+    } finally {
+      spikePaginationProgressHook = null;
+    }
+    if (_isStale(gen)) {
+      _setPhase(gen, ChapterLoadPhase.cancelled);
+      return;
+    }
+    _syncPaginationSignalsAfterRepaginate(
+      gen,
+      request,
+      totalPages: totalPages,
+      content: content,
+    );
 
     unawaited(preloadAdjacentFirstPages?.call(request.chapterIndex));
 
