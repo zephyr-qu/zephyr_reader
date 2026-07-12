@@ -5,6 +5,8 @@ import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 
 /// 本地持久化 Flutter 统一排版测量结果（按设备 + 排版参数指纹缓存）。
+///
+/// ADR-016 DEAD PATH：服务于 Rust 装箱校准环；合入 Flutter 精确分页后删除或停写。
 abstract final class LayoutCalibrationStore {
   static const _keyPrefix = 'layout_calib_v2_';
 

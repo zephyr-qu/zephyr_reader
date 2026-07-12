@@ -130,6 +130,8 @@ pub fn get_page_blocks(
 }
 /// Create pagination session with initial pagination.
 /// M2: `book_id` 替代 `file_path`（ADR-014）。
+///
+/// ADR-016 DEAD PATH：Rust 分页 session 将被 Flutter 精确装箱取代；合入后删除 FFI。
 #[frb]
 pub async fn create_pagination_session(
     book_id: String,
@@ -166,6 +168,8 @@ pub async fn repaginate_session(
 }
 
 /// Apply Flutter TextPainter metrics to an existing session (P4-4 / ADR-013).
+///
+/// ADR-016 DEAD PATH：校准写回环将随 Flutter 精确分页合入后移除；勿再扩展。
 #[frb]
 pub async fn apply_session_calibration(
     handle: PaginationSessionHandle,

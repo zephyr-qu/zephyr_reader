@@ -875,6 +875,8 @@ class ChapterLoadOrchestrator {
   }
 
   /// 首屏渲染后从实际页文本采样 TextPainter metrics（P4-4 / ADR-013）。
+  ///
+  /// ADR-016 DEAD PATH：metrics 回传校准环；合入 Flutter 分页后删除。
   Future<CalibrationData?> _captureMetricsBackfeed(
     int gen,
     int pageIndex,

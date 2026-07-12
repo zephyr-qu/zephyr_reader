@@ -2,6 +2,11 @@
 //!
 //! 输入 `ChapterContentIr` + `TypesetConfig`，输出 [`BlockPaginateResult`]。
 //! 文本断行复用 [`super::line_breaking::compute_line_breaks_from_indices`]。
+//!
+//! # ADR-016 DEAD PATH
+//!
+//! 页装箱真理将迁至 Flutter（`explore/flutter-side-pagination`）。
+//! **合入后删除或降为测试对照**；合并前勿再扩展装箱启发式 / 校准耦合。
 
 use crate::domain::{
     BlockPageDescriptor, BlockPaginateResult, BlockPlainRange, ChapterContentIr, ContentBlock,
