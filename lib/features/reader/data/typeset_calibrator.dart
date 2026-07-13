@@ -6,7 +6,7 @@ import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 
 /// 排版测量 / 校准（ADR-013）。
 ///
-/// ADR-016 DEAD PATH：Flutter→Rust 校准写回环将随精确分页合入后移除。
+/// ADR-016：Flutter→Rust 校准写回环已移除。Flutter 精确分页不依赖校准。
 /// 测量工具可保留作诊断；勿再扩展写回 session 的路径。
 ///
 /// 无 Flutter 实测时的默认有效行宽比例（与 Rust `DEFAULT_EFFECTIVE_LINE_WIDTH_RATIO` 对齐）。
@@ -338,7 +338,7 @@ double? _avgWidthForCategory(
   return _measureAvgCharWidth(samples, textStyle, strutStyle);
 }
 
-/// 从首屏实际文本采样各 Unicode 区间字宽（P4-4 / ADR-013）。
+/// 从首屏实际文本采样各 Unicode 区间字宽。
 CalibrationData? calibrateFromPageText({
   required String pageText,
   required double fontSize,

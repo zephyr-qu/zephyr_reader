@@ -32,7 +32,7 @@ abstract class ChapterContentRepository {
   /// 当前章节的富文本段落。
   List<RichParagraph>? get currentRichParagraphs;
 
-  /// P4-1：当前章节的 IR 块流（scroll 主路径）。
+  /// 当前章节的 IR 块流（scroll 主路径）。
   ChapterContentIr? get currentChapterIr;
 
   /// 当前章节对应书籍文件路径（EPUB 图片解码用）。

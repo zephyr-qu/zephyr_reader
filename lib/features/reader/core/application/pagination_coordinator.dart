@@ -107,7 +107,7 @@ class PaginationCoordinator {
     );
   }
 
-  /// 全章分页（spike / 字号变更后重装箱；maxChars=null）。
+  /// 全章分页（字号变更后重装箱；maxChars=null）。
   Future<({int totalPages, bool isPartial})> paginateFullChapter(
     int chapterIndex,
   ) {

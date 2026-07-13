@@ -228,7 +228,7 @@ class ReaderContentArea extends HookWidget {
                   onSelectionChanged: vm.annotations.updateSelection,
                   onSelectionGlobalPosition: (pos) =>
                       selectionGlobalPos.value = pos,
-                  layoutCalibration: null, // ADR-016：不再回传校准给 Rust 装箱
+                  layoutCalibration: null, // 校准已移除，仅保留参数位
                 ),
                 onPageChanged: vm.loadPage,
                 onRetry: () => vm.loadChapter(

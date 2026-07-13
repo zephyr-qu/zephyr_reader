@@ -25,7 +25,7 @@ abstract class ReaderRenderDataSource {
 
   List<RichParagraph>? get currentRichParagraphs;
 
-  /// P4-1：scroll IR 块流；非 null 时 [ScrollModeRenderer] 走块渲染。
+  /// scroll IR 块流；非 null 时 [ScrollModeRenderer] 走块渲染。
   ChapterContentIr? get currentChapterIr;
 
   /// 当前章书籍文件路径（scroll IR 图片）。
