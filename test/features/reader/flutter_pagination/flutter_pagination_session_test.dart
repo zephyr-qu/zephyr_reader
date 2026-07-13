@@ -11,7 +11,6 @@ import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dar
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_staging_store.dart';
 import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

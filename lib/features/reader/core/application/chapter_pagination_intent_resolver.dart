@@ -3,6 +3,7 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_paginatio
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 
 /// 首屏 partial 分页下的页码与 charOffset 推算结果。
 class QuickPageResolveResult {
@@ -64,12 +65,11 @@ bool shouldPreserveContentForIntent(ChapterPaginationIntent intent) =>
 
 /// partial descriptors 下由书签 [initialCharOffset] 推算首屏页码。
 QuickPageResolveResult resolveQuickPageForPartial({
-  required List<PageDescriptor> descriptors,
+  required List<PackedPage> descriptors,
   required int initialCharOffset,
   required bool isPartial,
   required int fallbackPageIndex,
-  int Function(int charOffset, List<PageDescriptor> descriptors)?
-  resolvePageIndex,
+  int Function(int charOffset, List<PackedPage> descriptors)? resolvePageIndex,
 }) {
   final partialEnd = descriptors.last.endOffset;
   final offsetBeyondPartial = isPartial && initialCharOffset > partialEnd;

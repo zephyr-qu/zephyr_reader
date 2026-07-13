@@ -17,7 +17,7 @@ import 'package:zephyr_reader/features/reader/rendering/paginated_renderer.dart'
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/features/reader/page/widgets/reader_content.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 
 class _MockDataSource extends Mock implements ReaderRenderDataSource {}
 
@@ -88,13 +88,13 @@ void main() {
         () => dataSource.preloadGeneration,
       ).thenReturn(ValueNotifier<int>(0));
       when(() => dataSource.descriptors).thenReturn([
-        const PageDescriptor(
+        const PackedPage(
           pageIndex: 0,
           startOffset: 0,
           endOffset: 100,
+          slices: const [],
+
           isLastPage: false,
-          firstParagraphIndex: 0,
-          lastParagraphIndex: 0,
         ),
       ]);
       when(() => dataSource.pageContent(0)).thenReturn('Page content text.');
@@ -181,13 +181,13 @@ void main() {
         () => dataSource.preloadGeneration,
       ).thenReturn(ValueNotifier<int>(0));
       when(() => dataSource.descriptors).thenReturn([
-        const PageDescriptor(
+        const PackedPage(
           pageIndex: 0,
           startOffset: 0,
           endOffset: 100,
+          slices: const [],
+
           isLastPage: true,
-          firstParagraphIndex: 0,
-          lastParagraphIndex: 0,
         ),
       ]);
       when(() => dataSource.pageContent(0)).thenReturn('Page content text.');
@@ -196,13 +196,13 @@ void main() {
           chapterIndex: 1,
           configHash:BigInt.from(0x1234) ,
           descriptors: const [
-            PageDescriptor(
+            PackedPage(
               pageIndex: 0,
               startOffset: 0,
               endOffset: 80,
+              slices: const [],
+
               isLastPage: false,
-              firstParagraphIndex: 0,
-              lastParagraphIndex: 0,
             ),
           ],
           firstPageContent: 'Preloaded next chapter text.',
@@ -253,13 +253,13 @@ void main() {
         () => dataSource.preloadGeneration,
       ).thenReturn(ValueNotifier<int>(0));
       when(() => dataSource.descriptors).thenReturn([
-        const PageDescriptor(
+        const PackedPage(
           pageIndex: 0,
           startOffset: 0,
           endOffset: 100,
+          slices: const [],
+
           isLastPage: false,
-          firstParagraphIndex: 0,
-          lastParagraphIndex: 0,
         ),
       ]);
       when(() => dataSource.pageContent(0)).thenReturn('Current chapter page.');
@@ -268,13 +268,13 @@ void main() {
           chapterIndex: 0,
           configHash: BigInt.from(0x1234),
           descriptors: const [
-            PageDescriptor(
+            PackedPage(
               pageIndex: 1,
               startOffset: 500,
               endOffset: 600,
+              slices: const [],
+
               isLastPage: true,
-              firstParagraphIndex: 0,
-              lastParagraphIndex: 0,
             ),
           ],
           firstPageContent: 'Previous chapter last page.',
@@ -447,13 +447,13 @@ void main() {
 
       // 切到 pageTurn 模式
       when(() => dataSource.descriptors).thenReturn([
-        const PageDescriptor(
+        const PackedPage(
           pageIndex: 0,
           startOffset: 0,
           endOffset: 10,
+          slices: const [],
+
           isLastPage: false,
-          firstParagraphIndex: 0,
-          lastParagraphIndex: 0,
         ),
       ]);
       when(() => dataSource.pageContent(0)).thenReturn('Content.');
