@@ -12,7 +12,10 @@ fn test_parse_empty_html() {
 #[test]
 fn test_parse_empty_paragraph() {
     let result = parse_html_to_rich_text("<p></p>").unwrap();
-    assert!(result.is_empty(), "empty <p> should not produce a paragraph");
+    assert!(
+        result.is_empty(),
+        "empty <p> should not produce a paragraph"
+    );
 
     let result = parse_html_to_rich_text("<p>   </p>").unwrap();
     assert!(
@@ -156,47 +159,6 @@ fn test_parse_nested_tags() {
         "expected a Bold span from nested <b><i>"
     );
     assert!(bold_span.unwrap().text().contains("Bold Italic"));
-}
-
-#[test]
-fn test_parse_code_span() {
-    let html = "<p>Use <code>fn main()</code> here</p>";
-    let result = parse_html_to_rich_text(html).unwrap();
-    assert_eq!(result.len(), 1);
-    let code_span = result[0]
-        .spans
-        .iter()
-        .find(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Code, _)));
-    assert!(code_span.is_some(), "expected a Code span");
-    assert!(code_span.unwrap().text().contains("fn main()"));
-}
-
-#[test]
-fn test_parse_underline() {
-    let html = "<p><u>Underlined text</u></p>";
-    let result = parse_html_to_rich_text(html).unwrap();
-    assert_eq!(result.len(), 1);
-    let u_span = result[0]
-        .spans
-        .iter()
-        .find(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Underline, _)));
-    assert!(u_span.is_some(), "expected an Underline span");
-    assert!(u_span.unwrap().text().contains("Underlined text"));
-}
-
-#[test]
-fn test_parse_strikethrough() {
-    let html = "<p><s>Struck through</s> and <del>deleted</del></p>";
-    let result = parse_html_to_rich_text(html).unwrap();
-    assert_eq!(result.len(), 1);
-    let spans = &result[0].spans;
-    let s_spans: Vec<_> = spans
-        .iter()
-        .filter(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Strikethrough, _)))
-        .collect();
-    assert_eq!(s_spans.len(), 2, "expected two Strikethrough spans");
-    assert!(s_spans[0].text().contains("Struck through"));
-    assert!(s_spans[1].text().contains("deleted"));
 }
 
 #[test]

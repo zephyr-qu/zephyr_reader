@@ -14,10 +14,7 @@ RichParagraph _p({
   List<RichTextSpan>? spans,
 }) {
   return RichParagraph(
-    spans: spans ??
-        [
-          RichTextSpan.styled(style, RichTextSpanData(text: text)),
-        ],
+    spans: spans ?? [RichTextSpan.styled(style, RichTextSpanData(text: text))],
     indent: 0,
     isHeading: false,
     headingLevel: 0,
@@ -98,17 +95,14 @@ void main() {
       final converter = const RichTextConverter();
       final (span, plain) = converter.toTextSpan([p]);
       // Plain text should have indent
-      expect(
-        plain,
-        '$_cjFullwidth${_cjFullwidth}Bold start normal rest',
-      );
+      expect(plain, '$_cjFullwidth${_cjFullwidth}Bold start normal rest');
       // The first span child should still have bold style
       final children = span.children;
       expect(children, isNotNull);
       // Find the paragraph-level TextSpan
-      final blockSpan = children!.firstWhere(
-        (s) => s is TextSpan && s.children != null,
-      ) as TextSpan;
+      final blockSpan =
+          children!.firstWhere((s) => s is TextSpan && s.children != null)
+              as TextSpan;
       final firstParaChild = blockSpan.children!.first as TextSpan;
       expect(firstParaChild.style?.fontWeight, FontWeight.bold);
     });
