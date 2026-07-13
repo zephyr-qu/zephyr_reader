@@ -80,7 +80,7 @@ abstract class ReaderRepositoryInterface {
   /// 当前章节的富文本段落（EPUB）。
   List<RichParagraph>? get currentRichParagraphs;
 
-  /// P4-1：当前章 IR（scroll）。
+  /// 当前章 IR（scroll）。
   ChapterContentIr? get currentChapterIr;
 
   /// 当前章书籍文件路径。

@@ -26,7 +26,7 @@ import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 /// Facade：委托给 ChapterLoader、PaginationCoordinator、ChapterNavigator、
 /// AutoScrollController 和 SearchIndexLifecycle。
 /// 持有 5 个 chapter-level signals（bookId/chapterIndex/currentCharOffset/
-/// chapterContent/pendingJumpCharOffset），原 ReaderPageState 字段，Phase 3.2 PR1 迁入。
+/// chapterContent/pendingJumpCharOffset 从 ReaderPageState 迁入。
 @injectable
 class ChapterViewModel {
   final bookId = signal<String>('0');

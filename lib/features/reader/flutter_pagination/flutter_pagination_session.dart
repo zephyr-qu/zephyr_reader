@@ -220,7 +220,7 @@ class FlutterPaginationSession implements PaginationSession {
   Future<Book> _getBook(String bookId) async {
     final book = await book_api.getBook(bookId: bookId);
     if (book == null) {
-      throw Exception('SpikeSession: book not found for bookId=$bookId');
+      throw Exception('FlutterPaginationSession: book not found for bookId=$bookId');
     }
     return book;
   }
@@ -248,7 +248,7 @@ class FlutterPaginationSession implements PaginationSession {
 
     final book = await _getBook(bookId);
     if (book.filePath.isEmpty) {
-      throw Exception('SpikeSession: book not found for bookId=$bookId');
+      throw Exception('FlutterPaginationSession: book not found for bookId=$bookId');
     }
     _sessionFilePath = book.filePath;
     _imageMaxWidthPx = (params.width - 2 * params.padding).round().clamp(

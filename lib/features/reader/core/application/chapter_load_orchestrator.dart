@@ -107,7 +107,7 @@ class ChapterLoadOrchestrator {
         return;
       }
 
-      // ADR-016：Flutter 精确分页为唯一产品路径（Rust 装箱+校准见 DEAD PATH）。
+      // ADR-016：Flutter 精确分页为唯一产品路径。
       if (intent == ChapterPaginationIntent.stagingPromoteForward ||
           intent == ChapterPaginationIntent.stagingPromoteBackward) {
         await _runFlutterStagingPromote(
@@ -435,7 +435,7 @@ class ChapterLoadOrchestrator {
       }
     });
 
-    // P4-3: scroll 模式预加载相邻章 IR 内容，避免跨章滚动时等待 FFI
+    // scroll 模式预加载相邻章 IR 内容，避免跨章滚动时等待 FFI
     if (request.readingMode == ReadingMode.scroll) {
       final bookId = _chapterVM.bookId.value;
       unawaited(
