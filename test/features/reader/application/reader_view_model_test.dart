@@ -25,7 +25,7 @@ import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.d
 import 'package:zephyr_reader/features/bilingual/application/bilingual_config.dart';
 import 'package:zephyr_reader/features/bilingual/application/bilingual_view_model.dart';
 import 'package:zephyr_reader/features/bilingual/domain/bilingual_service.dart';
-import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
+import 'package:zephyr_reader/features/reader/domain/config/language_type.dart';
 
 // ===== Mocks =====
 

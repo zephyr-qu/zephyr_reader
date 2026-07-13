@@ -1,12 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
-import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 
-/// 滚动拼接用单章加载结果（不依赖仓库 currentRich* 单例）。
+/// 滚动拼接用单章加载结果（不依赖仓库 current* 单例）。
 typedef ScrollChapterPayload = ({
   String content,
-  List<RichParagraph>? richParagraphs,
-  TextSpan? richRootSpan,
   bool epubRichSkipped,
   ChapterContentIr? chapterIr,
   String? chapterFilePath,
@@ -20,8 +16,6 @@ ScrollChapterPayload scrollPlainPayload(
   String? chapterFilePath,
 }) => (
   content: content,
-  richParagraphs: null,
-  richRootSpan: null,
   epubRichSkipped: epubRichSkipped,
   chapterIr: chapterIr,
   chapterFilePath: chapterFilePath,
@@ -33,8 +27,6 @@ ScrollChapterPayload scrollIrPayload({
   required String chapterFilePath,
 }) => (
   content: chapterIr.plainText,
-  richParagraphs: null,
-  richRootSpan: null,
   epubRichSkipped: false,
   chapterIr: chapterIr,
   chapterFilePath: chapterFilePath,

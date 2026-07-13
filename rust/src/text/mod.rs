@@ -3,10 +3,8 @@
 
 pub mod bilingual;
 pub mod chapter_detect;
-pub mod char_width;
 pub mod constants;
 pub mod css;
-pub mod line_breaking;
 pub mod rich_text;
 
 pub use bilingual::align_bilingual_content;
