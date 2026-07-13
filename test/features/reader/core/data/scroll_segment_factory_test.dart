@@ -25,8 +25,6 @@ void main() {
         textIndentEm: null,
         marginTopEm: null,
         marginBottomEm: null,
-        fontFamily: null,
-        lineHeight: null,
         textAlign: null,
       );
       final ir = const ChapterContentIr(

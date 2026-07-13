@@ -26,8 +26,6 @@ ChapterContentIr _sampleIr() {
     textIndentEm: null,
     marginTopEm: null,
     marginBottomEm: null,
-    fontFamily: null,
-    lineHeight: null,
     textAlign: null,
   );
   return const ChapterContentIr(
