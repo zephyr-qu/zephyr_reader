@@ -1,6 +1,6 @@
 # ADR-006：Rust / Flutter 职责划分
 
-- **状态**：已接受（R3-2，2026-06-18）
+- **状态**：已接受（R3-2，2026-06-18）；分页职责段被 [ADR-016](016-flutter-pagination-engine-proposed.md) 取代
 - **日期**：2026-06-18
 - **关联**：[TARGET_ARCHITECTURE.md](../TARGET_ARCHITECTURE.md)、appendix01
 
@@ -25,4 +25,5 @@
 
 ## 演进注意
 
+- **ADR-016** 修订分页职责：Rust 只出 IR，Flutter 精确装箱。
 - IR 与现有 `RichParagraph` / `PageStreamer` **并存过渡期**允许；终态以 IR + BlockPaginator 为准（ROADMAP Phase 2）。

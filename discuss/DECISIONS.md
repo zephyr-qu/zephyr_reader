@@ -3,7 +3,7 @@
 > 阅读核心相关决策；修订须新开 ADR 并更新 [READING_BOUNDARIES.md](./READING_BOUNDARIES.md)。
 
 | ADR | 标题 | 状态 | 日期 |
-|-----|------|------|------|
+| ----- | ------ | ------ | ------ |
 | [001](./adr/001-reading-position-truth.md) | 进度 = chapterIndex + charOffset（plainText） | **已接受** | 2026-06-18 |
 | [002](./adr/002-pageturn-is-pagination-skin.md) | pageTurn 合并为 pagination 皮肤 | **已接受** | 2026-06-18 |
 | [003](./adr/003-block-pagination-ir.md) | 分页必须 EPUB 看图 → IR + 块分页 | **已接受** | 2026-06-18 |
@@ -16,15 +16,15 @@
 | [010](./adr/010-block-css-in-ir.md) | IR Text 块基础 CSS；版式窄义 | **已接受** | 2026-06-25 |
 | [011](./adr/011-bilingual-feature-module.md) | 双语独立 feature，主链零依赖 | **已接受** | 2026-06-25 |
 | [012](./adr/012-staging-prefetch-guarantee.md) | Staging 预取硬保证，零可见 loading | **已接受** | 2026-06-25 |
-| [013](./adr/013-flutter-metrics-calibration.md) | Rust 初筛 + Flutter metrics 回传 | **已接受** | 2026-06-25 |
+| [013](./adr/013-flutter-metrics-calibration.md) | Rust 初筛 + Flutter metrics 回传 | **Superseded by 016** | 2026-06-25 |
 | [014](./adr/014-api-path-unification.md) | 分页 API 路径统一 | **已接受** | 2026-07-03 |
 | [015](./adr/015-css-style-whitelist-pruning.md) | CSS 样式白名单裁剪 | **已接受** | 2026-07 |
-| [016](./adr/016-flutter-pagination-engine-proposed.md) | 分页装箱迁 Flutter | **提案**（Phase 5 后毕业） | 2026-07-12 |
+| [016](./adr/016-flutter-pagination-engine-proposed.md) | 分页装箱迁 Flutter | **Accepted** | 2026-07-12 |
 
 ## 问卷归档
 
 | 轮次 | 文件 | 作用 |
-|------|------|------|
+| ------ | ------ | ------ |
 | 1 | [xinxi.md](./xinxi.md) | 边界初稿 |
 | 2 | [xinxi-round2.md](./xinxi-round2.md) | 冲突拍板 |
 | 3 | [xinxi-round3.md](./xinxi-round3.md) | ADR-001 / G7 确认 |

@@ -21,15 +21,15 @@ Flutter
 ## 相对方案 1 / 2
 
 | | 结论 |
-|---|------|
+| --- | ------ |
 | vs 方案 1（Rust+校准） | 少校准环；多 Dart 装箱 + staging/大章工程 |
 | vs 方案 2 | 无哲学差；方案 2 = T0，方案 3 = T0→T5 |
 
 ## 模块
 
 | 模块 | 路径 / 职责 |
-|------|-------------|
-| Flag | `kFlutterPaginationSpike`（方案三总开关） |
+| ------ | ------------- |
+| Flag | 已删除（合入主线时移去 spike 门控） |
 | `FlutterBlockPaginator` | IR → `PackedPage[]` |
 | `FlutterPaginationSession` | = 升格后的 spike session（持 IR、descriptors、blocks） |
 | `PaginationStagingStore` | 相邻章精确预装箱结果（IR+pages+filePath） |
@@ -61,14 +61,12 @@ promote (adjacentCrossChapter)
 
 ## ADR
 
-- [ADR-016](../../../discuss/adr/016-flutter-pagination-engine-proposed.md) 提案对齐方案三。  
-- Accept 仅在「对比胜出并合并」时。
+- [ADR-016](../../../discuss/adr/016-flutter-pagination-engine-proposed.md) **Accepted** — Flutter 精确分页为正式方案。
 
-## 风险（摘录）
+## 风险（摘录 — ADR-016 Accept 后更新）
 
 | 风险 | 缓释 |
-|------|------|
+| ------ | ------ |
 | Staging 变难 | T2 同算法精确预装箱 |
 | 大章卡顿 | T3 isolate |
-| 双引擎过久 | 对比后 T5 二选一 |
-| Phase 5 冲突 | 不进主线直至对比合并 |
+| Rust 引擎长期弃用 | P7 已删 Rust 分页 FFI；保留 IR + 图解码（产品 Must） |

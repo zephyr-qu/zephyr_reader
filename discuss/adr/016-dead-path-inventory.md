@@ -1,20 +1,19 @@
-# ADR-016 待删路径清单（stage6 标记）
+# ADR-016 已删路径清单（P6–P8 完成）
 
-在合入 `explore/flutter-side-pagination`（`308e706`）之前，于本分支标注以下路径为 **DEAD PATH**。  
-行为未改；仅禁止继续扩展。合入后关主路径并删 explore 旁路命名。
+P6（Dart 死路径）、P7（Rust 分页 FFI）、P8（校准环）已全部删除。
+历史 DEAD PATH 标记自 `commit cdbd01b` 起不再存在。
 
-| 层 | 路径 | 标记点 |
-|----|------|--------|
-| Rust 装箱 | `rust/src/text/block_paginator.rs` | 模块头 |
-| Rust session | `rust/src/reading/session.rs` | `create_pagination_session` / `apply_session_calibration` |
-| FFI | `rust/src/api/core.rs` | 同上 |
-| Dart session | `lib/.../rust_pagination_session.dart` | 类文档 |
-| 校准测量 | `lib/.../typeset_calibrator.dart` | 库头 |
-| 校准缓存 | `lib/.../layout_calibration_store.dart` | 类文档 |
-| 回传 | `pagination_coordinator.repaginateAfterMetricsBackfeed` | 方法文档 |
-| 回传 | `chapter_load_orchestrator._captureMetricsBackfeed` | 方法文档 |
+| 层 | 路径 | 状态 |
+| ---- | ------ | ------ |
+| Rust 装箱 | `rust/src/reading/session.rs` → 已删 | ✅ P7.3 |
+| Rust 分页 | `rust/src/reading/pagination.rs` → 已删 | ✅ P7.3 |
+| FFI | `rust/src/api/core.rs` → 已拆 thin FFI | ✅ P7.2 |
+| Dart session | `lib/.../rust_pagination_session.dart` → 已删 | ✅ P6.4 |
+| 校准缓存 | `lib/.../layout_calibration_store.dart` → 已删 | ✅ P8.1 |
+| 回传 | `repaginateAfterMetricsBackfeed` → 已删 | ✅ P6.3 |
+| 回传 | `_captureMetricsBackfeed` → 已删 | ✅ P6.2 |
 
-| 检索 | `ADR-016 DEAD PATH` |
-| 产品路径 | `lib/features/reader/flutter_pagination/`（已去 spike 命名） |
+| 检索 | `ADR-016 DEAD PATH` → 已从源码中全部移除 |
+| 产品路径 | `lib/features/reader/flutter_pagination/`（已产品化） |
 | session 工厂 | 固定 `FlutterPaginationSession` |
 | staging | 固定 `FlutterStagingPreloader` |

@@ -1,6 +1,6 @@
 # ADR-013：分页字宽 — Rust 初筛 + Flutter Metrics 回传校准
 
-- **状态**：已接受（D9b，2026-06-25）
+- **状态**：Superseded by [ADR-016](016-flutter-pagination-engine-proposed.md)（Flutter 精确装箱取代 Rust+校准回传环）
 - **日期**：2026-06-25
 
 ## 决策

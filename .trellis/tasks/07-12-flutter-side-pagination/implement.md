@@ -45,8 +45,8 @@
 - [x] 合入 `phase/stage6-line-width-calib`：Flutter 为唯一分页主路径
 - [x] 去掉 explore/spike 旁路命名 → `lib/features/reader/flutter_pagination/`
 - [x] 关 Rust 装箱/校准写回主路径（DEAD PATH 保留至删除提交）
-- [ ] 删除 Rust BlockPaginator / apply_session_calibration / RustPaginationSession
-- [ ] 正式 Accept ADR-016
+- [x] 删除 Rust BlockPaginator / apply_session_calibration / RustPaginationSession
+- [x] 正式 Accept ADR-016（P6–P8 删除死代码 + 校准环收口）
 
 **后续收口规划（P6–P10）** → [followup-plan.md](./followup-plan.md)
 
@@ -70,7 +70,7 @@ flutter test test/features/reader/core/application/chapter_load_orchestrator_tes
 ## 风险文件
 
 | 文件 | 允许 |
-|------|------|
+| ------ | ------ |
 | `spike/*` | 自由 |
 | `chapter_load_orchestrator.dart` | flag + promote + 首屏/expand |
 | `rust_chapter_content_repository.dart` | flag 时 staging 旁路 |
