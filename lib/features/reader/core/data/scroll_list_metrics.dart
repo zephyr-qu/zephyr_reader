@@ -1,10 +1,8 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
-import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 
 /// 滚动 ListView 每项的 charOffset / 长度 / 估算高度（与 [ScrollModeRenderer] 一致）。
 class ScrollListMetrics {
@@ -83,107 +81,18 @@ class ScrollListMetrics {
   }
 }
 
-/// 计算与滚动渲染一致的 ListView 项度量。
+/// 计算与滚动渲染一致的 ListView 项度量（纯文本路径）。
 ScrollListMetrics computeScrollListMetrics({
   required List<String> paragraphs,
   required List<int> paragraphCharOffsets,
-  List<RichParagraph>? richParagraphs,
-  TextSpan? richRootSpan,
   ScrollLayoutParams? layout,
 }) {
-  if (richParagraphs == null || richParagraphs.isEmpty) {
-    final lengths = paragraphs.map((p) => p.length).toList();
-    return ScrollListMetrics(
-      itemCount: paragraphs.length,
-      charOffsets: List<int>.from(paragraphCharOffsets),
-      charLengths: lengths,
-      itemExtents: layout == null
-          ? const []
-          : _plainTextExtents(lengths, layout),
-    );
-  }
-
-  final hasImages = richParagraphs.any((p) => p.isImage);
-  if (!hasImages) {
-    final spans = richRootSpan != null
-        ? extractParagraphSpans(richRootSpan)
-        : <TextSpan>[];
-    final offsets = <int>[];
-    final lengths = <int>[];
-    var acc = 0;
-    for (final span in spans) {
-      offsets.add(acc);
-      final len = spanTextLength(span);
-      lengths.add(len);
-      acc += len + 2;
-    }
-    return ScrollListMetrics(
-      itemCount: spans.length,
-      charOffsets: offsets,
-      charLengths: lengths,
-      itemExtents: layout == null ? const [] : _richTextExtents(spans, layout),
-    );
-  }
-
-  final textParagraphs = richRootSpan != null
-      ? extractParagraphSpans(richRootSpan)
-      : <TextSpan>[];
-  final textParaOffsets = <int>[];
-  var accOffset = 0;
-  for (final p in textParagraphs) {
-    textParaOffsets.add(accOffset);
-    accOffset += spanTextLength(p) + 2;
-  }
-
-  var textIdx = 0;
-  final offsets = <int>[];
-  final lengths = <int>[];
-  final kinds = <_ScrollItemKind>[];
-  final imageData = <Uint8List?>[];
-  final textSpans = <TextSpan?>[];
-
-  for (final rp in richParagraphs) {
-    if (rp.isImage) {
-      final imgOffset = textIdx < textParaOffsets.length
-          ? textParaOffsets[textIdx]
-          : accOffset;
-      offsets.add(imgOffset);
-      lengths.add(1);
-      kinds.add(_ScrollItemKind.image);
-      imageData.add(rp.imageData);
-      textSpans.add(null);
-      continue;
-    }
-    if (textIdx >= textParagraphs.length) {
-      if (textIdx >= paragraphs.length) continue;
-      offsets.add(paragraphCharOffsets[textIdx]);
-      lengths.add(paragraphs[textIdx].length);
-      kinds.add(_ScrollItemKind.text);
-      imageData.add(null);
-      textSpans.add(null);
-      textIdx++;
-      continue;
-    }
-    offsets.add(textParaOffsets[textIdx]);
-    lengths.add(spanTextLength(textParagraphs[textIdx]));
-    kinds.add(_ScrollItemKind.text);
-    imageData.add(null);
-    textSpans.add(textParagraphs[textIdx]);
-    textIdx++;
-  }
-
+  final lengths = paragraphs.map((p) => p.length).toList();
   return ScrollListMetrics(
-    itemCount: offsets.length,
-    charOffsets: offsets,
+    itemCount: paragraphs.length,
+    charOffsets: List<int>.from(paragraphCharOffsets),
     charLengths: lengths,
-    itemExtents: layout == null
-        ? const []
-        : _mixedRichExtents(
-            kinds: kinds,
-            charLengths: lengths,
-            imageData: imageData,
-            layout: layout,
-          ),
+    itemExtents: layout == null ? const [] : _plainTextExtents(lengths, layout),
   );
 }
 
@@ -239,8 +148,6 @@ List<double> _irBlockExtents(
   return extents;
 }
 
-enum _ScrollItemKind { text, image }
-
 List<double> _plainTextExtents(
   List<int> charLengths,
   ScrollLayoutParams layout,
@@ -254,45 +161,6 @@ List<double> _plainTextExtents(
         includeBottomSpacing: i < charLengths.length - 1,
       ),
     );
-  }
-  return extents;
-}
-
-List<double> _richTextExtents(List<TextSpan> spans, ScrollLayoutParams layout) {
-  final extents = <double>[];
-  for (var i = 0; i < spans.length; i++) {
-    extents.add(
-      _textItemExtent(
-        spanTextLength(spans[i]),
-        layout,
-        includeBottomSpacing: i < spans.length - 1,
-      ),
-    );
-  }
-  return extents;
-}
-
-List<double> _mixedRichExtents({
-  required List<_ScrollItemKind> kinds,
-  required List<int> charLengths,
-  required List<Uint8List?> imageData,
-  required ScrollLayoutParams layout,
-}) {
-  final extents = <double>[];
-  for (var i = 0; i < kinds.length; i++) {
-    final includeBottomSpacing = i < kinds.length - 1;
-    extents.add(switch (kinds[i]) {
-      _ScrollItemKind.text => _textItemExtent(
-        charLengths[i],
-        layout,
-        includeBottomSpacing: includeBottomSpacing,
-      ),
-      _ScrollItemKind.image => _imageItemExtent(
-        imageData[i] ?? Uint8List(0),
-        layout,
-        includeBottomSpacing: includeBottomSpacing,
-      ),
-    });
   }
   return extents;
 }
@@ -370,40 +238,4 @@ int _estimateLineCount(int charLen, ScrollLayoutParams layout) {
     }
   }
   return null;
-}
-
-/// 与 [ScrollModeRenderer._extractParagraphSpans] 相同。
-List<TextSpan> extractParagraphSpans(TextSpan rootSpan) {
-  if (rootSpan.children == null || rootSpan.children!.isEmpty) {
-    return [rootSpan];
-  }
-  final paragraphs = <TextSpan>[];
-  var currentChildren = <InlineSpan>[];
-  for (final child in rootSpan.children!) {
-    if (child is! TextSpan) continue;
-    if (child.text == '\n\n') {
-      if (currentChildren.isNotEmpty) {
-        paragraphs.add(TextSpan(children: currentChildren));
-        currentChildren = [];
-      }
-    } else {
-      currentChildren.add(child);
-    }
-  }
-  if (currentChildren.isNotEmpty) {
-    paragraphs.add(TextSpan(children: currentChildren));
-  }
-  return paragraphs;
-}
-
-int spanTextLength(TextSpan span) {
-  if (span.text != null) return span.text!.length;
-  if (span.children != null) {
-    var len = 0;
-    for (final child in span.children!) {
-      if (child is TextSpan) len += spanTextLength(child);
-    }
-    return len;
-  }
-  return 0;
 }

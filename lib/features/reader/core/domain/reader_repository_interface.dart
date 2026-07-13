@@ -1,11 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show ValueNotifier;
 import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
-import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 
@@ -73,12 +72,6 @@ abstract class ReaderRepositoryInterface {
   bool consumeEpubRichSkippedNotice();
 
   // ==================== 缓存和页面内容 ====================
-
-  /// 当前章节的富文本内容（EPUB）。
-  TextSpan? get currentRichContent;
-
-  /// 当前章节的富文本段落（EPUB）。
-  List<RichParagraph>? get currentRichParagraphs;
 
   /// 当前章 IR（scroll）。
   ChapterContentIr? get currentChapterIr;

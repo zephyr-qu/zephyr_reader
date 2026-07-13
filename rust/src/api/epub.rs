@@ -3,11 +3,8 @@
 //! 提供 EPUB 特有的功能，如富文本章节解析。
 //! 通用解析功能请使用 reader::parse_book。
 
-use crate::domain::{AppError, EpubMetadata, RichParagraph, TypesetConfig};
+use crate::domain::{AppError, EpubMetadata};
 use crate::utils::security::validate_file_path;
-use lru::LruCache;
-use std::num::NonZeroUsize;
-use std::sync::{LazyLock, Mutex};
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
 
@@ -118,65 +115,6 @@ pub async fn get_epub_metadata(file_path: String) -> Result<EpubMetadata, AppErr
     Ok(metadata)
 }
 
-/// 获取 EPUB 章节富文本内容（带排版）
-///
-/// 解析 EPUB 章节为富文本格式，并应用排版配置（首行缩进、标点优化等）。
-///
-/// # 参数
-/// * `file_path` - EPUB 文件路径
-/// * `chapter_index` - 章节索引
-/// * `config` - 排版配置
-///
-/// # 返回值
-/// * `Ok(Vec<RichParagraph>)` - 排版后的富文本段落
-/// * `Err(AppError)` - 解析失败
-const RICH_CACHE_CAPACITY: NonZeroUsize = match NonZeroUsize::new(8) {
-    Some(v) => v,
-    None => unreachable!(),
-};
-
-type RichCacheKey = (String, i32, u64);
-
-static RICH_CONTENT_CACHE: LazyLock<Mutex<LruCache<RichCacheKey, Vec<RichParagraph>>>> =
-    LazyLock::new(|| Mutex::new(LruCache::new(RICH_CACHE_CAPACITY)));
-
-#[frb]
-pub async fn get_epub_chapter_rich_content(
-    file_path: String,
-    chapter_index: i32,
-    config: TypesetConfig,
-) -> Result<Vec<RichParagraph>, AppError> {
-    let config = config.validate_and_fix();
-    let validated_path = validate_file_path(&file_path)?;
-    let cache_key = (validated_path.clone(), chapter_index, config.config_hash());
-
-    // 检查 LRU 缓存
-    {
-        let mut cache = RICH_CONTENT_CACHE.lock().unwrap();
-        if let Some(cached) = cache.get(&cache_key) {
-            return Ok(cached.clone());
-        }
-    }
-
-    let (start_idx, end_idx) =
-        crate::reading::chapter_access::get_chapter_bounds(&validated_path, chapter_index).await?;
-
-    let result = crate::parser::epub::parse::get_chapter_content_rich_with_typeset(
-        &validated_path,
-        start_idx,
-        end_idx,
-        &config,
-    )?;
-
-    // 写入 LRU 缓存
-    {
-        let mut cache = RICH_CONTENT_CACHE.lock().unwrap();
-        cache.put(cache_key, result.clone());
-    }
-
-    Ok(result)
-}
-
 /// M4.2：按 manifest `asset_id` 解码 EPUB 图片，缩放至 [max_width_px]。
 ///
 /// 返回 JPEG/PNG 字节，供 Flutter `Image.memory` 使用（与 scroll 富文本路径一致）。
@@ -224,11 +162,5 @@ mod tests {
         assert!(matches!(result, Err(AppError::FileNotFound { .. })));
     }
 
-    #[tokio::test]
-    async fn test_get_epub_chapter_rich_content_file_not_found() {
-        let result =
-            get_epub_chapter_rich_content("non_existent.epub".into(), 0, TypesetConfig::default())
-                .await;
-        assert!(result.is_err());
-    }
+
 }

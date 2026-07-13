@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
 import 'package:injectable/injectable.dart';
@@ -15,7 +14,6 @@ import 'package:zephyr_reader/features/reader/core/application/search_index_life
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
-import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_notice.dart';
 
@@ -193,8 +191,6 @@ class ChapterViewModel {
   void resetScrollDocument(
     String content,
     int chapterIndex, {
-    List<RichParagraph>? richParagraphs,
-    TextSpan? richRootSpan,
     ChapterContentIr? chapterIr,
     String? chapterFilePath,
   }) {
@@ -202,8 +198,6 @@ class ChapterViewModel {
       bookId.value,
       chapterIndex,
       content,
-      richParagraphs: richParagraphs,
-      richRootSpan: richRootSpan,
       chapterIr: chapterIr,
       chapterFilePath: chapterFilePath,
     );
