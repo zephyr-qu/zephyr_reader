@@ -126,6 +126,7 @@ class EpubBlockImageCache {
     return get(filePath: filePath, assetId: assetId, maxWidthPx: maxWidthPx) ??
         entry.bytes;
   }
+
   void _storeIfBetter({
     required String filePath,
     required String assetId,
@@ -151,6 +152,7 @@ class EpubBlockImageCache {
     if (_lru.isEmpty) return;
     _ready.remove(_lru.removeAt(0));
   }
+
   /// 页块列表中的 Image 切片后台预解码（与 session 滑动窗口同步触发）。
   void prefetchBlocks({
     required String filePath,
