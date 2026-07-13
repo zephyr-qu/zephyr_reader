@@ -15,7 +15,6 @@ import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// Flutter 精确分页会话（ADR-016）：只拉 IR，本地装箱；不创建 Rust pagination session。
@@ -31,7 +30,7 @@ class FlutterPaginationSession implements PaginationSession {
   /// 优先 [onPaginationProgress]，否则 [paginationProgressHook]。
   void Function(int totalPages, bool isPartial)? onPaginationProgress;
 
-  List<PageDescriptor>? _descriptors;
+  List<PackedPage>? _descriptors;
   final Map<int, String> _pageCache = {};
   final Map<int, List<PageBlockSlice>> _blockCache = {};
   ChapterContentIr? _ir;
@@ -46,7 +45,7 @@ class FlutterPaginationSession implements PaginationSession {
   ChapterPaginationMode get sessionMode => ChapterPaginationMode.contentBlocks;
 
   @override
-  List<PageDescriptor>? get descriptors => _descriptors;
+  List<PackedPage>? get descriptors => _descriptors;
 
   @override
   BigInt? get sessionConfigHash => _configHash;
@@ -367,17 +366,7 @@ class FlutterPaginationSession implements PaginationSession {
   }
 
   void _applyPages(List<PackedPage> pages) {
-    _descriptors = [
-      for (final p in pages)
-        PageDescriptor(
-          pageIndex: p.pageIndex,
-          startOffset: p.startOffset,
-          endOffset: p.endOffset,
-          firstParagraphIndex: 0,
-          lastParagraphIndex: 0,
-          isLastPage: p.isLastPage,
-        ),
-    ];
+    _descriptors = pages;
     _pageCache.clear();
     _blockCache
       ..clear()

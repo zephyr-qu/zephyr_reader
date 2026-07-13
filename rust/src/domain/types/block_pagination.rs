@@ -143,7 +143,6 @@ impl BlockPaginateResult {
             }
         }
     }
-
 }
 
 /// 页内 Text 块切片（相对页 plain 范围裁剪后的 UTF-8 文本）。

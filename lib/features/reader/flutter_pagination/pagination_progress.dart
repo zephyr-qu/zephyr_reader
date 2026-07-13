@@ -6,20 +6,7 @@ abstract final class PaginationProgress {
   /// 章级 [charOffset] 落在哪一页（与 [PaginationEngine.resolvePageIndexForOffset] 一致）。
   static int pageIndexAtCharOffset(List<PackedPage> pages, int charOffset) {
     if (pages.isEmpty) return 0;
-    return PaginationEngine.resolvePageIndexForOffset(
-      [
-        for (final p in pages)
-          PageDescriptor(
-            pageIndex: p.pageIndex,
-            startOffset: p.startOffset,
-            endOffset: p.endOffset,
-            firstParagraphIndex: 0,
-            lastParagraphIndex: 0,
-            isLastPage: p.isLastPage,
-          ),
-      ],
-      charOffset,
-    );
+    return PaginationEngine.resolvePageIndexForOffset(pages, charOffset);
   }
 
   /// 翻页写回用的锚点：页内偏移（避免边界落在上一页）。

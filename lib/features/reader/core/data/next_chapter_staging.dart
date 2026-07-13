@@ -1,6 +1,5 @@
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 
 class NextChapterStaging {
   final int chapterIndex;

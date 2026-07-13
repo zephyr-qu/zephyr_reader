@@ -9,6 +9,7 @@ import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 
 /// 分页排版协调器：构建参数、局部分页、全量分页及 Dart 回退。
 class PaginationCoordinator {
@@ -178,10 +179,7 @@ class PaginationCoordinator {
   }
 
   /// charOffset → pageIndex：优先 Rust session，回退 descriptor 二分。
-  int resolvePageForCharOffset(
-    int charOffset,
-    List<PageDescriptor> descriptors,
-  ) {
+  int resolvePageForCharOffset(int charOffset, List<PackedPage> descriptors) {
     final sessionPage = _repo.resolvePageIndexForCharOffset(charOffset);
     if (sessionPage != null) {
       return sessionPage.clamp(0, descriptors.length - 1);

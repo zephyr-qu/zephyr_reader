@@ -1,7 +1,6 @@
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 
 /// 单次章节分页会话抽象。
 ///

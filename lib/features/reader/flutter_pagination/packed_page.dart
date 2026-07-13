@@ -2,7 +2,16 @@ import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 
-/// Spike 页内块切片。
+/// 分页引擎模式（纯 Dart 版；原由 FRB 生成，因无 FFI 引用而停止生成）。
+enum ChapterPaginationMode {
+  /// Phase 1 plain 文本流。
+  plainText,
+
+  /// Phase 2 块 IR + `BlockPaginator`（含 Image 块时启用）。
+  contentBlocks,
+}
+
+/// Flutter 装箱页内块切片。
 class PackedBlockSlice {
   const PackedBlockSlice.text({
     required this.blockIndex,

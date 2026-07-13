@@ -11,7 +11,6 @@ import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_stag
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_viewport_metrics.dart';
 import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 
 /// 方案三 T2：用与当前章相同的 Flutter 装箱算法预取相邻章。
 abstract final class FlutterStagingPreloader {
@@ -116,29 +115,20 @@ abstract final class FlutterStagingPreloader {
   ) {
     final pages = ready.pages;
     final anchor = pages[anchorIndex.clamp(0, pages.length - 1)];
-    final descriptors = [
-      for (final p in pages)
-        PageDescriptor(
-          pageIndex: p.pageIndex,
-          startOffset: p.startOffset,
-          endOffset: p.endOffset,
-          firstParagraphIndex: 0,
-          lastParagraphIndex: 0,
-          isLastPage: p.isLastPage,
-        ),
-    ];
     final plain = ready.ir.plainText;
     final end = anchor.endOffset.clamp(0, plain.length);
     final start = anchor.startOffset.clamp(0, end);
     return NextChapterStaging(
       chapterIndex: ready.chapterIndex,
       configHash: BigInt.zero,
-      descriptors: descriptors,
+      descriptors: pages,
       firstPageContent: plain.substring(start, end),
       isPartial: false,
       paginationMode: ChapterPaginationMode.contentBlocks,
       bookId: ready.bookId,
-      anchorPageBlocks: FlutterPaginationSession.slicesToPageBlocks(anchor.slices),
+      anchorPageBlocks: FlutterPaginationSession.slicesToPageBlocks(
+        anchor.slices,
+      ),
     );
   }
 }

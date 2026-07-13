@@ -19,7 +19,7 @@ import 'package:zephyr_reader/features/reader/rendering/paginated_renderer.dart'
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 
 class _MockDataSource extends Mock implements ReaderRenderDataSource {}
 
@@ -197,13 +197,13 @@ void main() {
       final dataSource = _MockDataSource();
       _stubDataSource(dataSource);
       when(() => dataSource.descriptors).thenReturn([
-        const PageDescriptor(
+        const PackedPage(
           pageIndex: 0,
           startOffset: 0,
           endOffset: 10,
+          slices: const [],
+
           isLastPage: false,
-          firstParagraphIndex: 0,
-          lastParagraphIndex: 0,
         ),
       ]);
       when(() => dataSource.pageContent(0)).thenReturn('Page content.');
@@ -234,13 +234,13 @@ void main() {
       final dataSource = _MockDataSource();
       _stubDataSource(dataSource);
       when(() => dataSource.descriptors).thenReturn([
-        const PageDescriptor(
+        const PackedPage(
           pageIndex: 0,
           startOffset: 0,
           endOffset: 10,
+          slices: const [],
+
           isLastPage: false,
-          firstParagraphIndex: 0,
-          lastParagraphIndex: 0,
         ),
       ]);
       when(() => dataSource.pageContent(0)).thenReturn('Page content.');
@@ -272,13 +272,13 @@ void main() {
           configHash: BigInt.from(0x1234),
           bookId: 'test_book',
           descriptors: const [
-            PageDescriptor(
+            PackedPage(
               pageIndex: 0,
               startOffset: 0,
               endOffset: 80,
+              slices: const [],
+
               isLastPage: false,
-              firstParagraphIndex: 0,
-              lastParagraphIndex: 0,
             ),
           ],
           firstPageContent: '',
@@ -297,13 +297,13 @@ void main() {
         ),
       );
       when(() => dataSource.descriptors).thenReturn([
-        const PageDescriptor(
+        const PackedPage(
           pageIndex: 0,
           startOffset: 0,
           endOffset: 100,
+          slices: const [],
+
           isLastPage: true,
-          firstParagraphIndex: 0,
-          lastParagraphIndex: 0,
         ),
       ]);
       when(() => dataSource.pageContent(0)).thenReturn('Current page.');
@@ -379,13 +379,13 @@ void main() {
             chapterIndex: -1,
             configHash: BigInt.from(0xABCD),
             descriptors: const [
-              PageDescriptor(
+              PackedPage(
                 pageIndex: 0,
                 startOffset: 0,
                 endOffset: 100,
+                slices: const [],
+
                 isLastPage: true,
-                firstParagraphIndex: 0,
-                lastParagraphIndex: 0,
               ),
             ],
             firstPageContent: 'Previous chapter content.',
@@ -393,13 +393,13 @@ void main() {
           ),
         );
         when(() => dataSource.descriptors).thenReturn([
-          const PageDescriptor(
+          const PackedPage(
             pageIndex: 0,
             startOffset: 0,
             endOffset: 80,
+            slices: const [],
+
             isLastPage: false,
-            firstParagraphIndex: 0,
-            lastParagraphIndex: 0,
           ),
         ]);
         when(() => dataSource.pageContent(0)).thenReturn('Current page.');
@@ -435,13 +435,13 @@ void main() {
             chapterIndex: 1,
             configHash: BigInt.from(0xABCD),
             descriptors: const [
-              PageDescriptor(
+              PackedPage(
                 pageIndex: 0,
                 startOffset: 0,
                 endOffset: 100,
+                slices: const [],
+
                 isLastPage: false,
-                firstParagraphIndex: 0,
-                lastParagraphIndex: 0,
               ),
             ],
             firstPageContent: 'Next chapter first page.',
@@ -449,13 +449,13 @@ void main() {
           ),
         );
         when(() => dataSource.descriptors).thenReturn([
-          const PageDescriptor(
+          const PackedPage(
             pageIndex: 0,
             startOffset: 0,
             endOffset: 80,
+            slices: const [],
+
             isLastPage: true,
-            firstParagraphIndex: 0,
-            lastParagraphIndex: 0,
           ),
         ]);
         when(() => dataSource.pageContent(0)).thenReturn('Current last page.');
@@ -491,13 +491,13 @@ void main() {
       ) async {
         // nextChapterStaging is null → _stagingReadyForNext() = false
         when(() => dataSource.descriptors).thenReturn([
-          const PageDescriptor(
+          const PackedPage(
             pageIndex: 0,
             startOffset: 0,
             endOffset: 80,
+            slices: const [],
+
             isLastPage: true,
-            firstParagraphIndex: 0,
-            lastParagraphIndex: 0,
           ),
         ]);
         when(() => dataSource.pageContent(0)).thenReturn('Current last page.');
@@ -531,13 +531,13 @@ void main() {
         // prevChapterStaging is null, but hasPreviousChapter = true
         when(() => dataSource.prevChapterStaging).thenReturn(null);
         when(() => dataSource.descriptors).thenReturn([
-          const PageDescriptor(
+          const PackedPage(
             pageIndex: 0,
             startOffset: 0,
             endOffset: 80,
+            slices: const [],
+
             isLastPage: false,
-            firstParagraphIndex: 0,
-            lastParagraphIndex: 0,
           ),
         ]);
         when(() => dataSource.pageContent(0)).thenReturn('Current first page.');
