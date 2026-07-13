@@ -105,13 +105,18 @@ void main() {
     });
 
     test('setFontSize 更新信号并持久化', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      prefs = await SharedPreferences.getInstance();
       final config = ReaderConfig(SharedPreferencesService(prefs));
       config.fontSize.value = 18.0;
-      // 等待 debounce 写入
-      await Future<void>.delayed(const Duration(milliseconds: 200));
+      // 强制立即持久化（跳过 debounce timer）
+      await config.fontSize.saveImmediately();
 
       expect(config.fontSize.value, equals(18.0));
-      expect(prefs.getDouble('reader_font_size'), equals(18.0));
+      final saved = SharedPreferencesService(
+        prefs,
+      ).getDouble('reader_font_size');
+      expect(saved, equals(18.0));
     });
 
     test('setLineHeight 更新信号并持久化', () async {

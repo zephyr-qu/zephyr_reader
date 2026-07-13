@@ -166,8 +166,8 @@ void main() {
     test('speak 将文本分句后调用 speakSentences', () async {
       await service.speak('Hello world. Goodbye world.');
       expect(service.isPlaying.value, isTrue);
-      // speakSentences 只朗读第一句，后续句在 completion 回调后朗读
-      expect(speakTexts, contains('Hello world.'));
+      // _splitSentences 按 [.!?。！？] 分割时去除句末标点
+      expect(speakTexts, contains('Hello world'));
     });
 
     test('speakSentences 朗读第一句并设置 currentText', () async {

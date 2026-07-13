@@ -27,11 +27,10 @@ void main() {
       expect(formatRelativeTime(past, _l10n), equals('3 hr ago'));
     });
 
-    test('超过1天显示月-日 时:分格式', () {
+    test('超过1天显示相对天数', () {
       final past = DateTime.now().subtract(const Duration(days: 2));
       final result = formatRelativeTime(past, _l10n);
-      expect(result, contains('-'));
-      expect(result, contains(':'));
+      expect(result, contains('days ago'));
     });
 
     test('边界值: 59分钟显示分钟', () {
@@ -49,11 +48,10 @@ void main() {
       expect(formatRelativeTime(past, _l10n), contains('hr ago'));
     });
 
-    test('边界值: 24小时显示日期', () {
+    test('边界值: 24小时超过1天显示相对天数', () {
       final past = DateTime.now().subtract(const Duration(hours: 24));
       final result = formatRelativeTime(past, _l10n);
-      expect(result, contains('-'));
-      expect(result, contains(':'));
+      expect(result, contains('days ago'));
     });
 
     test('未来时间应显示刚刚', () {

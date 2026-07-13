@@ -107,8 +107,11 @@ void main() {
           running++;
           if (running > maxRunning) maxRunning = running;
           await Future<void>.delayed(const Duration(milliseconds: 5));
-          if (shouldThrow) throw Exception('fail');
-          running--;
+          try {
+            if (shouldThrow) throw Exception('fail');
+          } finally {
+            running--;
+          }
         });
 
         await Future.wait([
