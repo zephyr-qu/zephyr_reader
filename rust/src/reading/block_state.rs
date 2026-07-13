@@ -3,9 +3,9 @@
 use std::collections::HashMap;
 
 use crate::domain::{
-    BlockPaginateResult, ChapterContentIr, ChapterPaginationMode, ContentBlock, ImageBlockLayout,
-    PageBlockSlice, PageContent, PageImageBlockSlice, PageTextBlockSlice, PaginateResult,
-    TypesetConfig, slice_by_char_range, slice_rich_spans,
+    slice_by_char_range, slice_rich_spans, BlockPaginateResult, ChapterContentIr, ContentBlock,
+    ImageBlockLayout, PageBlockSlice, PageContent, PageImageBlockSlice, PageTextBlockSlice,
+    PaginateResult, TypesetConfig,
 };
 
 /// 块路径分页状态（session / `PAGINATION_ENGINE_CACHE` 持有）。
@@ -36,7 +36,7 @@ impl BlockPaginationState {
 
     pub fn to_paginate_result(&self, config_hash: u64) -> PaginateResult {
         self.result
-            .to_legacy_paginate_result(ChapterPaginationMode::ContentBlocks)
+            .to_legacy_paginate_result(crate::domain::ChapterPaginationMode::ContentBlocks)
             .into_with_config_hash(config_hash)
     }
 
@@ -165,69 +165,8 @@ impl BlockPaginationState {
         }
         Some(slices)
     }
-
-    pub fn char_offset_to_page_index(&self, char_offset: u32) -> Option<i32> {
-        self.result.page_index_at_char_offset(char_offset)
-    }
-
-    /// 从 partial 扩展到全章（用已缓存的完整 IR 重新 paginate）。
-    pub async fn expand_to_full(
-        &mut self,
-        config: TypesetConfig,
-    ) -> Result<PaginateResult, crate::domain::AppError> {
-        assert!(
-            self.is_partial,
-            "expand_to_full called on non-partial state"
-        );
-        let old_pages = self.result.page_count();
-        let old_last_plain = self
-            .result
-            .descriptors
-            .last()
-            .map(|d| d.plain_end_exclusive())
-            .unwrap_or(0);
-        let ir_blocks = self.ir.blocks.len();
-        let ir_plain_len = self.ir.plain_text.chars().count();
-        tracing::info!(
-            "[Trace] expand_to_full START partial_pages={old_pages} partial_last_plain_end={old_last_plain} ir_blocks={ir_blocks} ir_plain_len={ir_plain_len}"
-        );
-        let ir = self.ir.clone();
-        let config_for_paginate = config.clone();
-        let block_result = tokio::task::spawn_blocking(move || {
-            crate::text::block_paginator::paginate_chapter_ir_chunked(&ir, config_for_paginate)
-        })
-        .await
-        .map_err(|e| crate::domain::AppError::TaskPanic {
-            task_name: "block_paginate_expand".into(),
-            details: e.to_string(),
-        })?;
-        self.result = block_result;
-        self.is_partial = false;
-        self.typeset_config = config.validate_and_fix();
-        let full_pages = self.result.page_count();
-        let full_last_plain = self
-            .result
-            .descriptors
-            .last()
-            .map(|d| d.plain_end_exclusive())
-            .unwrap_or(0);
-        let last_block = self
-            .result
-            .descriptors
-            .last()
-            .map(|d| d.last_block_index)
-            .unwrap_or(0);
-        tracing::info!(
-            "[Trace] expand_to_full DONE full_pages={full_pages} full_last_plain_end={full_last_plain} last_block_index_in_result={last_block} ir_blocks={}",
-            self.ir.blocks.len()
-        );
-        Ok(self
-            .result
-            .to_legacy_paginate_result(ChapterPaginationMode::ContentBlocks))
-    }
 }
 
-#[allow(dead_code)]
 trait PaginateResultPatch {
     fn into_with_config_hash(self, config_hash: u64) -> PaginateResult;
 }
@@ -368,117 +307,5 @@ mod tests {
             .last()
             .expect("last page text slice");
         assert!(last_text.is_block_end);
-    }
-
-    #[test]
-    fn char_offset_maps_to_page() {
-        let ir = sample_ir_with_image();
-        let config = TypesetConfig::default();
-        let result = paginate_chapter_ir(&ir, config.clone());
-        let state = BlockPaginationState::new(ir.clone(), result, false, config);
-
-        assert_eq!(state.char_offset_to_page_index(0), Some(0));
-        assert_eq!(
-            state.char_offset_to_page_index(5),
-            state.char_offset_to_page_index(6)
-        );
-    }
-
-    #[test]
-    fn page_plain_matches_descriptor_range() {
-        let ir = sample_ir_with_image();
-        let config = TypesetConfig::default();
-        let result = paginate_chapter_ir(&ir, config.clone());
-        let state = BlockPaginationState::new(ir.clone(), result.clone(), false, config);
-
-        for (i, desc) in result.descriptors.iter().enumerate() {
-            let plain = state.page_plain_text(i).unwrap();
-            assert_eq!(plain.chars().count() as u32, desc.plain.plain_len);
-        }
-    }
-
-    /// P0: `expand_to_full` 将 partial 状态扩展到全章，is_partial→false。
-    #[tokio::test]
-    async fn expand_to_full_increases_page_count() {
-        let mut b = BlockJoinedPlainBuilder::new();
-        // 使用大量文本确保 partial 和 full 都产生多页
-        b.push_text("A".repeat(4000), TextBlockStyle::default());
-        b.push_text("B".repeat(4000), TextBlockStyle::default());
-        b.push_text("C".repeat(4000), TextBlockStyle::default());
-        let full_ir = b.finish();
-
-        // 构造 partial IR：仅包含前两个 block
-        let partial_ir =
-            ChapterContentIr::new(full_ir.blocks[..2].to_vec(), full_ir.plain_text.clone());
-
-        let config = TypesetConfig {
-            page_width: 400,
-            page_height: 300,
-            font_size: 16,
-            line_spacing: 1.5,
-            first_line_indent: 0,
-            paragraph_spacing: 0.0,
-            ..TypesetConfig::default()
-        };
-        let partial_result = paginate_chapter_ir(&partial_ir, config.clone());
-        let partial_page_count = partial_result.page_count();
-        assert!(partial_page_count > 0);
-
-        let mut state = BlockPaginationState::new(full_ir, partial_result, true, config.clone());
-        assert!(state.is_partial);
-
-        let full_result = state.expand_to_full(config).await.unwrap();
-
-        assert!(
-            !full_result.is_partial,
-            "expand_to_full should set is_partial=false"
-        );
-        assert!(!state.is_partial, "state.is_partial should be updated");
-        assert_eq!(
-            full_result.mode,
-            ChapterPaginationMode::ContentBlocks,
-            "mode should stay ContentBlocks after expand"
-        );
-        assert!(
-            full_result.descriptors.len() > partial_page_count,
-            "full result should have more pages than partial (partial={}, full={})",
-            partial_page_count,
-            full_result.descriptors.len()
-        );
-    }
-
-    /// P0: partial→full 前后 mode 保持 contentBlocks（无模式切换）。
-    #[tokio::test]
-    async fn expand_to_full_keeps_content_blocks_mode() {
-        let mut b = BlockJoinedPlainBuilder::new();
-        b.push_text("Hello World".into(), TextBlockStyle::default());
-        b.push_text("More text".repeat(50), TextBlockStyle::default());
-        let full_ir = b.finish();
-
-        let partial_ir =
-            ChapterContentIr::new(vec![full_ir.blocks[0].clone()], full_ir.plain_text.clone());
-
-        let config = TypesetConfig::default();
-        let partial_result = paginate_chapter_ir(&partial_ir, config.clone());
-
-        let mut state = BlockPaginationState::new(full_ir, partial_result, true, config.clone());
-        let full_result = state.expand_to_full(config).await.unwrap();
-
-        // 关键断言：mode 始终为 ContentBlocks，不会切到 PlainText
-        assert_eq!(full_result.mode, ChapterPaginationMode::ContentBlocks);
-        assert!(!full_result.is_partial);
-        // partial 的第一页在 full 中至少存在（可能和其他块合并在同一页）
-        assert!(!full_result.descriptors.is_empty());
-    }
-
-    /// P0: `expand_to_full` 在非 partial 状态调用应 panic。
-    #[tokio::test]
-    #[should_panic(expected = "expand_to_full called on non-partial state")]
-    async fn expand_to_full_panics_on_non_partial() {
-        let ir = sample_ir_with_image();
-        let config = TypesetConfig::default();
-        let result = paginate_chapter_ir(&ir, config.clone());
-        let mut state = BlockPaginationState::new(ir, result, false, config);
-        let _ = state.expand_to_full(TypesetConfig::default()).await;
     }
 }
