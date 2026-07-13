@@ -6,7 +6,7 @@ import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
-import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
+import 'package:zephyr_reader/features/reader/domain/config/language_type.dart';
 
 /// 阅读器翻页点击区域布局（右手/左手习惯）
 enum TapLayout { rightHanded, leftHanded }

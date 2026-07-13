@@ -34,7 +34,7 @@ import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
-import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
+import 'package:zephyr_reader/features/reader/domain/config/language_type.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import '../../../../helpers/fixtures.dart';
@@ -427,8 +427,6 @@ void _stubAllRepo(_MockRepo repo) {
   when(() => repo.consumeEpubRichSkippedNotice()).thenReturn(false);
   when(() => repo.ensurePageWindow(any())).thenReturn(null);
   when(() => repo.resolvePageIndexForCharOffset(any())).thenReturn(null);
-  when(() => repo.currentRichContent).thenReturn(null);
-  when(() => repo.currentRichParagraphs).thenReturn(null);
   when(() => repo.currentChapterIr).thenReturn(null);
   when(() => repo.currentChapterFilePath).thenReturn(null);
   when(() => repo.preloadGeneration).thenReturn(ValueNotifier<int>(0));
@@ -487,8 +485,6 @@ void _stubAllRepo(_MockRepo repo) {
   ).thenAnswer(
     (_) async => (
       content: 'scroll',
-      richParagraphs: null,
-      richRootSpan: null,
       epubRichSkipped: false,
       chapterIr: null,
       chapterFilePath: null,

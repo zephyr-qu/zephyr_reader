@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 
 /// 排版测量 / 校准（ADR-013）。
 ///
@@ -225,91 +223,5 @@ paginatedTypesetLayoutInsets({
   return (
     contentVerticalPadding: ReaderRenderConfig.pageContentVerticalPadding,
     pageHeightLineBuffer: (row * 0.5).clamp(8.0, 24.0),
-  );
-}
-
-TypesetConfig buildTypesetConfig({
-  required double width,
-  required double height,
-  required double fontSize,
-  required double lineHeight,
-  double padding = 16,
-  double contentVerticalPadding = 0,
-  double pageHeightLineBuffer = 0,
-  double devicePixelRatio = 1.0,
-  double autoSpaceRatio = 0.25,
-  int firstLineIndent = 2,
-  String fontFamily = 'Noto Sans SC',
-  double letterSpacing = 0,
-  double paragraphSpacing = 16,
-  bool punctuationSqueeze = true,
-  LanguageType language = LanguageType.auto,
-}) {
-  // 默认校准值（校准环已移除；Rust 排版引擎通过此项获取参考字宽）。
-  final calCjkWidth = fontSize;
-  final calAsciiWidth = fontSize * 0.6;
-  final calDigitWidth = calAsciiWidth;
-  final calPunctWidth = fontSize;
-  final calLatinExtWidth = fontSize * 0.7;
-  final calOtherWidth = fontSize * 0.8;
-  final calLineHeightDp = fontSize * lineHeight;
-
-  final rustCalibration = TypesetCalibration(
-    dpr: devicePixelRatio,
-    cjkWidth: calCjkWidth * devicePixelRatio,
-    asciiWidth: calAsciiWidth * devicePixelRatio,
-    digitWidth: calDigitWidth * devicePixelRatio,
-    punctWidth: calPunctWidth * devicePixelRatio,
-    otherWidth: calOtherWidth * devicePixelRatio,
-    latinExtWidth: calLatinExtWidth * devicePixelRatio,
-    effectiveLineWidthRatio: 1.0,
-    measuredLineHeightPx: calLineHeightDp * devicePixelRatio,
-  );
-
-  final contentHeight =
-      (height - 2 * contentVerticalPadding - pageHeightLineBuffer).clamp(
-        100.0,
-        height,
-      );
-  final pageHeightPx = (contentHeight * devicePixelRatio).round();
-  final pageWidthPx = ((width - 2 * padding) * devicePixelRatio).round();
-  final lineHeightPx = calLineHeightDp * devicePixelRatio;
-  final estLines = pageHeightPx > 0 && lineHeightPx > 0
-      ? pageHeightPx / lineHeightPx
-      : 0;
-  Logging.info(
-    '[PageEstimate] buildTypesetConfig height_dp=${height.toStringAsFixed(1)}'
-    ' contentVPad=2*$contentVerticalPadding=${(2 * contentVerticalPadding).toStringAsFixed(1)}'
-    ' lineBuf=${pageHeightLineBuffer.toStringAsFixed(1)}'
-    ' contentH_dp=${contentHeight.toStringAsFixed(1)}'
-    ' dpr=${devicePixelRatio.toStringAsFixed(1)}'
-    ' pageHeight=$pageHeightPx px'
-    ' pageWidth=$pageWidthPx px'
-    ' fontSize=${fontSize.toStringAsFixed(1)} dp'
-    ' lineH=${lineHeightPx.toStringAsFixed(1)}px'
-    ' ratio=1.000'
-    ' estLinesPerPage=${estLines.toStringAsFixed(1)}',
-  );
-  Logging.info(
-    '[PageEstimate] calib(default) cjk=${rustCalibration.cjkWidth.toStringAsFixed(1)}'
-    ' ascii=${rustCalibration.asciiWidth.toStringAsFixed(1)}'
-    ' punct=${rustCalibration.punctWidth.toStringAsFixed(1)}'
-    ' dpr=${rustCalibration.dpr.toStringAsFixed(1)}'
-    ' fontPx=${(fontSize * devicePixelRatio).round()}',
-  );
-
-  return TypesetConfig(
-    pageWidth: pageWidthPx,
-    pageHeight: pageHeightPx,
-    fontSize: (fontSize * devicePixelRatio).round(),
-    lineSpacing: lineHeight,
-    letterSpacing: letterSpacing * devicePixelRatio,
-    paragraphSpacing: (paragraphSpacing / fontSize).clamp(0.0, 10.0),
-    firstLineIndent: firstLineIndent,
-    autoSpaceRatio: autoSpaceRatio,
-    language: language,
-    punctuationSqueeze: punctuationSqueeze,
-    fontFamily: fontFamily,
-    calibration: rustCalibration,
   );
 }
