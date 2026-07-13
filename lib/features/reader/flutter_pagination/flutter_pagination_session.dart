@@ -115,12 +115,29 @@ class FlutterPaginationSession implements PaginationSession {
     required int chapterIndex,
     required PaginationParams params,
     BigInt? maxChars,
-  }) => beginPaginate(
-    bookId: bookId,
-    chapterIndex: chapterIndex,
-    params: params,
-    maxChars: maxChars,
-  );
+  }) async {
+    // 同一章已有 IR 时复用，避免重复 FFI（如 fontSize 变更后的重装）。
+    final cachedIr = _ir;
+    if (cachedIr != null && _chapterIndex == chapterIndex) {
+      Logging.info(
+        '[FlutterPagination] repaginateInPlace chapter=$chapterIndex '
+        '(reuse IR, skip FFI)',
+      );
+      return _installPages(
+        ir: cachedIr,
+        chapterIndex: chapterIndex,
+        params: params,
+        maxChars: maxChars,
+        filePath: _sessionFilePath,
+      );
+    }
+    return beginPaginate(
+      bookId: bookId,
+      chapterIndex: chapterIndex,
+      params: params,
+      maxChars: maxChars,
+    );
+  }
 
   @override
   Future<({int totalPages, bool isPartial})> expandToFullChapter({

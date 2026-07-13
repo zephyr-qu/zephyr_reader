@@ -52,6 +52,7 @@ class EpubBlockImageCache {
   final Map<String, _ImageCacheEntry> _ready = {};
   final Map<String, Future<_ImageCacheEntry>> _inflight = {};
   final List<String> _lru = []; // access-order list for eviction
+  int _gen = 0;
 
   static String assetKey({required String filePath, required String assetId}) =>
       '$filePath\x00$assetId';
@@ -100,6 +101,7 @@ class EpubBlockImageCache {
     );
 
     final entry = await _inflight.putIfAbsent(key, () async {
+      final loadGen = _gen;
       try {
         final bytes = await _loader(
           filePath: filePath,
@@ -110,7 +112,10 @@ class EpubBlockImageCache {
           throw StateError('empty image bytes for asset $assetId');
         }
         final result = _ImageCacheEntry(maxWidthPx: maxWidthPx, bytes: bytes);
-        _storeIfBetter(filePath: filePath, assetId: assetId, entry: result);
+        // 若 clear() 已发生（gen 递增），跳过存储避免死缓存。
+        if (_gen == loadGen) {
+          _storeIfBetter(filePath: filePath, assetId: assetId, entry: result);
+        }
         return result;
       } finally {
         _inflight.removeWhere((k, _) => k == key);
@@ -192,6 +197,7 @@ class EpubBlockImageCache {
     _ready.clear();
     _inflight.clear();
     _lru.clear();
+    _gen++;
   }
 }
 
