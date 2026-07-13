@@ -175,7 +175,6 @@ class RustChapterContentRepository implements ChapterContentRepository {
       contentVerticalPadding: layoutInsets.contentVerticalPadding,
       pageHeightLineBuffer: layoutInsets.pageHeightLineBuffer,
       devicePixelRatio: p.devicePixelRatio,
-      calibration: null,
       fontFamily: p.fontFamily,
       letterSpacing: p.letterSpacing,
       paragraphSpacing: p.paragraphSpacing,

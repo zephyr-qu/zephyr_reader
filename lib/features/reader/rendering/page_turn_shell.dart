@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_viewport_index.dart';
 import 'package:zephyr_reader/features/reader/rendering/page_curl_widget.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 
 /// pageTurn 皮肤：物理页索引 ↔ 逻辑页码映射 + [PageCurlWidget] 动画。
 ///

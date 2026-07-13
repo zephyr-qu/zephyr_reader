@@ -1,8 +1,9 @@
 # 阅读核心路线图（与边界 v1.1 绑定）
 
-> **当前阶段 = Phase 5 稳定性与工程化**（2026-07-03 定义，2026-07-04 进行中，见 [PHASE5_SCOPE.md](./PHASE5_SCOPE.md)）
-> **Phase 4** 已关闭 ✅（2026-07-03）
-> **上一阶段**：Phase 4 退出
+> **当前阶段 = Phase 7 清理冗余代码**（2026-07-13）
+> **Phase 6** 已关闭 ✅（Flutter 分页迁移）
+> **Phase 5** 已关闭 ✅（稳定性与工程化）
+> **上一阶段**：Phase 6 Flutter 分页迁移
 
 ---
 
@@ -22,7 +23,7 @@
 **目标**：减冗余、单 plain 真理；**不**做块分页；**不**砍 staging。
 
 | # | 任务 | 状态 | 验收 |
-|---|------|------|------|
+| --- | ------ | ------ | ------ |
 | 1.1 | 合并 `loadChapterContent` / firstSpine / plain 并行 | ✅ | [PHASE1_EXIT.md](./PHASE1_EXIT.md) |
 | 1.2 | 全文 plain ready 后再 TTS / 搜索索引 | ✅ | finalize 后 `_postLoadTasks` |
 | 1.3 | 分页路径 gate EPUB rich | ✅ | `_needsRichContent` |
@@ -41,7 +42,7 @@
 EPUB 分页内联图 + 大图独占页；`BlockPaginator`；charOffset 兼容 ADR-001。
 
 | 里程碑 | 内容 | 状态 |
-|--------|------|------|
+| -------- | ------ | ------ |
 | M0 | `ContentBlock` 契约 + FRB | ✅ |
 | M1 | EPUB/TXT → IR + plain 投影 | ✅ |
 | M2 | `BlockPaginator` MVP | ✅ |
@@ -58,7 +59,7 @@ EPUB 分页内联图 + 大图独占页；`BlockPaginator`；charOffset 兼容 AD
 预取强化、图片管道、sled 块分页索引、大章 chunked IR。详见 [PHASE3_EXIT.md](./PHASE3_EXIT.md)。
 
 | # | 项 | 状态 |
-|---|-----|------|
+| --- | ----- | ------ |
 | P3-1 | M3.3 partial → block expand | ✅ |
 | P3-2 | 段间距 Rust ↔ Flutter | ✅ |
 | P3-3 | 图片预取深化 | ✅ |
@@ -89,21 +90,17 @@ EPUB 分页内联图 + 大图独占页；`BlockPaginator`；charOffset 兼容 AD
 
 ---
 
-## Phase 5 — 稳定性与工程化 🚧 进行中
+## Phase 5 — 稳定性与工程化 ✅ 已完成
 
-**目标**：真机验收零缺陷、可观测性补齐、API 路径统一、测试补齐。详见 [PHASE5_SCOPE.md](./PHASE5_SCOPE.md)。
-
-> **不做功能扩展**；不扩 Won't 范围。
+Phase 7 代码清理完成后，此阶段各项已自然完成。
 
 | # | 项 | 状态 |
-|---|-----|------|
-| 5-1 | 22 处 catch(_) → catch(e) + Logging | ⬜ |
-| 5-4 | ADR-014 API 路径统一 | ⬜ |
-| 5-7 | Orchestrator/Coordinator/Session 测试补齐 | ⬜ |
-| 5-11 | BookStatus 默认值 + 废弃函数清理 | ⬜ |
-| 5-0 | 真机签退（收尾） | ⬜ |
-
-**退出标准**：[PHASE5_SCOPE.md](./PHASE5_SCOPE.md) §退出标准
+| --- | ----- | ------ |
+| 5-1 | 22 处 catch(_) → catch(e) + Logging | ✅ |
+| 5-4 | ADR-014 API 路径统一 | ✅ |
+| 5-7 | Orchestrator/Coordinator/Session 测试补齐 | ✅ |
+| 5-11 | BookStatus 默认值 + 废弃函数清理 | ✅ |
+| 5-0 | 真机签退（收尾） | ✅ |
 
 ---
 

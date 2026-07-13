@@ -1,4 +1,5 @@
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 
@@ -7,7 +8,7 @@ import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 /// 持有 bookId、chapterIndex、filePath 等会话状态，
 /// 以及描述符、页面缓存等分页结果。
 abstract class PaginationSession {
-  List<PageDescriptor>? get descriptors;
+  List<PackedPage>? get descriptors;
 
   /// 上次分页的 configHash；null 表示无 session。
   BigInt? get sessionConfigHash;

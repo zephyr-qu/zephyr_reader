@@ -12,8 +12,9 @@ use std::sync::LazyLock;
 
 use parking_lot::Mutex;
 
-use crate::domain::{AppError, ChapterContentIr, TypesetConfig};
-use crate::api::types::{ChapterContent, FirstSpineResult};
+use crate::domain::{AppError, ChapterContentIr};
+use crate::api::types::FirstSpineResult;
+use crate::api::types::ChapterContent;
 use crate::storage::repos::BookRepository;
 use crate::storage::storage_pool;
 
@@ -72,14 +73,14 @@ impl ReadingOrchestrator {
         super::chapter_access::get_chapter_partial(file_path, chapter_index, max_chars).await
     }
 
-    /// 获取指定章节内容。
+    /// 获取指定章节的原始文本内容。
     pub async fn get_chapter(
         &self,
         file_path: String,
         chapter_index: i32,
-        config: Option<TypesetConfig>,
     ) -> Result<ChapterContent, AppError> {
-        super::chapter_access::get_chapter(file_path, chapter_index, config).await
+        let text = super::chapter_access::get_chapter(file_path, chapter_index).await?;
+        Ok(ChapterContent::Raw(text))
     }
 
     /// P4-1：加载整章 IR（scroll / 块渲染；不创建 pagination session）。
@@ -110,7 +111,6 @@ impl ReadingOrchestrator {
     pub fn clear_caches_for_test(&self) {
         super::provider_cache::clear_for_test();
         super::clear_for_test();
-        super::pagination_store::PaginationStore::global().clear_lru_for_test();
         LINE_BREAKS_STORE.lock().clear();
     }
 }

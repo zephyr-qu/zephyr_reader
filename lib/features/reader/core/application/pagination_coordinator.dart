@@ -9,7 +9,6 @@ import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 
 /// 分页排版协调器：构建参数、局部分页、全量分页及 Dart 回退。
 class PaginationCoordinator {

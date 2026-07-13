@@ -3,7 +3,6 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_paginatio
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 
 /// 首屏 partial 分页下的页码与 charOffset 推算结果。
 class QuickPageResolveResult {

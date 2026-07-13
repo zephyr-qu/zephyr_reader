@@ -1,9 +1,8 @@
 use flutter_rust_bridge::frb;
 
-use crate::domain::types::pagination::PaginateResult;
 use crate::domain::PageContent;
 
-/// 章节内容枚举
+/// 章节内容枚举（`get_chapter` 返回 `Raw` 变体；分页已迁移至 Flutter 侧）。
 #[derive(Debug, Clone)]
 #[frb(dart_metadata=("freezed"))]
 pub enum ChapterContent {
@@ -16,16 +15,4 @@ pub enum ChapterContent {
 #[frb]
 pub struct FirstSpineResult {
     pub text: String,
-}
-
-/// ADR-016：FRB 类型存根 — 引用 `PaginateResult` 使 `PageDescriptor` / `ChapterPaginationMode` 跨 FFI 边界可用。
-#[doc(hidden)]
-#[frb]
-pub fn _types_keepalive_paginate_result() -> PaginateResult {
-    PaginateResult {
-        descriptors: vec![],
-        config_hash: 0,
-        is_partial: false,
-        mode: crate::domain::types::pagination::ChapterPaginationMode::PlainText,
-    }
 }
