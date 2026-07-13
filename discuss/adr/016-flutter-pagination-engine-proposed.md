@@ -1,8 +1,8 @@
 # ADR-016：分页装箱迁 Flutter（方案三 · 条件接受）
 
-- **状态**：**条件接受**（TXT+EPUB 真机均优于主线；合主线并关校准环后正式 Accept）
+- **状态**：**Accepted**（已合入 `phase/stage6-line-width-calib` 并完成 DEAD PATH 删除与校准环收口）
 - **日期**：2026-07-12
-- **分支**：`explore/flutter-side-pagination`
+- **分支**：`phase/stage6-line-width-calib`
 - **计划**：方案三 T0–T5（见 `.trellis/tasks/07-12-flutter-side-pagination/`）
 
 ## 决策（条件接受）
@@ -24,7 +24,7 @@
 ## 对既有 ADR
 
 | ADR | 关系 |
-|-----|------|
+| ----- | ------ |
 | 006 | Accept 后部分取代（分页从 Rust 挪走） |
 | 013 | Accept 后 Superseded |
 | 003 / 001 | 保留（IR 看图；charOffset） |
@@ -36,7 +36,7 @@
 2. ~~T3 大章不 ANR~~（真机满意）
 3. ~~真机 S1–S3 + overflow~~（TXT+EPUB Go）
 4. ~~与主线对比报告，择优~~（Flutter 胜出）
-5. **进行中**：已合 `phase/stage6-line-width-calib` 且 Flutter 为主路径；待删 DEAD PATH 后正式 Accept（见 [followup-plan.md](../../.trellis/tasks/07-12-flutter-side-pagination/followup-plan.md)）
+5. ~~DEAD PATH 删除 + 校准环收口（P6–P8）~~
 
 ## 不做
 
