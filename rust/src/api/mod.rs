@@ -1,11 +1,10 @@
 //! Rust 核心引擎 API
 pub mod backup;
 pub mod bilingual;
-pub mod core;
+pub mod reader;
 pub mod cover;
 pub mod data;
 pub mod import;
-pub mod types;
 pub mod dictionary;
 pub mod epub;
 pub mod search;
@@ -31,5 +30,5 @@ use crate::domain::AppError;
 
 // Reserved: FRB binding exists for binary compatibility (frb_generated.rs).
 pub fn test_connection() -> Result<String, AppError> {
-    Ok("Rust core engine connected successfully".to_string())
+    Ok("Rust reader engine connected successfully".to_string())
 }

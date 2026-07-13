@@ -7,7 +7,7 @@ import 'package:zephyr_reader/features/reader/rendering/block_page_content.dart'
 import 'package:zephyr_reader/features/reader/rendering/highlight_painter.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
-import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
+
 import 'package:zephyr_reader/features/reader/rendering/paginated_page_viewport.dart';
 import 'reader_render_config.dart';
 import 'find_render_box.dart';
@@ -38,7 +38,7 @@ class PaginatedModeRenderer extends StatelessWidget {
   final bool hasPreviousChapter;
   final VoidCallback? onReachEnd;
   final VoidCallback? onReachStart;
-  final CalibrationData? layoutCalibration;
+
   const PaginatedModeRenderer({
     super.key,
     required this.config,
@@ -60,7 +60,6 @@ class PaginatedModeRenderer extends StatelessWidget {
     this.hasPreviousChapter = false,
     this.onReachEnd,
     this.onReachStart,
-    this.layoutCalibration,
   });
 
   /// Fallback: 无分页数据时显示错误提示，而非静默近似分页。
@@ -173,7 +172,6 @@ class PaginatedModeRenderer extends StatelessWidget {
       onHighlightTap: onHighlightTap,
       onSelectionChanged: onSelectionChanged,
       onSelectionGlobalPosition: onSelectionGlobalPosition,
-      layoutCalibration: layoutCalibration,
     );
   }
 
@@ -225,7 +223,6 @@ class PaginatedModeRenderer extends StatelessWidget {
             onSelectionChanged: onSelectionChanged,
             onSelectionGlobalPosition: onSelectionGlobalPosition,
             maxContentWidth: constraints.maxWidth,
-            layoutCalibration: layoutCalibration,
           );
         },
       );
@@ -234,7 +231,6 @@ class PaginatedModeRenderer extends StatelessWidget {
       context,
       staging.firstPageContent,
       startOffset,
-      layoutCalibration,
     );
   }
 
@@ -243,7 +239,6 @@ class PaginatedModeRenderer extends StatelessWidget {
     BuildContext context,
     String pageContent,
     int startOffset,
-    CalibrationData? layoutCalibration,
   ) {
     return buildStagingPageContent(
       context: context,
@@ -254,7 +249,6 @@ class PaginatedModeRenderer extends StatelessWidget {
       onHighlightTap: onHighlightTap,
       onSelectionChanged: onSelectionChanged,
       onSelectionGlobalPosition: onSelectionGlobalPosition,
-      layoutCalibration: layoutCalibration,
     );
   }
 
@@ -415,7 +409,6 @@ Widget buildStagingPageContent({
   required void Function(Note)? onHighlightTap,
   required void Function(String text, int start, int end)? onSelectionChanged,
   required void Function(Offset?)? onSelectionGlobalPosition,
-  CalibrationData? layoutCalibration,
 }) {
   final textStyle = config.buildTextStyle();
   final strutStyle = config.buildStrutStyle();
@@ -492,7 +485,6 @@ Widget buildSinglePageContent({
   required void Function(Note)? onHighlightTap,
   required void Function(String text, int start, int end)? onSelectionChanged,
   required void Function(Offset?)? onSelectionGlobalPosition,
-  CalibrationData? layoutCalibration,
 }) {
   if (dataSource.sessionMode == ChapterPaginationMode.contentBlocks) {
     final blocks = dataSource.pageBlocks(pageIndex);
@@ -522,7 +514,6 @@ Widget buildSinglePageContent({
           onSelectionChanged: onSelectionChanged,
           onSelectionGlobalPosition: onSelectionGlobalPosition,
           maxContentWidth: constraints.maxWidth,
-          layoutCalibration: layoutCalibration,
         );
       },
     );

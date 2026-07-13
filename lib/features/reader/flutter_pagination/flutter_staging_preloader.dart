@@ -3,14 +3,14 @@ import 'package:zephyr_reader/features/reader/core/data/epub_block_image_cache.d
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
-import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_block_paginator.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_pagination_session.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_staging_store.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_viewport_metrics.dart';
-import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
+import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
+import 'package:zephyr_reader/src/rust/api/reader.dart' as reader_api;
 
 /// 方案三 T2：用与当前章相同的 Flutter 装箱算法预取相邻章。
 abstract final class FlutterStagingPreloader {
@@ -26,7 +26,7 @@ abstract final class FlutterStagingPreloader {
       final book = await book_api.getBook(bookId: bookId);
       if (book == null || book.filePath.isEmpty) return null;
 
-      final ir = await core_api.getChapterContentIr(
+      final ir = await reader_api.getChapterContentIr(
         bookId: bookId,
         chapterIndex: chapterIndex,
       );

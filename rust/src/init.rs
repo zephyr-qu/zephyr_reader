@@ -32,5 +32,5 @@ pub fn init_app() {
     parser::get_cover_registry();
     tracing::info!("Cover extractor registry initialized");
 
-    tracing::info!("Rust core engine initialized");
+    tracing::info!("Rust reader engine initialized");
 }

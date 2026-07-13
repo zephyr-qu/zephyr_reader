@@ -93,7 +93,7 @@ Dart: bookId  → FFI → Rust: BookRepository.find_by_id(bookId) → file_path
 | `rust/src/reading/session.rs` | `PaginationSessionEntry` + `book_id` 字段；创建函数从接收 `book_id`（由 orchestrator 传入） |
 | `rust/src/reading/provider_cache.rs` | `CacheKey` 从 `(path, format)` → `(book_id, format)`；`get_or_create_provider` 新增 book_id→path 解析 |
 | `rust/src/reading/chapter_access.rs` | 移除分页路径中对 `format_from_file_path` 的使用 |
-| `lib/src/rust/api/core.dart` (generated) | FRB 重新生成——`filePath` → `bookId` |
+| `lib/src/rust/api/reader.dart` (generated) | FRB 重新生成——`filePath` → `bookId` |
 | Dart `NextChapterStaging` | `filePath` 参数 → `bookId` |
 | Dart `rust_chapter_content_repository.dart` | 分页调用改为传 `bookId` |
 | Dart `rust_pagination_session.dart` | 分页调用改为传 `bookId` |

@@ -4,15 +4,15 @@ import 'package:zephyr_reader/features/reader/core/domain/pagination_session.dar
 import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
-import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_progress_hook.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_block_paginator.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/active_chapter_ir.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_block_paginator.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_progress_hook.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_staging_store.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_viewport_metrics.dart';
-import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
+import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
+import 'package:zephyr_reader/src/rust/api/reader.dart' as reader_api;
 import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -260,7 +260,7 @@ class FlutterPaginationSession implements PaginationSession {
     );
     epubBlockImageCache.clear();
 
-    final ir = await core_api.getChapterContentIr(
+    final ir = await reader_api.getChapterContentIr(
       bookId: bookId,
       chapterIndex: chapterIndex,
     );

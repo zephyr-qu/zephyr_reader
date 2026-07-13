@@ -13,8 +13,6 @@ use std::sync::LazyLock;
 use parking_lot::Mutex;
 
 use crate::domain::{AppError, ChapterContentIr};
-use crate::api::types::FirstSpineResult;
-use crate::api::types::ChapterContent;
 use crate::storage::repos::BookRepository;
 use crate::storage::storage_pool;
 
@@ -54,33 +52,13 @@ impl ReadingOrchestrator {
         chapter_access::get_chapter_bounds(validated_path, chapter_index).await
     }
 
-    /// 获取章节首段文本。
-    pub async fn get_chapter_first_spine_only(
-        &self,
-        file_path: String,
-        chapter_index: i32,
-    ) -> Result<FirstSpineResult, AppError> {
-        super::chapter_access::get_chapter_first_spine_only(file_path, chapter_index).await
-    }
-
-    /// 获取章节前 N 字符。
-    pub async fn get_chapter_partial(
-        &self,
-        file_path: String,
-        chapter_index: i32,
-        max_chars: u64,
-    ) -> Result<String, AppError> {
-        super::chapter_access::get_chapter_partial(file_path, chapter_index, max_chars).await
-    }
-
     /// 获取指定章节的原始文本内容。
     pub async fn get_chapter(
         &self,
         file_path: String,
         chapter_index: i32,
-    ) -> Result<ChapterContent, AppError> {
-        let text = super::chapter_access::get_chapter(file_path, chapter_index).await?;
-        Ok(ChapterContent::Raw(text))
+    ) -> Result<String, AppError> {
+        super::chapter_access::get_chapter(file_path, chapter_index).await
     }
 
     /// P4-1：加载整章 IR（scroll / 块渲染；不创建 pagination session）。

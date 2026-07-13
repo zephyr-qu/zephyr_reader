@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
-import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
-import 'package:zephyr_reader/features/reader/domain/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.dart';
@@ -9,13 +7,14 @@ import 'package:zephyr_reader/features/reader/core/domain/chapter_content_reposi
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/data/rich_text_converter.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_staging_preloader.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_staging_store.dart';
-import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
-import 'package:zephyr_reader/src/rust/api/types.dart' as types_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/chapter.dart' as chapter_api;
 import 'package:zephyr_reader/src/rust/api/epub.dart' as epub_api;
+import 'package:zephyr_reader/src/rust/api/reader.dart' as reader_api;
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
@@ -128,7 +127,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
 
     final sw = Stopwatch()..start();
     try {
-      final ir = await core_api.getChapterContentIr(
+      final ir = await reader_api.getChapterContentIr(
         bookId: bookId,
         chapterIndex: chapterId,
       );
@@ -334,13 +333,9 @@ class RustChapterContentRepository implements ChapterContentRepository {
     String filePath,
     int chapterId,
   ) async {
-    final result = await core_api.getChapter(
+    final content = await reader_api.getChapter(
       filePath: filePath,
       chapterIndex: chapterId,
-    );
-    final content = result.when(
-      raw: (text) => text,
-      pages: (pages) => pages.map((p) => p.content).join('\n\n'),
     );
     if (content.isEmpty) {
       throw Exception('Chapter content is empty');
@@ -376,16 +371,13 @@ class RustChapterContentRepository implements ChapterContentRepository {
     }
 
     final results = await Future.wait([
-      core_api.getChapter(filePath: filePath, chapterIndex: chapterId),
+      reader_api.getChapter(filePath: filePath, chapterIndex: chapterId),
       if (epubRichFuture != null)
         epubRichFuture
       else
         Future<Object?>.value(null),
     ]);
-    var content = (results[0] as types_api.ChapterContent).when(
-      raw: (text) => text,
-      pages: (pages) => pages.map((p) => p.content).join('\n\n'),
-    );
+    var content = results[0] as String;
 
     var epubRichSkipped = false;
     if (isEpub && content.length > 500 * 1024) {
@@ -437,14 +429,11 @@ class RustChapterContentRepository implements ChapterContentRepository {
     if (book.filePath.isEmpty) {
       throw Exception('Book not found: $bookId');
     }
-    final result = await core_api.getChapter(
+    final result = await reader_api.getChapter(
       filePath: book.filePath,
       chapterIndex: chapterId,
     );
-    return result.when(
-      raw: (text) => text,
-      pages: (pages) => pages.map((p) => p.content).join('\n\n'),
-    );
+    return result;
   }
 
   @override
