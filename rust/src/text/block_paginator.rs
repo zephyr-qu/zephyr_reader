@@ -318,6 +318,7 @@ fn layout_text_block_lines(
 /// 按估算行宽贪心切分（layout 断行偏宽时的 Flutter 对齐兜底）。
 ///
 /// TODO(ponytail): 贪心断行在极端场景（高标点密度 + 中西混排 + 标点挤压）下仍可能偏宽。
+<<<<<<< Updated upstream
 /// 若 `[LineBreak] overflow_dp` CI 门禁反复触发，评估引入 Knuth-Plass 简化版作为可选后端
 /// （仅对超宽行启用，避免主路径性能退化）。必须以 benchmark 为前提。
 ///
@@ -399,6 +400,8 @@ fn visual_line_segments_for_slice(
     }
 }
 
+=======
+>>>>>>> Stashed changes
 /// 按 Flutter slice 语义切分（缩进仅 block 起点）；供 `page_blocks` 对页内裁剪文本再分行。
 #[cfg(test)]
 pub(crate) fn layout_slice_text_segments(
@@ -420,7 +423,7 @@ pub(crate) fn layout_slice_text_segments(
     let width_table = metrics.width_table.scaled(font_scale);
     let auto_space_px =
         (effective_font_size * metrics.auto_space_px / metrics.font_size_px.max(1.0)).max(1.0);
-    visual_line_segments_for_slice(
+    layout_slice_text_lines(
         text,
         apply_block_start_indent,
         &metrics,
@@ -429,6 +432,9 @@ pub(crate) fn layout_slice_text_segments(
         auto_space_px,
         metrics.letter_spacing_px,
     )
+    .into_iter()
+    .map(|s| (s.char_start, s.char_len))
+    .collect()
 }
 
 fn image_display_height(
@@ -624,7 +630,7 @@ impl BlockPaginator {
                 .take(seg.char_len as usize)
                 .collect();
             let apply_block_start_indent = seg.char_start == 0;
-            let visual_segments = visual_line_segments_for_slice(
+            let visual_segments = layout_slice_text_lines(
                 &seg_text,
                 apply_block_start_indent,
                 &self.metrics,
@@ -632,7 +638,10 @@ impl BlockPaginator {
                 &width_table,
                 auto_space_px,
                 self.metrics.letter_spacing_px,
-            );
+            )
+            .into_iter()
+            .map(|s| (s.char_start, s.char_len))
+            .collect::<Vec<_>>();
 
             for (sub_start, sub_len) in visual_segments.iter() {
                 let required_height = effective_line_height;
