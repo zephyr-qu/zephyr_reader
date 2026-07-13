@@ -421,8 +421,6 @@ class ChapterLoadOrchestrator {
         _chapterVM.resetScrollDocument(
           content,
           request.chapterIndex,
-          richParagraphs: _contentRepo.currentRichParagraphs,
-          richRootSpan: _contentRepo.currentRichContent,
           chapterIr: _contentRepo.currentChapterIr,
           chapterFilePath: _contentRepo.currentChapterFilePath,
         );
@@ -488,8 +486,6 @@ class ChapterLoadOrchestrator {
       _chapterVM.resetScrollDocument(
         content,
         request.chapterIndex,
-        richParagraphs: _contentRepo.currentRichParagraphs,
-        richRootSpan: _contentRepo.currentRichContent,
         chapterIr: _contentRepo.currentChapterIr,
         chapterFilePath: _contentRepo.currentChapterFilePath,
       );

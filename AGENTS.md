@@ -43,7 +43,7 @@ Rust API 健壮性：
 测试与质量门禁：
 
 -  Rust: cargo clippy -- -D warnings + 单元测试覆盖纯逻辑。
-- &#x20;Dart: dart analyze --fatal-infos + 集成/UI 测试验证绑定。
+- &#x20;Dart: dart analyze --fatal-infos 验证。
 - 测试纪律: 发现生产代码 Bug 时，仅记录在文档/TODO 中，严禁为了通过测试而临时修改生产逻辑。
 
 GIT铁律：
@@ -53,16 +53,15 @@ GIT铁律：
 
 编码与提交规范：
 
-- 在大型任务（如重构、新功能实现）执行完毕后，主动提醒或协助准备本地提交（Commit），确保进度存档。
--
-  在使用脚本（Python/Bash等）批量修改文本文件时，必须显式指定 UTF-8 编码，严禁依赖系统默认编码，防止中文注释或字符串乱码。
+- 在使用脚本（Python/Bash等）批量修改文本文件时，必须显式指定 UTF-8 编码，严禁依赖系统默认编码，防止中文注释或字符串乱码。
 
 新需求或改代码前，只问三句：
 
-在 [READING_BOUNDARIES](discuss/READING_BOUNDARIES.md) 的 Must/Won't 里吗？
-违反 [DOMAIN_MODEL](discuss/DOMAIN_MODEL.md) 五条不变量吗？
+在 [READING\_BOUNDARIES](discuss/READING_BOUNDARIES.md) 的 Must/Won't 里吗？
+违反 [DOMAIN\_MODEL](discuss/DOMAIN_MODEL.md) 五条不变量吗？
 属于 [ROADMAP](discuss/ROADMAP.md) 哪一 Phase？——不是当前 Phase 就排队，不插队。
 需要改边界 → 新开 ADR，不 silent 扩 scope。
+
 ## Launching Dart and Flutter Applications
 
 - Always pass the `--print-dtd` flag to `dart` or `flutter` when spawning an

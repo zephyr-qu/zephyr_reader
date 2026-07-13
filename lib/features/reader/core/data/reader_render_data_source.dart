@@ -1,9 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show ValueNotifier;
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
-import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 
 /// 渲染器所需的数据源：分页会话状态 + 富文本 + 预加载。
 abstract class ReaderRenderDataSource {
@@ -20,10 +19,6 @@ abstract class ReaderRenderDataSource {
   void warmPageCache(int pageIndex, String content);
 
   ValueNotifier<int> get preloadGeneration;
-
-  TextSpan? get currentRichContent;
-
-  List<RichParagraph>? get currentRichParagraphs;
 
   /// scroll IR 块流；非 null 时 [ScrollModeRenderer] 走块渲染。
   ChapterContentIr? get currentChapterIr;

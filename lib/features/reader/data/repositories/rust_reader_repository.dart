@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show ValueNotifier;
 import 'dart:async';
 import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
@@ -13,7 +13,6 @@ import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
-import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
@@ -74,13 +73,6 @@ class ReaderRepository
   @override
   NextChapterStaging? get prevChapterStaging =>
       _chapterContent.prevChapterStaging;
-
-  @override
-  TextSpan? get currentRichContent => _chapterContent.currentRichContent;
-
-  @override
-  List<RichParagraph>? get currentRichParagraphs =>
-      _chapterContent.currentRichParagraphs;
 
   @override
   ChapterContentIr? get currentChapterIr => _chapterContent.currentChapterIr;

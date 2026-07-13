@@ -18,7 +18,7 @@ import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
-import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
+import 'package:zephyr_reader/features/reader/domain/config/language_type.dart';
 
 // ===== Mocks =====
 
