@@ -34,7 +34,6 @@
 ## 相关文档
 
 - [READING_BOUNDARIES.md](./READING_BOUNDARIES.md) — 产品边界 v1.3
-- [PHASE5_SCOPE.md](./PHASE5_SCOPE.md) — Phase 5 范围
 - [PHASE4_SCOPE.md](./PHASE4_SCOPE.md) — Phase 4 范围（已关闭）
 - [DOMAIN_MODEL.md](./DOMAIN_MODEL.md) — 领域模型
 - [TARGET_ARCHITECTURE.md](./TARGET_ARCHITECTURE.md) — 目标技术架构

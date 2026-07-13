@@ -9,14 +9,14 @@
 ## 一页纸
 
 | 项 | 内容 |
-|----|------|
+| ---- | ------ |
 | **一句话** | 离线手机/平板阅读器：休闲 + 学习（含双语），给爱读书的人。 |
 | **主格式** | **EPUB 第一**，TXT 第二 |
 | **默认模式** | scroll；pagination + pageTurn 皮肤为 Must |
 | **80%** | 进度/书签/笔记稳定 · 排版可调 · 搜索快 · **换章丝滑** |
 | **进度真理** | `chapterIndex` + `charOffset`（plainText）— [ADR-001](./adr/001-reading-position-truth.md) |
 | **技术分工** | Rust IR+块分页+缓存；Flutter 渲染+staging — [ADR-006](./adr/006-rust-flutter-division.md) |
-| **当前阶段** | **Phase 5 稳定性与工程化** — [PHASE5_SCOPE.md](./PHASE5_SCOPE.md) / [ROADMAP.md](./ROADMAP.md) |
+| **当前阶段** | **Phase 7 清理冗余代码** — [ROADMAP.md](./ROADMAP.md) |
 | **明确不做** | PDF 阅读、账号/多端同步、复杂 CSS、WebView 全引擎、章内搜索 UI |
 
 ---
@@ -32,7 +32,7 @@
 ### Must
 
 | 类别 | 内容 |
-|------|------|
+| ------ | ------ |
 | 阅读 | 目录、scroll、pagination、进度、书签、划线笔记 |
 | 排版 | 字体/字号/行距 |
 | EPUB scroll | 看图 + 基础样式 |
@@ -62,7 +62,7 @@
 ## 已接受 ADR（全部闭环）
 
 | ADR | 内容 |
-|-----|------|
+| ----- | ------ |
 | [001](./adr/001-reading-position-truth.md) | charOffset 进度 |
 | [002](./adr/002-pageturn-is-pagination-skin.md) | pageTurn 皮肤 |
 | [003](./adr/003-block-pagination-ir.md) | IR + 块分页看图 |
@@ -98,7 +98,7 @@
 ## 修订记录
 
 | 版本 | 日期 | 说明 |
-|------|------|------|
+| ------ | ------ | ------ |
 | v1.0 | 2026-06-18 | 第二轮冻结 |
 | v1.1 | 2026-06-18 | 第三轮闭环；Phase 0 完成 |
 | v1.2 | 2026-06-25 | Phase 4 范围；ADR-009～013；章内搜索降为 Won't |

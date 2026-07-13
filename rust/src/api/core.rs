@@ -24,14 +24,17 @@ pub async fn get_chapter_partial(
         .await
 }
 /// 获取指定章节的原始文本内容。
+///
+/// `_config` 参数保留以兼容 FRB 生成的代码；分页已迁移至 Flutter 侧，
+/// Rust 仅返回原始文本（`ChapterContent::Raw`）。
 #[frb]
 pub async fn get_chapter(
     file_path: String,
     chapter_index: i32,
-    config: Option<TypesetConfig>,
+    _config: Option<TypesetConfig>,
 ) -> Result<crate::api::types::ChapterContent, AppError> {
     ReadingOrchestrator::global()
-        .get_chapter(file_path, chapter_index, config)
+        .get_chapter(file_path, chapter_index)
         .await
 }
 /// 存储 Flutter 预计算的行断点（首屏 / scroll 预加载时填充）。

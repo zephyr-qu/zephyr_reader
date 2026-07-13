@@ -5,22 +5,15 @@
 //!
 //! 内部模块划分：
 //! - `provider_cache` — `PROVIDER_CACHE` LRU（章节内容 provider）
-//! - `pagination_store` — `PaginationStore` 全局 LRU（分页引擎缓存）
 //! - `layout_cache` — 持久化分页结果（sled KV）读写
 //! - `chapter_access` — 章节边界 + 格式识别 + 章节读取
 //! - `chapter_ir` — ContentBlock IR 加载
-//! - `block_state` — 块路径分页状态
 //! - `orchestrator` — `ReadingOrchestrator` 业务方法入口 + 全局单例
-//! - `types` — FRB-exposed types（`PaginationSessionHandle`（已弃用））
-pub mod block_state;
 pub mod chapter_access;
 pub mod chapter_ir;
 pub(crate) mod layout_cache;
 pub mod orchestrator;
-pub(crate) mod pagination_store;
 pub(crate) mod provider_cache;
-pub mod types;
-
 // ── book_id_cache (inlined) ──
 use parking_lot::Mutex;
 use std::num::NonZeroUsize;

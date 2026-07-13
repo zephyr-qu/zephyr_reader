@@ -283,9 +283,7 @@ impl BilingualAligner {
                             }
                         }
                     }
-                    if best_match
-                        .is_some_and(|_| (best_score - 1.0).abs() < f32::EPSILON)
-                    {
+                    if best_match.is_some_and(|_| (best_score - 1.0).abs() < f32::EPSILON) {
                         break;
                     }
                 }
@@ -361,7 +359,6 @@ pub fn align_bilingual_content(
     Ok(aligner.align(&chinese_content, &english_content))
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -432,16 +429,14 @@ mod tests {
         let s4 = "Hello Rust";
         let g3: Vec<&str> = UnicodeSegmentation::graphemes(s3, true).collect();
         let g4: Vec<&str> = UnicodeSegmentation::graphemes(s4, true).collect();
-        let sim = SimilarityCalculator::calculate_similarity_graphemes(&g3, &g4, g3.len(), g4.len());
+        let sim =
+            SimilarityCalculator::calculate_similarity_graphemes(&g3, &g4, g3.len(), g4.len());
         assert!(sim > 0.0 && sim < 1.0);
     }
 
     #[test]
     fn test_similarity_empty() {
-        assert_eq!(
-            SimilarityCalculator::calculate_similarity("", ""),
-            1.0
-        );
+        assert_eq!(SimilarityCalculator::calculate_similarity("", ""), 1.0);
         let g_empty: Vec<&str> = Vec::new();
         assert_eq!(
             SimilarityCalculator::calculate_similarity_graphemes(&g_empty, &g_empty, 0, 0),
@@ -473,7 +468,6 @@ mod tests {
         let result = align_bilingual_content(String::new(), String::new(), 0.3).unwrap();
         assert!(result.segments.is_empty());
     }
-
 
     #[test]
     fn test_levenshtein_graphemes() {

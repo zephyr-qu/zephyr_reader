@@ -8,13 +8,11 @@ pub mod import;
 pub mod types;
 pub mod dictionary;
 pub mod epub;
-pub mod phase2_ir;
 pub mod search;
 pub mod vocab_marker;
 
 // 导出各模块的结构体
 pub use bilingual::{AlignedSegment, BilingualAlignment};
-pub use types::ChapterContent;
 pub use import::parse_book;
 pub use epub::{EpubImageInfo, ImageFormat};
 

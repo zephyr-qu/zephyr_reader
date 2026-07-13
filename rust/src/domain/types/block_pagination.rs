@@ -81,20 +81,6 @@ impl BlockPageDescriptor {
     pub fn plain_end_exclusive(&self) -> u32 {
         self.plain.end_exclusive()
     }
-
-    /// 转为 Phase 1 [`super::pagination::PageDescriptor`]（过渡用；plain 字符索引写入 offset 字段）。
-    ///
-    /// M3 前仅用于桥接/测试；legacy 路径语义为字节 offset 时勿用于生产。
-    pub fn to_legacy_page_descriptor(&self) -> super::pagination::PageDescriptor {
-        super::pagination::PageDescriptor {
-            page_index: self.page_index,
-            start_offset: self.plain.plain_start as i32,
-            end_offset: self.plain_end_exclusive() as i32,
-            first_paragraph_index: self.first_block_index as i32,
-            last_paragraph_index: self.last_block_index.saturating_sub(1) as i32,
-            is_last_page: self.is_last_page,
-        }
-    }
 }
 
 /// 块分页结果（对标 [`super::pagination::PaginateResult`]）。
@@ -158,21 +144,6 @@ impl BlockPaginateResult {
         }
     }
 
-    pub fn to_legacy_paginate_result(
-        &self,
-        mode: super::pagination::ChapterPaginationMode,
-    ) -> super::pagination::PaginateResult {
-        super::pagination::PaginateResult {
-            descriptors: self
-                .descriptors
-                .iter()
-                .map(|d| d.to_legacy_page_descriptor())
-                .collect(),
-            config_hash: self.config_hash,
-            is_partial: self.is_partial,
-            mode,
-        }
-    }
 }
 
 /// 页内 Text 块切片（相对页 plain 范围裁剪后的 UTF-8 文本）。
@@ -238,16 +209,6 @@ mod tests {
             }]);
         assert_eq!(d.image_layouts.len(), 1);
         assert_eq!(d.image_layouts[0].layout, ImageBlockLayout::FullPage);
-    }
-
-    #[test]
-    fn legacy_bridge_maps_plain_char_to_offset_fields() {
-        let d = BlockPageDescriptor::new(0, 2, 5, BlockPlainRange::new(100, 50), true);
-        let legacy = d.to_legacy_page_descriptor();
-        assert_eq!(legacy.start_offset, 100);
-        assert_eq!(legacy.end_offset, 150);
-        assert_eq!(legacy.first_paragraph_index, 2);
-        assert_eq!(legacy.last_paragraph_index, 4);
     }
 
     #[test]

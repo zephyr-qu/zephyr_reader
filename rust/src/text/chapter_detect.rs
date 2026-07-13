@@ -63,7 +63,14 @@ fn extract_chapters_with_pattern(
             // chapter lookups for progress, bookmarks, notes, and sessions.
             let chapter_index = chapters.len() as i32;
 
-            chapters.push(Chapter::new(book_id, &title, chapter_index as i64, 0, start, content_len));
+            chapters.push(Chapter::new(
+                book_id,
+                &title,
+                chapter_index as i64,
+                0,
+                start,
+                content_len,
+            ));
         }
     }
 
@@ -117,5 +124,4 @@ This is chapter 2.
         assert!(chapters[0].title.starts_with("Chapter 1"));
         assert_eq!(chapters[0].book_id, "test_book");
     }
-
 }

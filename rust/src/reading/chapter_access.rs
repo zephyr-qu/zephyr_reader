@@ -6,20 +6,16 @@
 //!
 //! P1: `get_chapter(config)` 改走 block 路径（IR → BlockPaginator）。
 
-use crate::domain::{AppError, TypesetConfig};
+use crate::domain::AppError;
 use crate::parser::registry;
 use crate::storage::models::BookFormat;
 use crate::storage::repos::{BookRepository, ChapterRepository};
 use crate::storage::storage_pool;
 
 use super::BOOK_ID_CACHE;
-use crate::api::types::{ChapterContent, FirstSpineResult};
-use crate::domain::PageContent;
-use crate::reading::block_state::BlockPaginationState;
-use crate::reading::chapter_ir::load_chapter_content_ir;
-use crate::reading::layout_cache::{try_get_block_cached, try_save_block_cached};
+use crate::api::types::FirstSpineResult;
 use crate::reading::provider_cache::get_or_create_provider;
-use crate::text::block_paginator::paginate_chapter_ir_chunked;
+
 use crate::utils::security::validate_file_path;
 
 /// 从文件路径推断格式
@@ -96,16 +92,7 @@ pub async fn get_chapter_bounds(
     Ok((chapter.start_index as i32, chapter.end_index as i32))
 }
 
-/// 构造 Pages 变体，当页数 > 100 时记录警告（防止偶发大章节 FFI 序列化瓶颈）
-fn chapter_content_pages(pages: Vec<PageContent>) -> ChapterContent {
-    if pages.len() > 100 {
-        tracing::warn!(
-            "ChapterContent::Pages has {} pages (>100), potential FFI serialization bottleneck",
-            pages.len()
-        );
-    }
-    ChapterContent::Pages(pages)
-}
+
 
 /// 快速获取章节首段文本（仅读第一个 spine，不做分页）。
 ///
@@ -211,81 +198,26 @@ pub(crate) async fn get_chapter_partial(
 }
 
 /// 获取指定章节的原始文本内容。
-///
-/// 返回章节全文的字符串，适用于无需分页的场景。
 pub(crate) async fn get_chapter(
     file_path: String,
     chapter_index: i32,
-    config: Option<TypesetConfig>,
-) -> Result<ChapterContent, AppError> {
+) -> Result<String, AppError> {
     let validated_path = validate_file_path(&file_path)?;
     let format = format_from_file_path(&validated_path)?;
 
-    // 支持分块格式走 Provider 路径
     if matches!(format, BookFormat::Txt | BookFormat::Epub) {
         let provider = get_or_create_provider(&validated_path, chapter_index, &format).await?;
         let content_len = provider.content_length();
 
         let text = if format == BookFormat::Epub {
-            // EPUB provider is already scoped to the chapter's spine
-            // bounds by `open_from_bounds`; `content_length` is the
-            // total byte length across those spines.  Read from 0 so
-            // we don't accidentally treat spine indices as byte offsets.
             provider.read_text_range(0, content_len)?
         } else {
-            // TXT: chapter bounds are byte offsets in the file.
             let (cs, ce) = get_chapter_bounds(&validated_path, chapter_index).await?;
             let start = cs.max(0) as u64;
             let end = (ce.max(0) as u64).min(content_len);
             provider.read_text_range(start, end)?
         };
-        match config {
-            Some(cfg) => {
-                let cfg = cfg.validate_and_fix();
-                let config_hash = cfg.config_hash();
-
-                // P1: 查 block sled 缓存（唯一真理源）
-                if let Some((ir, block_result)) =
-                    try_get_block_cached(&validated_path, chapter_index, None, config_hash).await
-                {
-                    let state = BlockPaginationState::new(ir, block_result, false, cfg.clone());
-                    return Ok(chapter_content_pages(
-                        state.to_page_content_list(chapter_index),
-                    ));
-                }
-
-                // Cache miss: load IR and paginate via BlockPaginator
-                let ir = load_chapter_content_ir(&validated_path, chapter_index).await?;
-                let ir_for_paginate = ir.clone();
-                let cfg_for_paginate = cfg.clone();
-                let block_result = tokio::task::spawn_blocking(move || {
-                    paginate_chapter_ir_chunked(&ir_for_paginate, cfg_for_paginate)
-                })
-                .await
-                .map_err(|e| AppError::TaskPanic {
-                    task_name: "block_paginate_chapter".into(),
-                    details: e.to_string(),
-                })?;
-
-                let state =
-                    BlockPaginationState::new(ir.clone(), block_result.clone(), false, cfg.clone());
-                let pages = state.to_page_content_list(chapter_index);
-
-                // Save to block sled cache
-                try_save_block_cached(
-                    &validated_path,
-                    chapter_index,
-                    None,
-                    config_hash,
-                    ir,
-                    block_result,
-                )
-                .await;
-
-                Ok(chapter_content_pages(pages))
-            }
-            None => Ok(ChapterContent::Raw(text)),
-        }
+        Ok(text)
     } else {
         Err(AppError::UnsupportedFormat {
             format: format!("unsupported format for chapter read: {:?}", format),

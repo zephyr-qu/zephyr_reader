@@ -86,8 +86,8 @@ abstract class ReaderRepositoryInterface {
   /// 当前章书籍文件路径。
   String? get currentChapterFilePath;
 
-  /// 页面描述符列表（轻量级）。
-  List<PageDescriptor>? get descriptors;
+  /// 页面列表（Flutter 装箱产出）。
+  List<PackedPage>? get descriptors;
 
   /// 预加载生成计数器。
   ValueNotifier<int> get preloadGeneration;
