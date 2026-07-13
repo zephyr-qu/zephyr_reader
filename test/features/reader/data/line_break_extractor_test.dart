@@ -189,7 +189,6 @@ void main() {
       final linesPerPage = (pageHeightPx / lineHeightPx).floor();
       final pages = <({int start, int end, bool isLast})>[];
       var lineIdx = 0;
-      var pageIdx = 0;
 
       while (lineIdx < indices.length) {
         final pageEndLine = (lineIdx + linesPerPage).clamp(0, indices.length);
@@ -199,7 +198,6 @@ void main() {
 
         pages.add((start: startChar, end: endChar, isLast: isLast));
         lineIdx = pageEndLine;
-        pageIdx++;
       }
 
       if (pages.isEmpty) {

@@ -3,7 +3,9 @@
 //! 测试 AppError、TypesetConfig、RichParagraph、RichTextSpan 等领域类型
 //! 无需外部依赖，纯函数测试
 
-use rust_lib_zephyr_reader::domain::types::rich_text::{RichParagraph, RichTextSpan, RichTextSpanData, SpanStyle};
+use rust_lib_zephyr_reader::domain::types::rich_text::{
+    RichParagraph, RichTextSpan, RichTextSpanData, SpanStyle,
+};
 use rust_lib_zephyr_reader::domain::types::typeset::{LanguageType, TypesetConfig};
 use rust_lib_zephyr_reader::domain::AppError;
 
@@ -27,20 +29,109 @@ fn test_apperror_display() {
         }
     }
 
-    check(AppError::FileNotFound { path: "/test/path".into() },           "FileNotFound",       &["File not found", "/test/path"]);
-    check(AppError::FileReadError { path: "/path".into(), details: "denied".into() }, "FileReadError", &["File read error", "/path", "denied"]);
-    check(AppError::FileWriteError { path: "/out".into(), details: "full".into() },   "FileWriteError", &["File write error", "/out", "full"]);
-    check(AppError::UnsupportedFormat { format: "docx".into() },          "UnsupportedFormat",  &["docx", "Unsupported file format"]);
-    check(AppError::EpubParseError { reason: "missing container.xml".into() },         "EpubParseError",  &["EPUB parse error", "missing container.xml"]);
-    check(AppError::ChapterExtractError { index: 3, reason: "toc not found".into() },   "ChapterExtractError", &["Chapter 3", "toc not found"]);
-    check(AppError::TypesetConfigError { reason: "font size out of range".into() },     "TypesetConfigError",  &["config error", "font size out of range"]);
-    check(AppError::DatabaseError { reason: "connection timeout".into() },              "DatabaseError",       &["Database error", "connection timeout"]);
-    check(AppError::NotFound { entity: "Book".into() },                   "NotFound",           &["Resource not found", "Book"]);
-    check(AppError::SearchError { reason: "index not ready".into() },     "SearchError",        &["Search error", "index not ready"]);
-    check(AppError::SecurityError { reason: "traversal".into(), path: "/etc/passwd".into() }, "SecurityError", &["Security error", "traversal", "/etc/passwd"]);
-    check(AppError::InvalidInput { reason: "empty title".into() },        "InvalidInput",       &["Invalid input", "empty title"]);
-    check(AppError::InternalError { reason: "null ptr".into() },           "InternalError",     &["Internal error", "null ptr"]);
-    check(AppError::TaskPanic { task_name: "parser".into(), details: "overflow".into() }, "TaskPanic", &["Task panic", "parser", "overflow"]);
+    check(
+        AppError::FileNotFound {
+            path: "/test/path".into(),
+        },
+        "FileNotFound",
+        &["File not found", "/test/path"],
+    );
+    check(
+        AppError::FileReadError {
+            path: "/path".into(),
+            details: "denied".into(),
+        },
+        "FileReadError",
+        &["File read error", "/path", "denied"],
+    );
+    check(
+        AppError::FileWriteError {
+            path: "/out".into(),
+            details: "full".into(),
+        },
+        "FileWriteError",
+        &["File write error", "/out", "full"],
+    );
+    check(
+        AppError::UnsupportedFormat {
+            format: "docx".into(),
+        },
+        "UnsupportedFormat",
+        &["docx", "Unsupported file format"],
+    );
+    check(
+        AppError::EpubParseError {
+            reason: "missing container.xml".into(),
+        },
+        "EpubParseError",
+        &["EPUB parse error", "missing container.xml"],
+    );
+    check(
+        AppError::ChapterExtractError {
+            index: 3,
+            reason: "toc not found".into(),
+        },
+        "ChapterExtractError",
+        &["Chapter 3", "toc not found"],
+    );
+    check(
+        AppError::TypesetConfigError {
+            reason: "font size out of range".into(),
+        },
+        "TypesetConfigError",
+        &["config error", "font size out of range"],
+    );
+    check(
+        AppError::DatabaseError {
+            reason: "connection timeout".into(),
+        },
+        "DatabaseError",
+        &["Database error", "connection timeout"],
+    );
+    check(
+        AppError::NotFound {
+            entity: "Book".into(),
+        },
+        "NotFound",
+        &["Resource not found", "Book"],
+    );
+    check(
+        AppError::SearchError {
+            reason: "index not ready".into(),
+        },
+        "SearchError",
+        &["Search error", "index not ready"],
+    );
+    check(
+        AppError::SecurityError {
+            reason: "traversal".into(),
+            path: "/etc/passwd".into(),
+        },
+        "SecurityError",
+        &["Security error", "traversal", "/etc/passwd"],
+    );
+    check(
+        AppError::InvalidInput {
+            reason: "empty title".into(),
+        },
+        "InvalidInput",
+        &["Invalid input", "empty title"],
+    );
+    check(
+        AppError::InternalError {
+            reason: "null ptr".into(),
+        },
+        "InternalError",
+        &["Internal error", "null ptr"],
+    );
+    check(
+        AppError::TaskPanic {
+            task_name: "parser".into(),
+            details: "overflow".into(),
+        },
+        "TaskPanic",
+        &["Task panic", "parser", "overflow"],
+    );
 }
 
 #[test]
@@ -58,7 +149,9 @@ fn test_apperror_other() {
 
 #[test]
 fn test_apperror_debug_and_display() {
-    let err = AppError::InvalidInput { reason: "bad value".into() };
+    let err = AppError::InvalidInput {
+        reason: "bad value".into(),
+    };
     let debug = format!("{err:?}");
     let display = format!("{err}");
     assert_ne!(debug, display, "Debug and Display output should differ");
@@ -276,60 +369,33 @@ fn test_rich_paragraph_image_placeholder() {
 
 #[test]
 fn test_rich_text_span_text() {
-    let span = RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
-        text: "plain".into(),
-        font_size: None,
-        color: None,
-    });
+    let span = RichTextSpan::Styled(
+        SpanStyle::Plain,
+        RichTextSpanData {
+            text: "plain".into(),
+        },
+    );
     assert_eq!(span.text(), "plain");
 
-    let span = RichTextSpan::Styled(SpanStyle::Bold, RichTextSpanData {
-        text: "bold".into(),
-        font_size: None,
-        color: None,
-    });
+    let span = RichTextSpan::Styled(
+        SpanStyle::Bold,
+        RichTextSpanData {
+            text: "bold".into(),
+        },
+    );
     assert_eq!(span.text(), "bold");
 
-    let span = RichTextSpan::Styled(SpanStyle::Italic, RichTextSpanData {
-        text: "italic".into(),
-        font_size: None,
-        color: None,
-    });
+    let span = RichTextSpan::Styled(
+        SpanStyle::Italic,
+        RichTextSpanData {
+            text: "italic".into(),
+        },
+    );
     assert_eq!(span.text(), "italic");
-
-    let span = RichTextSpan::Styled(SpanStyle::BoldItalic, RichTextSpanData {
-        text: "bolditalic".into(),
-        font_size: None,
-        color: None,
-    });
-    assert_eq!(span.text(), "bolditalic");
-
-    let span = RichTextSpan::Styled(SpanStyle::Underline, RichTextSpanData {
-        text: "underline".into(),
-        font_size: None,
-        color: None,
-    });
-    assert_eq!(span.text(), "underline");
-
-    let span = RichTextSpan::Styled(SpanStyle::Strikethrough, RichTextSpanData {
-        text: "strike".into(),
-        font_size: None,
-        color: None,
-    });
-    assert_eq!(span.text(), "strike");
-
-    let span = RichTextSpan::Styled(SpanStyle::Code, RichTextSpanData {
-        text: "code".into(),
-        font_size: None,
-        color: None,
-    });
-    assert_eq!(span.text(), "code");
 
     let span = RichTextSpan::Link {
         data: RichTextSpanData {
             text: "click me".into(),
-            font_size: None,
-            color: None,
         },
         url: "https://example.com".into(),
     };
@@ -338,101 +404,9 @@ fn test_rich_text_span_text() {
 
 #[test]
 fn test_rich_text_span_is_plain() {
-    let plain = RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
-        text: "x".into(),
-        font_size: None,
-        color: None,
-    });
+    let plain = RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData { text: "x".into() });
     assert!(plain.is_plain());
 
-    let bold = RichTextSpan::Styled(SpanStyle::Bold, RichTextSpanData {
-        text: "x".into(),
-        font_size: None,
-        color: None,
-    });
+    let bold = RichTextSpan::Styled(SpanStyle::Bold, RichTextSpanData { text: "x".into() });
     assert!(!bold.is_plain());
-}
-
-#[test]
-fn test_rich_text_span_with_css() {
-    let span = RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
-        text: "styled".into(),
-        font_size: None,
-        color: None,
-    });
-    let styled = span.with_css(Some(20.0), Some("#ff0000".into()));
-    assert_eq!(styled.font_size(), Some(20.0));
-    let dbg = format!("{styled:?}");
-    assert!(
-        dbg.contains("#ff0000"),
-        "color should be set in debug output"
-    );
-}
-
-#[test]
-fn test_rich_text_span_font_size() {
-    let mut span = RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
-        text: "resize".into(),
-        font_size: Some(14.0),
-        color: None,
-    });
-    assert_eq!(span.font_size(), Some(14.0));
-
-    span.set_font_size(Some(18.0));
-    assert_eq!(span.font_size(), Some(18.0));
-
-    span.set_font_size(None);
-    assert_eq!(span.font_size(), None);
-}
-
-#[test]
-fn test_rich_text_span_font_size_all_variants() {
-    let variants: [RichTextSpan; 8] = [
-        RichTextSpan::Styled(SpanStyle::Plain, RichTextSpanData {
-            text: "p".into(),
-            font_size: Some(10.0),
-            color: None,
-        }),
-        RichTextSpan::Styled(SpanStyle::Bold, RichTextSpanData {
-            text: "b".into(),
-            font_size: Some(10.0),
-            color: None,
-        }),
-        RichTextSpan::Styled(SpanStyle::Italic, RichTextSpanData {
-            text: "i".into(),
-            font_size: Some(10.0),
-            color: None,
-        }),
-        RichTextSpan::Styled(SpanStyle::BoldItalic, RichTextSpanData {
-            text: "bi".into(),
-            font_size: Some(10.0),
-            color: None,
-        }),
-        RichTextSpan::Styled(SpanStyle::Underline, RichTextSpanData {
-            text: "u".into(),
-            font_size: Some(10.0),
-            color: None,
-        }),
-        RichTextSpan::Styled(SpanStyle::Strikethrough, RichTextSpanData {
-            text: "s".into(),
-            font_size: Some(10.0),
-            color: None,
-        }),
-        RichTextSpan::Styled(SpanStyle::Code, RichTextSpanData {
-            text: "c".into(),
-            font_size: Some(10.0),
-            color: None,
-        }),
-        RichTextSpan::Link {
-            data: RichTextSpanData {
-                text: "l".into(),
-                font_size: Some(10.0),
-                color: None,
-            },
-            url: "http://x.com".into(),
-        },
-    ];
-    for v in &variants {
-        assert_eq!(v.font_size(), Some(10.0));
-    }
 }
