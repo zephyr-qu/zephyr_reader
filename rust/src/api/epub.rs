@@ -1,7 +1,7 @@
 //! EPUB 相关 API
 //!
 //! 提供 EPUB 特有的功能，如富文本章节解析。
-//! 通用解析功能请使用 core::parse_book。
+//! 通用解析功能请使用 reader::parse_book。
 
 use crate::domain::{AppError, EpubMetadata, RichParagraph, TypesetConfig};
 use crate::utils::security::validate_file_path;

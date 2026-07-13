@@ -13,53 +13,6 @@ import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 /// 主断行已用满页宽；此值主要用于诊断估算与缺省校准。
 const kDefaultEffectiveLineWidthRatio = 1.0;
 
-/// Flutter 侧排版指纹（传递到 Rust 前转换为 FRB [TypesetCalibration]）。
-class CalibrationData {
-  final double dpr;
-  final double cjkWidth;
-  final double asciiWidth;
-  final double digitWidth;
-  final double punctWidth;
-  final double latinExtWidth;
-  final double otherWidth;
-
-  /// 有效行宽 / 可用行宽（逻辑 dp 维度，无量纲）。
-  final double effectiveLineWidthRatio;
-
-  /// TextPainter + StrutStyle 实测单行高度（逻辑 dp）。
-  final double lineHeightDp;
-
-  const CalibrationData({
-    required this.dpr,
-    required this.cjkWidth,
-    required this.asciiWidth,
-    required this.digitWidth,
-    required this.punctWidth,
-    required this.latinExtWidth,
-    required this.otherWidth,
-    required this.effectiveLineWidthRatio,
-    required this.lineHeightDp,
-  });
-}
-
-CalibrationData defaultCalibrationData({
-  required double fontSize,
-  required double devicePixelRatio,
-  double lineHeight = 1.5,
-}) {
-  return CalibrationData(
-    dpr: devicePixelRatio,
-    cjkWidth: fontSize,
-    asciiWidth: fontSize * 0.6,
-    digitWidth: fontSize * 0.6,
-    punctWidth: fontSize,
-    latinExtWidth: fontSize * 0.7,
-    otherWidth: fontSize * 0.8,
-    effectiveLineWidthRatio: kDefaultEffectiveLineWidthRatio,
-    lineHeightDp: fontSize * lineHeight,
-  );
-}
-
 double estimateRustMaxLineWidthPx({
   required int pageWidthPx,
   required int fontSizePx,
@@ -257,21 +210,6 @@ int estimateRustLinesForText({
   );
 }
 
-TypesetCalibration calibrationToRust(CalibrationData data) {
-  final dpr = data.dpr;
-  return TypesetCalibration(
-    dpr: dpr,
-    cjkWidth: data.cjkWidth * dpr,
-    asciiWidth: data.asciiWidth * dpr,
-    digitWidth: data.digitWidth * dpr,
-    punctWidth: data.punctWidth * dpr,
-    otherWidth: data.otherWidth * dpr,
-    latinExtWidth: data.latinExtWidth * dpr,
-    effectiveLineWidthRatio: data.effectiveLineWidthRatio,
-    measuredLineHeightPx: data.lineHeightDp * dpr,
-  );
-}
-
 ({double contentVerticalPadding, double pageHeightLineBuffer})
 paginatedTypesetLayoutInsets({
   required double fontSize,
@@ -301,22 +239,32 @@ TypesetConfig buildTypesetConfig({
   double devicePixelRatio = 1.0,
   double autoSpaceRatio = 0.25,
   int firstLineIndent = 2,
-  CalibrationData? calibration,
   String fontFamily = 'Noto Sans SC',
   double letterSpacing = 0,
   double paragraphSpacing = 16,
   bool punctuationSqueeze = true,
   LanguageType language = LanguageType.auto,
 }) {
-  final effectiveCalibration =
-      calibration ??
-      defaultCalibrationData(
-        fontSize: fontSize,
-        devicePixelRatio: devicePixelRatio,
-        lineHeight: lineHeight,
-      );
-  final rustCalibration = calibrationToRust(effectiveCalibration);
-  final calibSource = calibration != null ? 'measured' : 'default';
+  // 默认校准值（校准环已移除；Rust 排版引擎通过此项获取参考字宽）。
+  final calCjkWidth = fontSize;
+  final calAsciiWidth = fontSize * 0.6;
+  final calDigitWidth = calAsciiWidth;
+  final calPunctWidth = fontSize;
+  final calLatinExtWidth = fontSize * 0.7;
+  final calOtherWidth = fontSize * 0.8;
+  final calLineHeightDp = fontSize * lineHeight;
+
+  final rustCalibration = TypesetCalibration(
+    dpr: devicePixelRatio,
+    cjkWidth: calCjkWidth * devicePixelRatio,
+    asciiWidth: calAsciiWidth * devicePixelRatio,
+    digitWidth: calDigitWidth * devicePixelRatio,
+    punctWidth: calPunctWidth * devicePixelRatio,
+    otherWidth: calOtherWidth * devicePixelRatio,
+    latinExtWidth: calLatinExtWidth * devicePixelRatio,
+    effectiveLineWidthRatio: 1.0,
+    measuredLineHeightPx: calLineHeightDp * devicePixelRatio,
+  );
 
   final contentHeight =
       (height - 2 * contentVerticalPadding - pageHeightLineBuffer).clamp(
@@ -325,7 +273,7 @@ TypesetConfig buildTypesetConfig({
       );
   final pageHeightPx = (contentHeight * devicePixelRatio).round();
   final pageWidthPx = ((width - 2 * padding) * devicePixelRatio).round();
-  final lineHeightPx = effectiveCalibration.lineHeightDp * devicePixelRatio;
+  final lineHeightPx = calLineHeightDp * devicePixelRatio;
   final estLines = pageHeightPx > 0 && lineHeightPx > 0
       ? pageHeightPx / lineHeightPx
       : 0;
@@ -339,11 +287,11 @@ TypesetConfig buildTypesetConfig({
     ' pageWidth=$pageWidthPx px'
     ' fontSize=${fontSize.toStringAsFixed(1)} dp'
     ' lineH=${lineHeightPx.toStringAsFixed(1)}px'
-    ' ratio=${effectiveCalibration.effectiveLineWidthRatio.toStringAsFixed(3)}'
+    ' ratio=1.000'
     ' estLinesPerPage=${estLines.toStringAsFixed(1)}',
   );
   Logging.info(
-    '[PageEstimate] calib($calibSource) cjk=${rustCalibration.cjkWidth.toStringAsFixed(1)}'
+    '[PageEstimate] calib(default) cjk=${rustCalibration.cjkWidth.toStringAsFixed(1)}'
     ' ascii=${rustCalibration.asciiWidth.toStringAsFixed(1)}'
     ' punct=${rustCalibration.punctWidth.toStringAsFixed(1)}'
     ' dpr=${rustCalibration.dpr.toStringAsFixed(1)}'

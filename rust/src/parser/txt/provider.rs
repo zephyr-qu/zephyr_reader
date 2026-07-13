@@ -41,26 +41,35 @@ impl TxtContentProvider {
     /// 2. 编码检测（仅前 4KB）
     /// 3. 根据编码构建切片策略
     pub fn open(file_path: &str) -> Result<Self, AppError> {
-        let file = File::open(file_path)
-            .map_err(|e| AppError::FileReadError { path: file_path.into(), details: e.to_string() })?;
+        let file = File::open(file_path).map_err(|e| AppError::FileReadError {
+            path: file_path.into(),
+            details: e.to_string(),
+        })?;
 
-        let metadata = file
-            .metadata()
-            .map_err(|e| AppError::FileReadError { path: file_path.into(), details: e.to_string() })?;
+        let metadata = file.metadata().map_err(|e| AppError::FileReadError {
+            path: file_path.into(),
+            details: e.to_string(),
+        })?;
 
         let file_len = metadata.len();
         if file_len > MMAP_MAX_SIZE {
-            return Err(AppError::FileReadError { path: file_path.into(), details: format!(
-                "file too large ({}MB), exceeds limit {}MB",
-                file_len / 1024 / 1024,
-                MMAP_MAX_SIZE / 1024 / 1024
-            ) });
+            return Err(AppError::FileReadError {
+                path: file_path.into(),
+                details: format!(
+                    "file too large ({}MB), exceeds limit {}MB",
+                    file_len / 1024 / 1024,
+                    MMAP_MAX_SIZE / 1024 / 1024
+                ),
+            });
         }
         // SAFETY: 文件以只读方式打开（File::open），映射为只读 Mmap；
         // 文件在映射生命周期内不会被写入或截断（调用方保证）。
         // memmap2 在 Drop 时自动解除映射。
         let mmap = unsafe {
-            Mmap::map(&file).map_err(|e| AppError::FileReadError { path: file_path.into(), details: e.to_string() })?
+            Mmap::map(&file).map_err(|e| AppError::FileReadError {
+                path: file_path.into(),
+                details: e.to_string(),
+            })?
         };
         if mmap.is_empty() {
             return Ok(Self {
@@ -220,9 +229,5 @@ impl ChapterContentProvider for TxtContentProvider {
 
     fn format(&self) -> BookFormat {
         BookFormat::Txt
-    }
-
-    fn supports_chunked_pagination(&self) -> bool {
-        true
     }
 }

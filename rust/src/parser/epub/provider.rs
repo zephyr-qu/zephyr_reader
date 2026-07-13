@@ -225,9 +225,6 @@ impl ChapterContentProvider for EpubContentProvider {
         BookFormat::Epub
     }
 
-    fn supports_chunked_pagination(&self) -> bool {
-        true
-    }
     fn read_html_range(&self, _start: u64, _end: u64) -> Option<Result<String, AppError>> {
         Some((|| {
             let mut html = String::new();

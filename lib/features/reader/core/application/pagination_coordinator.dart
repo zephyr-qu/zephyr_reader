@@ -1,15 +1,13 @@
 import 'package:flutter/painting.dart' show TextStyle;
-import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
-import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
-import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
-
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
-import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
-import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
-import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
+import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
+import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
+import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
+import 'package:zephyr_reader/src/rust/api/reader.dart' as reader_api;
 
 /// 分页排版协调器：构建参数、局部分页、全量分页及 Dart 回退。
 class PaginationCoordinator {
@@ -61,32 +59,24 @@ class PaginationCoordinator {
   }
 
   /// 计算当前排版配置的哈希值，用于检测配置变更。
-  /// 与 Rust 侧 `TypesetConfig::config_hash()` 算法一致。
-  /// 返回 BigInt（Rust u64 → Dart BigInt），不做截断。
+  /// Dart 侧直接计算（分页已迁 Flutter，不再依赖 Rust TypesetConfig）。
   BigInt computeConfigHash() {
     final p = buildPaginationParams();
-    final layoutInsets = paginatedTypesetLayoutInsets(
-      fontSize: p.fontSize,
-      lineHeight: p.lineHeight,
-      paragraphSpacing: p.paragraphSpacing,
-    );
-    return core_api.computeConfigHash(
-      config: buildTypesetConfig(
-        width: p.width,
-        height: p.height,
-        fontSize: p.fontSize,
-        lineHeight: p.lineHeight,
-        padding: p.padding,
-        contentVerticalPadding: layoutInsets.contentVerticalPadding,
-        pageHeightLineBuffer: layoutInsets.pageHeightLineBuffer,
-        devicePixelRatio: p.devicePixelRatio,
-        fontFamily: p.fontFamily,
-        letterSpacing: p.letterSpacing,
-        paragraphSpacing: p.paragraphSpacing,
-        punctuationSqueeze: p.punctuationSqueeze,
-        firstLineIndent: p.firstLineIndent ? 2 : 0,
-        language: p.language,
-        autoSpaceRatio: p.autoSpaceRatio,
+    return BigInt.from(
+      Object.hash(
+        p.width,
+        p.height,
+        p.fontSize,
+        p.lineHeight,
+        p.padding,
+        p.devicePixelRatio,
+        p.fontFamily,
+        p.letterSpacing,
+        p.paragraphSpacing,
+        p.punctuationSqueeze,
+        p.firstLineIndent,
+        p.language,
+        p.autoSpaceRatio,
       ),
     );
   }
@@ -214,7 +204,7 @@ class PaginationCoordinator {
 
       // 与分页主路径同源 IR（不依赖 scroll 是否已缓存 chapterIr）
       try {
-        final ir = await core_api.getChapterContentIr(
+        final ir = await reader_api.getChapterContentIr(
           bookId: _chapterVM.bookId.value,
           chapterIndex: _chapterVM.chapterIndex.value,
         );
@@ -264,7 +254,7 @@ class PaginationCoordinator {
 
       if (indices.isEmpty) return;
 
-      core_api.storeLineBreaks(
+      reader_api.storeLineBreaks(
         bookId: _chapterVM.bookId.value,
         chapterIndex: _chapterVM.chapterIndex.value,
         configHash: configHash,

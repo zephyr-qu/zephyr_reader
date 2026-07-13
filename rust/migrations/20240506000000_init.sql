@@ -47,6 +47,8 @@ CREATE TABLE IF NOT EXISTS chapters (
     chapter_index   INTEGER NOT NULL,
     cached_at       INTEGER NOT NULL,
     level           INTEGER NOT NULL DEFAULT 0,
+    start_index     INTEGER NOT NULL DEFAULT 0,
+    end_index       INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE
 );
 

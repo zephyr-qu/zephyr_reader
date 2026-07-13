@@ -28,7 +28,6 @@ Widget buildBlockPageContent({
   required void Function(String text, int start, int end)? onSelectionChanged,
   required void Function(Offset?)? onSelectionGlobalPosition,
   required double maxContentWidth,
-  CalibrationData? layoutCalibration,
 }) {
   final vPad = ReaderRenderConfig.pageContentVerticalPadding;
   final imageMaxWidth = (maxContentWidth - 2 * config.pageMargin).clamp(
@@ -69,12 +68,7 @@ Widget buildBlockPageContent({
           final flutCjkPx = flutCjkDp * dpr;
           final pageWidthPx = (constraints.maxWidth * dpr).round();
           final fontSizePx = (config.fontSize * dpr).round();
-          final ratio =
-              layoutCalibration?.effectiveLineWidthRatio ??
-              kDefaultEffectiveLineWidthRatio;
-          final cjkWidthPx = layoutCalibration != null
-              ? layoutCalibration.cjkWidth * dpr
-              : flutCjkPx * 1.0;
+          final cjkWidthPx = flutCjkPx * 1.0;
           final rustEstCharsPerLine = estimateRustCharsPerLine(
             cjkWidthPx: cjkWidthPx,
             pageWidthPx: pageWidthPx,
@@ -88,7 +82,7 @@ Widget buildBlockPageContent({
             ' fontSize=${config.fontSize}dp'
             ' lineH=${config.lineHeight}'
             ' pageW_px=$pageWidthPx'
-            ' ratio=${ratio.toStringAsFixed(3)}'
+            ' ratio=1.000'
             ' packRatio=1.000'
             ' estCharsPerLine=${rustEstCharsPerLine.toStringAsFixed(1)}'
             ' viewportW=${constraints.maxWidth.toStringAsFixed(1)}dp',
@@ -149,21 +143,6 @@ Widget buildBlockPageContent({
                 pageWidthPx: pageWidthPx,
                 fontSizePx: fontSizePx,
                 effectiveLineWidthRatio: 1.0,
-                asciiWidthPx: layoutCalibration != null
-                    ? layoutCalibration.asciiWidth * dpr
-                    : null,
-                digitWidthPx: layoutCalibration != null
-                    ? layoutCalibration.digitWidth * dpr
-                    : null,
-                punctWidthPx: layoutCalibration != null
-                    ? layoutCalibration.punctWidth * dpr
-                    : null,
-                latinExtWidthPx: layoutCalibration != null
-                    ? layoutCalibration.latinExtWidth * dpr
-                    : null,
-                otherWidthPx: layoutCalibration != null
-                    ? layoutCalibration.otherWidth * dpr
-                    : null,
               );
               textHeightDp += measured.height;
               spacingHeightDp += blockPadding.vertical;
@@ -182,8 +161,7 @@ Widget buildBlockPageContent({
             0.0,
             double.infinity,
           );
-          final flutLineH =
-              layoutCalibration?.lineHeightDp ?? config.textRowHeight;
+          final flutLineH = config.textRowHeight;
           final rustLineH = flutLineH;
           // rustPageHeightBudgetDp：渲染层无法直接读 TypesetConfig.pageHeight，
           // 传 null；pageHeightPadding 归因依赖日志中的 [PageEstimate] 对照，
@@ -207,7 +185,7 @@ Widget buildBlockPageContent({
             ' spacingH=${spacingHeightDp.toStringAsFixed(1)}'
             ' overflow=${overflowDp.toStringAsFixed(1)}dp'
             ' charsPerLine=${rustEstCharsPerLine.toStringAsFixed(1)}'
-            ' ratio=${ratio.toStringAsFixed(3)}'
+            ' ratio=1.000'
             ' lineH_dp=${config.textRowHeight.toStringAsFixed(1)}'
             ' blocks=${blocks.length}',
           );
@@ -526,4 +504,3 @@ class _ContentMeasurerState extends State<_ContentMeasurer> {
     return widget.child;
   }
 }
-

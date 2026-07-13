@@ -340,7 +340,7 @@ void main() {
       'I_phase6: storeLineBreaks handles non-empty text without crashing',
       () async {
         final coordinator = PaginationCoordinator(repo, config, chapterVM);
-        // In unit tests, core_api.storeLineBreaks will fail with
+        // In unit tests, reader_api.storeLineBreaks will fail with
         // "flutter_rust_bridge has not been initialized" — this is
         // caught by the try/catch inside storeLineBreaks.
         // The test validates the method doesn't throw externally.

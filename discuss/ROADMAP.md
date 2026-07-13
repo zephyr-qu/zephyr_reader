@@ -4,6 +4,7 @@
 > **Phase 6** 已关闭 ✅（Flutter 分页迁移）
 > **Phase 5** 已关闭 ✅（稳定性与工程化）
 > **上一阶段**：Phase 6 Flutter 分页迁移
+> **下一阶段**：Phase 8 滚动模式 Flutter 化
 
 ---
 
@@ -101,6 +102,48 @@ Phase 7 代码清理完成后，此阶段各项已自然完成。
 | 5-7 | Orchestrator/Coordinator/Session 测试补齐 | ✅ |
 | 5-11 | BookStatus 默认值 + 废弃函数清理 | ✅ |
 | 5-0 | 真机签退（收尾） | ✅ |
+
+---
+
+---
+
+## Phase 6 — Flutter 分页迁移 ✅ 已完成
+
+**目标**：将分页管线从 Rust 完全迁移到 Flutter 侧，消除对 Rust `paginate_chapter` 的依赖。
+
+| # | 项 | 状态 |
+| --- | ----- | ------ |
+| 6.1 | Flutter 侧 `TextPainter` 精确装箱 MVP | ✅ |
+| 6.2 | `PackedPage` / `PackedBlockSlice` 纯 Dart 类型 | ✅ |
+| 6.3 | `FlutterPaginationSession` 替代 Rust session | ✅ |
+| 6.4 | Staging 预加载适配 Flutter 装箱 | ✅ |
+| 6.5 | 大章 chunked IR + partial → full expand | ✅ |
+| 6.6 | Phase 7 清理冗余 | 🔄 进行中 |
+
+**退出标准**：Flutter 分页覆盖全量场景，Rust 分页 API 无实际调用方。
+
+---
+
+## Phase 8 — 滚动模式 Flutter 化（规划中）
+
+**目标**：将 scroll 模式的 EPUB 富文本排版从 Rust 迁移到 Flutter，用 IR 统一两条渲染路径。
+
+### 现状
+
+- 分页模式：`getChapterContentIr` → Flutter `FlutterBlockPaginator` → `PackedPage[]`（纯 Flutter，不依赖 Rust 排版）
+- 滚动模式：`getEpubChapterRichContent` → Rust `apply_typeset()` → `RichParagraph[]` → Dart `TextSpan`（Rust 排版，依赖 `TypesetConfig` FRB 类型）
+
+### 迁移方向
+
+- Scroll 路径复用 IR（`ChapterContentIr`），Flutter 侧自行断行/样式化
+- 消除 `get_epub_chapter_rich_content`、`RichParagraph`、`RichChapterContent`、`apply_typeset`
+- 消除 `TypesetConfig` 作为 FRB 类型的唯一消费者（`get_epub_chapter_rich_content` 的参数）
+- 清理 `chard_width.rs` 和 `TypesetCalibration` 等排版附属（若不再需要）
+
+### 依赖
+
+- Phase 7 完成后启动
+- 需要验证 scroll 模式下 IR 能否完整还原现有富文本效果（行内图、块样式、span 格式）
 
 ---
 

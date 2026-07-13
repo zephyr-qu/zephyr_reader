@@ -17,10 +17,6 @@ pub trait ChapterContentProvider: Send + Sync {
 
     fn format(&self) -> BookFormat;
 
-    fn supports_chunked_pagination(&self) -> bool {
-        false
-    }
-
     fn read_html_range(&self, _start: u64, _end: u64) -> Option<Result<String, AppError>> {
         None
     }

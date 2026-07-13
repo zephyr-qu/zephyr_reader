@@ -8,7 +8,7 @@ use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
 use rust_lib_zephyr_reader::api::data::init::init_storage;
-use rust_lib_zephyr_reader::domain::{LanguageType, PageDescriptor, TypesetConfig};
+use rust_lib_zephyr_reader::domain::{LanguageType, TypesetConfig};
 
 // ---------------------------------------------------------------------------
 // Config

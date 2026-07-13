@@ -163,99 +163,18 @@ void main() {
       expect(linesWithIndent, greaterThanOrEqualTo(linesNoIndent));
     });
 
-    group('calibration 参数', () {
-      test('null calibration 使用 default 字宽并仍传给 Rust', () {
-        final config = buildTypesetConfig(
-          width: 360,
-          height: 640,
-          fontSize: 16,
-          lineHeight: 1.5,
-          devicePixelRatio: 2.0,
-          calibration: null,
-        );
-
-        expect(config.calibration, isNotNull);
-        expect(config.calibration!.cjkWidth, closeTo(32.0, 0.01)); // 16*2
-      });
-
-      test('有 calibration 时正确转换', () {
-        final cal = const CalibrationData(
-          dpr: 2.0,
-          cjkWidth: 18.0,
-          asciiWidth: 9.5,
-          digitWidth: 9.0,
-          punctWidth: 17.5,
-          latinExtWidth: 13.0,
-          otherWidth: 14.0,
-          effectiveLineWidthRatio: 0.97,
-          lineHeightDp: 24.0,
-        );
-        final config = buildTypesetConfig(
-          width: 360,
-          height: 640,
-          fontSize: 16,
-          lineHeight: 1.5,
-          calibration: cal,
-        );
-
-        final rust = calibrationToRust(cal);
-        expect(config.calibration, equals(rust));
-        expect(config.calibration!.dpr, equals(2.0));
-      });
-
-      test('calibration dpr 与 devicePixelRatio 独立', () {
-        final cal = const CalibrationData(
-          dpr: 2.0,
-          cjkWidth: 18.0,
-          asciiWidth: 9.5,
-          digitWidth: 9.0,
-          punctWidth: 17.5,
-          latinExtWidth: 13.0,
-          otherWidth: 14.0,
-          effectiveLineWidthRatio: 0.97,
-          lineHeightDp: 24.0,
-        );
-        final config = buildTypesetConfig(
-          width: 360,
-          height: 640,
-          fontSize: 16,
-          lineHeight: 1.5,
-          devicePixelRatio: 1.5,
-          calibration: cal,
-        );
-
-        // pageWidth 使用 devicePixelRatio(1.5)，不是 calibration.dpr(2.0)
-        expect(config.pageWidth, equals(492)); // (360-32)*1.5
-        expect(config.calibration!.dpr, equals(2.0));
-      });
-    });
-
-    test('calibrationToRust 映射 latinExtWidth', () {
-      const cal = CalibrationData(
-        dpr: 2.0,
-        cjkWidth: 18.0,
-        asciiWidth: 9.5,
-        digitWidth: 9.0,
-        punctWidth: 17.5,
-        latinExtWidth: 13.0,
-        otherWidth: 14.0,
-        effectiveLineWidthRatio: 0.985,
-        lineHeightDp: 24.0,
-      );
-      final rust = calibrationToRust(cal);
-      expect(rust.latinExtWidth, closeTo(26.0, 0.01)); // 13*2
-      expect(rust.effectiveLineWidthRatio, closeTo(0.985, 0.001));
-      expect(rust.measuredLineHeightPx, closeTo(48.0, 0.01)); // 24*2
-    });
-
-    test('A7 defaultCalibrationData line height', () {
-      final cal = defaultCalibrationData(
+    test('calibration 默认使用标准字宽', () {
+      final config = buildTypesetConfig(
+        width: 360,
+        height: 640,
         fontSize: 16,
-        devicePixelRatio: 2.0,
         lineHeight: 1.5,
+        devicePixelRatio: 2.0,
       );
-      expect(cal.lineHeightDp, closeTo(24.0, 0.01)); // 16 * 1.5
-      expect(cal.effectiveLineWidthRatio, 1.0);
+
+      expect(config.calibration, isNotNull);
+      expect(config.calibration!.cjkWidth, closeTo(32.0, 0.01)); // 16*2
+      expect(config.calibration!.effectiveLineWidthRatio, closeTo(1.0, 0.001));
     });
 
     test('A8 estimateRustMaxLineWidth uses ratio', () {

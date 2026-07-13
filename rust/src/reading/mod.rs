@@ -1,7 +1,7 @@
 //! 阅读编排模块（crate-private）。
 //!
-//! 把 `api/core.rs` 中属于"阅读链"的部分（caches + pagination + session + chapter reads）抽出，
-//! 留 `api/core.rs` 为薄 FFI 适配层。Dart/FRB 签名零改动。
+//! 把 `api/reader.rs` 中属于"阅读链"的部分（caches + pagination + session + chapter reads）抽出，
+//! 留 `api/reader.rs` 为薄 FFI 适配层。Dart/FRB 签名零改动。
 //!
 //! 内部模块划分：
 //! - `provider_cache` — `PROVIDER_CACHE` LRU（章节内容 provider）
