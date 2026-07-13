@@ -270,6 +270,7 @@ void main() {
         NextChapterStaging(
           chapterIndex: 1,
           configHash: BigInt.from(0x1234),
+          bookId: 'test_book',
           descriptors: const [
             PageDescriptor(
               pageIndex: 0,
@@ -376,7 +377,7 @@ void main() {
         when(() => dataSource.prevChapterStaging).thenReturn(
           NextChapterStaging(
             chapterIndex: -1,
-            configHash:BigInt.from(0xABCD) ,
+            configHash: BigInt.from(0xABCD),
             descriptors: const [
               PageDescriptor(
                 pageIndex: 0,
@@ -432,7 +433,7 @@ void main() {
         when(() => dataSource.nextChapterStaging).thenReturn(
           NextChapterStaging(
             chapterIndex: 1,
-            configHash: BigInt.from(0xABCD) ,
+            configHash: BigInt.from(0xABCD),
             descriptors: const [
               PageDescriptor(
                 pageIndex: 0,
