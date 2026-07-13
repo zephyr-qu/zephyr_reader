@@ -30,8 +30,6 @@ void main() {
       textIndentEm: null,
       marginTopEm: null,
       marginBottomEm: null,
-      fontFamily: null,
-      lineHeight: null,
       textAlign: null,
     );
     expect(
@@ -57,8 +55,6 @@ void main() {
       textIndentEm: 3,
       marginTopEm: null,
       marginBottomEm: null,
-      fontFamily: null,
-      lineHeight: null,
       textAlign: null,
     );
     expect(
@@ -77,8 +73,6 @@ void main() {
       textIndentEm: 3,
       marginTopEm: null,
       marginBottomEm: null,
-      fontFamily: null,
-      lineHeight: null,
       textAlign: null,
     );
     expect(IrTextBlockStyle.resolveFirstLineIndentPx(style, _config()), 48);
@@ -91,8 +85,6 @@ void main() {
       textIndentEm: 2,
       marginTopEm: null,
       marginBottomEm: null,
-      fontFamily: null,
-      lineHeight: null,
       textAlign: null,
     );
     expect(IrTextBlockStyle.resolveFirstLineIndentPx(style, _config()), 0);
@@ -105,8 +97,6 @@ void main() {
       textIndentEm: null,
       marginTopEm: null,
       marginBottomEm: null,
-      fontFamily: null,
-      lineHeight: null,
       textAlign: null,
     );
 
@@ -121,8 +111,6 @@ void main() {
       textIndentEm: null,
       marginTopEm: null,
       marginBottomEm: 1.5,
-      fontFamily: null,
-      lineHeight: null,
       textAlign: null,
     );
     expect(IrTextBlockStyle.resolveBottomSpacing(style, _config()), 24);
@@ -151,8 +139,6 @@ void main() {
       textIndentEm: 2,
       marginTopEm: null,
       marginBottomEm: null,
-      fontFamily: null,
-      lineHeight: null,
       textAlign: null,
     );
     final span = IrTextBlockStyle.buildHighlightedSpan(

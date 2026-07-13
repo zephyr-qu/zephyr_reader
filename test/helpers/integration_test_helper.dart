@@ -10,7 +10,7 @@ import 'dart:io';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
+import 'package:zephyr_reader/src/rust/api/import.dart' as import_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/init.dart';
 import 'package:zephyr_reader/src/rust/frb_generated.dart';
@@ -89,7 +89,7 @@ Future<String> copyFixtureFile(String fixtureName) async {
 
 /// 解析测试文件并返回书籍 ID。
 Future<(String, String)> parseTestBook(String filePath) async {
-  final bookId = await core_api.parseBook(filePath: filePath);
+  final bookId = await import_api.parseBook(filePath: filePath);
   return (bookId, filePath);
 }
 
