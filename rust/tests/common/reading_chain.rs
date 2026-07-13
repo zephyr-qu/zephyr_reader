@@ -54,7 +54,7 @@ pub async fn setup_parsed_epub(fixture_path: &Path) -> (TempDir, String, String)
     std::fs::copy(fixture_path, &dest).expect("failed to copy fixture");
     let file_path = dest.to_string_lossy().to_string();
 
-    let book_id = rust_lib_zephyr_reader::api::core::parse_book(file_path.clone())
+    let book_id = rust_lib_zephyr_reader::api::import::parse_book(file_path.clone())
         .await
         .expect("parse_book should succeed");
 
@@ -138,7 +138,7 @@ pub async fn setup_parsed_image_epub() -> Option<(TempDir, String)> {
         }
     }
 
-    rust_lib_zephyr_reader::api::core::parse_book(file_path.clone())
+    rust_lib_zephyr_reader::api::import::parse_book(file_path.clone())
         .await
         .expect("parse_book should succeed");
 
@@ -171,5 +171,3 @@ pub fn assert_monotonic_descriptors(descriptors: &[PageDescriptor]) {
     }
 }
 
-/// Adjacent pages must not duplicate content: `page[N+1]` must NOT start with
-/// the full text of `page[N]`.
