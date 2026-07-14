@@ -139,7 +139,10 @@ mod tests {
     fn test_open_empty_mdd_path_treated_as_none() {
         // Passing an empty string for mdd_path is equivalent to None
         let result = MdictEngine::open("/nonexistent/file.mdx", Some(""));
-        assert!(result.is_err(), "should still fail because .mdx doesn't exist");
+        assert!(
+            result.is_err(),
+            "should still fail because .mdx doesn't exist"
+        );
     }
 
     #[test]

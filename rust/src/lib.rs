@@ -23,4 +23,3 @@ pub mod reading;
 pub mod search;
 pub mod storage;
 pub mod utils;
-pub mod vocab_marker;
