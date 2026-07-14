@@ -147,6 +147,7 @@ Phase 7 代码清理完成后，此阶段各项已自然完成。
 ### 与 Phase 7 的分工
 
 以下划归 **Phase 7 清理**（不改架构，只删代码）：
+
 - 死 FRB 函数删除（`get_bilingual_highlight_pairs`、`get_dictionary`、`suggest_mdict`、`get_epub_metadata`）
 - `storage/repos/` 12 个 CRUD 文件合并
 - `PaginationSession` 接口简化（仅一个实现，去掉抽象层）
@@ -160,17 +161,14 @@ Phase 9 只包含 **需要架构改造** 的任务。
 ### 任务清单
 
 | # | 项 | 说明 | 难度 |
-|---|-----|------|------|
+| --- | ----- | ------ | ------ |
 | 1 | **IR 结构优化**：`BlockPlainRange`/`ContentBlock` 枚举 → 扁平 Dart 类型 | 消除 Rust→Flutter 转换层 | 中 |
 | 2 | **RichTextSpan / TextBlockStyle 纯 Dart 化** | 消除 FRB 序列化开销 | 中 |
 | 3 | **`api/data/init.rs` 迁出 api 层** | 数据库初始化不属于 FRB 接口 | 中 |
 | 4 | **`api/vocab_marker.rs` DB CRUD 整合** | 迁入 `api/data/vocabulary.rs` | 低 |
-| 5 | **CJK 标点挤压引擎** | UI toggle 当前无效；Flutter 侧需重新实现（~1-2 天） | 中 |
+| 5 | **CJK 标点挤压引擎** | UI toggle 当前无效但用户能看到，属于 visible gap。实现后可提升中文排版专业度。方案：IR 预处理阶段对标点序列做紧凑替换（全角→半宽变体），约 1-2 天。**好处大于投入** | 中 |
 | 6 | **`get_chapter` 退化备选移除评估** | IR 可靠时可删除 plain text fallback | 低 |
 
 ### 不做
 
 PDF 阅读、WebView、账号/多端同步、章内搜索 UI、Rust CancellationToken。
-
-
-

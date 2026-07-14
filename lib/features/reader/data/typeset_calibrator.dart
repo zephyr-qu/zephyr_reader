@@ -60,5 +60,3 @@ import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dar
     height: firstHeight + tp.height,
   );
 }
-
-
