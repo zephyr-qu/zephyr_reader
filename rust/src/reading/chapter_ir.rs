@@ -18,7 +18,10 @@ use crate::storage::repos::LayoutCacheRepository;
 
 use super::chapter_access::{format_from_file_path, get_chapter_bounds};
 
-/// 加载整章 IR（与 `get_chapter_content_rich` / `get_chapter_content_ir` 边界一致）。
+/// 加载整章 IR（Phase 8 后分页 + scroll 共享此入口）。
+///
+/// 分页：FlutterBlockPaginator.paginateAsync(ir) → PackedPage[]
+/// Scroll：buildScrollIrBlockList(ir.blocks) → 连续滚动
 ///
 /// 优先命中 sled `scroll_ir_cache`，miss 时解析并异步写回缓存。
 pub async fn load_chapter_content_ir(
@@ -65,7 +68,7 @@ pub async fn load_chapter_content_ir(
     Ok(ir)
 }
 
-/// 尝试从 sled 加载 Scroll IR 缓存（无 config_hash 依赖）。
+/// 尝试从 sled 加载 Scroll IR 缓存
 async fn try_get_scroll_ir_cached(
     validated_path: &str,
     chapter_index: i32,
