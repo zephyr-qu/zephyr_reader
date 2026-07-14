@@ -39,7 +39,7 @@ Rust 只做：
 | **分页** | Flutter `FlutterPaginationSession` | 用布局参数估算页边界 | `PackedPage[]` |
 | **渲染** | Flutter `SelectableText` | 在页码范围内渲染文字 | 屏幕像素 |
 
-> **历史遗留**：`domain/types/pagination.rs` 中的 `PageContent`、`ChapterPaginationMode`、`SearchResult`、`IndexStats` 仍用于 FRB 兼容性；`text/line_breaking.rs`、`text/char_width.rs` 仅保留测试（消费方 `block_paginator.rs` 已删）。
+> **历史遗留**：`domain/types/pagination.rs` 仅保留 `SearchResult`、`IndexStats`（搜索引擎用）；`PageContent`、`ChapterPaginationMode` 已删除。`text/line_breaking.rs`、`text/char_width.rs` 仅保留测试（消费方 `block_paginator.rs` 已删）。
 
 ---
 
@@ -186,9 +186,8 @@ TXT 子模块（5 文件）：`parse.rs` / `provider.rs` / `content_ir.rs` / `de
 | 类型/文件 | 行数 | 说明 |
 |-----------|------|------|
 | `types/typeset.rs` | ~588 | `TypesetCalibration`（9 字段 `f32`，`#[frb(non_opaque)]`）、`TypesetConfig`（14 字段，含 config_hash）、`LanguageType`、`LAYOUT_ALGORITHM_VERSION`（v14） |
-| `types/block_pagination.rs` | ~243 | `BlockPageDescriptor`、`BlockPaginateResult`、`PageBlockSlice`（仅类型定义，无生产消费方） |
 | `types/content_ir.rs` | ~258 | `ChapterContentIr`、`ContentBlock`（Text / Image）、`TextBlockStyle` |
-| `types/pagination.rs` | ~85 | `PageContent`、`ChapterPaginationMode`（旧版遗留，FRB 兼容） |
+| `types/pagination.rs` | ~64 | `SearchResult`、`IndexStats`（搜索引擎用） |
 | `types/plain_projection.rs` | ~294 | `BlockJoinedPlainBuilder`、`slice_by_char_range()` |
 | `types/rich_text.rs` | ~185 | `RichParagraph`、`RichTextSpan`、`SpanStyle` |
 | `types/metadata.rs` | ~52 | 元数据结构体 |
@@ -261,12 +260,6 @@ ChapterContentIr ──→ FlutterPaginationSession
 - `pageHeight` 传递时已扣除 2×vPad，保证 Flutter 显示与 Rust 估算一致
 - 诊断：`_ContentMeasurer`（PostFrameCallback）记录内容高度
 
-### 3.3 `page_overflow_diagnosis.dart`
-
-> P6 遗留的诊断工具，仍依赖 Rust 分页概念（`rustEstLines`、`rustLineHeightDp`）。
-> 当前 Rust `block_paginator.rs` 已不存在，该文件中的 Rust 引用为历史占位符。
-> **目前仅用于 scroll 路径 fallback 场景**，未清理。
-
 ---
 
 ## 4. 清理记录
@@ -295,8 +288,8 @@ ChapterContentIr ──→ FlutterPaginationSession
 |---|------|------|------|
 | 1 | `text/char_width.rs` | 仅 `#[cfg(test)]` 消费，生产零引用 | 🟡 待清理 |
 | 2 | `text/line_breaking.rs` | 全文件 `#[cfg(test)]`，消费者 `block_paginator.rs` 已删 | 🟡 待清理 |
-| 3 | `domain/types/pagination.rs` | `PageContent`、`ChapterPaginationMode` 仅 FRB 兼容 | 🟡 待评估 |
-| 4 | `domain/types/block_pagination.rs` | 类型定义仍在，无生产消费方（保留 vs 删除待定） | 🟡 待评估 |
+| 3 | ~~`domain/types/pagination.rs` — `PageContent`、`ChapterPaginationMode`~~ | ✅ 已删除（保留 `SearchResult`、`IndexStats`） |
+| 4 | ~~`domain/types/block_pagination.rs`~~ | ✅ 已删除（`BlockPageDescriptor` 等无生产者） |
 
 ---
 

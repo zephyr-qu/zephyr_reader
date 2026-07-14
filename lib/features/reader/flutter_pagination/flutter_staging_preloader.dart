@@ -4,7 +4,6 @@ import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dar
 import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_block_paginator.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_pagination_session.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_staging_store.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_viewport_metrics.dart';
@@ -74,7 +73,7 @@ abstract final class FlutterStagingPreloader {
       for (final p in prefetchPages) {
         epubBlockImageCache.prefetchBlocks(
           filePath: book.filePath,
-          blocks: FlutterPaginationSession.slicesToPageBlocks(p.slices),
+          blocks: p.slices,
           maxWidthPx: imageMaxWidthPx,
         );
       }
@@ -126,9 +125,7 @@ abstract final class FlutterStagingPreloader {
       isPartial: false,
       paginationMode: ChapterPaginationMode.contentBlocks,
       bookId: ready.bookId,
-      anchorPageBlocks: FlutterPaginationSession.slicesToPageBlocks(
-        anchor.slices,
-      ),
+      anchorPageBlocks: anchor.slices,
     );
   }
 }

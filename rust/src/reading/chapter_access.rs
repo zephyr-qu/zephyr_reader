@@ -20,11 +20,24 @@ use crate::parser::registry;
 use crate::storage::models::BookFormat;
 use crate::storage::repos::{BookRepository, ChapterRepository};
 use crate::storage::storage_pool;
-
-use super::BOOK_ID_CACHE;
 use crate::domain::security::validate_file_path;
+use parking_lot::Mutex;
+use std::num::NonZeroUsize;
+use std::sync::{Arc, LazyLock};
+use lru::LruCache;
 
-/// 从文件路径推断格式
+const BOOK_ID_CACHE_CAPACITY: NonZeroUsize = match NonZeroUsize::new(16) {
+    Some(v) => v,
+    None => unreachable!(),
+};
+
+pub type BookIdCache = LruCache<String, String>;
+
+pub static BOOK_ID_CACHE: LazyLock<Mutex<BookIdCache>> =
+    LazyLock::new(|| Mutex::new(LruCache::new(BOOK_ID_CACHE_CAPACITY)));
+
+
+    /// 从文件路径推断格式
 pub fn format_from_file_path(file_path: &str) -> Result<BookFormat, AppError> {
     let ext = std::path::Path::new(file_path)
         .extension()
@@ -130,10 +143,7 @@ pub(crate) async fn get_chapter(
 
 // ── Provider cache (inlined from provider_cache.rs) ──
 
-use parking_lot::Mutex;
-use std::num::NonZeroUsize;
-use std::sync::{Arc, LazyLock};
-use lru::LruCache;
+
 use crate::parser::provider::ChapterContentProvider;
 
 type CacheKey = (String, i32, BookFormat);

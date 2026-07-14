@@ -1,51 +1,13 @@
 // ============================================================
-// 文件作用：分页内容结构体
+// 文件作用：搜索类型 + 搜索索引统计
 //
 // 公有类型/函数：
-//   - struct PageContent — 单页文本内容
-//   - enum ChapterPaginationMode — 章节分页引擎模式
 //   - struct SearchResult — 搜索结果
 //   - struct IndexStats — 搜索索引统计
 // ============================================================
 
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
-
-// ==================== 分页内容 ====================
-
-/// 分页内容
-/// 表示单个页面的文本内容
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
-#[frb(non_opaque)]
-pub struct PageContent {
-    /// 章节索引
-    pub chapter_index: i32,
-    /// 页面索引（从 0 开始）
-    pub page_index: i32,
-    /// 页面文本内容
-    pub content: String,
-    /// 是否为最后一页
-    pub is_last_page: bool,
-    /// 此页在章节原文中的起始字节偏移（用于阅读进度定位）
-    pub start_offset: i32,
-    /// 此页在章节原文中的结束字节偏移（用于阅读进度定位）
-    pub end_offset: i32,
-    /// 此页在富文本段落列表中的起始段落索引（用于富文本渲染）
-    pub first_paragraph_index: i32,
-    /// 此页在富文本段落列表中的结束段落索引（用于富文本渲染）
-    pub last_paragraph_index: i32,
-}
-
-/// 章节分页引擎模式（Phase 2 M3）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-#[frb]
-pub enum ChapterPaginationMode {
-    /// Phase 1 plain 文本流。
-    #[default]
-    PlainText,
-    /// Phase 2 块 IR + `BlockPaginator`（含 Image 块时启用）。
-    ContentBlocks,
-}
 
 /// 搜索结果
 ///

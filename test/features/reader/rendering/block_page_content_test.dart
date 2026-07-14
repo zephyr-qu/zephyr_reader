@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 import 'package:zephyr_reader/features/reader/rendering/block_page_content.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 
@@ -45,25 +45,21 @@ void main() {
           builder: (context, constraints) => buildBlockPageContent(
             context: context,
             blocks: const [
-              PageBlockSlice.text(
-                PageTextBlockSlice(
-                  blockIndex: 0,
-                  text: 'First paragraph.',
-                  isBlockStart: true,
-                  isBlockEnd: true,
-                  style: _defaultStyle,
-                  spans: _emptySpans,
-                ),
+              PackedBlockSlice.text(
+                blockIndex: 0,
+                text: 'First paragraph.',
+                isBlockStart: true,
+                isBlockEnd: true,
+                style: _defaultStyle,
+                spans: _emptySpans,
               ),
-              PageBlockSlice.text(
-                PageTextBlockSlice(
-                  blockIndex: 1,
-                  text: 'Second paragraph.',
-                  isBlockStart: true,
-                  isBlockEnd: true,
-                  style: _defaultStyle,
-                  spans: _emptySpans,
-                ),
+              PackedBlockSlice.text(
+                blockIndex: 1,
+                text: 'Second paragraph.',
+                isBlockStart: true,
+                isBlockEnd: true,
+                style: _defaultStyle,
+                spans: _emptySpans,
               ),
             ],
             startOffset: 0,
@@ -92,15 +88,13 @@ void main() {
           builder: (context, constraints) => buildBlockPageContent(
             context: context,
             blocks: const [
-              PageBlockSlice.text(
-                PageTextBlockSlice(
-                  blockIndex: 0,
-                  text: 'Continuation slice.',
-                  isBlockStart: false,
-                  isBlockEnd: false,
-                  style: _defaultStyle,
-                  spans: _emptySpans,
-                ),
+              PackedBlockSlice.text(
+                blockIndex: 0,
+                text: 'Continuation slice.',
+                isBlockStart: false,
+                isBlockEnd: false,
+                style: _defaultStyle,
+                spans: _emptySpans,
               ),
             ],
             startOffset: 0,

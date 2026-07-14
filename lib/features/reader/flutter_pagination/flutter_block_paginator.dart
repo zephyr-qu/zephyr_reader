@@ -4,7 +4,6 @@ import 'package:zephyr_reader/features/reader/rendering/ir_text_block_style.dart
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/slice_rich_spans.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
-import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 
 /// 无 intrinsic 时图片高度 = 内容宽 × 此比（与 Rust `DEFAULT_IMAGE_HEIGHT_RATIO` 对齐）。
@@ -29,10 +28,7 @@ final class PaginationCancelledException implements Exception {
 
 /// [FlutterBlockPaginator.paginateAsync] 结果。
 class FlutterPaginateOutcome {
-  const FlutterPaginateOutcome({
-    required this.pages,
-    required this.isPartial,
-  });
+  const FlutterPaginateOutcome({required this.pages, required this.isPartial});
 
   final List<PackedPage> pages;
   final bool isPartial;
@@ -88,16 +84,10 @@ abstract final class FlutterBlockPaginator {
 
     for (var i = 0; i < blocks.length; i++) {
       final stop = blocks[i].when(
-        text: (t) => packer.packTextSync(
-          blockIndex: i,
-          block: t,
-          maxWidth: maxW,
-        ),
-        image: (img) => packer.packImage(
-          blockIndex: i,
-          block: img,
-          maxWidth: maxW,
-        ),
+        text: (t) =>
+            packer.packTextSync(blockIndex: i, block: t, maxWidth: maxW),
+        image: (img) =>
+            packer.packImage(blockIndex: i, block: img, maxWidth: maxW),
       );
       if (stop) break;
       if (stopAfterPlainOffset != null &&
@@ -174,18 +164,14 @@ abstract final class FlutterBlockPaginator {
           onChunkDone: () async {
             chunkOrdinal++;
             report();
-            if (yieldEveryChunks > 0 &&
-                chunkOrdinal % yieldEveryChunks == 0) {
+            if (yieldEveryChunks > 0 && chunkOrdinal % yieldEveryChunks == 0) {
               await Future<void>.delayed(Duration.zero);
               checkCancel();
             }
           },
         ),
-        image: (img) async => packer.packImage(
-          blockIndex: i,
-          block: img,
-          maxWidth: maxW,
-        ),
+        image: (img) async =>
+            packer.packImage(blockIndex: i, block: img, maxWidth: maxW),
       );
       if (stop) break;
 
@@ -200,10 +186,7 @@ abstract final class FlutterBlockPaginator {
 
     final pages = packer.finish(forcePartial: packer.stoppedEarly);
     onProgress?.call(pages, packer.stoppedEarly);
-    return FlutterPaginateOutcome(
-      pages: pages,
-      isPartial: packer.stoppedEarly,
-    );
+    return FlutterPaginateOutcome(pages: pages, isPartial: packer.stoppedEarly);
   }
 
   static List<ContentBlock> _resolveBlocks(ChapterContentIr ir) {
@@ -229,6 +212,7 @@ class _PagePacker {
   }) : packBudget = (maxHeight - kPagePackBottomSlackDp).clamp(1.0, maxHeight);
 
   final double maxHeight;
+
   /// 实际可装高度（扣底边 slack）。
   final double packBudget;
   final ReaderRenderConfig config;
@@ -664,8 +648,7 @@ class _TextPackContext {
       if (lineBuf.isEmpty) {
         final need = _sliceHeightForLines(1, withBlockStart: isBlockStart);
         // 仅在本页已有内容时才因装不下而翻页；允许贴满 maxHeight。
-        if (packer._pageHasContent &&
-            packer._used + need > packer.packBudget) {
+        if (packer._pageHasContent && packer._used + need > packer.packBudget) {
           flushSlice(isBlockEnd: false);
           packer._flushPage();
           if (packer._pastStop) {

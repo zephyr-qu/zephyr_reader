@@ -13,7 +13,6 @@ import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_view
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/reader.dart' as reader_api;
-import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
@@ -32,7 +31,7 @@ class FlutterPaginationSession implements PaginationSession {
 
   List<PackedPage>? _descriptors;
   final Map<int, String> _pageCache = {};
-  final Map<int, List<PageBlockSlice>> _blockCache = {};
+  final Map<int, List<PackedBlockSlice>> _blockCache = {};
   ChapterContentIr? _ir;
   int? _chapterIndex;
   BigInt? _configHash;
@@ -60,7 +59,7 @@ class FlutterPaginationSession implements PaginationSession {
   String? get sessionFilePath => _sessionFilePath;
 
   @override
-  List<PageBlockSlice>? pageBlocks(int pageIndex) => _blockCache[pageIndex];
+  List<PackedBlockSlice>? pageBlocks(int pageIndex) => _blockCache[pageIndex];
 
   @override
   String? pageContent(int pageIndex) => _pageCache[pageIndex];
@@ -226,7 +225,7 @@ class FlutterPaginationSession implements PaginationSession {
     return book;
   }
 
-  void _prefetchBlockImages(List<PageBlockSlice> blocks) {
+  void _prefetchBlockImages(List<PackedBlockSlice> blocks) {
     final path = _sessionFilePath;
     if (path == null || path.isEmpty) return;
     epubBlockImageCache.prefetchBlocks(
@@ -370,9 +369,7 @@ class FlutterPaginationSession implements PaginationSession {
     _pageCache.clear();
     _blockCache
       ..clear()
-      ..addEntries(
-        pages.map((p) => MapEntry(p.pageIndex, slicesToPageBlocks(p.slices))),
-      );
+      ..addEntries(pages.map((p) => MapEntry(p.pageIndex, p.slices)));
   }
 
   /// 从精确预装箱结果安装 session（staging promote，零重装箱）。
@@ -395,35 +392,5 @@ class FlutterPaginationSession implements PaginationSession {
     ensureWindow(0);
     _onCacheUpdated?.call();
     return (totalPages: ready.pages.length, isPartial: false);
-  }
-
-  static List<PageBlockSlice> slicesToPageBlocks(
-    List<PackedBlockSlice> slices,
-  ) {
-    return [
-      for (final s in slices)
-        if (s.isImage)
-          PageBlockSlice.image(
-            PageImageBlockSlice(
-              blockIndex: s.blockIndex,
-              assetId: s.assetId ?? '',
-              layout: s.imageLayout ?? ImageBlockLayout.inlineContain,
-              alt: s.alt,
-            ),
-          )
-        else
-          PageBlockSlice.text(
-            PageTextBlockSlice(
-              blockIndex: s.blockIndex,
-              text: s.text,
-              isBlockStart: s.isBlockStart,
-              isBlockEnd: s.isBlockEnd,
-              style:
-                  s.style ??
-                  const TextBlockStyle(isHeading: false, headingLevel: 0),
-              spans: s.spans,
-            ),
-          ),
-    ];
   }
 }

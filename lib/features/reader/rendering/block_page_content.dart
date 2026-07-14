@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/features/reader/data/page_overflow_diagnosis.dart';
 import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/features/reader/core/data/epub_block_image_cache.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_block_paginator.dart';
@@ -13,13 +12,13 @@ import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_view
 import 'package:zephyr_reader/features/reader/rendering/ir_text_block_style.dart';
 import 'package:zephyr_reader/features/reader/rendering/paginated_page_viewport.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 块分页页 Widget（Text + Image 块列表）。
 Widget buildBlockPageContent({
   required BuildContext context,
-  required List<PageBlockSlice> blocks,
+  required List<PackedBlockSlice> blocks,
   required int startOffset,
   required String epubFilePath,
   required ReaderRenderConfig config,
@@ -57,48 +56,15 @@ Widget buildBlockPageContent({
             ' blocks=${blocks.length}',
           );
 
-          // Diagnostic: measure Flutter actual CJK char width vs Rust estimate
-          final dpr = MediaQuery.devicePixelRatioOf(context);
-          final tp = TextPainter(
-            text: TextSpan(text: '中', style: config.buildTextStyle()),
-            textDirection: TextDirection.ltr,
-          );
-          tp.layout();
-          final flutCjkDp = tp.width;
-          final flutCjkPx = flutCjkDp * dpr;
-          final pageWidthPx = (constraints.maxWidth * dpr).round();
-          final fontSizePx = (config.fontSize * dpr).round();
-          final cjkWidthPx = flutCjkPx * 1.0;
-          final rustEstCharsPerLine = estimateRustCharsPerLine(
-            cjkWidthPx: cjkWidthPx,
-            pageWidthPx: pageWidthPx,
-            fontSizePx: fontSizePx,
-            effectiveLineWidthRatio: 1.0,
-          );
-
-          Logging.info(
-            '[LineWidth] flutCjk=${flutCjkDp.toStringAsFixed(1)}dp'
-            ' ${flutCjkPx.toStringAsFixed(0)}px cjkPx=${cjkWidthPx.toStringAsFixed(0)}px'
-            ' fontSize=${config.fontSize}dp'
-            ' lineH=${config.lineHeight}'
-            ' pageW_px=$pageWidthPx'
-            ' ratio=1.000'
-            ' packRatio=1.000'
-            ' estCharsPerLine=${rustEstCharsPerLine.toStringAsFixed(1)}'
-            ' viewportW=${constraints.maxWidth.toStringAsFixed(1)}dp',
-          );
-
-          // Diagnostic: accumulate Flutter lines & height; split text vs spacing
+          // Diagnostic: accumulate Flutter lines & height
           var totalChars = 0;
           var totalFlutterLines = 0;
-          var totalRustLines = 0;
           var textHeightDp = 0.0;
           var spacingHeightDp = 0.0;
           for (var blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
             final block = blocks[blockIndex];
-            final slice = block.whenOrNull(text: (s) => s);
-            if (slice != null && slice.text.isNotEmpty) {
-              final irStyle = slice.style;
+            if (!block.isImage && block.text.isNotEmpty) {
+              final irStyle = block.style!;
               final blockFontSize = IrTextBlockStyle.effectiveFontSize(
                 irStyle,
                 config,
@@ -112,10 +78,10 @@ Widget buildBlockPageContent({
                     fontSizeMultiplier: blockFontSize / config.fontSize,
                   )
                   .copyWith(height: blockLineHeight);
-              final indentPx = slice.isBlockStart
+              final indentPx = block.isBlockStart
                   ? IrTextBlockStyle.resolveFirstLineIndentPx(irStyle, config)
                   : 0.0;
-              final blockPadding = slice.isBlockStart
+              final blockPadding = block.isBlockStart
                   ? IrTextBlockStyle.resolveBlockPadding(irStyle, config)
                   : EdgeInsets.zero;
               final layoutMaxWidth =
@@ -128,28 +94,20 @@ Widget buildBlockPageContent({
                 lineHeight: blockLineHeight,
               );
               final measured = measureSliceLayout(
-                text: slice.text,
+                text: block.text,
                 style: textStyle,
                 strutStyle: strutStyle,
                 maxWidth: layoutMaxWidth,
-                firstLineIndentPx: slice.isBlockStart ? indentPx : 0.0,
+                firstLineIndentPx: block.isBlockStart ? indentPx : 0.0,
               );
-              totalChars += slice.text.length;
+              totalChars += block.text.length;
               totalFlutterLines += measured.lines;
-              totalRustLines += estimateRustLinesForText(
-                text: slice.text,
-                applyFirstLineIndent: slice.isBlockStart,
-                cjkWidthPx: cjkWidthPx,
-                pageWidthPx: pageWidthPx,
-                fontSizePx: fontSizePx,
-                effectiveLineWidthRatio: 1.0,
-              );
               textHeightDp += measured.height;
               spacingHeightDp += blockPadding.vertical;
               // 页末最后一块不加段距（与 Rust pending flush 丢弃对齐）。
               final hasFollowing = blockIndex < blocks.length - 1;
               if (hasFollowing &&
-                  slice.isBlockEnd &&
+                  block.isBlockEnd &&
                   irStyle.marginBottomEm == null &&
                   config.paragraphSpacing > 0) {
                 spacingHeightDp += config.paragraphSpacing;
@@ -161,35 +119,14 @@ Widget buildBlockPageContent({
             0.0,
             double.infinity,
           );
-          final flutLineH = config.textRowHeight;
-          final rustLineH = flutLineH;
-          // rustPageHeightBudgetDp：渲染层无法直接读 TypesetConfig.pageHeight，
-          // 传 null；pageHeightPadding 归因依赖日志中的 [PageEstimate] 对照，
-          // 或单元测试注入合成预算。
-          final diagnosis = diagnosePageOverflow(
-            PageOverflowMetrics(
-              bodyHeightDp: bodyHeight,
-              textHeightDp: textHeightDp,
-              spacingHeightDp: spacingHeightDp,
-              flutLines: totalFlutterLines,
-              rustEstLines: totalRustLines,
-              flutLineHeightDp: flutLineH,
-              rustLineHeightDp: rustLineH,
-            ),
-          );
-          Logging.info(
-            '[LineBreak] TOTAL chars=$totalChars'
-            ' flutLines=$totalFlutterLines rustEstLines=$totalRustLines'
-            ' tpHeight=${totalTpHeight.toStringAsFixed(1)}dp'
-            ' textH=${textHeightDp.toStringAsFixed(1)}'
-            ' spacingH=${spacingHeightDp.toStringAsFixed(1)}'
-            ' overflow=${overflowDp.toStringAsFixed(1)}dp'
-            ' charsPerLine=${rustEstCharsPerLine.toStringAsFixed(1)}'
-            ' ratio=1.000'
-            ' lineH_dp=${config.textRowHeight.toStringAsFixed(1)}'
-            ' blocks=${blocks.length}',
-          );
-          Logging.info(diagnosis.toLogLine());
+          if (overflowDp > 0.5 || totalFlutterLines > 0) {
+            Logging.info(
+              '[LineBreak] chars=$totalChars lines=$totalFlutterLines'
+              ' height=${totalTpHeight.toStringAsFixed(1)}dp'
+              ' overflow=${overflowDp.toStringAsFixed(1)}dp'
+              ' blocks=${blocks.length}',
+            );
+          }
 
           final children = <Widget>[];
           var runningOffset = startOffset;
@@ -197,104 +134,100 @@ Widget buildBlockPageContent({
           for (var blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
             final block = blocks[blockIndex];
             final hasFollowing = blockIndex < blocks.length - 1;
-            block.when(
-              text: (slice) {
-                if (slice.text.isEmpty) return;
-                final irStyle = slice.style;
-                final blockFontSize = IrTextBlockStyle.effectiveFontSize(
+            if (!block.isImage) {
+              if (block.text.isEmpty) continue;
+              final irStyle = block.style!;
+              final blockFontSize = IrTextBlockStyle.effectiveFontSize(
+                irStyle,
+                config,
+              );
+              final blockStrutStyle = config.buildStrutStyle(
+                fontSizeMultiplier: blockFontSize / config.fontSize,
+                lineHeight: IrTextBlockStyle.effectiveLineHeight(
                   irStyle,
                   config,
-                );
-                final blockStrutStyle = config.buildStrutStyle(
-                  fontSizeMultiplier: blockFontSize / config.fontSize,
-                  lineHeight: IrTextBlockStyle.effectiveLineHeight(
-                    irStyle,
-                    config,
+                ),
+              );
+              final textAlign = IrTextBlockStyle.resolveTextAlign(
+                irStyle.textAlign,
+                config.textAlign,
+              );
+              final paintedSpan = IrTextBlockStyle.buildHighlightedSpan(
+                text: block.text,
+                spans: block.spans,
+                irStyle: irStyle,
+                config: config,
+                highlights: highlights,
+                contentStart: runningOffset,
+                applyFirstLineIndent: block.isBlockStart,
+                onHighlightTap: onHighlightTap,
+              );
+              final blockPadding = block.isBlockStart
+                  ? IrTextBlockStyle.resolveBlockPadding(irStyle, config)
+                  : EdgeInsets.zero;
+              final textWidget = Padding(
+                padding: blockPadding,
+                child: SelectableText.rich(
+                  paintedSpan,
+                  strutStyle: blockStrutStyle,
+                  textAlign: textAlign,
+                  textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
+                  onSelectionChanged: (sel, cause) => _handleBlockTextSelection(
+                    sel,
+                    block.text,
+                    runningOffset,
+                    context,
+                    onSelectionChanged,
+                    onSelectionGlobalPosition,
                   ),
-                );
-                final textAlign = IrTextBlockStyle.resolveTextAlign(
-                  irStyle.textAlign,
-                  config.textAlign,
-                );
-                final paintedSpan = IrTextBlockStyle.buildHighlightedSpan(
-                  text: slice.text,
-                  spans: slice.spans,
-                  irStyle: irStyle,
-                  config: config,
-                  highlights: highlights,
-                  contentStart: runningOffset,
-                  applyFirstLineIndent: slice.isBlockStart,
-                  onHighlightTap: onHighlightTap,
-                );
-                final blockPadding = slice.isBlockStart
-                    ? IrTextBlockStyle.resolveBlockPadding(irStyle, config)
-                    : EdgeInsets.zero;
-                final textWidget = Padding(
-                  padding: blockPadding,
-                  child: SelectableText.rich(
-                    paintedSpan,
-                    strutStyle: blockStrutStyle,
-                    textAlign: textAlign,
-                    textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
-                    onSelectionChanged: (sel, cause) =>
-                        _handleBlockTextSelection(
-                          sel,
-                          slice.text,
-                          runningOffset,
-                          context,
-                          onSelectionChanged,
-                          onSelectionGlobalPosition,
-                        ),
-                    contextMenuBuilder: (_, _) => const SizedBox.shrink(),
-                  ),
-                );
-                // 段距只加在块与块之间；页末最后一块不加（对齐 Rust pending flush）。
-                final extraSpacing =
-                    hasFollowing &&
-                        slice.isBlockEnd &&
-                        irStyle.marginBottomEm == null &&
-                        config.paragraphSpacing > 0
-                    ? config.paragraphSpacing
-                    : 0.0;
-                if (extraSpacing > 0) {
-                  children.add(
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        textWidget,
-                        SizedBox(height: extraSpacing),
-                      ],
-                    ),
-                  );
-                } else {
-                  children.add(textWidget);
-                }
-                runningOffset += slice.text.runes.length;
-              },
-              image: (slice) {
-                final isFullPage = slice.layout == ImageBlockLayout.fullPage;
-                final inlineMaxH = isFullPage
-                    ? null
-                    : _inlineImageDisplayHeightDp(
-                        assetId: slice.assetId,
-                        contentWidthDp: imageMaxWidth,
-                      );
+                  contextMenuBuilder: (_, _) => const SizedBox.shrink(),
+                ),
+              );
+              // 段距只加在块与块之间；页末最后一块不加（对齐 Rust pending flush）。
+              final extraSpacing =
+                  hasFollowing &&
+                      block.isBlockEnd &&
+                      irStyle.marginBottomEm == null &&
+                      config.paragraphSpacing > 0
+                  ? config.paragraphSpacing
+                  : 0.0;
+              if (extraSpacing > 0) {
                 children.add(
-                  EpubBlockImage(
-                    filePath: epubFilePath,
-                    assetId: slice.assetId,
-                    alt: slice.alt,
-                    maxWidthPx: imageMaxWidth.round().clamp(1, 4096),
-                    maxHeightPx: isFullPage
-                        ? bodyHeight.round().clamp(1, 4096)
-                        : inlineMaxH?.round().clamp(1, 4096),
-                    fullPage: isFullPage,
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      textWidget,
+                      SizedBox(height: extraSpacing),
+                    ],
                   ),
                 );
-                runningOffset += 1; // ADR-008: \uFFFC
-              },
-            );
+              } else {
+                children.add(textWidget);
+              }
+              runningOffset += block.text.runes.length;
+            } else {
+              final isFullPage = block.imageLayout == ImageBlockLayout.fullPage;
+              final inlineMaxH = isFullPage
+                  ? null
+                  : _inlineImageDisplayHeightDp(
+                      assetId: block.assetId ?? '',
+                      contentWidthDp: imageMaxWidth,
+                    );
+              children.add(
+                EpubBlockImage(
+                  filePath: epubFilePath,
+                  assetId: block.assetId ?? '',
+                  alt: block.alt,
+                  maxWidthPx: imageMaxWidth.round().clamp(1, 4096),
+                  maxHeightPx: isFullPage
+                      ? bodyHeight.round().clamp(1, 4096)
+                      : inlineMaxH?.round().clamp(1, 4096),
+                  fullPage: isFullPage,
+                ),
+              );
+              runningOffset += 1; // ADR-008: \uFFFC
+            }
           }
 
           if (children.isEmpty) {

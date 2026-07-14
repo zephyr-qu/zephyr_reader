@@ -18,7 +18,6 @@ import 'package:zephyr_reader/features/reader/rendering/page_curl_widget.dart';
 import 'package:zephyr_reader/features/reader/rendering/paginated_renderer.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 
 class _MockDataSource extends Mock implements ReaderRenderDataSource {}
@@ -131,13 +130,11 @@ void main() {
       ).thenReturn(ChapterPaginationMode.contentBlocks);
       when(() => dataSource.sessionFilePath).thenReturn('/books/test.epub');
       when(() => dataSource.pageBlocks(0)).thenReturn([
-        const PageBlockSlice.image(
-          PageImageBlockSlice(
-            blockIndex: 1,
-            assetId: 'img_cover',
-            layout: ImageBlockLayout.inlineContain,
-            alt: 'cover',
-          ),
+        const PackedBlockSlice.image(
+          blockIndex: 1,
+          assetId: 'img_cover',
+          imageLayout: ImageBlockLayout.inlineContain,
+          alt: 'cover',
         ),
       ]);
 
@@ -285,13 +282,11 @@ void main() {
           isPartial: false,
           paginationMode: ChapterPaginationMode.contentBlocks,
           anchorPageBlocks: const [
-            PageBlockSlice.image(
-              PageImageBlockSlice(
-                blockIndex: 1,
-                assetId: 'img_staging',
-                layout: ImageBlockLayout.inlineContain,
-                alt: 'staging',
-              ),
+            PackedBlockSlice.image(
+              blockIndex: 1,
+              assetId: 'img_staging',
+              imageLayout: ImageBlockLayout.inlineContain,
+              alt: 'staging',
             ),
           ],
         ),

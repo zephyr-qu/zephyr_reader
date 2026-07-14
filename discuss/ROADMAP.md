@@ -1,10 +1,10 @@
 # 阅读核心路线图（与边界 v1.1 绑定）
 
-> **当前阶段 = Phase 8 滚动模式 Flutter 化**（2026-07-13）
-> **Phase 7** 已暂停 ⏸️（清理冗余代码，等待 P8 合并后收尾）
-> **Phase 6** 已关闭 ✅（Flutter 分页迁移）
-> **上一阶段**：Phase 7 清理冗余代码
-> **下一阶段**：Phase 7 收尾
+> **当前阶段 = Phase 7 收尾**（2026-07-13）
+> **Phase 8** 已关闭 ✅（滚动模式 Flutter 化）
+> **Phase 7** 进行中 🔄（清理冗余代码）
+> **上一阶段**：Phase 8 滚动模式 Flutter 化
+> **下一阶段**：Phase 9 Flutter 原生 IR + 管线简化
 
 ---
 
@@ -124,28 +124,43 @@ Phase 7 代码清理完成后，此阶段各项已自然完成。
 
 ---
 
-## Phase 8 — 滚动模式 Flutter 化（规划中）
+## Phase 8 — 滚动模式 Flutter 化 ✅ 已完成
 
 **目标**：将 scroll 模式的 EPUB 富文本排版从 Rust 迁移到 Flutter，用 IR 统一两条渲染路径。
 
-### 现状
-
-- 分页模式：`getChapterContentIr` → Flutter `FlutterBlockPaginator` → `PackedPage[]`（纯 Flutter，不依赖 Rust 排版）
-- 滚动模式：`getEpubChapterRichContent` → Rust `apply_typeset()` → `RichParagraph[]` → Dart `TextSpan`（Rust 排版，依赖 `TypesetConfig` FRB 类型）
-
-### 迁移方向
-
-- Scroll 路径复用 IR（`ChapterContentIr`），Flutter 侧自行断行/样式化
-- 消除 `get_epub_chapter_rich_content`、`RichParagraph`、`RichChapterContent`、`apply_typeset`
-- 消除 `TypesetConfig` 作为 FRB 类型的唯一消费者（`get_epub_chapter_rich_content` 的参数）
-- 清理 `chard_width.rs` 和 `TypesetCalibration` 等排版附属（若不再需要）
-
-### 依赖
-
-- Phase 7 完成后启动
-- 需要验证 scroll 模式下 IR 能否完整还原现有富文本效果（行内图、块样式、span 格式）
+| # | 项 | 状态 |
+| --- | ----- | ------ |
+| 1 | Flutter 侧 IR → TextSpan 渲染器（scroll_ir_block_list.dart） | ✅ |
+| 2 | Scroll 数据源替换：getEpubChapterRichContent → getChapterContentIr | ✅ |
+| 3 | 删除 Rust RichParagraph / RichChapterContent / RICH_CONTENT_CACHE | ✅ |
+| 4 | 删除 Rust TypesetConfig/TypesetCalibration FRB 导出 | ✅ |
+| 5 | 删除 char_width.rs / line_breaking.rs（无生产消费者） | ✅ |
+| 6 | 删除 Dart currentRichParagraphs 全链 | ✅ |
 
 ---
+
+## Phase 9 — Flutter 原生 IR + 管线简化（规划中）
+
+**目标**：IR 数据结构从 Rust 遗留设计优化为 Flutter 原生形式，
+消除 Rust-era 中间类型，简化两条渲染管线。
+
+### 任务清单
+
+| # | 项 | 说明 |
+| --- | ----- | ------ |
+| 1 | IR 结构优化：`BlockPlainRange` / `line_break_indices` | Flutter 分页不用偏移和行断点，可标记 optional 或移除 |
+| 2 | IR → 纯 Dart `PackedBlockSlice[]` 直接输出 | 跳过 `slicesToPageBlocks` 转换，Rust 解析时直接产生 Flutter 可用形式 |
+| 3 | 合并 `ContentBlock` 枚举属性到扁平字段 | 当前 Text/Image 用枚举区分，可改为 `isImage: bool` 统一访问（同 `PackedBlockSlice`） |
+| 4 | 评估 `RichTextSpan` 移入纯 Dart | 目前 Rust 和 Dart 各有一份，双向序列化有 FRB 开销 |
+| 5 | 评估 `TextBlockStyle` 移入纯 Dart | 同上，两个平台各存一份 |
+| 6 | Rust `pagination.rs` 剩余类型清理 | `PageContent`, `ChapterPaginationMode` 等可能不再需要 |
+| 7 | `api/reader.rs::get_chapter` plain text fallback 移除 | 当 IR 路径完全可靠时，`get_chapter 的退化备选可删除 |
+| 8 | `api/data/init.rs` 迁出 api 层 | 数据库初始化不属于 FRB 接口层（受 FRB 约束暂缓） |
+
+### 注意
+
+- Phase 9 是架构优化，非功能开发，以代码减少和可维护性为衡量标准
+- 部分改动（如纯 Dart IR 类型）可能影响性能，需 benchmark
 
 ## 不做（Phase 4 仍适用）
 
