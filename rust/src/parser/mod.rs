@@ -10,12 +10,13 @@
 //   - get_cover_registry() — 获取封面提取器注册表
 //
 // 子模块：
-//   - book_parser, cover_extractor, epub, provider, registry, txt
+//   - bilingual, book_parser, cover_extractor, epub, provider, registry, txt
 // ============================================================
 
 //! 解析器模块
 //! 管理 EPUB、TXT 格式解析
 
+pub mod bilingual;
 pub mod book_parser;
 pub mod cover_extractor;
 pub mod epub;
