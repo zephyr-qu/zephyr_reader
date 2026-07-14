@@ -23,7 +23,6 @@
 //! - `orchestrator` — `ReadingOrchestrator` 业务方法入口 + 全局单例
 pub mod chapter_access;
 pub mod chapter_ir;
-pub(crate) mod layout_cache;
 pub mod orchestrator;
 pub(crate) mod provider_cache;
 // ── book_id_cache (inlined) ──
