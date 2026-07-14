@@ -1,11 +1,5 @@
 /// 行断点索引提取——用 TextPainter 获取 Flutter 引擎 ICU 断行的精确结果。
 ///
-/// # 为什么不用贪心估算？
-///
-/// Rust 侧 `BlockPaginator` 的贪心断行基于字符宽度表（CJK、Latin
-/// 各一个均值），在标点、空格、字号变化等场景下与 Flutter ICU 结果
-/// 产生漂移，导致分页估算溢出或不足。
-///
 /// # Ground Truth
 ///
 /// Flutter 的 `TextPainter` 不直接暴露每行的字符索引。通过
@@ -146,9 +140,7 @@ List<int> computeChapterLineBreakIndicesFromBlocks({
           config,
         );
         final textStyle = config
-            .buildTextStyle(
-              fontSizeMultiplier: blockFontSize / config.fontSize,
-            )
+            .buildTextStyle(fontSizeMultiplier: blockFontSize / config.fontSize)
             .copyWith(height: blockLineHeight);
         final indentPx = IrTextBlockStyle.resolveFirstLineIndentPx(
           irStyle,

@@ -11,6 +11,18 @@ use crate::storage::repos::StatsRepository;
 
 pub use crate::storage::models::{GlobalStats, ReadingStats};
 
+// ============================================================
+// 文件作用：阅读统计 API — 阅读时间、页数等统计查询。
+//
+// 公有函数：
+//   - get_today_reading_stats() — 今日统计
+//   - get_reading_stats_by_range() — 日期范围统计
+//   - get_global_reading_stats() — 全局统计
+//   - update_daily_stats() — 更新每日统计
+//   - get_reading_stats_by_days() — 最近 N 天统计
+//   - get_reading_stats_by_days_with_fill() — 最近 N 天（自动填充缺失）
+// ============================================================
+
 /// 获取今日阅读统计数据列表
 ///
 /// # 返回

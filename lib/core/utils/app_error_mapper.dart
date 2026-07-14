@@ -19,7 +19,7 @@ class AppErrorMapper {
   /// 将异常对象映射为用户可读的错误消息。
   ///
   /// 按异常类型（而非字符串匹配）分发到对应消息模板，
-  /// 覆盖 FRB/Panic、Rust AppError（16 种变体）、网络请求、文件 IO、数据格式等场景。
+  /// 覆盖 FRB/Panic、Rust AppError（15 种变体）、网络请求、文件 IO、数据格式等场景。
   /// 无法识别的异常返回通用消息，不会向外传播异常。
   static String humanReadable(Object error) {
     // ===== FRB/Rust 引擎严重错误 =====
@@ -27,7 +27,7 @@ class AppErrorMapper {
       return '引擎内部错误，请重试或重启应用';
     }
 
-    // ===== Rust AppError（16 种类型化变体） =====
+    // ===== Rust AppError（15 种类型化变体） =====
     if (error is AppError) {
       return error.when(
         fileNotFound: (path) => '文件未找到: $path',
@@ -38,7 +38,6 @@ class AppErrorMapper {
         chapterExtractError: (index, reason) => '章节 $index 提取失败: $reason',
         chapterTooLarge: (sizeBytes, details) =>
             '章节过大（${sizeBytes}bytes，最大2MB），建议重新导入',
-        typesetConfigError: (reason) => '排版配置错误: $reason',
         databaseError: (reason) => '数据库错误: $reason',
         notFound: (entity) => '$entity 未找到',
         storageNotInitialized: () => '存储未初始化，请先初始化',

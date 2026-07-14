@@ -12,6 +12,26 @@ use crate::storage::repos::CategoryRepository;
 
 pub use crate::storage::models::{Book, BookshelfBook, BookStatus, Category};
 
+// ============================================================
+// 文件作用：分类管理 API — 分类 CRUD、书籍分类分配。
+//
+// 公有函数：
+//   - list_books_by_category() — 分类下的书籍列表
+//   - list_bookshelf_books_by_category() — 书架版（含进度）
+//   - list_bookshelf_books_by_category_and_status() — 分类+状态筛选
+//   - list_categories() — 获取所有分类
+//   - create_category() — 创建分类
+//   - upsert_category() — 新增或更新分类
+//   - delete_category() — 删除分类
+//   - get_category() — 根据 ID 获取
+//   - reorder_categories() — 批量重排顺序
+//   - list_categories_by_book() — 书籍的所有分类
+//   - assign_category_to_book() — 为书籍分配分类
+//   - clear_category_from_book() — 移除分类关联
+//   - set_categories_for_book() — 设置书籍分类列表
+//   - clear_categories_by_book() — 清除书籍所有分类
+// ============================================================
+
 /// 获取指定分类下的所有书籍列表
 ///
 /// 替代 Dart 侧 list() + N×listByBook() 的 N+1 查询。

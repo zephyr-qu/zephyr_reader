@@ -1,3 +1,12 @@
+// ============================================================
+// 文件作用：Rust 数据存储层，管理所有阅读数据的持久化
+//          (SQLite 阅读进度/笔记/书签 + sled KV 排版缓存)
+//
+// 公有类型/函数：
+//   - StorageManager — 存储管理器
+//   - storage() / ensure_storage() / storage_pool() — 全局实例访问
+// ============================================================
+
 //! Rust 数据存储层
 //!
 //! 负责管理所有阅读相关数据的持久化：
@@ -14,10 +23,7 @@ pub mod models;
 pub mod repos;
 
 use std::sync::OnceLock;
-
 pub use db::StorageManager;
-
-
 use crate::domain::AppError;
 
 // ==================== 全局存储实例 ====================

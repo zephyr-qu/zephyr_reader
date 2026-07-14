@@ -1,3 +1,15 @@
+// ============================================================
+// 文件作用：书签仓储，管理书签的增删改查
+//
+// 公有类型/函数：
+//   - BookmarkRepository — 书签仓储结构体
+//   - save() — 创建或更新书签
+//   - find_by_book() / find_by_id() — 查询书签
+//   - delete_by_id() / delete_by_book() / delete_by_ids() — 删除
+//   - import_bookmarks() — 批量导入
+//   - count_by_book() — 统计书签数量
+// ============================================================
+
 use crate::domain::AppError;
 use sqlx::SqlitePool;
 

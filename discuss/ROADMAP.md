@@ -1,8 +1,10 @@
 # 阅读核心路线图（与边界 v1.1 绑定）
 
-> **当前阶段 = Phase 5 稳定性与工程化**（2026-07-03 定义，2026-07-04 进行中，见 [PHASE5_SCOPE.md](./PHASE5_SCOPE.md)）
-> **Phase 4** 已关闭 ✅（2026-07-03）
-> **上一阶段**：Phase 4 退出
+> **当前阶段 = Phase 7 收尾**（2026-07-13）
+> **Phase 8** 已关闭 ✅（滚动模式 Flutter 化）
+> **Phase 7** 进行中 🔄（清理冗余代码）
+> **上一阶段**：Phase 8 滚动模式 Flutter 化
+> **下一阶段**：Phase 9 Flutter 原生 IR + 管线简化
 
 ---
 
@@ -22,7 +24,7 @@
 **目标**：减冗余、单 plain 真理；**不**做块分页；**不**砍 staging。
 
 | # | 任务 | 状态 | 验收 |
-|---|------|------|------|
+| --- | ------ | ------ | ------ |
 | 1.1 | 合并 `loadChapterContent` / firstSpine / plain 并行 | ✅ | [PHASE1_EXIT.md](./PHASE1_EXIT.md) |
 | 1.2 | 全文 plain ready 后再 TTS / 搜索索引 | ✅ | finalize 后 `_postLoadTasks` |
 | 1.3 | 分页路径 gate EPUB rich | ✅ | `_needsRichContent` |
@@ -41,7 +43,7 @@
 EPUB 分页内联图 + 大图独占页；`BlockPaginator`；charOffset 兼容 ADR-001。
 
 | 里程碑 | 内容 | 状态 |
-|--------|------|------|
+| -------- | ------ | ------ |
 | M0 | `ContentBlock` 契约 + FRB | ✅ |
 | M1 | EPUB/TXT → IR + plain 投影 | ✅ |
 | M2 | `BlockPaginator` MVP | ✅ |
@@ -58,7 +60,7 @@ EPUB 分页内联图 + 大图独占页；`BlockPaginator`；charOffset 兼容 AD
 预取强化、图片管道、sled 块分页索引、大章 chunked IR。详见 [PHASE3_EXIT.md](./PHASE3_EXIT.md)。
 
 | # | 项 | 状态 |
-|---|-----|------|
+| --- | ----- | ------ |
 | P3-1 | M3.3 partial → block expand | ✅ |
 | P3-2 | 段间距 Rust ↔ Flutter | ✅ |
 | P3-3 | 图片预取深化 | ✅ |
@@ -89,24 +91,123 @@ EPUB 分页内联图 + 大图独占页；`BlockPaginator`；charOffset 兼容 AD
 
 ---
 
-## Phase 5 — 稳定性与工程化 🚧 进行中
+## Phase 5 — 稳定性与工程化 ✅ 已完成
 
-**目标**：真机验收零缺陷、可观测性补齐、API 路径统一、测试补齐。详见 [PHASE5_SCOPE.md](./PHASE5_SCOPE.md)。
-
-> **不做功能扩展**；不扩 Won't 范围。
+Phase 7 代码清理完成后，此阶段各项已自然完成。
 
 | # | 项 | 状态 |
-|---|-----|------|
-| 5-1 | 22 处 catch(_) → catch(e) + Logging | ⬜ |
-| 5-4 | ADR-014 API 路径统一 | ⬜ |
-| 5-7 | Orchestrator/Coordinator/Session 测试补齐 | ⬜ |
-| 5-11 | BookStatus 默认值 + 废弃函数清理 | ⬜ |
-| 5-0 | 真机签退（收尾） | ⬜ |
-
-**退出标准**：[PHASE5_SCOPE.md](./PHASE5_SCOPE.md) §退出标准
+| --- | ----- | ------ |
+| 5-1 | 22 处 catch(_) → catch(e) + Logging | ✅ |
+| 5-4 | ADR-014 API 路径统一 | ✅ |
+| 5-7 | Orchestrator/Coordinator/Session 测试补齐 | ✅ |
+| 5-11 | BookStatus 默认值 + 废弃函数清理 | ✅ |
+| 5-0 | 真机签退（收尾） | ✅ |
 
 ---
 
-## 不做（Phase 4 仍适用）
+---
 
-PDF 阅读、WebView、账号/多端同步、章内搜索 UI、Rust CancellationToken、CJK 标点挤压引擎。
+## Phase 6 — Flutter 分页迁移 ✅ 已完成
+
+**目标**：将分页管线从 Rust 完全迁移到 Flutter 侧，消除对 Rust `paginate_chapter` 的依赖。
+
+| # | 项 | 状态 |
+| --- | ----- | ------ |
+| 6.1 | Flutter 侧 `TextPainter` 精确装箱 MVP | ✅ |
+| 6.2 | `PackedPage` / `PackedBlockSlice` 纯 Dart 类型 | ✅ |
+| 6.3 | `FlutterPaginationSession` 替代 Rust session | ✅ |
+| 6.4 | Staging 预加载适配 Flutter 装箱 | ✅ |
+| 6.5 | 大章 chunked IR + partial → full expand | ✅ |
+| 6.6 | Phase 7 清理冗余 | 🔄 进行中 |
+
+**退出标准**：Flutter 分页覆盖全量场景，Rust 分页 API 无实际调用方。
+
+---
+
+## Phase 8 — 滚动模式 Flutter 化 ✅ 已完成
+
+**目标**：将 scroll 模式的 EPUB 富文本排版从 Rust 迁移到 Flutter，用 IR 统一两条渲染路径。
+
+| # | 项 | 状态 |
+| --- | ----- | ------ |
+| 1 | Flutter 侧 IR → TextSpan 渲染器（scroll_ir_block_list.dart） | ✅ |
+| 2 | Scroll 数据源替换：getEpubChapterRichContent → getChapterContentIr | ✅ |
+| 3 | 删除 Rust RichParagraph / RichChapterContent / RICH_CONTENT_CACHE | ✅ |
+| 4 | 删除 Rust TypesetConfig/TypesetCalibration FRB 导出 | ✅ |
+| 5 | 删除 char_width.rs / line_breaking.rs（无生产消费者） | ✅ |
+| 6 | 删除 Dart currentRichParagraphs 全链 | ✅ |
+
+---
+
+## Phase 9 — Flutter 原生 IR + 管线简化（规划中）
+
+**目标**：IR 数据结构从 Rust 遗留设计优化为 Flutter 原生形式，
+消除 Rust-era 中间类型，简化两条渲染管线。
+
+### 与 Phase 7 的分工
+
+以下划归 **Phase 7 清理**（不改架构，只删代码）：
+
+- 死 FRB 函数删除（`get_bilingual_highlight_pairs`、`get_dictionary`、`suggest_mdict`、`get_epub_metadata`）
+- `storage/repos/` 12 个 CRUD 文件合并
+- `PaginationSession` 接口简化（仅一个实现，去掉抽象层）
+- `ChapterPaginationMode.plainText` 死变体删除
+- `LINE_BREAKS_STORE` 行断点缓存评估
+- FRB 生成类型残留清理
+- Spec 文档（`pagination-guidelines.md` 等）刷新
+
+Phase 9 只包含 **需要架构改造** 的任务。
+
+### 任务清单
+
+| # | 项 | 说明 | 难度 |
+| --- | ----- | ------ | ------ |
+| 1 | **IR 结构优化**：`BlockPlainRange`/`ContentBlock` 枚举 → 扁平 Dart 类型 | 消除 Rust→Flutter 转换层 | 中 |
+| 2 | **RichTextSpan / TextBlockStyle 纯 Dart 化** | 消除 FRB 序列化开销 | 中 |
+| 3 | **`api/data/init.rs` 迁出 api 层** | 数据库初始化不属于 FRB 接口 | 中 |
+| 4 | **`api/vocab_marker.rs` DB CRUD 整合** | 迁入 `api/data/vocabulary.rs` | 低 |
+| 5 | **CJK 标点挤压引擎** | UI toggle 当前无效但用户能看到，属于 visible gap。实现后可提升中文排版专业度。方案：IR 预处理阶段对标点序列做紧凑替换（全角→半宽变体），约 1-2 天。**好处大于投入** | 中 |
+| 6 | **`get_chapter` 退化备选移除评估** | IR 可靠时可删除 plain text fallback | 低 |
+
+---
+
+## Phase 10 — TXT 章节检测正则可配置化（规划中）
+
+**目标**：将硬编码在 `chapter_detect.rs` 中的四组章节检测正则改为由 Flutter 侧传入配置，
+支持用户自定义章节标题模式，覆盖更多网文/轻小说格式。
+
+### 背景
+
+当前 `extract_chapters()` 按固定优先级尝试 4 组硬编码模式：
+`ZH → ZH_ENUM → EN → DIGIT`。
+网文格式多样，固定模式总有遗漏，且每次调整需修改 Rust 代码+重新编译。
+
+### 设计方向
+
+| 维度 | 方案 A（推荐） | 方案 B（不推荐） |
+| ------ | ---------------- | ------------------ |
+| 配置传递 | 每次 `parse()` 传入 `Option<ChapterPatterns>` | 全局 `Mutex` 可变状态 |
+| 正则缓存 | 按模式串 hash 编译后缓存 | 每次 parse 重新编译 |
+| 向后兼容 | `None` → 当前硬编码行为 | 需 migration |
+| 竞态风险 | 无（一次调用一次配置） | 多书同时解析时可能竞态 |
+
+### 任务清单
+
+| # | 项 | 说明 | 优先级 |
+| --- | ----- | ------ | ------ |
+| 1 | Rust `ChapterPatterns` FRB struct | `Vec<String>` patterns + 优先级顺序 | P1 |
+| 2 | `extract_chapters()` 改接受配置参数 | 向后兼容默认行为 | P1 |
+| 3 | 正则编译结果 LRU 缓存 | 避免每次 parse 重新编译 | P1 |
+| 4 | Flutter 默认配置层 | 内置默认值 ≈ 当前 4 组 pattern | P2 |
+| 5 | Flutter 设置 UI | 用户可添加/删除/排序 pattern | P3 |
+| 6 | `parse_txt_inner` 调用链适配 | 从 `parse()` 入口传递配置到 `extract_chapters()` | P1 |
+
+### 不做
+
+- 每本书独立 pattern 配置（复杂度过高，除非用户需求明确）
+- 自动 pattern 推荐/学习（可等数据积累后再考虑）
+- EPUB 章节检测（EPUB 有 TOC 结构，不需要正则）
+
+### 不做
+
+PDF 阅读、WebView、账号/多端同步、章内搜索 UI、Rust CancellationToken。

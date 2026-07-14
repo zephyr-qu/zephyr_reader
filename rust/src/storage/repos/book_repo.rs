@@ -1,3 +1,14 @@
+// ============================================================
+// 文件作用：书籍仓储，管理书籍的增删改查及相关关联表操作
+//
+// 公有类型/函数：
+//   - BookRepository — 书籍仓储结构体
+//   - list() / list_bookshelf() / list_titles() — 列表查询
+//   - find_by_id() / find_by_file_path() / search() — 单书查询
+//   - save() / save_metadata() / delete_cascade() — 写入操作
+//   - count() / update_status() / update_pin() — 统计与状态更新
+// ============================================================
+
 use crate::domain::AppError;
 use sqlx::{QueryBuilder, SqlitePool};
 

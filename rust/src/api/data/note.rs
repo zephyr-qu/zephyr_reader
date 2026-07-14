@@ -10,6 +10,32 @@ use crate::storage::repos::NoteRepository;
 
 pub use crate::storage::models::{Note, NoteStats, NoteType, NoteWithBook};
 
+// ============================================================
+// 文件作用：笔记管理 API — 笔记 CRUD、高亮批注、导出。
+//
+// 公有函数：
+//   - create_highlight() — 创建高亮笔记
+//   - create_annotation() — 创建批注笔记
+//   - upsert_note() — 新增或更新笔记
+//   - list_notes_by_book() — 书籍的笔记列表
+//   - list_notes_by_books() — 多书批量查询
+//   - search_notes() — 搜索笔记
+//   - list_all_notes() — 跨书分页查询
+//   - list_notes_with_titles() — 分页查询（带书名）
+//   - count_notes() — 笔记总数统计
+//   - list_notes_in_chapter() — 章节内笔记
+//   - delete_note() — 删除笔记
+//   - clear_notes_by_book() — 清除书籍所有笔记
+//   - get_note_stats() — 笔记统计信息
+//   - render_notes_to_string() — 渲染为导出文本
+//
+// 私有函数：
+//   - note_type_label() — 笔记类型中文标签
+//   - format_timestamp() — 格式化时间戳
+//   - escape_html() — HTML 转义
+//   - render_txt() / render_markdown() / render_html() — 三种导出格式
+// ============================================================
+
 /// 创建高亮笔记（自动生成 UUID）
 ///
 /// # 参数

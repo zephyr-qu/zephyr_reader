@@ -1,4 +1,4 @@
-rust_input: crate::api
+rust_input: "crate::api,crate::storage"
 rust_root: rust/
 dart_output: lib/src/rust
 c_output: rust_builder/cargokit/build_output/include

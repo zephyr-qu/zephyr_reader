@@ -5,14 +5,13 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 
-final _descriptor = const PageDescriptor(
+final _descriptor = const PackedPage(
   pageIndex: 0,
   startOffset: 0,
   endOffset: 500,
-  firstParagraphIndex: 0,
-  lastParagraphIndex: 2,
+  slices: [],
   isLastPage: true,
 );
 

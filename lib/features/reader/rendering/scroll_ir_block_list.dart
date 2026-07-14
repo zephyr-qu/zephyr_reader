@@ -7,7 +7,7 @@ import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dar
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
-/// P4-1：scroll 模式按 [ContentBlock] 流渲染（与 pagination 块分页同源 IR）。
+/// scroll 模式按 [ContentBlock] 流渲染（与 pagination 块分页同源 IR）。
 Widget buildScrollIrBlockList({
   required BuildContext context,
   required ScrollController scrollController,

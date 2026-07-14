@@ -1,3 +1,11 @@
+// ============================================================
+// 文件作用：应用初始化入口函数
+//
+// 公有类型/函数：
+//   - init_app() — 由 Flutter 端通过 FRB 调用，一次初始化
+//     日志系统、FRB 工具、解析器注册表、封面提取器
+// ============================================================
+
 use flutter_rust_bridge::frb;
 
 use crate::parser;
@@ -32,5 +40,5 @@ pub fn init_app() {
     parser::get_cover_registry();
     tracing::info!("Cover extractor registry initialized");
 
-    tracing::info!("Rust core engine initialized");
+    tracing::info!("Rust reader engine initialized");
 }

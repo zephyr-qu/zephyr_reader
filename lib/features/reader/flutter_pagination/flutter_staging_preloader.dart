@@ -3,15 +3,13 @@ import 'package:zephyr_reader/features/reader/core/data/epub_block_image_cache.d
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
-import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_block_paginator.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_pagination_session.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_staging_store.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_viewport_metrics.dart';
-import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
+import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
+import 'package:zephyr_reader/src/rust/api/reader.dart' as reader_api;
 
 /// 方案三 T2：用与当前章相同的 Flutter 装箱算法预取相邻章。
 abstract final class FlutterStagingPreloader {
@@ -27,7 +25,7 @@ abstract final class FlutterStagingPreloader {
       final book = await book_api.getBook(bookId: bookId);
       if (book == null || book.filePath.isEmpty) return null;
 
-      final ir = await core_api.getChapterContentIr(
+      final ir = await reader_api.getChapterContentIr(
         bookId: bookId,
         chapterIndex: chapterIndex,
       );
@@ -75,7 +73,7 @@ abstract final class FlutterStagingPreloader {
       for (final p in prefetchPages) {
         epubBlockImageCache.prefetchBlocks(
           filePath: book.filePath,
-          blocks: FlutterPaginationSession.slicesToPageBlocks(p.slices),
+          blocks: p.slices,
           maxWidthPx: imageMaxWidthPx,
         );
       }
@@ -116,29 +114,18 @@ abstract final class FlutterStagingPreloader {
   ) {
     final pages = ready.pages;
     final anchor = pages[anchorIndex.clamp(0, pages.length - 1)];
-    final descriptors = [
-      for (final p in pages)
-        PageDescriptor(
-          pageIndex: p.pageIndex,
-          startOffset: p.startOffset,
-          endOffset: p.endOffset,
-          firstParagraphIndex: 0,
-          lastParagraphIndex: 0,
-          isLastPage: p.isLastPage,
-        ),
-    ];
     final plain = ready.ir.plainText;
     final end = anchor.endOffset.clamp(0, plain.length);
     final start = anchor.startOffset.clamp(0, end);
     return NextChapterStaging(
       chapterIndex: ready.chapterIndex,
       configHash: BigInt.zero,
-      descriptors: descriptors,
+      descriptors: pages,
       firstPageContent: plain.substring(start, end),
       isPartial: false,
       paginationMode: ChapterPaginationMode.contentBlocks,
       bookId: ready.bookId,
-      anchorPageBlocks: FlutterPaginationSession.slicesToPageBlocks(anchor.slices),
+      anchorPageBlocks: anchor.slices,
     );
   }
 }

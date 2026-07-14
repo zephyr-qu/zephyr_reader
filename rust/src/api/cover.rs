@@ -6,9 +6,18 @@ use crate::domain::AppError;
 use crate::parser::get_cover_registry;
 use crate::storage::ensure_storage;
 use crate::storage::repos::BookRepository;
-use crate::utils::security::validate_file_path;
+use crate::domain::security::validate_file_path;
 use flutter_rust_bridge::frb;
 use std::path::Path;
+
+// ============================================================
+// 文件作用：封面提取 API — 自动检测格式并提取/保存封面图片。
+//
+// 公有函数：
+//   - extract_book_cover() — 提取封面保存到目录
+//   - extract_and_save_cover() — 提取封面并更新 DB
+//   - supports_cover_extraction() — 检查是否支持封面提取
+// ============================================================
 
 /// 提取书籍封面
 ///

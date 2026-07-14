@@ -4,18 +4,16 @@ import 'package:zephyr_reader/features/reader/core/domain/pagination_session.dar
 import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
-import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_progress_hook.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_block_paginator.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/active_chapter_ir.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_block_paginator.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_progress_hook.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_staging_store.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_viewport_metrics.dart';
-import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
+import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
-import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
+import 'package:zephyr_reader/src/rust/api/reader.dart' as reader_api;
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// Flutter 精确分页会话（ADR-016）：只拉 IR，本地装箱；不创建 Rust pagination session。
@@ -31,9 +29,9 @@ class FlutterPaginationSession implements PaginationSession {
   /// 优先 [onPaginationProgress]，否则 [paginationProgressHook]。
   void Function(int totalPages, bool isPartial)? onPaginationProgress;
 
-  List<PageDescriptor>? _descriptors;
+  List<PackedPage>? _descriptors;
   final Map<int, String> _pageCache = {};
-  final Map<int, List<PageBlockSlice>> _blockCache = {};
+  final Map<int, List<PackedBlockSlice>> _blockCache = {};
   ChapterContentIr? _ir;
   int? _chapterIndex;
   BigInt? _configHash;
@@ -46,7 +44,7 @@ class FlutterPaginationSession implements PaginationSession {
   ChapterPaginationMode get sessionMode => ChapterPaginationMode.contentBlocks;
 
   @override
-  List<PageDescriptor>? get descriptors => _descriptors;
+  List<PackedPage>? get descriptors => _descriptors;
 
   @override
   BigInt? get sessionConfigHash => _configHash;
@@ -61,7 +59,7 @@ class FlutterPaginationSession implements PaginationSession {
   String? get sessionFilePath => _sessionFilePath;
 
   @override
-  List<PageBlockSlice>? pageBlocks(int pageIndex) => _blockCache[pageIndex];
+  List<PackedBlockSlice>? pageBlocks(int pageIndex) => _blockCache[pageIndex];
 
   @override
   String? pageContent(int pageIndex) => _pageCache[pageIndex];
@@ -220,12 +218,14 @@ class FlutterPaginationSession implements PaginationSession {
   Future<Book> _getBook(String bookId) async {
     final book = await book_api.getBook(bookId: bookId);
     if (book == null) {
-      throw Exception('SpikeSession: book not found for bookId=$bookId');
+      throw Exception(
+        'FlutterPaginationSession: book not found for bookId=$bookId',
+      );
     }
     return book;
   }
 
-  void _prefetchBlockImages(List<PageBlockSlice> blocks) {
+  void _prefetchBlockImages(List<PackedBlockSlice> blocks) {
     final path = _sessionFilePath;
     if (path == null || path.isEmpty) return;
     epubBlockImageCache.prefetchBlocks(
@@ -248,7 +248,9 @@ class FlutterPaginationSession implements PaginationSession {
 
     final book = await _getBook(bookId);
     if (book.filePath.isEmpty) {
-      throw Exception('SpikeSession: book not found for bookId=$bookId');
+      throw Exception(
+        'FlutterPaginationSession: book not found for bookId=$bookId',
+      );
     }
     _sessionFilePath = book.filePath;
     _imageMaxWidthPx = (params.width - 2 * params.padding).round().clamp(
@@ -257,7 +259,7 @@ class FlutterPaginationSession implements PaginationSession {
     );
     epubBlockImageCache.clear();
 
-    final ir = await core_api.getChapterContentIr(
+    final ir = await reader_api.getChapterContentIr(
       bookId: bookId,
       chapterIndex: chapterIndex,
     );
@@ -363,23 +365,11 @@ class FlutterPaginationSession implements PaginationSession {
   }
 
   void _applyPages(List<PackedPage> pages) {
-    _descriptors = [
-      for (final p in pages)
-        PageDescriptor(
-          pageIndex: p.pageIndex,
-          startOffset: p.startOffset,
-          endOffset: p.endOffset,
-          firstParagraphIndex: 0,
-          lastParagraphIndex: 0,
-          isLastPage: p.isLastPage,
-        ),
-    ];
+    _descriptors = pages;
     _pageCache.clear();
     _blockCache
       ..clear()
-      ..addEntries(
-        pages.map((p) => MapEntry(p.pageIndex, slicesToPageBlocks(p.slices))),
-      );
+      ..addEntries(pages.map((p) => MapEntry(p.pageIndex, p.slices)));
   }
 
   /// 从精确预装箱结果安装 session（staging promote，零重装箱）。
@@ -402,35 +392,5 @@ class FlutterPaginationSession implements PaginationSession {
     ensureWindow(0);
     _onCacheUpdated?.call();
     return (totalPages: ready.pages.length, isPartial: false);
-  }
-
-  static List<PageBlockSlice> slicesToPageBlocks(
-    List<PackedBlockSlice> slices,
-  ) {
-    return [
-      for (final s in slices)
-        if (s.isImage)
-          PageBlockSlice.image(
-            PageImageBlockSlice(
-              blockIndex: s.blockIndex,
-              assetId: s.assetId ?? '',
-              layout: s.imageLayout ?? ImageBlockLayout.inlineContain,
-              alt: s.alt,
-            ),
-          )
-        else
-          PageBlockSlice.text(
-            PageTextBlockSlice(
-              blockIndex: s.blockIndex,
-              text: s.text,
-              isBlockStart: s.isBlockStart,
-              isBlockEnd: s.isBlockEnd,
-              style:
-                  s.style ??
-                  const TextBlockStyle(isHeading: false, headingLevel: 0),
-              spans: s.spans,
-            ),
-          ),
-    ];
   }
 }

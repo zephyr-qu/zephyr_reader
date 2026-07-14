@@ -1,10 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show ValueNotifier;
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
-import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 章节内容仓库抽象。
@@ -17,7 +16,7 @@ abstract class ChapterContentRepository {
     ReadingMode? readingMode,
   });
 
-  /// 加载单章滚动拼接数据，不更新 [currentRichContent] / [currentRichParagraphs]。
+  /// 加载单章滚动拼接数据。
   Future<ScrollChapterPayload> loadScrollSegment(
     String bookId,
     int chapterId, {
@@ -26,13 +25,7 @@ abstract class ChapterContentRepository {
 
   Future<void> preload(String bookId, int chapterId);
 
-  /// 当前章节的富文本内容（EPUB）。
-  TextSpan? get currentRichContent;
-
-  /// 当前章节的富文本段落。
-  List<RichParagraph>? get currentRichParagraphs;
-
-  /// P4-1：当前章节的 IR 块流（scroll 主路径）。
+  /// 当前章节的 IR 块流（scroll 主路径）。
   ChapterContentIr? get currentChapterIr;
 
   /// 当前章节对应书籍文件路径（EPUB 图片解码用）。

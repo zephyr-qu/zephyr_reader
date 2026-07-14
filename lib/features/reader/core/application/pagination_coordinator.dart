@@ -1,15 +1,13 @@
 import 'package:flutter/painting.dart' show TextStyle;
-import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
-import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
-import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
-
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
-import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
-import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
-import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
+import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
+import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
+import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
+import 'package:zephyr_reader/src/rust/api/reader.dart' as reader_api;
 
 /// 分页排版协调器：构建参数、局部分页、全量分页及 Dart 回退。
 class PaginationCoordinator {
@@ -61,32 +59,24 @@ class PaginationCoordinator {
   }
 
   /// 计算当前排版配置的哈希值，用于检测配置变更。
-  /// 与 Rust 侧 `TypesetConfig::config_hash()` 算法一致。
-  /// 返回 BigInt（Rust u64 → Dart BigInt），不做截断。
+  /// Dart 侧直接计算（分页已迁 Flutter）。
   BigInt computeConfigHash() {
     final p = buildPaginationParams();
-    final layoutInsets = paginatedTypesetLayoutInsets(
-      fontSize: p.fontSize,
-      lineHeight: p.lineHeight,
-      paragraphSpacing: p.paragraphSpacing,
-    );
-    return core_api.computeConfigHash(
-      config: buildTypesetConfig(
-        width: p.width,
-        height: p.height,
-        fontSize: p.fontSize,
-        lineHeight: p.lineHeight,
-        padding: p.padding,
-        contentVerticalPadding: layoutInsets.contentVerticalPadding,
-        pageHeightLineBuffer: layoutInsets.pageHeightLineBuffer,
-        devicePixelRatio: p.devicePixelRatio,
-        fontFamily: p.fontFamily,
-        letterSpacing: p.letterSpacing,
-        paragraphSpacing: p.paragraphSpacing,
-        punctuationSqueeze: p.punctuationSqueeze,
-        firstLineIndent: p.firstLineIndent ? 2 : 0,
-        language: p.language,
-        autoSpaceRatio: p.autoSpaceRatio,
+    return BigInt.from(
+      Object.hash(
+        p.width,
+        p.height,
+        p.fontSize,
+        p.lineHeight,
+        p.padding,
+        p.devicePixelRatio,
+        p.fontFamily,
+        p.letterSpacing,
+        p.paragraphSpacing,
+        p.punctuationSqueeze,
+        p.firstLineIndent,
+        p.language,
+        p.autoSpaceRatio,
       ),
     );
   }
@@ -107,7 +97,7 @@ class PaginationCoordinator {
     );
   }
 
-  /// 全章分页（spike / 字号变更后重装箱；maxChars=null）。
+  /// 全章分页（字号变更后重装箱；maxChars=null）。
   Future<({int totalPages, bool isPartial})> paginateFullChapter(
     int chapterIndex,
   ) {
@@ -131,7 +121,7 @@ class PaginationCoordinator {
     );
   }
 
-  /// 全量 Rust 分页（升级现有会话）。
+  /// 全量 Flutter 分页（升级现有会话）。
   Future<int> expandToFullChapter(int chapterIndex) async {
     final r = await _repo.expandToFullChapter(
       bookId: _chapterVM.bookId.value,
@@ -154,7 +144,7 @@ class PaginationCoordinator {
     );
   }
 
-  /// 应用完整 Rust 分页结果。
+  /// 应用完整分页结果。
   ({int totalPages, int pageIndex}) applyFullResult({
     required int total,
     required int initialCharOffset,
@@ -178,11 +168,8 @@ class PaginationCoordinator {
     return (totalPages: total, pageIndex: resolvedPage);
   }
 
-  /// charOffset → pageIndex：优先 Rust session，回退 descriptor 二分。
-  int resolvePageForCharOffset(
-    int charOffset,
-    List<PageDescriptor> descriptors,
-  ) {
+  /// charOffset → pageIndex：优先 session，回退 descriptor 二分。
+  int resolvePageForCharOffset(int charOffset, List<PackedPage> descriptors) {
     final sessionPage = _repo.resolvePageIndexForCharOffset(charOffset);
     if (sessionPage != null) {
       return sessionPage.clamp(0, descriptors.length - 1);
@@ -190,16 +177,16 @@ class PaginationCoordinator {
     return PaginationEngine.resolvePageIndexForOffset(descriptors, charOffset);
   }
 
-  /// 释放 Rust 会话并清空本地缓存。
+  /// 释放分页会话并清空本地缓存。
   void disposePagination() => _repo.disposePagination();
 
-  /// 判断 Rust 分页是否有效。
+  /// 判断分页是否有效。
   bool isPaginationValid(int total) {
     final descriptors = _repo.descriptors;
     return total > 0 && descriptors != null && descriptors.isNotEmpty;
   }
 
-  /// Phase 6: 提取当前章节的行断点索引并存入 Rust 缓存。
+  /// 提取当前章节的行断点索引并存入行断点缓存。
   ///
   /// 优先按 IR **文本块** 分别 ICU 断行（与分页渲染同构），再合并为章级绝对索引；
   /// IR 不可用时退化为整章 plain 一次测量。[content] 仅作 fallback。
@@ -217,7 +204,7 @@ class PaginationCoordinator {
 
       // 与分页主路径同源 IR（不依赖 scroll 是否已缓存 chapterIr）
       try {
-        final ir = await core_api.getChapterContentIr(
+        final ir = await reader_api.getChapterContentIr(
           bookId: _chapterVM.bookId.value,
           chapterIndex: _chapterVM.chapterIndex.value,
         );
@@ -267,7 +254,7 @@ class PaginationCoordinator {
 
       if (indices.isEmpty) return;
 
-      core_api.storeLineBreaks(
+      reader_api.storeLineBreaks(
         bookId: _chapterVM.bookId.value,
         chapterIndex: _chapterVM.chapterIndex.value,
         configHash: configHash,

@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
@@ -10,7 +9,6 @@ import 'package:zephyr_reader/features/reader/core/application/scroll_document_c
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_notice.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
-import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 
 /// 滚动模式章界协调器。
 ///
@@ -45,8 +43,6 @@ class ScrollBoundaryCoordinator {
   void init(
     int chapterIndex,
     String content, {
-    List<RichParagraph>? richParagraphs,
-    TextSpan? richRootSpan,
     ChapterContentIr? chapterIr,
     String? chapterFilePath,
   }) {
@@ -54,8 +50,6 @@ class ScrollBoundaryCoordinator {
     _composer!.reset(
       ScrollSegmentFactory.fromPayload(chapterIndex, (
         content: content,
-        richParagraphs: richParagraphs,
-        richRootSpan: richRootSpan,
         epubRichSkipped: false,
         chapterIr: chapterIr,
         chapterFilePath: chapterFilePath,
@@ -90,9 +84,11 @@ class ScrollBoundaryCoordinator {
       if (payload.epubRichSkipped && readingMode == ReadingMode.bilingual) {
         _onReaderNotice?.call(ReaderNotice.epubRichSkipped);
       }
-      unawaited(_repo.preloadChapter(bookId, nextIdx + 1).catchError((Object e) {
-        Logging.debug('[ScrollCoord] preloadChapter(nextIdx+1) failed: $e');
-      }));
+      unawaited(
+        _repo.preloadChapter(bookId, nextIdx + 1).catchError((Object e) {
+          Logging.debug('[ScrollCoord] preloadChapter(nextIdx+1) failed: $e');
+        }),
+      );
     } catch (e) {
       Logging.debug('[ScrollCoord] appendNext failed: $e');
     } finally {
@@ -160,8 +156,6 @@ class ScrollBoundaryCoordinator {
     String bookId,
     int chapterIndex,
     String content, {
-    List<RichParagraph>? richParagraphs,
-    TextSpan? richRootSpan,
     ChapterContentIr? chapterIr,
     String? chapterFilePath,
   }) {
@@ -172,8 +166,6 @@ class ScrollBoundaryCoordinator {
     _composer!.reset(
       ScrollSegmentFactory.fromPayload(chapterIndex, (
         content: content,
-        richParagraphs: richParagraphs,
-        richRootSpan: richRootSpan,
         epubRichSkipped: false,
         chapterIr: chapterIr,
         chapterFilePath: chapterFilePath,

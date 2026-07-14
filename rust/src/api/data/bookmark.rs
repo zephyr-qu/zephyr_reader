@@ -12,6 +12,21 @@ use crate::storage::repos::BookmarkRepository;
 
 pub use crate::storage::models::Bookmark;
 
+// ============================================================
+// 文件作用：书签管理 API — 书签 CRUD、导入、统计。
+//
+// 公有函数：
+//   - list_bookmarks_by_book() — 获取书籍的所有书签
+//   - create_bookmark() — 创建书签
+//   - upsert_bookmark() — 新增或更新书签
+//   - delete_bookmark() — 删除单个书签
+//   - delete_bookmarks() — 批量删除书签
+//   - get_bookmark() — 根据 ID 获取书签
+//   - clear_bookmarks_by_book() — 清除书籍所有书签
+//   - import_bookmarks() — 批量导入书签
+//   - count_bookmarks_by_book() — 书签数量统计
+// ============================================================
+
 /// 获取书籍的所有书签列表
 ///
 /// # 参数

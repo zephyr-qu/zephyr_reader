@@ -33,8 +33,8 @@ import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
-import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
+import 'package:zephyr_reader/features/reader/domain/config/language_type.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 import '../../../../helpers/fixtures.dart';
@@ -154,29 +154,26 @@ class _MockConfig implements ReaderConfig {
 }
 
 const _desc3 = [
-  PageDescriptor(
+  PackedPage(
     pageIndex: 0,
     startOffset: 0,
     endOffset: 99,
+    slices: [],
     isLastPage: false,
-    firstParagraphIndex: 0,
-    lastParagraphIndex: 0,
   ),
-  PageDescriptor(
+  PackedPage(
     pageIndex: 1,
     startOffset: 100,
     endOffset: 199,
+    slices: [],
     isLastPage: false,
-    firstParagraphIndex: 1,
-    lastParagraphIndex: 1,
   ),
-  PageDescriptor(
+  PackedPage(
     pageIndex: 2,
     startOffset: 200,
     endOffset: 300,
+    slices: [],
     isLastPage: true,
-    firstParagraphIndex: 2,
-    lastParagraphIndex: 2,
   ),
 ];
 
@@ -430,8 +427,6 @@ void _stubAllRepo(_MockRepo repo) {
   when(() => repo.consumeEpubRichSkippedNotice()).thenReturn(false);
   when(() => repo.ensurePageWindow(any())).thenReturn(null);
   when(() => repo.resolvePageIndexForCharOffset(any())).thenReturn(null);
-  when(() => repo.currentRichContent).thenReturn(null);
-  when(() => repo.currentRichParagraphs).thenReturn(null);
   when(() => repo.currentChapterIr).thenReturn(null);
   when(() => repo.currentChapterFilePath).thenReturn(null);
   when(() => repo.preloadGeneration).thenReturn(ValueNotifier<int>(0));
@@ -490,8 +485,6 @@ void _stubAllRepo(_MockRepo repo) {
   ).thenAnswer(
     (_) async => (
       content: 'scroll',
-      richParagraphs: null,
-      richRootSpan: null,
       epubRichSkipped: false,
       chapterIr: null,
       chapterFilePath: null,

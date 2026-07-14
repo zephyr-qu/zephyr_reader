@@ -1,90 +1,31 @@
+// ============================================================
+// 文件作用：阅读器核心领域模型，定义所有持久化实体与业务枚举
+//
+// 主要模型类型：
+//   - ScrollIrCache — Scroll IR sled 缓存
+//   - ReadingProgress — 单章阅读进度
+//   - Bookmark — 章节内书签
+//   - Note / NoteType — 笔记/高亮
+//   - ReadingSession / ReadingStats — 阅读会话与统计
+//   - Book / BookFormat / BookStatus — 书籍元数据
+//   - Chapter — 章节信息
+//   - Category — 分类标签
+//   - Vocab / VocabStatus / Dictionary — 生词本与词典
+//   - BookWithProgress / BookshelfBook — 聚合查询结果
+// ============================================================
+
 //! 阅读器核心领域模型
 //!
 //! 本模块定义了阅读器的所有持久化实体与业务枚举。
 //! 所有带 `#[frb]` 的类型会自动暴露给 Dart 侧；
 //! 所有带 `#[derive(sqlx::FromRow)]` 的类型支持从 SQLite 自动映射。
 //!
-//! P1: `LayoutCache`（plain sled 缓存）已移除，`BlockLayoutCache` 为唯一 sled 真理源。
+//! 排版缓存（sled）已迁移至 scroll IR 缓存；块分页 sled 缓存已移除。
 
 use chrono::{DateTime, Utc};
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-
-// ==================== 排版缓存 ====================
-
-/// 排版缓存键（内部使用，不暴露给 Dart）
-///
-/// 序列化格式（全章）：`v{VERSION}:{book_id}:{chapter_idx}:{config_hash:016x}`
-/// 序列化格式（chunk）：`v{VERSION}:chunk:{book_id}:{chapter_idx}:{chunk_idx}:{config_hash:016x}`
-#[derive(Debug, Clone)]
-pub struct LayoutCacheKey {
-    pub book_id: String,
-    pub chapter_index: i32,
-    pub chunk_index: Option<u32>,
-    pub config_hash: u64,
-}
-
-/// 块分页 sled 缓存格式版本号。
-/// P1: `LayoutCache` plain sled 已移除，此版本号仅用于 block 缓存键格式。
-pub const BLOCK_LAYOUT_CACHE_VERSION: u8 = 2;
-
-/// 排版缓存键 Display impl — 使用 BLOCK_LAYOUT_CACHE_VERSION。
-impl std::fmt::Display for LayoutCacheKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.chunk_index {
-            Some(chunk) => write!(
-                f,
-                "v{}:chunk:{}:{}:{}:{:016x}",
-                BLOCK_LAYOUT_CACHE_VERSION, self.book_id, self.chapter_index, chunk, self.config_hash
-            ),
-            None => write!(
-                f,
-                "v{}:{}:{}:{:016x}",
-                BLOCK_LAYOUT_CACHE_VERSION, self.book_id, self.chapter_index, self.config_hash
-            ),
-        }
-    }
-}
-
-// ==================== 块分页持久化缓存（唯一 sled 真理源，P1） ====================
-
-/// 块路径分页索引 + 章 IR（跨 session 复用，避免重复 IR 解析与 BlockPaginator CPU）。
-
-/// 块路径分页索引 + 章 IR（跨 session 复用，避免重复 IR 解析与 BlockPaginator CPU）。
-#[derive(Debug, Clone, PartialEq, bincode::Encode, bincode::Decode)]
-pub struct BlockLayoutCache {
-    pub version: u8,
-    pub config_hash: u64,
-    pub ir: crate::domain::ChapterContentIr,
-    pub result: crate::domain::BlockPaginateResult,
-    pub total_pages: i64,
-    pub created_at: i64,
-}
-
-impl BlockLayoutCache {
-    pub fn new(
-        config_hash: u64,
-        ir: crate::domain::ChapterContentIr,
-        result: crate::domain::BlockPaginateResult,
-    ) -> Self {
-        let total_pages = result.page_count() as i64;
-        Self {
-            version: BLOCK_LAYOUT_CACHE_VERSION,
-            config_hash,
-            ir,
-            result,
-            total_pages,
-            created_at: Utc::now().timestamp(),
-        }
-    }
-
-    pub fn is_valid(&self, expected_hash: u64) -> bool {
-        self.version == BLOCK_LAYOUT_CACHE_VERSION
-            && self.config_hash == expected_hash
-            && !self.result.is_partial
-    }
-}
 
 // ==================== Scroll IR 持久化缓存 ====================
 
@@ -406,8 +347,17 @@ pub struct GlobalStats {
 ///
 /// 数据库中存储为小写文本。仅支持 txt 和 epub。
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize,
-    strum::AsRefStr, strum::EnumString,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Default,
+    Serialize,
+    Deserialize,
+    strum::AsRefStr,
+    strum::EnumString,
 )]
 #[strum(serialize_all = "lowercase")]
 #[frb]
@@ -428,7 +378,16 @@ impl TryFrom<String> for BookFormat {
 
 /// 书籍阅读状态
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, strum::AsRefStr, strum::EnumString,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Default,
+    Serialize,
+    Deserialize,
+    strum::AsRefStr,
+    strum::EnumString,
 )]
 #[strum(serialize_all = "lowercase")]
 #[frb]
@@ -571,8 +530,8 @@ impl Chapter {
         title: &str,
         chapter_index: i64,
         level: i64,
-        start_index:i64,
-        end_index:i64
+        start_index: i64,
+        end_index: i64,
     ) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
@@ -725,7 +684,7 @@ impl Vocab {
     }
 }
 /// 生词本统计摘要（应用层计算，非直接 DB 映射）
-#[derive(Debug, Clone, Serialize, Deserialize,sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 #[frb(dart_metadata = ("freezed"))]
 pub struct VocabStats {
     #[sqlx(try_from = "i64")]

@@ -16,6 +16,23 @@ use crate::domain::AppError;
 use crate::storage::models::Dictionary;
 use crate::storage::repos::DictionaryRepository;
 
+// ============================================================
+// 文件作用：词典服务 API — MDict 词典查询、模糊搜索、分词。
+//
+// 公有函数：
+//   - create_dictionary() — 创建词典记录
+//   - upsert_dictionary() — 新增或更新词典
+//   - list_dictionaries() — 获取所有词典列表
+//   - get_dictionary() — 根据 ID 获取词典
+//   - delete_dictionary() — 删除词典
+//   - init_dictionary() — 初始化 MDict 引擎
+//   - close_dictionary() — 关闭词典引擎
+//   - lookup_mdict() — 精确查询单词
+//   - suggest_mdict() — 前缀搜索自动补全
+//   - extract_audio() — 从 .mdd 提取音频
+//   - segment_text() — 中文文本分词
+// ============================================================
+
 // ==================== 词典数据 CRUD ====================
 
 /// 创建词典记录（自动生成 UUID）

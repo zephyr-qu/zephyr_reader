@@ -1,20 +1,16 @@
-import 'package:flutter/material.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_list_metrics.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
-import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 
 /// 滚动模式下单章分段数据。
 ///
 /// 每个 [ScrollChapterSegment] 对应一个章节的段落序列，
 /// 供 [ScrollDocumentComposer] 拼接多章时使用。
-/// Phase 4：可选 [irBlocks] + [chapterFilePath] 与 pagination 同源 IR。
+/// 可选 [irBlocks] + [chapterFilePath] 与 pagination 同源 IR。
 class ScrollChapterSegment {
   final int chapterIndex;
   final List<String> paragraphs;
   final List<int> paragraphCharOffsets;
-  final List<RichParagraph>? richParagraphs;
-  final TextSpan? richRootSpan;
   final List<ContentBlock>? irBlocks;
   final String? chapterFilePath;
   final ScrollListMetrics listMetrics;
@@ -23,8 +19,6 @@ class ScrollChapterSegment {
     required this.chapterIndex,
     required this.paragraphs,
     required this.paragraphCharOffsets,
-    this.richParagraphs,
-    this.richRootSpan,
     this.irBlocks,
     this.chapterFilePath,
     ScrollListMetrics? listMetrics,
@@ -35,16 +29,14 @@ class ScrollChapterSegment {
                : computeScrollListMetrics(
                    paragraphs: paragraphs,
                    paragraphCharOffsets: paragraphCharOffsets,
-                   richParagraphs: richParagraphs,
-                   richRootSpan: richRootSpan,
                  ));
 
   bool get isIr => irBlocks != null && irBlocks!.isNotEmpty;
 
-  bool get isRich =>
-      !isIr && richParagraphs != null && richParagraphs!.isNotEmpty;
-
-  bool get hasImages => richParagraphs?.any((p) => p.isImage) ?? false;
+  /// 检查 IR 块列表中是否包含图片块。
+  bool get hasImages =>
+      irBlocks?.any((b) => b.when(text: (_) => false, image: (_) => true)) ??
+      false;
 
   /// ListView 项数（与渲染扁平化一致；含图片时可能 > [paragraphs].length）。
   int get paragraphCount => listMetrics.itemCount;
@@ -76,8 +68,6 @@ class ScrollChapterSegment {
     return computeScrollListMetrics(
       paragraphs: paragraphs,
       paragraphCharOffsets: paragraphCharOffsets,
-      richParagraphs: richParagraphs,
-      richRootSpan: richRootSpan,
       layout: layout,
     );
   }

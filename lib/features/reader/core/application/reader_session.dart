@@ -16,14 +16,14 @@ class ReaderSession {
   Future<void> dispose() => vm.resetForNewBook();
 }
 
-/// P4-5 双语 delegate 工厂签名。由 DI 层注入，接受 [ChapterViewModel] 返回 delegate。
+/// 双语 delegate 工厂签名。由 DI 层注入，接受 [ChapterViewModel] 返回 delegate。
 typedef BilingualReaderDelegateFactory =
     BilingualReaderDelegate? Function(ChapterViewModel chapterVM);
 
 /// Creates scoped [ReaderSession] instances with dedicated [ReaderRepository].
 ///
 /// [_bilingualFactory] 可选；提供时在 [create] 时注入 [BilingualReaderDelegate] 到
-/// [ReaderViewModel.bilingual]，用于 P4-5 双语解耦的 DI 收口。
+/// [ReaderViewModel.bilingual]，用于双语解耦的 DI 收口。
 class ReaderSessionFactory {
   final ChapterContentRepository _chapterContent;
   final ProgressRepository _progress;

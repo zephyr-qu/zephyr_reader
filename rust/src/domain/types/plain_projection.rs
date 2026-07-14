@@ -1,11 +1,21 @@
-//! IR → plainText 投影（M1.3）
-//!
-//! ADR-001：`charOffset` 锚定在章级 `plain_text` 的 Unicode 字符索引。
-//! ADR-008：Image 块占 1 个 `\uFFFC`；搜索忽略占位符；TTS 读 IR `alt`。
-//!
-//! 两种投影风格：
-//! - [`PlainProjectionStyle::BlockJoined`] — EPUB IR：块间单 `\n`，plain 由块重建。
-//! - [`PlainProjectionStyle::SourcePreserved`] — TXT IR：plain 为章内原文，块为其中片段。
+// ============================================================
+// 文件作用：IR 到 plain text 投影及校验
+//
+// 公有类型/函数：
+//   - enum PlainProjectionStyle — plain 投影风格（BlockJoined | SourcePreserved）
+//   - enum PlainProjectionError — 投影校验失败原因
+//   - fn slice_by_char_range() — 按 Unicode 字符索引切片
+//   - fn slice_rich_spans() — 裁剪 RichTextSpan 流
+//   - fn append_block_separator() — 块间 \n 分隔符
+//   - fn project_block_joined() — 从块流重建 plain
+//   - struct BlockJoinedPlainBuilder — BlockJoined 增量构建器
+//   - fn append_chapter_ir_to_builder() — 合并多 spine IR 到 builder
+//   - fn validate_chapter_plain() — 校验章 IR plain 投影（ADR-008 + ADR-001）
+//   - impl ChapterContentIr 方法 — 字符读取、搜索、TTS 辅助
+//
+// 私有函数：
+//   - _clone_span_with_text() — 克隆 span 并替换文本
+// ============================================================
 
 use std::fmt;
 
