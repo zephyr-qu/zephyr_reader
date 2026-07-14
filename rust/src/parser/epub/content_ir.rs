@@ -24,7 +24,7 @@ use crate::domain::{
     append_chapter_ir_to_builder, AppError, BlockJoinedPlainBuilder, ChapterContentIr,
     ContentBlock, PlainProjectionStyle, RichParagraph, TextBlockStyle,
 };
-use crate::text::rich_text;
+use crate::parser::epub::rich_text;
 
 use super::provider::EpubContentProvider;
 

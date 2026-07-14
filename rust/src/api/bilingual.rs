@@ -89,7 +89,7 @@ pub async fn align_bilingual_content(
     let similarity = min_similarity.max(0.3).min(1.0);
 
     tokio::task::spawn_blocking(move || {
-        crate::text::bilingual::align_bilingual_content(
+        crate::parser::bilingual::align_bilingual_content(
             chinese_content,
             english_content,
             similarity,

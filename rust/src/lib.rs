@@ -22,6 +22,5 @@ pub mod parser;
 pub mod reading;
 pub mod search;
 pub mod storage;
-pub mod text;
 pub mod utils;
 pub mod vocab_marker;
