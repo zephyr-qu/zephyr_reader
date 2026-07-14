@@ -2,7 +2,7 @@ use crate::domain::AppError;
 use crate::parser::registry::parser_for_file;
 use crate::storage::repos::{BookRepository, ChapterRepository};
 use crate::storage::storage_pool;
-use crate::utils::security::validate_file_path;
+use crate::domain::security::validate_file_path;
 use flutter_rust_bridge::frb;
 
 // ============================================================
