@@ -15,6 +15,7 @@
 //! TXT 解析模块
 //! 负责 TXT 文件的编码检测、解码、章节提取、按需内容提供
 
+pub mod chapter_detect;
 pub mod content_ir;
 pub mod decode;
 pub mod parse;
@@ -22,9 +23,11 @@ pub mod provider;
 
 use flutter_rust_bridge::frb;
 
-use crate::domain::{AppError, ParseResult};
+use crate::domain::AppError;
+use crate::parser::epub::ParseResult;
 use crate::parser::book_parser::BookMetadata;
 
+pub use chapter_detect::extract_chapters;
 pub use content_ir::{get_chapter_content_ir, txt_to_chapter_ir};
 pub use parse::parse_txt;
 pub use provider::TxtContentProvider;

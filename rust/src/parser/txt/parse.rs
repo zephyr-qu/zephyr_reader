@@ -17,9 +17,10 @@
 use std::path::Path;
 
 use super::decode;
-use crate::domain::{AppError, ParseResult};
+use crate::domain::AppError;
+use crate::parser::epub::ParseResult;
 use crate::storage::models::{Book, BookFormat, Chapter};
-use crate::text::chapter_detect;
+use crate::parser::txt::chapter_detect;
 
 /// 解析 TXT 文件
 pub fn parse_txt(file_path: String) -> Result<ParseResult, AppError> {

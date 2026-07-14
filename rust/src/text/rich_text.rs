@@ -19,7 +19,7 @@
 //! 解析 HTML 内容为富文本段落列表，支持内联 CSS 样式提取和图片占位
 
 use crate::domain::{AppError, RichParagraph, RichTextSpan, RichTextSpanData, SpanStyle};
-use crate::text::css;
+use crate::parser::epub::css;
 use html5ever::parse_document;
 use html5ever::tendril::TendrilSink;
 use html5ever::Attribute;

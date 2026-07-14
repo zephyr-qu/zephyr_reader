@@ -26,7 +26,8 @@ pub mod txt;
 /// 获取封面提取器注册表。
 pub use cover_extractor::get_cover_registry;
 
-use crate::domain::{AppError, ParseResult};
+use crate::domain::AppError;
+use crate::parser::epub::ParseResult;
 use crate::parser::book_parser::BookMetadata;
 use crate::parser::epub::EpubParser;
 use crate::parser::txt::TxtParser;
