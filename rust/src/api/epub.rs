@@ -5,7 +5,7 @@
 
 use crate::domain::AppError;
 use crate::parser::epub::EpubMetadata;
-use crate::utils::security::validate_file_path;
+use crate::domain::security::validate_file_path;
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
 

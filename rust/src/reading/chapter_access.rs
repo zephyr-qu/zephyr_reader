@@ -25,7 +25,7 @@ use crate::storage::storage_pool;
 
 use super::BOOK_ID_CACHE;
 use crate::reading::provider_cache::get_or_create_provider;
-use crate::utils::security::validate_file_path;
+use crate::domain::security::validate_file_path;
 
 /// 从文件路径推断格式
 pub fn format_from_file_path(file_path: &str) -> Result<BookFormat, AppError> {
