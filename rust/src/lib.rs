@@ -22,4 +22,3 @@ pub mod parser;
 pub mod reading;
 pub mod search;
 pub mod storage;
-pub mod utils;
