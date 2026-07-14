@@ -1,5 +1,4 @@
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
-import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 
 class NextChapterStaging {
   final int chapterIndex;
@@ -9,7 +8,7 @@ class NextChapterStaging {
   final bool isPartial;
   final ChapterPaginationMode paginationMode;
   final String? bookId;
-  final List<PageBlockSlice>? anchorPageBlocks;
+  final List<PackedBlockSlice>? anchorPageBlocks;
 
   const NextChapterStaging({
     required this.chapterIndex,

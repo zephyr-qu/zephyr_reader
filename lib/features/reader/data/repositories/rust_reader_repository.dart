@@ -10,7 +10,6 @@ import 'package:zephyr_reader/features/reader/core/domain/chapter_content_reposi
 import 'package:zephyr_reader/features/reader/core/domain/pagination_session.dart';
 import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
-import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
@@ -54,7 +53,7 @@ class ReaderRepository
   }
 
   @override
-  List<PageBlockSlice>? pageBlocks(int pageIndex) {
+  List<PackedBlockSlice>? pageBlocks(int pageIndex) {
     return _session.pageBlocks(pageIndex);
   }
 

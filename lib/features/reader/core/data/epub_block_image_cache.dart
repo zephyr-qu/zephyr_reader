@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 import 'package:zephyr_reader/src/rust/api/epub.dart' as epub_api;
-import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 
 /// 解码 EPUB 图片字节（可注入以便测试）。
 typedef EpubImageLoader =
@@ -156,41 +156,37 @@ class EpubBlockImageCache {
   /// 页块列表中的 Image 切片后台预解码（与 session 滑动窗口同步触发）。
   void prefetchBlocks({
     required String filePath,
-    required List<PageBlockSlice> blocks,
+    required List<PackedBlockSlice> blocks,
     required int maxWidthPx,
   }) {
     if (filePath.isEmpty || maxWidthPx <= 0) return;
     for (final block in blocks) {
-      block.when(
-        text: (_) {},
-        image: (slice) {
-          if (get(
-                filePath: filePath,
-                assetId: slice.assetId,
-                maxWidthPx: maxWidthPx,
-              ) !=
-              null) {
-            return;
-          }
-          final key = loadKey(
+      if (!block.isImage) continue;
+      if (get(
             filePath: filePath,
-            assetId: slice.assetId,
+            assetId: block.assetId!,
             maxWidthPx: maxWidthPx,
+          ) !=
+          null) {
+        return;
+      }
+      final key = loadKey(
+        filePath: filePath,
+        assetId: block.assetId!,
+        maxWidthPx: maxWidthPx,
+      );
+      if (_inflight.containsKey(key)) return;
+      unawaited(
+        load(
+          filePath: filePath,
+          assetId: block.assetId!,
+          maxWidthPx: maxWidthPx,
+        ).catchError((Object e) {
+          Logging.debug(
+            '[EpubBlockImageCache] prefetch failed asset=${block.assetId}: $e',
           );
-          if (_inflight.containsKey(key)) return;
-          unawaited(
-            load(
-              filePath: filePath,
-              assetId: slice.assetId,
-              maxWidthPx: maxWidthPx,
-            ).catchError((Object e) {
-              Logging.debug(
-                '[EpubBlockImageCache] prefetch failed asset=${slice.assetId}: $e',
-              );
-              return Uint8List(0);
-            }),
-          );
-        },
+          return Uint8List(0);
+        }),
       );
     }
   }

@@ -19,21 +19,8 @@
 //! - `chapter_ir` — ContentBlock IR 加载
 pub mod chapter_access;
 pub mod chapter_ir;
-// ── book_id_cache (inlined) ──
-use parking_lot::Mutex;
-use std::num::NonZeroUsize;
-use std::sync::LazyLock;
 
-use lru::LruCache;
 
-const BOOK_ID_CACHE_CAPACITY: NonZeroUsize = match NonZeroUsize::new(16) {
-    Some(v) => v,
-    None => unreachable!(),
-};
 
-pub type BookIdCache = LruCache<String, String>;
-
-pub static BOOK_ID_CACHE: LazyLock<Mutex<BookIdCache>> =
-    LazyLock::new(|| Mutex::new(LruCache::new(BOOK_ID_CACHE_CAPACITY)));
 
 

@@ -1,6 +1,5 @@
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
-import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 
 /// 单次章节分页会话抽象。
 ///
@@ -25,7 +24,7 @@ abstract class PaginationSession {
   String? get sessionFilePath;
 
   /// 页内块列表（`contentBlocks` 模式）；未缓存时返回 null。
-  List<PageBlockSlice>? pageBlocks(int pageIndex);
+  List<PackedBlockSlice>? pageBlocks(int pageIndex);
 
   /// In-place repaginate：复用现有 session handle，更新 config。
   /// handle 不存在时退化到 [beginPaginate]（用真实 bookId/chapterIndex）。

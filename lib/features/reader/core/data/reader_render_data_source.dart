@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart' show ValueNotifier;
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
-import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 
@@ -14,7 +13,7 @@ abstract class ReaderRenderDataSource {
 
   String? pageContent(int pageIndex);
 
-  List<PageBlockSlice>? pageBlocks(int pageIndex);
+  List<PackedBlockSlice>? pageBlocks(int pageIndex);
 
   void warmPageCache(int pageIndex, String content);
 

@@ -46,7 +46,7 @@ impl IrCacheRepository {
     }
 
     /// 使指定书籍的所有 IR 缓存失效
-    /// 块分页 sled 缓存已移除；scroll IR 按 file_path+chapter_index 键存储，
+    /// scroll IR 按 file_path+chapter_index 键存储，
     /// 不会被 book 删除影响（孤立条目无害）。
     pub fn invalidate_book_cache(&self, _book_id: &str) -> Result<(), AppError> {
         Ok(())

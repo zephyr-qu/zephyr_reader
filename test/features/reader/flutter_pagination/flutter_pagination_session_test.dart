@@ -9,7 +9,6 @@ import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_pagination_session.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_staging_store.dart';
-import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
 
 void main() {
@@ -213,12 +212,7 @@ void main() {
         expect(blocks0, isNotNull);
         expect(blocks0, isNotEmpty);
         expect(
-          blocks0!.any(
-            (b) => b.when(
-              text: (t) => t.text.contains('Hello'),
-              image: (_) => false,
-            ),
-          ),
+          blocks0!.any((b) => !b.isImage && b.text.contains('Hello')),
           isTrue,
         );
       });
@@ -269,49 +263,6 @@ void main() {
         expect(session.sessionIsPartial, isFalse);
         expect(session.pageContent(0), isNull);
         expect(session.pageBlocks(0), isNull);
-      });
-    });
-
-    group('slicesToPageBlocks', () {
-      test('文本切片转换为 PageBlockSlice.text', () {
-        final slices = [
-          const PackedBlockSlice.text(
-            blockIndex: 0,
-            text: 'Hello',
-            isBlockStart: true,
-            isBlockEnd: false,
-            style: TextBlockStyle(isHeading: false, headingLevel: 0),
-            spans: [],
-          ),
-        ];
-        final blocks = FlutterPaginationSession.slicesToPageBlocks(slices);
-        expect(blocks, hasLength(1));
-        blocks[0].when(
-          text: (t) {
-            expect(t.text, 'Hello');
-            expect(t.isBlockStart, isTrue);
-          },
-          image: (_) => fail('expected text block'),
-        );
-      });
-
-      test('图片切片转换为 PageBlockSlice.image', () {
-        final slices = [
-          const PackedBlockSlice.image(
-            blockIndex: 1,
-            assetId: 'img_001',
-            imageLayout: ImageBlockLayout.inlineContain,
-            alt: 'test image',
-          ),
-        ];
-        final blocks = FlutterPaginationSession.slicesToPageBlocks(slices);
-        expect(blocks, hasLength(1));
-        blocks[0].when(
-          text: (_) => fail('expected image block'),
-          image: (i) {
-            expect(i.assetId, 'img_001');
-          },
-        );
       });
     });
   });
