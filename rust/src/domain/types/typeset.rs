@@ -1,7 +1,12 @@
-//! 排版配置模块 (Typeset Configuration)
-//!
-//! 包含排版相关的配置结构体。
-//! 原先的验证、哈希、校准功能已随 FRB 路径一起删除。
+// ============================================================
+// 文件作用：排版配置定义
+//
+// 公有类型/函数：
+//   - enum LanguageType — 语言类型（Chinese / English / Mixed / Auto）
+//   - struct TypesetConfig — 排版配置（页面尺寸、字体、间距等）
+//   - TypesetConfig::validate() — 校验配置合法性
+//   - TypesetConfig::config_hash() — 生成缓存键哈希（xxh3）
+// ============================================================
 
 use serde::{Deserialize, Serialize};
 

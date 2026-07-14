@@ -1,7 +1,12 @@
-//! 分页内容模块 (Pagination)
-//!
-//! 包含分页相关的结构体：页面内容、页面偏移量等。
-//! 用于排版引擎计算和存储页面的分页信息。
+// ============================================================
+// 文件作用：分页内容结构体
+//
+// 公有类型/函数：
+//   - struct PageContent — 单页文本内容
+//   - enum ChapterPaginationMode — 章节分页引擎模式
+//   - struct SearchResult — 搜索结果
+//   - struct IndexStats — 搜索索引统计
+// ============================================================
 
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};

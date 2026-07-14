@@ -1,3 +1,14 @@
+// ============================================================
+// 文件作用：定义 ChapterContentProvider trait，封装 EPUB/TXT 按需内容读取。
+//
+// 公有类型/函数：
+//   - ChapterContentProvider — 章节内容的按需访问器 trait
+//     - read_text_range() — 读取指定字节范围文本
+//     - content_length() — 获取内容总长度
+//     - format() — 获取格式
+//     - read_html_range() — 读取 HTML 范围（可选）
+// ============================================================
+
 //! 按需内容访问器
 //!
 //! 定义 `ChapterContentProvider` trait，用于封装 EPUB/TXT 的按需内容读取。

@@ -1,3 +1,14 @@
+// ============================================================
+// 文件作用：PROVIDER_CACHE — (book_id, chapter_index, format) → Arc<dyn ChapterContentProvider>
+//           LRU 缓存，避免每次分页/章节读取都重新打开文件。
+//
+// 公有类型/函数：（模块为 crate-private）
+//
+// 私有函数：
+//   - get_or_create_provider() — 从 LRU 缓存获取或创建 Provider
+//   - clear_for_test() — 清空 provider LRU（集成测试用）
+// ============================================================
+
 //! `PROVIDER_CACHE` — `(book_id, chapter_index, format) → Arc<dyn ChapterContentProvider>` LRU。
 //!
 //! 章节内容提供器缓存，避免每次分页/章节读取都重新打开文件、解析目录、扫描 spine。

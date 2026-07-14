@@ -1,3 +1,20 @@
+// ============================================================
+// 文件作用：富文本解析，将 HTML 解析为富文本段落列表
+//
+// 公有类型/函数：
+//   - parse_html_to_rich_text() — HTML → RichParagraph 列表
+//
+// 私有类型：
+//   - ComputedStyle — CSS 计算后样式
+//
+// 私有函数：
+//   - traverse_dom() — DOM 树遍历
+//   - collect_text_spans() / collect_plain_text() — 文本收集
+//   - walk_paragraph_children() / walk_inline_subtree() — DOM 递归
+//   - extract_inline_css_style() / apply_inline_style() — 内联样式处理
+//   - get_class_name() / get_attribute() — HTML 属性提取
+// ============================================================
+
 //! 富文本解析
 //! 解析 HTML 内容为富文本段落列表，支持内联 CSS 样式提取和图片占位
 

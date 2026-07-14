@@ -1,3 +1,16 @@
+// ============================================================
+// 文件作用：EPUB 图片 decode + resize → 字节或本地缓存路径（M4.2）。
+//
+// 公有类型/函数：
+//   - read_epub_image_bytes() — 从 EPUB manifest 读取图片原始字节
+//   - get_processed_epub_image_bytes() — 读取并缩放 EPUB 图片返回字节
+//   - get_processed_epub_image() — 读取、缩放并写入磁盘缓存返回路径
+//
+// 私有函数：
+//   - image_cache_root() / cache_path() — 缓存目录/路径管理
+//   - encode_resized_image() — 缩放编码图片为 JPEG/PNG
+// ============================================================
+
 //! EPUB 图片 decode + resize → 字节或本地缓存路径（M4.2）。
 
 use std::fs;
@@ -123,9 +136,8 @@ pub fn get_processed_epub_image(
         })?;
     }
 
-    let is_jpeg = processed_bytes.len() >= 2
-        && processed_bytes[0] == 0xFF
-        && processed_bytes[1] == 0xD8;
+    let is_jpeg =
+        processed_bytes.len() >= 2 && processed_bytes[0] == 0xFF && processed_bytes[1] == 0xD8;
     let write_path = if is_jpeg {
         out_path.clone()
     } else {

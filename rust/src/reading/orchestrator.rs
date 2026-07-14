@@ -1,3 +1,20 @@
+// ============================================================
+// 文件作用：ReadingOrchestrator — 阅读编排器（薄壳全局单例），
+//           编排章节访问、IR 加载、行断点存储。
+//
+// 公有类型/函数：
+//   - ReadingOrchestrator — 阅读编排器（全局单例）
+//   - ReadingOrchestrator::global() — 获取全局实例
+//   - get_chapter_bounds() — 获取章节边界信息
+//   - get_chapter() — 获取章节原始文本内容
+//   - get_chapter_content_ir() — 加载整章 IR
+//   - store_line_breaks() — 存储 Flutter 预计算的行断点
+//
+// 私有函数：
+//   - resolve_book_path() — 从 book_id 解析 file_path
+//   - clear_caches_for_test() — 清理所有缓存（集成测试用）
+// ============================================================
+
 //! `ReadingOrchestrator` — 阅读编排器（薄壳）。
 //!
 //! 内部功能模块：

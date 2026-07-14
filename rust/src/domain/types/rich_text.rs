@@ -1,7 +1,12 @@
-//! 富文本结构模块 (Rich Text)
-//!
-//! 包含富文本段落、文本段、章节内容等结构体。
-//! 用于表示带有格式（粗体、斜体、链接等）的文本内容。
+// ============================================================
+// 文件作用：富文本结构定义
+//
+// 公有类型/函数：
+//   - struct RichParagraph — 富文本段落（spans + 段落属性）
+//   - enum SpanStyle — 文本样式（Plain / Bold / Italic）
+//   - struct RichTextSpanData — 富文本段的文本数据
+//   - enum RichTextSpan — 富文本段（Styled | Link）
+// ============================================================
 
 use serde::{Deserialize, Serialize};
 

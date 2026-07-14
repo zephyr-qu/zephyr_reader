@@ -1,3 +1,19 @@
+// ============================================================
+// 文件作用：TXT 按需内容提供器 — TxtContentProvider 基于 mmap 实现
+//           零拷贝的按需文本范围读取。
+//
+// 公有类型/函数：
+//   - TxtContentProvider — TXT 文件按需内容提供器
+//     - open() — 打开并映射 TXT 文件
+//     - read_text_range() — 读取指定字节范围文本
+//     - content_length() / format() — 内容长度和格式
+//
+// 私有函数：
+//   - scan_newlines() — 扫描换行符位置
+//   - find_utf8_char_start() / find_utf8_char_end() — UTF-8 字符边界查找
+//   - safe_slice_bounds() — 对齐切片边界
+// ============================================================
+
 //! TXT 按需内容提供器
 //!
 //! `TxtContentProvider` 基于 mmap 实现零拷贝的按需文本范围读取。

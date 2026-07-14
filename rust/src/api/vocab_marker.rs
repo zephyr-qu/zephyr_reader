@@ -8,6 +8,21 @@ use crate::{
     vocab_marker::{self as engine},
 };
 use flutter_rust_bridge::frb;
+
+// ============================================================
+// 文件作用：生词标记 API — 扫描文本中的内置词库生词。
+//
+// 公有结构体：
+//   - VocabMatch — 匹配到的单词及其位置
+//
+// 公有函数：
+//   - scan_for_vocabulary() — 扫描文本中的生词
+//   - get_all_vocabulary_words() — 获取所有内置词汇
+//   - get_cet6_words() — 获取 CET-6 词汇
+//   - get_ielts_words() — 获取 IELTS 词汇
+//   - get_toefl_words() — 获取 TOEFL 词汇
+// ============================================================
+
 #[frb]
 pub struct VocabMatch {
     /// 匹配到的单词

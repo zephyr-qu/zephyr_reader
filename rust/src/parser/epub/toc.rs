@@ -1,3 +1,16 @@
+// ============================================================
+// 文件作用：EPUB table of contents extraction，从 NCX/Nav 文档提取章节信息，
+//           支持多级 TOC。
+//
+// 公有类型/函数：
+//   - extract_chapters_from_epub() — 从 EPUB 提取章节信息
+//
+// 私有函数：
+//   - extract_toc_items() — 递归提取 TOC 条目
+//   - generate_chapters_from_spine() — 无 TOC 时从 spine 生成章节
+//   - extract_title_from_href() / camel_to_spaces() / capitalize_first()
+// ============================================================
+
 //! EPUB table of contents extraction
 //! Extracts chapter information from NCX or Nav documents, supports multi-level TOC
 
@@ -68,7 +81,8 @@ fn extract_toc_items(
 ) {
     let spine_len = epub_file.spine().len();
     let mut unmapped_count: usize = 0;
-    let unmapped_total = items.iter()
+    let unmapped_total = items
+        .iter()
         .filter(|(_, href, _)| {
             let pure = href.split('#').next().unwrap_or(href);
             epub_file.find_spine_index_by_toc_href(pure).is_none()
@@ -97,7 +111,12 @@ fn extract_toc_items(
         });
 
         chapters.push(Chapter::new(
-            book_id, title, *chapter_id as i64, *level as i64, index as i64, 0,
+            book_id,
+            title,
+            *chapter_id as i64,
+            *level as i64,
+            index as i64,
+            0,
         ));
 
         *chapter_id += 1;
@@ -131,7 +150,10 @@ fn extract_toc_items(
             tracing::info!(
                 "[extract_toc_items] splitting oversized chapter idx={} title={:?} \
                  ({} spines → {} sub-chapters)",
-                ch.chapter_index, ch.title, range, num,
+                ch.chapter_index,
+                ch.title,
+                range,
+                num,
             );
             for i in 0..num {
                 let cs = ch.start_index + i * MAX_SPINE_ITEMS_PER_CHAPTER;
@@ -171,14 +193,7 @@ fn generate_chapters_from_spine(spine: &[String], book_id: &str) -> Vec<Chapter>
             // 从 href 提取章节标题
             let title = extract_title_from_href(href);
 
-            Chapter::new(
-              book_id,
-              &title,
-              i as i64,
-              0,
-              i as i64,
-              (i + 1) as i64
-            )
+            Chapter::new(book_id, &title, i as i64, 0, i as i64, (i + 1) as i64)
             //  {
             //     id: uuid::Uuid::new_v4().to_string(),
             //     book_id: book_id.to_string(),

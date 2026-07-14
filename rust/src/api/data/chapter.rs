@@ -10,6 +10,16 @@ use crate::storage::repos::ChapterRepository;
 
 pub use crate::storage::models::Chapter;
 
+// ============================================================
+// 文件作用：章节管理 API — 章节保存、查询、删除。
+//
+// 公有函数：
+//   - list_chapters_by_book() — 获取书籍所有章节
+//   - upsert_chapters() — 新增或更新章节列表
+//   - clear_chapters_by_book() — 清除书籍所有章节
+//   - get_chapter_by_index() — 按索引获取章节
+// ============================================================
+
 /// 获取书籍的所有章节列表
 ///
 /// # 参数

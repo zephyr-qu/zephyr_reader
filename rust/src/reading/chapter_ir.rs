@@ -1,3 +1,11 @@
+// ============================================================
+// 文件作用：章节 IR 加载（EPUB spine / TXT 字节界），
+//           优先命中 sled scroll_ir_cache，miss 时解析。
+//
+// 公有类型/函数：
+//   - load_chapter_content_ir() — 加载整章 IR
+// ============================================================
+
 //! 章节 IR 加载（EPUB spine / TXT 字节界）。
 
 use crate::domain::{AppError, ChapterContentIr};

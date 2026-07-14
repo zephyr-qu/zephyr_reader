@@ -1,3 +1,11 @@
+// ============================================================
+// 文件作用：应用程序统一错误类型定义
+//
+// 公有类型/函数：
+//   - enum AppError — 所有可能的应用错误，按功能域分组
+//   - impl From<sqlx::Error> for AppError — sqlx 错误到 AppError 的转换
+// ============================================================
+
 use flutter_rust_bridge::frb;
 use thiserror::Error;
 
@@ -13,8 +21,6 @@ use thiserror::Error;
 #[derive(Debug, Error, PartialEq, Eq)]
 #[frb(non_opaque)]
 pub enum AppError {
-
-
     // ========== 文件错误 ==========
     #[error("File not found: {path}")]
     FileNotFound { path: String },
@@ -75,7 +81,6 @@ pub enum AppError {
     #[error("{0}")]
     Other(String),
 }
-
 
 impl From<sqlx::Error> for AppError {
     fn from(err: sqlx::Error) -> Self {

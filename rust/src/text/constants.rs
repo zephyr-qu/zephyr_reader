@@ -1,3 +1,16 @@
+// ============================================================
+// 文件作用：排版常量和共享正则表达式模式
+//
+// 公有常量：
+//   - MIN_CHARS_PER_LINE — 最小行宽
+//   - START_AVOID_PUNCTUATION / END_AVOID_PUNCTUATION — 禁断标点
+//   - TAG_PATTERN / CHAPTER_PATTERN_* — 共享正则表达式
+//
+// 公有函数：
+//   - is_start_avoid_punctuation() / is_end_avoid_punctuation()
+//   - is_cjk_char() / is_cjk_punctuation()
+// ============================================================
+
 //! 文本处理模块常量
 //! 定义排版相关的魔法数字常量和共享正则表达式模式
 

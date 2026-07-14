@@ -1,3 +1,19 @@
+// ============================================================
+// 文件作用：EPUB HTML → 章节 IR，复用 parse_html_to_rich_text
+//           保持 DOM 顺序与 scroll 路径一致。
+//
+// 公有类型/函数：
+//   - get_chapter_content_ir() — 获取 EPUB 章节 IR
+//   - html_to_chapter_ir() — HTML 片段 → 章 IR
+//   - chapter_ir_from_rich_paragraphs() — 富文本段落流转为章 IR
+//
+// 私有函数：
+//   - split_html_at_block_boundaries() — 在块级标签边界拆分 oversized HTML
+//   - append_spine_html_to_builder() / append_plain_html_to_builder() — IR 构建
+//   - read_image_dimensions() / resolve_image_dimensions() — 图片 intrinsic 尺寸
+//   - rich_paragraph_style() — CSS → TextBlockStyle 映射
+// ============================================================
+
 //! EPUB HTML → Phase 2 章节 IR（M1.1）
 //!
 //! 复用 `parse_html_to_rich_text` 保持 DOM 顺序与 scroll 路径一致；

@@ -28,6 +28,17 @@ pub use bilingual::{
 
 use crate::domain::AppError;
 
+// ============================================================
+// 文件作用：核心引擎 API 入口 — 子模块聚合与公共类型重导出。
+//
+// 公有函数：
+//   - test_connection() — 连接测试（保留二进制兼容性）
+//
+// 重导出的子模块：
+//   backup, bilingual, reader, cover, data, import, dictionary,
+//   epub, search, vocab_marker
+// ============================================================
+
 // Reserved: FRB binding exists for binary compatibility (frb_generated.rs).
 pub fn test_connection() -> Result<String, AppError> {
     Ok("Rust reader engine connected successfully".to_string())

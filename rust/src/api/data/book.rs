@@ -19,6 +19,38 @@ pub use crate::storage::models::{
     ReadingProgress, ReadingSession, Vocab,
 };
 
+// ============================================================
+// 文件作用：书籍管理 API — 书籍 CRUD、搜索、分页、状态管理。
+//
+// 公有结构体：
+//   - BookDetail — 书籍详情聚合（含进度/笔记/章节/分类）
+//
+// 公有函数：
+//   - get_book_detail() — 获取书籍详情
+//   - list_books() — 获取所有书籍列表
+//   - list_bookshelf_books() — 书架书籍列表（含进度）
+//   - map_book_titles() — 获取书名映射
+//   - upsert_book() — 新增或更新书籍
+//   - delete_book() — 删除书籍及缓存
+//   - search_books() — 搜索书籍
+//   - search_bookshelf_books() — 书架搜索（含进度）
+//   - get_book() — 根据 ID 获取书籍
+//   - list_books_by_status() — 按状态获取
+//   - list_bookshelf_books_by_status() — 书架版按状态筛选
+//   - get_book_by_file_path() — 根据路径获取
+//   - list_pinned_books() — 置顶书籍列表
+//   - list_recently_opened_books() — 最近阅读
+//   - list_books_paginated() — 分页查询
+//   - count_books() — 书籍总数
+//   - update_book_status() — 更新状态
+//   - update_book_pin() — 更新置顶
+//   - update_book_title() — 更新标题
+//   - update_book_metadata() — 批量更新元数据
+//   - create_web_book() — 创建外部导入书籍
+//   - batch_update_book_status() — 批量更新状态
+//   - batch_set_categories_for_books() — 批量设置分类
+// ============================================================
+
 /// 书籍详情聚合
 #[frb(dart_metadata = ("freezed"))]
 pub struct BookDetail {

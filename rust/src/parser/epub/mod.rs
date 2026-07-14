@@ -1,3 +1,18 @@
+// ============================================================
+// 文件作用：EPUB 解析模块，负责 EPUB 文件的解压、结构解析、文本提取、按需内容提供。
+//
+// 公有类型/函数：
+//   - EpubParser — EPUB 文件解析器（FRB opaque struct）
+//   - EpubParser::new() / parse() / extract_metadata()
+//   - EpubAssetRegistry — 图片 asset 注册表
+//   - get_chapter_content_ir() — 获取 EPUB 章节 IR
+//   - html_to_chapter_ir() — HTML 片段 → 章 IR
+//   - parse_epub() — EPUB 文件解析入口
+//
+// 子模块：
+//   - asset_registry, content_ir, parse, processed_image, provider, toc, unzip
+// ============================================================
+
 //! EPUB 解析模块
 //! 负责 EPUB 文件的解压、结构解析、文本提取、按需内容提供
 

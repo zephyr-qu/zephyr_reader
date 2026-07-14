@@ -1,3 +1,13 @@
+// ============================================================
+// 文件作用：数据库仓储层，每个实体对应一个 Repository
+//
+// 公有类型/函数：
+//   - BookRepository / BookmarkRepository / CategoryRepository
+//   - ChapterRepository / DictionaryRepository / LayoutCacheRepository
+//   - NoteRepository / ProgressRepository / SessionRepository
+//   - StatsRepository / VocabRepository
+// ============================================================
+
 //! 数据库仓储层
 //!
 //! 每个实体对应一个 Repository，封装对该实体表的 CRUD 操作

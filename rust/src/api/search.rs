@@ -7,6 +7,23 @@ use crate::search::SearchEngine;
 use crate::storage::storage_pool;
 use flutter_rust_bridge::frb;
 
+// ============================================================
+// 文件作用：全文搜索 API — FTS5 索引与查询。
+//
+// 公有函数：
+//   - init_search_engine() — 初始化搜索引擎
+//   - index_chapter() — 索引章节内容
+//   - search() — 在书籍中搜索
+//   - count_matches() — 统计搜索结果数量
+//   - search_all_books() — 搜索所有书籍
+//   - clear_all() — 清除所有索引
+//   - delete_by_book() — 删除某本书的索引
+//   - get_index_stats() — 获取索引统计
+//
+// 内部函数：
+//   - get_search_engine() — 获取搜索引擎实例
+// ============================================================
+
 /// 全局搜索引擎单例
 static SEARCH_ENGINE: OnceLock<SearchEngine> = OnceLock::new();
 
