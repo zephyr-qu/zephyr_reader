@@ -16,9 +16,8 @@ use uuid::Uuid;
 
 use super::toc::extract_chapters_from_epub;
 use super::unzip::EpubFile;
-use crate::domain::{
-    AppError, ParseResult,
-};
+use crate::domain::AppError;
+use crate::parser::epub::ParseResult;
 use crate::storage::models::{Book, BookFormat, Chapter};
 /// EPUB 分页：每页最小行数
 /// 防止每页行数过少导致显示异常

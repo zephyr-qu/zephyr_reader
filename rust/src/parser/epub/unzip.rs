@@ -22,7 +22,8 @@
 //! 使用 epub 库读取 EPUB 文件结构
 //! 注意：epub crate 2.x API 与 1.x 不兼容
 
-use crate::domain::{AppError, EpubMetadata};
+use crate::domain::AppError;
+use crate::parser::epub::{EpubMetadata, EpubTocItem};
 use super::asset_registry::normalize_asset_path;
 use epub::doc::{EpubDoc, ResourceItem, SpineItem};
 use lru::LruCache;
@@ -461,7 +462,7 @@ pub fn get_epub_metadata(file_path: &str) -> Result<EpubMetadata, AppError> {
     let toc = epub_file
         .toc()
         .into_iter()
-        .map(|(label, href, level)| crate::domain::EpubTocItem { label, href, level })
+        .map(|(label, href, level)| EpubTocItem { label, href, level })
         .collect();
     let spine = epub_file.spine();
 

@@ -3,7 +3,8 @@
 //! 提供 EPUB 特有的功能，如富文本章节解析。
 //! 通用解析功能请使用 reader::parse_book。
 
-use crate::domain::{AppError, EpubMetadata};
+use crate::domain::AppError;
+use crate::parser::epub::EpubMetadata;
 use crate::utils::security::validate_file_path;
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};

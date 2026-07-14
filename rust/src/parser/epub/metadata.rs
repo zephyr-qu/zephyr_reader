@@ -1,5 +1,8 @@
 // ============================================================
-// 文件作用：EPUB 等元数据结构和书籍解析结果
+// 文件作用：EPUB 元数据结构、目录项、书籍解析结果
+//
+// 原路径：src/domain/types/metadata.rs
+// 迁移至：src/parser/epub/metadata.rs
 //
 // 公有类型/函数：
 //   - struct EpubMetadata — EPUB 元数据（标题、作者、封面、目录）
