@@ -185,7 +185,7 @@ TXT 子模块（5 文件）：`parse.rs` / `provider.rs` / `content_ir.rs` / `de
 
 | 类型/文件 | 行数 | 说明 |
 |-----------|------|------|
-| `types/typeset.rs` | ~588 | `TypesetCalibration`（9 字段 `f32`，`#[frb(non_opaque)]`）、`TypesetConfig`（14 字段，含 config_hash）、`LanguageType`、`LAYOUT_ALGORITHM_VERSION`（v14） |
+| `types/typeset.rs` | — | 已删除（Phase 7：分页全迁 Flutter，类型冗余） |
 | `types/content_ir.rs` | ~258 | `ChapterContentIr`、`ContentBlock`（Text / Image）、`TextBlockStyle` |
 | `types/pagination.rs` | ~64 | `SearchResult`、`IndexStats`（搜索引擎用） |
 | `types/plain_projection.rs` | ~294 | `BlockJoinedPlainBuilder`、`slice_by_char_range()` |
@@ -297,7 +297,6 @@ ChapterContentIr ──→ FlutterPaginationSession
 
 | 常量 | 值 | 位置 |
 |------|-----|------|
-| `LAYOUT_ALGORITHM_VERSION` | 14 | `domain/types/typeset.rs` |
 | `BOOK_ID_CACHE_CAPACITY` | 16 | `reading/mod.rs` |
 | `MAX_FILE_SIZE` | 500 MB | `api/import.rs` |
 | `Rust 源文件数` | 90 | `find rust/src -name '*.rs'`（不含 `frb_generated.rs`） |

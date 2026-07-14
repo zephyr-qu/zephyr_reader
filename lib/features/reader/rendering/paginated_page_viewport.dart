@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 
-/// 分页单页视口：固定高度，内容须由 Rust 分页保证不溢出。
+/// 分页单页视口：固定高度，由 Flutter 分页保证不溢出。
 class PaginatedPageViewport extends StatelessWidget {
   const PaginatedPageViewport({
     super.key,

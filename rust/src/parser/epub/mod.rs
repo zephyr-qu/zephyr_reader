@@ -39,7 +39,7 @@ use std::path::Path;
 use flutter_rust_bridge::frb;
 
 use crate::domain::AppError;
-use crate::parser::book_parser::BookMetadata;
+use crate::parser::BookMetadata;
 
 pub use parse::parse_epub;
 

@@ -25,7 +25,7 @@ use flutter_rust_bridge::frb;
 
 use crate::domain::AppError;
 use crate::parser::epub::ParseResult;
-use crate::parser::book_parser::BookMetadata;
+use crate::parser::BookMetadata;
 
 pub use chapter_detect::extract_chapters;
 pub use content_ir::{get_chapter_content_ir, txt_to_chapter_ir};

@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
 import 'package:zephyr_reader/features/reader/core/data/epub_block_image_cache.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_block_paginator.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/active_chapter_ir.dart';
@@ -55,78 +54,6 @@ Widget buildBlockPageContent({
             ' vPad=$vPad bodyHeight_dp=${bodyHeight.toStringAsFixed(1)}'
             ' blocks=${blocks.length}',
           );
-
-          // Diagnostic: accumulate Flutter lines & height
-          var totalChars = 0;
-          var totalFlutterLines = 0;
-          var textHeightDp = 0.0;
-          var spacingHeightDp = 0.0;
-          for (var blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
-            final block = blocks[blockIndex];
-            if (!block.isImage && block.text.isNotEmpty) {
-              final irStyle = block.style!;
-              final blockFontSize = IrTextBlockStyle.effectiveFontSize(
-                irStyle,
-                config,
-              );
-              final blockLineHeight = IrTextBlockStyle.effectiveLineHeight(
-                irStyle,
-                config,
-              );
-              final textStyle = config
-                  .buildTextStyle(
-                    fontSizeMultiplier: blockFontSize / config.fontSize,
-                  )
-                  .copyWith(height: blockLineHeight);
-              final indentPx = block.isBlockStart
-                  ? IrTextBlockStyle.resolveFirstLineIndentPx(irStyle, config)
-                  : 0.0;
-              final blockPadding = block.isBlockStart
-                  ? IrTextBlockStyle.resolveBlockPadding(irStyle, config)
-                  : EdgeInsets.zero;
-              final layoutMaxWidth =
-                  (constraints.maxWidth - blockPadding.horizontal).clamp(
-                    1.0,
-                    constraints.maxWidth,
-                  );
-              final strutStyle = config.buildStrutStyle(
-                fontSizeMultiplier: blockFontSize / config.fontSize,
-                lineHeight: blockLineHeight,
-              );
-              final measured = measureSliceLayout(
-                text: block.text,
-                style: textStyle,
-                strutStyle: strutStyle,
-                maxWidth: layoutMaxWidth,
-                firstLineIndentPx: block.isBlockStart ? indentPx : 0.0,
-              );
-              totalChars += block.text.length;
-              totalFlutterLines += measured.lines;
-              textHeightDp += measured.height;
-              spacingHeightDp += blockPadding.vertical;
-              // 页末最后一块不加段距（与 Rust pending flush 丢弃对齐）。
-              final hasFollowing = blockIndex < blocks.length - 1;
-              if (hasFollowing &&
-                  block.isBlockEnd &&
-                  irStyle.marginBottomEm == null &&
-                  config.paragraphSpacing > 0) {
-                spacingHeightDp += config.paragraphSpacing;
-              }
-            }
-          }
-          final totalTpHeight = textHeightDp + spacingHeightDp;
-          final overflowDp = (totalTpHeight - bodyHeight).clamp(
-            0.0,
-            double.infinity,
-          );
-          if (overflowDp > 0.5 || totalFlutterLines > 0) {
-            Logging.info(
-              '[LineBreak] chars=$totalChars lines=$totalFlutterLines'
-              ' height=${totalTpHeight.toStringAsFixed(1)}dp'
-              ' overflow=${overflowDp.toStringAsFixed(1)}dp'
-              ' blocks=${blocks.length}',
-            );
-          }
 
           final children = <Widget>[];
           var runningOffset = startOffset;
@@ -183,7 +110,7 @@ Widget buildBlockPageContent({
                   contextMenuBuilder: (_, _) => const SizedBox.shrink(),
                 ),
               );
-              // 段距只加在块与块之间；页末最后一块不加（对齐 Rust pending flush）。
+              // 段距只加在块与块之间；页末最后一块不加（对齐分页 pending flush）。
               final extraSpacing =
                   hasFollowing &&
                       block.isBlockEnd &&

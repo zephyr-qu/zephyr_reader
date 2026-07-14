@@ -102,7 +102,7 @@ class PaginatedModeRenderer extends StatelessWidget {
     Logging.info(
       '[Render] pageTurnShell descriptors=${descriptors.length} logicalIdx=${pageIndex.clamp(0, descriptors.length - 1)}',
     );
-    // 打印每页内容量（从 descriptors 反推，不依赖 Rust 日志）
+    // 打印每页内容量（从 descriptors 反推）
     for (var i = 0; i < descriptors.length && i < 8; i++) {
       final d = descriptors[i];
       Logging.info(
@@ -154,7 +154,7 @@ class PaginatedModeRenderer extends StatelessWidget {
   /// 构建页面内容组件（描述符模式）。
   /// 如果内容未缓存（null），显示占位符。
   ///
-  /// 分页模式始终使用 Rust [PageStreamer] 按行切分的 plain text。
+  /// 分页模式使用 Flutter 分页产出的 plain text 文本流。
   /// 不使用 rich 段落索引渲染：段落常跨多页，按 RichParagraph 整段
   /// 切片会在相邻页重复显示同一段落。
   Widget _buildPageContent(
@@ -519,7 +519,7 @@ Widget buildSinglePageContent({
     );
   }
 
-  // Plain 路径：Rust PageStreamer 行切 plain text。
+  // Plain 路径：Flutter 分页 plain text 文本流。
   final pageContent = dataSource.pageContent(pageIndex);
   if (pageContent == null) {
     WidgetsBinding.instance.addPostFrameCallback((_) {

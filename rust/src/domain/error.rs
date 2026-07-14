@@ -43,10 +43,6 @@ pub enum AppError {
     #[error("Chapter too large ({size_bytes} bytes, max 2MB). Consider re-importing: {details}")]
     ChapterTooLarge { size_bytes: usize, details: String },
 
-    // ========== 配置错误 ==========
-    #[error("Typeset config error: {reason}")]
-    TypesetConfigError { reason: String },
-
     // ========== 数据库错误 ==========
     #[error("Database error: {reason}")]
     DatabaseError { reason: String },

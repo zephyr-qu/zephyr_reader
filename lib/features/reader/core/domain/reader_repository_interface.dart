@@ -91,10 +91,10 @@ abstract class ReaderRepositoryInterface {
   /// 确保指定页面及其周围页面的内容已缓存。
   void ensurePageWindow(int centerPage);
 
-  /// 章级 charOffset → pageIndex（session 可用时走 Rust 精确解析）。
+  /// 章级 charOffset → pageIndex（优先 session，回退 descriptor 二分）。
   int? resolvePageIndexForCharOffset(int charOffset);
 
-  /// 释放 Rust 分页会话并清空本地页缓存。
+  /// 释放分页会话并清空本地页缓存。
   void disposePagination();
 
   /// 当前分页会话的下一章预加载 staging。
@@ -143,7 +143,7 @@ abstract class ReaderRepositoryInterface {
     BigInt? maxChars,
   });
 
-  /// 尝试从 Rust STREAMER_CACHE adopt 现有 session（零重 paginate）。
+  /// 尝试从分页缓存 adopt 现有 session（零重 paginate）。
   /// 未命中时退化到 [beginPaginate]（full createPaginationSession）。
   Future<({int totalPages, bool isPartial})> beginPaginateFromCache({
     required String bookId,
