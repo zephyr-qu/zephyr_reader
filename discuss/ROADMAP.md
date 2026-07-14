@@ -144,59 +144,33 @@ Phase 7 代码清理完成后，此阶段各项已自然完成。
 **目标**：IR 数据结构从 Rust 遗留设计优化为 Flutter 原生形式，
 消除 Rust-era 中间类型，简化两条渲染管线。
 
+### 与 Phase 7 的分工
+
+以下划归 **Phase 7 清理**（不改架构，只删代码）：
+- 死 FRB 函数删除（`get_bilingual_highlight_pairs`、`get_dictionary`、`suggest_mdict`、`get_epub_metadata`）
+- `storage/repos/` 12 个 CRUD 文件合并
+- `PaginationSession` 接口简化（仅一个实现，去掉抽象层）
+- `ChapterPaginationMode.plainText` 死变体删除
+- `LINE_BREAKS_STORE` 行断点缓存评估
+- FRB 生成类型残留清理
+- Spec 文档（`pagination-guidelines.md` 等）刷新
+
+Phase 9 只包含 **需要架构改造** 的任务。
+
 ### 任务清单
 
-#### A — Rust 侧精简
+| # | 项 | 说明 | 难度 |
+|---|-----|------|------|
+| 1 | **IR 结构优化**：`BlockPlainRange`/`ContentBlock` 枚举 → 扁平 Dart 类型 | 消除 Rust→Flutter 转换层 | 中 |
+| 2 | **RichTextSpan / TextBlockStyle 纯 Dart 化** | 消除 FRB 序列化开销 | 中 |
+| 3 | **`api/data/init.rs` 迁出 api 层** | 数据库初始化不属于 FRB 接口 | 中 |
+| 4 | **`api/vocab_marker.rs` DB CRUD 整合** | 迁入 `api/data/vocabulary.rs` | 低 |
+| 5 | **CJK 标点挤压引擎** | UI toggle 当前无效；Flutter 侧需重新实现（~1-2 天） | 中 |
+| 6 | **`get_chapter` 退化备选移除评估** | IR 可靠时可删除 plain text fallback | 低 |
 
-| # | 项 | 说明 |
-| --- | ----- | ------ |
-| A1 | 删除 `storage/repos/` 中不必要的 CRUD repo 文件 | 12 个文件，每个都是薄 DB 包装，可合为 2-3 个 |
-| A2 | 评估 `api/data/init.rs` 迁出 api 层 | 数据库初始化不属于 FRB 接口（受 FRB 约束暂缓） |
-| A3 | 清理 `api/bilingual.rs` 死函数 | `get_bilingual_highlight_pairs` 无 Dart 调用方 |
-| A4 | 清理 `api/dictionary.rs` 死函数 | `get_dictionary`、`suggest_mdict` 无 Dart 调用方 |
-| A5 | 清理 `api/epub.rs` 死函数 | `get_epub_metadata` 无 Dart 调用方 |
-| A6 | 评估 `api/vocab_marker.rs` DB CRUD 整合 | 迁入 `api/data/vocabulary.rs` |
-| A7 | `LINE_BREAKS_STORE` 行断点缓存机制评估 | 当前是 `api/reader.rs` 中的 `HashMap`，是否够用？ |
+### 不做
 
-#### B — Flutter 侧接口简化
+PDF 阅读、WebView、账号/多端同步、章内搜索 UI、Rust CancellationToken。
 
-| # | 项 | 说明 |
-| --- | ----- | ------ |
-| B1 | `PaginationSession` 接口评估 | 仅一个实现（`FlutterPaginationSession`），当时为 Rust/Flutter 双 session 设计，现可考虑简化 |
-| B2 | `ReaderRepositoryInterface` 精简 | pageBlocks() / descriptors getter 仍保留分页时代接口，可扁平化 |
-| B3 | `ChapterPaginationMode` 枚举评估 | plainText 变体曾是 Rust session fallback，现始终为 contentBlocks |
-| B4 | `FlutterPaginationSession.descriptors` 简化 | 已换为 `PackedPage[]`，但 interface 层仍可能有冗余 |
 
-#### C — FRB 类型最小化
 
-| # | 项 | 说明 |
-| --- | ----- | ------ |
-| C1 | `block_pagination.dart` | 已删源文件，产物残留，下次 codegen 自动消失 |
-| C2 | `pagination.dart` | `SearchResult`/`IndexStats` 搜索在用；`PageContent`/`ChapterPaginationMode` 待评估 |
-| C3 | `metadata.dart` | `EpubMetadata` 仅被 `get_epub_metadata`（死函数）使用 |
-| C4 | `rich_text.dart` | `RichTextSpan`/`SpanStyle` Rust 和 Dart 各存一份，可考虑纯 Dart 化 |
-| C5 | `content_ir.dart` | `ChapterContentIr` 为核心 IR 类型，暂保留 |
-
-#### D — 文档 / Spec 刷新
-
-| # | 项 | 说明 |
-| --- | ----- | ------ |
-| D1 | `pagination-guidelines.md` | 仍引已删的 Rust pagination API，需重写 |
-| D2 | `quality-guidelines.md` | calibration 测试引用已过时 |
-| D3 | `DOMAIN_MODEL.md` / `DECISIONS.md` | 多出架构描述需要同步更新 |
-
-### 与 Phase 8 对比的增量发现
-
-- **12 个 repo 文件**冗余（每个 CRUD 操作一个文件）
-- **PaginationSession 接口**是 Rust session 时代的遗物，现在只有一个实现
-- **blancing 测试/规格**多处引用已删的 Rust pagination API
-- **FRB 类型最小化**可消除 3 个生成的类型文件
-
-### 注意
-
-- Phase 9 是架构优化，非功能开发，以代码减少和可维护性为衡量标准
-- 部分改动（如纯 Dart IR 类型）可能影响性能，需 benchmark
-
-## 不做（Phase 4 仍适用）
-
-PDF 阅读、WebView、账号/多端同步、章内搜索 UI、Rust CancellationToken、CJK 标点挤压引擎。

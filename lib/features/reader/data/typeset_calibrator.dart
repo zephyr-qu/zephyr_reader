@@ -61,20 +61,4 @@ import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dar
   );
 }
 
-({double contentVerticalPadding, double pageHeightLineBuffer})
-paginatedTypesetLayoutInsets({
-  required double fontSize,
-  required double lineHeight,
-  double paragraphSpacing = 16,
-  double? measuredLineHeightDp,
-}) {
-  // 实测行高优先（与正文多行平均对齐）。
-  final row = (measuredLineHeightDp != null && measuredLineHeightDp > 0)
-      ? measuredLineHeightDp
-      : fontSize * lineHeight;
-  // ICU 按块断行后残余漂移通常 < 0.5 行；满行 buffer 会造成系统性底空 ~1 行。
-  return (
-    contentVerticalPadding: ReaderRenderConfig.pageContentVerticalPadding,
-    pageHeightLineBuffer: (row * 0.5).clamp(8.0, 24.0),
-  );
-}
+
