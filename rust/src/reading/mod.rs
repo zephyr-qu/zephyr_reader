@@ -19,7 +19,6 @@
 //! - `chapter_ir` — ContentBlock IR 加载
 pub mod chapter_access;
 pub mod chapter_ir;
-pub(crate) mod provider_cache;
 // ── book_id_cache (inlined) ──
 use parking_lot::Mutex;
 use std::num::NonZeroUsize;
