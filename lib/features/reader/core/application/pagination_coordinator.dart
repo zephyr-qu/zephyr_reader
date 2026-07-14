@@ -59,7 +59,7 @@ class PaginationCoordinator {
   }
 
   /// 计算当前排版配置的哈希值，用于检测配置变更。
-  /// Dart 侧直接计算（分页已迁 Flutter，不再依赖 Rust TypesetConfig）。
+  /// Dart 侧直接计算（分页已迁 Flutter）。
   BigInt computeConfigHash() {
     final p = buildPaginationParams();
     return BigInt.from(
@@ -121,7 +121,7 @@ class PaginationCoordinator {
     );
   }
 
-  /// 全量 Rust 分页（升级现有会话）。
+  /// 全量 Flutter 分页（升级现有会话）。
   Future<int> expandToFullChapter(int chapterIndex) async {
     final r = await _repo.expandToFullChapter(
       bookId: _chapterVM.bookId.value,
@@ -144,7 +144,7 @@ class PaginationCoordinator {
     );
   }
 
-  /// 应用完整 Rust 分页结果。
+  /// 应用完整分页结果。
   ({int totalPages, int pageIndex}) applyFullResult({
     required int total,
     required int initialCharOffset,
@@ -168,7 +168,7 @@ class PaginationCoordinator {
     return (totalPages: total, pageIndex: resolvedPage);
   }
 
-  /// charOffset → pageIndex：优先 Rust session，回退 descriptor 二分。
+  /// charOffset → pageIndex：优先 session，回退 descriptor 二分。
   int resolvePageForCharOffset(int charOffset, List<PackedPage> descriptors) {
     final sessionPage = _repo.resolvePageIndexForCharOffset(charOffset);
     if (sessionPage != null) {
@@ -177,16 +177,16 @@ class PaginationCoordinator {
     return PaginationEngine.resolvePageIndexForOffset(descriptors, charOffset);
   }
 
-  /// 释放 Rust 会话并清空本地缓存。
+  /// 释放分页会话并清空本地缓存。
   void disposePagination() => _repo.disposePagination();
 
-  /// 判断 Rust 分页是否有效。
+  /// 判断分页是否有效。
   bool isPaginationValid(int total) {
     final descriptors = _repo.descriptors;
     return total > 0 && descriptors != null && descriptors.isNotEmpty;
   }
 
-  /// Phase 6: 提取当前章节的行断点索引并存入 Rust 缓存。
+  /// 提取当前章节的行断点索引并存入行断点缓存。
   ///
   /// 优先按 IR **文本块** 分别 ICU 断行（与分页渲染同构），再合并为章级绝对索引；
   /// IR 不可用时退化为整章 plain 一次测量。[content] 仅作 fallback。

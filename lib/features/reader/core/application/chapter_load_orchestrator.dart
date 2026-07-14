@@ -163,7 +163,7 @@ class ChapterLoadOrchestrator {
     }
   }
 
-  /// 方案三 T2：staging promote — 安装精确预装箱，零 Rust adopt / 零重装箱。
+  /// 方案三 T2：staging promote — 安装精确预装箱。
   Future<void> _runFlutterStagingPromote(
     int gen,
     ChapterLoadRequest request, {
@@ -263,7 +263,7 @@ class ChapterLoadOrchestrator {
     Logging.info(
       '[FlutterPagination] gen=$gen chapter=${request.chapterIndex} '
       'off=${request.initialCharOffset} preserve=$preserve '
-      '(no Rust paginate)',
+      '(flutter paginate)',
     );
     await _runStarting(gen, effectivePreserveContent: preserve);
     if (_isStale(gen)) {
@@ -376,7 +376,7 @@ class ChapterLoadOrchestrator {
 
   /// 滚动/双语模式：跳过所有分页 pipeline，直接加载全文渲染。
   ///
-  /// 不触发 Rust FFI 分页、校准、首段提取，仅设置章节内容信号。
+  /// 不触发分页/校准/首段提取，仅设置章节内容信号。
   Future<void> _runScrollOrBilingualMode(
     int gen,
     ChapterLoadRequest request, {
@@ -552,7 +552,7 @@ class ChapterLoadOrchestrator {
     }
   }
 
-  /// Phase 6: 分页前预加载全文 → 提取 ICU 行断点 → 存入 Rust 缓存。
+  /// 分页前预加载全文 → 提取 ICU 行断点 → 存入行断点缓存。
   /// 渲染完成后 _storeLineBreaks 会再次触发（覆盖完整索引），
   /// 但预加载确保分页引擎在首次 paginate 时就能拿到索引。
   Future<void> _postLoadTasks(
@@ -607,10 +607,10 @@ class ChapterLoadOrchestrator {
 
   /// 判断阅读模式是否需要分页 pipeline。
   ///
-  /// 仅 [ReadingMode.pagination] 需要 Rust 分页链路。
-  static bool _needsPagination(ReadingMode mode) => needsRustPagination(mode);
+  /// 仅 [ReadingMode.pagination] 需要分页链路。
+  static bool _needsPagination(ReadingMode mode) => needsPagination(mode);
 
-  /// descriptors 变更后立即同步页码信号，避免 finalize 前 UI 与 Rust 脱节。
+  /// descriptors 变更后立即同步页码信号，避免 finalize 前 UI 与分页脱节。
   ///
   /// P4 (Bug B) 修复：使用当前 charOffset（而非 request.initialCharOffset）
   /// 重新映射 pageIndex，确保 partial→full 转换时用户停留在同一文本位置，

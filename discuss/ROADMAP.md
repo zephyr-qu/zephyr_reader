@@ -169,6 +169,45 @@ Phase 9 只包含 **需要架构改造** 的任务。
 | 5 | **CJK 标点挤压引擎** | UI toggle 当前无效但用户能看到，属于 visible gap。实现后可提升中文排版专业度。方案：IR 预处理阶段对标点序列做紧凑替换（全角→半宽变体），约 1-2 天。**好处大于投入** | 中 |
 | 6 | **`get_chapter` 退化备选移除评估** | IR 可靠时可删除 plain text fallback | 低 |
 
+---
+
+## Phase 10 — TXT 章节检测正则可配置化（规划中）
+
+**目标**：将硬编码在 `chapter_detect.rs` 中的四组章节检测正则改为由 Flutter 侧传入配置，
+支持用户自定义章节标题模式，覆盖更多网文/轻小说格式。
+
+### 背景
+
+当前 `extract_chapters()` 按固定优先级尝试 4 组硬编码模式：
+`ZH → ZH_ENUM → EN → DIGIT`。
+网文格式多样，固定模式总有遗漏，且每次调整需修改 Rust 代码+重新编译。
+
+### 设计方向
+
+| 维度 | 方案 A（推荐） | 方案 B（不推荐） |
+| ------ | ---------------- | ------------------ |
+| 配置传递 | 每次 `parse()` 传入 `Option<ChapterPatterns>` | 全局 `Mutex` 可变状态 |
+| 正则缓存 | 按模式串 hash 编译后缓存 | 每次 parse 重新编译 |
+| 向后兼容 | `None` → 当前硬编码行为 | 需 migration |
+| 竞态风险 | 无（一次调用一次配置） | 多书同时解析时可能竞态 |
+
+### 任务清单
+
+| # | 项 | 说明 | 优先级 |
+| --- | ----- | ------ | ------ |
+| 1 | Rust `ChapterPatterns` FRB struct | `Vec<String>` patterns + 优先级顺序 | P1 |
+| 2 | `extract_chapters()` 改接受配置参数 | 向后兼容默认行为 | P1 |
+| 3 | 正则编译结果 LRU 缓存 | 避免每次 parse 重新编译 | P1 |
+| 4 | Flutter 默认配置层 | 内置默认值 ≈ 当前 4 组 pattern | P2 |
+| 5 | Flutter 设置 UI | 用户可添加/删除/排序 pattern | P3 |
+| 6 | `parse_txt_inner` 调用链适配 | 从 `parse()` 入口传递配置到 `extract_chapters()` | P1 |
+
+### 不做
+
+- 每本书独立 pattern 配置（复杂度过高，除非用户需求明确）
+- 自动 pattern 推荐/学习（可等数据积累后再考虑）
+- EPUB 章节检测（EPUB 有 TOC 结构，不需要正则）
+
 ### 不做
 
 PDF 阅读、WebView、账号/多端同步、章内搜索 UI、Rust CancellationToken。

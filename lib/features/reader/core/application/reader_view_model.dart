@@ -258,7 +258,7 @@ class ReaderViewModel {
     if (mode == ReadingMode.bilingual) {
       bilingual?.onEnterBilingualMode();
     }
-    // P2 修复：切换到 scroll/bilingual 前，释放 Rust 分页会话，
+    // 切换到 scroll/bilingual 前，释放分页会话，
     // 避免 PaginationSession 和 LRU engine 悬空占用内存。
     if (mode != ReadingMode.pagination) {
       _repo.disposePagination();

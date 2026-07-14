@@ -46,7 +46,7 @@ abstract class PaginationSession {
     BigInt? maxChars,
   });
 
-  /// 尝试从 Rust STREAMER_CACHE adopt 现有 session（零重 paginate）。
+  /// 尝试从分页缓存 adopt 现有 session（零重 paginate）。
   /// 未命中时退化到 [beginPaginate]（full createPaginationSession）。
   Future<({int totalPages, bool isPartial})> beginPaginateFromCache({
     required String bookId,
@@ -68,7 +68,7 @@ abstract class PaginationSession {
 
   void warmPageCache(int pageIndex, String content);
 
-  /// 章级 charOffset → pageIndex（session 可用时走 Rust 精确解析）。
+  /// 章级 charOffset → pageIndex（优先 session，回退 descriptor 二分）。
   int? resolvePageIndexForCharOffset(int charOffset);
 
   void dispose();
