@@ -4,7 +4,7 @@
 // 公有类型/函数：
 //   - KvStore — sled 封装
 //   - new() / flush() — 生命周期
-//   - save_scroll_ir_cache() / get_scroll_ir_cache() — Scroll IR 缓存
+//   - save_ir_cache() / get_ir_cache() — IR 缓存
 //
 // 私有函数：
 //   - enforce_scroll_ir_capacity() — 容量淘汰
@@ -43,7 +43,7 @@ impl KvStore {
         let scroll_ir_cache =
             db.open_tree(SCROLL_IR_TREE_NAME)
                 .map_err(|e| AppError::DatabaseError {
-                    reason: format!("Failed to open scroll ir tree: {e}"),
+                    reason: format!("Failed to open ir tree: {e}"),
                 })?;
         Ok(Self {
             db,
@@ -59,8 +59,8 @@ impl KvStore {
         Ok(())
     }
 
-    /// 存储 Scroll IR 缓存（key = `{file_path}#{chapter_index}`）。
-    pub fn save_scroll_ir_cache(
+    /// 存储 IR 缓存（key = `{file_path}#{chapter_index}`）。
+    pub fn save_ir_cache(
         &self,
         file_path: &str,
         chapter_index: i32,
@@ -69,20 +69,20 @@ impl KvStore {
         let key = format!("{}#{}", file_path, chapter_index);
         let bytes = bincode::encode_to_vec(value, bincode::config::standard()).map_err(|e| {
             AppError::DatabaseError {
-                reason: format!("Failed to serialize scroll ir: {e}"),
+                reason: format!("Failed to serialize ir: {e}"),
             }
         })?;
         self.scroll_ir_cache
             .insert(key, bytes)
             .map_err(|e| AppError::DatabaseError {
-                reason: format!("Failed to insert scroll ir cache: {e}"),
+                reason: format!("Failed to insert ir cache: {e}"),
             })?;
         self.enforce_scroll_ir_capacity()?;
         Ok(())
     }
 
-    /// 获取 Scroll IR 缓存；版本不匹配视为 miss。
-    pub fn get_scroll_ir_cache(
+    /// 获取 IR 缓存；版本不匹配视为 miss。
+    pub fn get_ir_cache(
         &self,
         file_path: &str,
         chapter_index: i32,
@@ -92,7 +92,7 @@ impl KvStore {
             .scroll_ir_cache
             .get(&key)
             .map_err(|e| AppError::DatabaseError {
-                reason: format!("Failed to read scroll ir cache: {e}"),
+                reason: format!("Failed to read ir cache: {e}"),
             })? {
             Some(bytes) => match bincode::decode_from_slice::<ScrollIrCache, _>(
                 &bytes,
@@ -135,7 +135,7 @@ impl KvStore {
             self.scroll_ir_cache
                 .remove(key)
                 .map_err(|e| AppError::DatabaseError {
-                    reason: format!("Failed to evict stale scroll ir: {e}"),
+                    reason: format!("Failed to evict stale ir: {e}"),
                 })?;
         }
         let remaining = self.scroll_ir_cache.len();
@@ -145,7 +145,7 @@ impl KvStore {
                 self.scroll_ir_cache
                     .remove(key)
                     .map_err(|e| AppError::DatabaseError {
-                        reason: format!("Failed to evict scroll ir: {e}"),
+                        reason: format!("Failed to evict ir: {e}"),
                     })?;
             }
             tracing::info!(
