@@ -38,6 +38,10 @@ async fn resolve_book_path(book_id: &str) -> Result<String, AppError> {
 
 /// 获取指定章节的原始文本内容。
 /// 分页已迁移至 Flutter 侧，Rust 仅返回原始文本。
+///
+/// NOTE: Phase 8 后 scroll 模式已走 IR（`get_chapter_content_ir`），
+/// 本函数仅作为 IR 失败时的廉价退化备选（plain text fallback）
+/// 及 preload 热身缓存。待 IR 路径完全可靠后可考虑移除。
 #[frb]
 pub async fn get_chapter(
     file_path: String,
