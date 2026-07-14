@@ -10,7 +10,7 @@ use crate::api::search;
 use crate::domain::AppError;
 use crate::storage::ensure_storage;
 use crate::storage::repos::{
-    BookRepository, CategoryRepository, ChapterRepository, LayoutCacheRepository,
+    BookRepository, CategoryRepository, ChapterRepository, IrCacheRepository,
     NoteRepository, ProgressRepository, SessionRepository, VocabRepository,
 };
 
@@ -169,7 +169,7 @@ pub async fn delete_book(book_id: String, covers_dir: String) -> Result<(), AppE
         .await
         .map_err(|e| AppError::DatabaseError { reason: e.to_string().into() })?;
     let kv = storage.kv();
-    let cache_repo = LayoutCacheRepository::new(kv);
+    let cache_repo = IrCacheRepository::new(kv);
     if let Err(e) = cache_repo.invalidate_book_cache(&book_id) {
         tracing::warn!("failed to clear book cache: {}", e);
     }
