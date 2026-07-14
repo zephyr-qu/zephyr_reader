@@ -8,6 +8,21 @@ use crate::utils::security::validate_file_path;
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
 
+// ============================================================
+// 文件作用：EPUB 特有功能 API — 元数据获取、图片解码与缩放。
+//
+// 公有枚举：
+//   - ImageFormat — 图片格式识别（Jpeg/Png/Gif/Webp/Bmp/Svg/Unknown）
+//
+// 公有结构体：
+//   - EpubImageInfo — EPUB 图片信息
+//
+// 公有函数：
+//   - get_epub_metadata() — 快速获取 EPUB 元数据
+//   - get_processed_epub_image_bytes() — 解码并缩放为字节
+//   - get_processed_epub_image() — 解码并缩放缓存到本地
+// ============================================================
+
 /// 图片格式
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[frb]

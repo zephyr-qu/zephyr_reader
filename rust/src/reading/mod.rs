@@ -1,3 +1,15 @@
+// ============================================================
+// 文件作用：阅读编排模块（crate-private），将 api/reader.rs 中属于"阅读链"的
+//           部分（caches + pagination + session + chapter reads）抽出。
+//
+// 公有类型/函数：
+//   - BookIdCache — book_id 的 LRU 缓存类型（pub type）
+//   - BOOK_ID_CACHE — book_id 全局 LRU 缓存（LazyLock）
+//
+// 私有函数：
+//   - clear_for_test() — 清空 BOOK_ID_CACHE（集成测试用）
+// ============================================================
+
 //! 阅读编排模块（crate-private）。
 //!
 //! 把 `api/reader.rs` 中属于"阅读链"的部分（caches + pagination + session + chapter reads）抽出，

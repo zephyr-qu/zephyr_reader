@@ -1,3 +1,17 @@
+// ============================================================
+// 文件作用：笔记仓储，管理笔记（高亮/标注）的增删改查
+//
+// 公有类型/函数：
+//   - NoteRepository — 笔记仓储结构体
+//   - save() — 保存或更新笔记
+//   - list_by_book() / find_by_chapter() / find_by_type() — 查询
+//   - find_by_id() / search() / list_all_paginated() — 搜索与分页
+//   - delete_by_id() / delete_by_book() — 删除
+//   - find_partner_note() / find_partner_notes_batch() — 配对查询
+//   - find_note_stats() / count_filtered() — 统计
+//   - list_with_titles() — 笔记列表附带书名
+// ============================================================
+
 use std::collections::HashMap;
 
 use crate::domain::AppError;

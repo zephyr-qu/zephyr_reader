@@ -1,6 +1,15 @@
-//! 块分页描述符（Phase 2 `BlockPaginator` 输出）
-//!
-//! 与 Phase 1 [`PageDescriptor`]（plain 行切）并存；M3 接入 session 前不替换现有 FFI。
+// ============================================================
+// 文件作用：块分页描述符（BlockPaginator 输出）
+//
+// 公有类型/函数：
+//   - enum ImageBlockLayout — 页内 Image 块排版方式
+//   - struct PageImageLayout — 某一 Image 块在本页的 layout 元数据
+//   - struct BlockPageDescriptor — 块分页页面描述符
+//   - struct BlockPaginateResult — 块分页结果
+//   - struct PageTextBlockSlice — 页内 Text 块切片
+//   - struct PageImageBlockSlice — 页内 Image 块切片
+//   - enum PageBlockSlice — 单页块列表项
+// ============================================================
 
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};

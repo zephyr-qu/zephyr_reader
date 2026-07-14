@@ -1,3 +1,14 @@
+// ============================================================
+// 文件作用：阅读会话仓储，管理阅读会话记录
+//
+// 公有类型/函数：
+//   - SessionRepository — 阅读会话仓储结构体
+//   - save() — 记录阅读会话
+//   - find_by_book() / find_by_recent() — 查询会话
+//   - find_by_date_range() — 按日期范围查询
+//   - count_by_book() / delete_by_book() — 统计与删除
+// ============================================================
+
 use crate::domain::AppError;
 use chrono::NaiveDate;
 use sqlx::SqlitePool;

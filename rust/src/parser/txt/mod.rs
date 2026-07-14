@@ -1,3 +1,17 @@
+// ============================================================
+// 文件作用：TXT 解析模块，负责 TXT 文件的编码检测、解码、章节提取、按需内容提供。
+//
+// 公有类型/函数：
+//   - TxtParser — TXT 文件解析器（FRB opaque struct）
+//   - TxtParser::new() / parse() / extract_metadata()
+//   - get_chapter_content_ir() / txt_to_chapter_ir()
+//   - parse_txt() — TXT 文件解析入口
+//   - TxtContentProvider — TXT 按需内容提供器
+//
+// 子模块：
+//   - content_ir, decode, parse, provider
+// ============================================================
+
 //! TXT 解析模块
 //! 负责 TXT 文件的编码检测、解码、章节提取、按需内容提供
 

@@ -1,3 +1,12 @@
+// ============================================================
+// 文件作用：排版缓存仓储，管理 Scroll IR 缓存的读写和失效
+//
+// 公有类型/函数：
+//   - LayoutCacheRepository — 排版缓存仓储结构体
+//   - save_scroll_ir_cache() / get_scroll_ir_cache() — IR 缓存
+//   - invalidate_book_cache() — 使书籍排版缓存失效
+// ============================================================
+
 use std::sync::Arc;
 
 use crate::domain::AppError;

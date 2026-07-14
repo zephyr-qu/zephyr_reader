@@ -1,7 +1,11 @@
-//! 元数据模块 (Metadata)
-//!
-//! 包含 EPUB 等格式的元数据结构，以及书籍解析结果。
-//! 用于存储书籍的标题、作者、目录、章节信息等元数据。
+// ============================================================
+// 文件作用：EPUB 等元数据结构和书籍解析结果
+//
+// 公有类型/函数：
+//   - struct EpubMetadata — EPUB 元数据（标题、作者、封面、目录）
+//   - struct EpubTocItem — EPUB 目录项
+//   - struct ParseResult — 书籍解析结果（Book + 章节列表）
+// ============================================================
 use crate::storage::models::{Book, Chapter};
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
@@ -49,4 +53,3 @@ pub struct ParseResult {
     /// 章节列表
     pub chapters: Vec<Chapter>,
 }
-

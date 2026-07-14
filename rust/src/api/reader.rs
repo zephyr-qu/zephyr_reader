@@ -2,6 +2,15 @@ use crate::domain::{AppError, ChapterContentIr};
 use crate::reading::orchestrator::ReadingOrchestrator;
 use flutter_rust_bridge::frb;
 
+// ============================================================
+// 文件作用：章节读取 API — 获取原始文本、IR、存储行断点。
+//
+// 公有函数：
+//   - get_chapter() — 获取指定章节原始文本
+//   - store_line_breaks() — 存储 Flutter 行断点
+//   - get_chapter_content_ir() — 加载整章 ContentBlock IR
+// ============================================================
+
 /// 获取指定章节的原始文本内容。
 /// 分页已迁移至 Flutter 侧，Rust 仅返回原始文本。
 #[frb]

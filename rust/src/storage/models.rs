@@ -1,3 +1,19 @@
+// ============================================================
+// 文件作用：阅读器核心领域模型，定义所有持久化实体与业务枚举
+//
+// 主要模型类型：
+//   - ScrollIrCache — Scroll IR sled 缓存
+//   - ReadingProgress — 单章阅读进度
+//   - Bookmark — 章节内书签
+//   - Note / NoteType — 笔记/高亮
+//   - ReadingSession / ReadingStats — 阅读会话与统计
+//   - Book / BookFormat / BookStatus — 书籍元数据
+//   - Chapter — 章节信息
+//   - Category — 分类标签
+//   - Vocab / VocabStatus / Dictionary — 生词本与词典
+//   - BookWithProgress / BookshelfBook — 聚合查询结果
+// ============================================================
+
 //! 阅读器核心领域模型
 //!
 //! 本模块定义了阅读器的所有持久化实体与业务枚举。

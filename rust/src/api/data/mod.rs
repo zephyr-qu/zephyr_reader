@@ -33,6 +33,25 @@ pub mod session;
 pub mod stats;
 pub mod vocabulary;
 
+// ============================================================
+// 文件作用：存储相关 API 入口 — 按业务领域拆分子模块。
+//
+// 子模块：
+//   - book — 书籍管理
+//   - bookmark — 书签管理
+//   - category — 分类管理
+//   - chapter — 章节管理
+//   - init — 存储初始化
+//   - note — 笔记管理
+//   - progress — 阅读进度
+//   - session — 阅读会话
+//   - stats — 阅读统计
+//   - vocabulary — 生词本
+//
+// 导出宏：
+//   - async_storage!() — 异步存储操作宏
+// ============================================================
+
 // 导出异步存储宏（供子模块使用）
 pub use crate::async_storage;
 #[macro_export]
