@@ -3,7 +3,7 @@
 //
 // 公有类型/函数：
 //   - BookRepository / BookmarkRepository / CategoryRepository
-//   - ChapterRepository / DictionaryRepository / LayoutCacheRepository
+//   - ChapterRepository / DictionaryRepository / IrCacheRepository
 //   - NoteRepository / ProgressRepository / SessionRepository
 //   - StatsRepository / VocabRepository
 // ============================================================
@@ -17,7 +17,7 @@ pub mod bookmark_repo;
 pub mod category_repo;
 pub mod chapter_repo;
 pub mod dictionary_repo;
-pub mod layout_cache_repo;
+pub mod ir_cache_repo;
 pub mod note_repo;
 pub mod progress_repo;
 pub mod session_repo;
@@ -30,7 +30,7 @@ pub use bookmark_repo::BookmarkRepository;
 pub use category_repo::CategoryRepository;
 pub use chapter_repo::ChapterRepository;
 pub use dictionary_repo::DictionaryRepository;
-pub use layout_cache_repo::LayoutCacheRepository;
+pub use ir_cache_repo::IrCacheRepository;
 pub use note_repo::NoteRepository;
 pub use progress_repo::ProgressRepository;
 pub use session_repo::SessionRepository;

@@ -14,7 +14,7 @@
 
 use crate::domain::{AppError, ChapterContentIr};
 use crate::storage::models::{BookFormat, ScrollIrCache};
-use crate::storage::repos::LayoutCacheRepository;
+use crate::storage::repos::IrCacheRepository;
 
 use super::chapter_access::{format_from_file_path, get_chapter_bounds};
 
@@ -74,7 +74,7 @@ async fn try_get_scroll_ir_cached(
     chapter_index: i32,
 ) -> Option<ChapterContentIr> {
     let storage = crate::storage::storage()?;
-    let cache_repo = LayoutCacheRepository::new(storage.kv());
+    let cache_repo = IrCacheRepository::new(storage.kv());
     match cache_repo.get_scroll_ir_cache(validated_path, chapter_index) {
         Ok(Some(cache)) => {
             tracing::debug!(
@@ -102,7 +102,7 @@ async fn try_save_scroll_ir_cached(
         return;
     };
     let cache = ScrollIrCache::new(ir.clone());
-    let cache_repo = LayoutCacheRepository::new(storage.kv());
+    let cache_repo = IrCacheRepository::new(storage.kv());
     if let Err(e) = cache_repo.save_scroll_ir_cache(validated_path, chapter_index, &cache) {
         tracing::warn!("scroll_ir_cache save failed: {}", e);
     }
