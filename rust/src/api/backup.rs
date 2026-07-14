@@ -21,7 +21,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::domain::AppError;
 use crate::storage::ensure_storage;
-use crate::utils::security::validate_file_path;
+use crate::domain::security::validate_file_path;
 
 // ============================================================
 // 文件作用：数据库备份与还原 API。

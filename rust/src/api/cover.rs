@@ -6,7 +6,7 @@ use crate::domain::AppError;
 use crate::parser::get_cover_registry;
 use crate::storage::ensure_storage;
 use crate::storage::repos::BookRepository;
-use crate::utils::security::validate_file_path;
+use crate::domain::security::validate_file_path;
 use flutter_rust_bridge::frb;
 use std::path::Path;
 

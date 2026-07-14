@@ -44,9 +44,6 @@ pub(crate) static PROVIDER_CACHE: LazyLock<Mutex<LruCache<CacheKey, Arc<dyn Chap
 
 
 /// 清空 provider LRU（集成测试使用，无 cfg(test) 防护）。
-pub(crate) fn clear_for_test() {
-    PROVIDER_CACHE.lock().clear();
-}
 
 /// 从 LRU 缓存获取或创建 Provider（path-based，供 chapter_access 等非分页路径使用）。
 pub(crate) async fn get_or_create_provider(
