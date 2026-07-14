@@ -3,7 +3,8 @@
 //! 测试 wordlists 词表查询和 scan_for_vocabulary 文本扫描功能。
 //! 词表通过 include_str! 编译时嵌入，无需初始化。
 
-use rust_lib_zephyr_reader::vocab_marker::{self, wordlists};
+use rust_lib_zephyr_reader::dictionary::vocab;
+use rust_lib_zephyr_reader::dictionary::wordlists;
 
 // ==================== wordlists ====================
 
@@ -120,7 +121,7 @@ fn test_wordlists_subset_relationship() {
 
 #[test]
 fn test_scan_empty_text() {
-    let result = vocab_marker::scan_for_vocabulary("");
+    let result = vocab::scan_for_vocabulary("");
     assert!(
         result.is_empty(),
         "scanning empty text should return empty vec"
@@ -131,7 +132,7 @@ fn test_scan_empty_text() {
 fn test_scan_no_vocab() {
     // 使用无意义字符串，确保其中的 token 都不在任何词表中
     let text = "zxcvbnm qwertyu lkjhgfds";
-    let result = vocab_marker::scan_for_vocabulary(text);
+    let result = vocab::scan_for_vocabulary(text);
     assert!(
         result.is_empty(),
         "text with no vocab words should return empty vec, got {len}",
@@ -143,7 +144,7 @@ fn test_scan_no_vocab() {
 fn test_scan_with_vocab() {
     // "abandon" 是已知 CET4 单词
     let text = "hello abandon world";
-    let result = vocab_marker::scan_for_vocabulary(text);
+    let result = vocab::scan_for_vocabulary(text);
     assert!(
         !result.is_empty(),
         "text containing 'abandon' should produce at least one match"
@@ -162,7 +163,7 @@ fn test_scan_with_vocab() {
 fn test_scan_by_index_check() {
     // 验证位置正确性：单词从 index 0 开始
     let text = "abandon";
-    let result = vocab_marker::scan_for_vocabulary(text);
+    let result = vocab::scan_for_vocabulary(text);
     assert_eq!(result.len(), 1, "exactly one match expected");
     assert_eq!(result[0].start, 0);
     assert_eq!(result[0].end, 7);
@@ -173,7 +174,7 @@ fn test_scan_by_index_check() {
 fn test_scan_case_insensitive() {
     // 大写形式应同样匹配
     let text = "ABANDON ability";
-    let result = vocab_marker::scan_for_vocabulary(text);
+    let result = vocab::scan_for_vocabulary(text);
     assert_eq!(result.len(), 2, "both ABANDON and ability should match");
     assert_eq!(result[0].word, "ABANDON");
     assert_eq!(result[1].word, "ability");
@@ -182,7 +183,7 @@ fn test_scan_case_insensitive() {
 #[test]
 fn test_scan_mixed_case() {
     let text = "AbAnDoN";
-    let result = vocab_marker::scan_for_vocabulary(text);
+    let result = vocab::scan_for_vocabulary(text);
     assert!(!result.is_empty(), "mixed-case 'AbAnDoN' should match");
     assert_eq!(
         result[0].word, "AbAnDoN",
@@ -194,7 +195,7 @@ fn test_scan_mixed_case() {
 fn test_scan_multiple_words() {
     // 文本中包含多个已知单词
     let text = "abandon ability abstract accelerate";
-    let result = vocab_marker::scan_for_vocabulary(text);
+    let result = vocab::scan_for_vocabulary(text);
     assert!(
         result.len() >= 4,
         "expected at least 4 matches, got {len}",
@@ -226,7 +227,7 @@ fn test_scan_no_false_positives() {
     // 所以 "abandoning" 整体不会被匹配（除非它在词表中）
     // 我们测试一个不在词表中的长单词
     let text = "abandonxyz";
-    let result = vocab_marker::scan_for_vocabulary(text);
+    let result = vocab::scan_for_vocabulary(text);
     assert!(
         result.is_empty(),
         "'abandonxyz' is not a known word and should not match"
@@ -237,7 +238,7 @@ fn test_scan_no_false_positives() {
 fn test_scan_with_punctuation() {
     // 标点符号被正则排除，仅匹配字母 token
     let text = "hello, abandon! how's it going?";
-    let result = vocab_marker::scan_for_vocabulary(text);
+    let result = vocab::scan_for_vocabulary(text);
     let words: Vec<&str> = result.iter().map(|m| m.word.as_str()).collect();
     assert!(
         words.contains(&"abandon"),
@@ -254,7 +255,7 @@ fn test_scan_with_punctuation() {
 #[test]
 fn test_scan_positions_monotonic() {
     let text = "ability abandon accelerate";
-    let result = vocab_marker::scan_for_vocabulary(text);
+    let result = vocab::scan_for_vocabulary(text);
     assert!(result.len() >= 3, "expected at least 3 matches");
     for i in 1..result.len() {
         assert!(

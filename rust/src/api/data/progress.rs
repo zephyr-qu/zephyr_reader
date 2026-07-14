@@ -11,6 +11,16 @@ use crate::storage::repos::ProgressRepository;
 pub use crate::storage::models::BookWithProgress;
 pub use crate::storage::models::ReadingProgress;
 
+// ============================================================
+// 文件作用：阅读进度 API — 进度保存、获取、清除。
+//
+// 公有函数：
+//   - get_progress() — 根据书籍 ID 获取进度
+//   - upsert_progress() — 新增或更新进度
+//   - list_all_progresses() — 所有书籍的进度（批量书架用）
+//   - clear_progress() — 清除阅读进度
+// ============================================================
+
 /// 根据书籍 ID 获取阅读进度
 ///
 /// # 参数

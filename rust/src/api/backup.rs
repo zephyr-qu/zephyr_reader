@@ -21,7 +21,33 @@ use serde::{Deserialize, Serialize};
 
 use crate::domain::AppError;
 use crate::storage::ensure_storage;
-use crate::utils::security::validate_file_path;#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+use crate::domain::security::validate_file_path;
+
+// ============================================================
+// 文件作用：数据库备份与还原 API。
+//
+// 公有结构体：
+//   - BackupManifest — 备份清单
+//   - BackupStats — 数据库行数统计
+//
+// 公有函数：
+//   - get_backup_stats() — 当前数据库行数
+//   - export_database() — 导出数据库到路径
+//   - inspect_backup() — 只读读取备份 manifest
+//   - restore_database() — 从备份还原数据库
+//   - cleanup_auto_snapshots() — 清理旧自动快照
+//
+// 私有函数：
+//   - ensure_meta_table() — 创建临时元数据表
+//   - read_manifest_from_pool() — 从连接池读取 manifest
+//   - write_manifest_to_pool() — 写入 manifest
+//   - drop_meta_table() — 删除元数据表
+//   - count_stats() — 统计所有业务表行数
+//   - semver_cmp() — 比较 semver 版本
+//   - open_readonly_pool() — 创建只读连接池
+// ============================================================
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 #[frb(non_opaque)]
 pub struct BackupManifest {

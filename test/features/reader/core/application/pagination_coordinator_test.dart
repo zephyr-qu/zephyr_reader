@@ -17,8 +17,8 @@ import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
-import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
+import 'package:zephyr_reader/features/reader/domain/config/language_type.dart';
 
 // ===== Mocks =====
 
@@ -152,29 +152,26 @@ class _MockConfig implements ReaderConfig {
 
 // Test descriptors
 const _descriptors3 = [
-  PageDescriptor(
+  PackedPage(
     pageIndex: 0,
     startOffset: 0,
     endOffset: 99,
+    slices: [],
     isLastPage: false,
-    firstParagraphIndex: 0,
-    lastParagraphIndex: 0,
   ),
-  PageDescriptor(
+  PackedPage(
     pageIndex: 1,
     startOffset: 100,
     endOffset: 199,
+    slices: [],
     isLastPage: false,
-    firstParagraphIndex: 1,
-    lastParagraphIndex: 1,
   ),
-  PageDescriptor(
+  PackedPage(
     pageIndex: 2,
     startOffset: 200,
     endOffset: 300,
+    slices: [],
     isLastPage: true,
-    firstParagraphIndex: 2,
-    lastParagraphIndex: 2,
   ),
 ];
 
@@ -343,7 +340,7 @@ void main() {
       'I_phase6: storeLineBreaks handles non-empty text without crashing',
       () async {
         final coordinator = PaginationCoordinator(repo, config, chapterVM);
-        // In unit tests, core_api.storeLineBreaks will fail with
+        // In unit tests, reader_api.storeLineBreaks will fail with
         // "flutter_rust_bridge has not been initialized" — this is
         // caught by the try/catch inside storeLineBreaks.
         // The test validates the method doesn't throw externally.

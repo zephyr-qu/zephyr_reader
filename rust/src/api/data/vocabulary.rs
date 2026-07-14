@@ -8,6 +8,19 @@ pub use crate::storage::models::{Vocab, VocabStats};
 use crate::storage::repos::VocabRepository;
 use crate::{domain::AppError, storage::models::VocabStatus};
 
+// ============================================================
+// 文件作用：生词管理 API — 生词 CRUD、状态管理、搜索、统计。
+//
+// 公有函数：
+//   - create_vocabulary_word() — 创建生词记录
+//   - list_vocabulary_by_status() — 按状态筛选生词
+//   - search_vocabulary_words() — 搜索生词
+//   - update_vocabulary_status() — 更新生词状态
+//   - delete_vocabulary() — 删除生词
+//   - get_vocabulary_stats() — 生词统计
+//   - list_word_lists() — 内置词库名称列表
+// ============================================================
+
 /// 创建生词记录（自动生成 UUID）
 ///
 /// # 参数

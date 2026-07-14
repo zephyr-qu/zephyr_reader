@@ -7,9 +7,14 @@ description = "Zephyr Reader - High-performance bilingual text parsing engine"
 [lib]
 crate-type = ["cdylib", "staticlib", "rlib"]
 
+[features]
+# Enable `frb_generated.rs` module — needed for flutter_rust_bridge codegen.
+# Enable via `cargo build --features frb` or during FRB codegen.
+frb = []
+
 [dependencies]
 # FFI bridge
-flutter_rust_bridge = { version = "=2.12.0", features = ["chrono","log"] }
+flutter_rust_bridge = { version = "=2.12.0", features = ["chrono", "log"] }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -44,7 +49,7 @@ uuid = { version = "1.23.1", features = ["v4"] }
 md5 = "0.8.0"
 
 # Date and time
-chrono = {version ="0.4.44",features = ["serde"]}
+chrono = { version = "0.4.44", features = ["serde"] }
 
 # Platform-appropriate directories
 dirs = "6.0"
@@ -59,11 +64,11 @@ parking_lot = "0.12.5"
 
 # Async runtime
 tokio = { version = "1.52.3", features = [
-  "rt-multi-thread",    # 多线程运行时
-    "macros",             # 宏支持
-    "sync",               # 同步原语
-    "time",               # 定时器
-    ] }
+  "rt-multi-thread", # 多线程运行时
+  "macros",          # 宏支持
+  "sync",            # 同步原语
+  "time",            # 定时器
+] }
 # Memory mapping
 memmap2 = "0.9.10"
 
@@ -72,14 +77,14 @@ jieba-rs = "0.10.1"
 
 # Async SQL toolkit
 sqlx = { version = "0.9.0", features = [
-    "runtime-tokio",      # 使用 tokio 运行时
-    "tls-rustls",         # 使用纯 Rust TLS
-    "sqlite",             # 启用 SQLite 支持
-    "chrono",             # 启用日期时间类型支持
-    "migrate",            # 用于数据库迁移
-    "macros",             # 启用编译时 SQL 检查
-    "derive",             # 启用 FromRow 派生宏，简化代码
-    "uuid",               # 如果用到 UUID 主键
+  "runtime-tokio", # 使用 tokio 运行时
+  "tls-rustls",    # 使用纯 Rust TLS
+  "sqlite",        # 启用 SQLite 支持
+  "chrono",        # 启用日期时间类型支持
+  "migrate",       # 用于数据库迁移
+  "macros",        # 启用编译时 SQL 检查
+  "derive",        # 启用 FromRow 派生宏，简化代码
+  "uuid",          # 如果用到 UUID 主键
 ] }
 
 # MDict dictionary format parser
@@ -96,7 +101,12 @@ bincode = "2.0"
 # Fast deterministic hashing for cache keys
 xxhash-rust = { version = "0.8", features = ["xxh3"] }
 # EPUB 图片 decode + resize（M4.2）
-image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp"] }
+image = { version = "0.25", default-features = false, features = [
+  "jpeg",
+  "png",
+  "gif",
+  "webp",
+] }
 tempfile = "3.27.0"
 
 [dev-dependencies]

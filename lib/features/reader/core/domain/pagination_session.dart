@@ -1,13 +1,12 @@
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
-import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 
 /// 单次章节分页会话抽象。
 ///
 /// 持有 bookId、chapterIndex、filePath 等会话状态，
 /// 以及描述符、页面缓存等分页结果。
 abstract class PaginationSession {
-  List<PageDescriptor>? get descriptors;
+  List<PackedPage>? get descriptors;
 
   /// 上次分页的 configHash；null 表示无 session。
   BigInt? get sessionConfigHash;
@@ -25,7 +24,7 @@ abstract class PaginationSession {
   String? get sessionFilePath;
 
   /// 页内块列表（`contentBlocks` 模式）；未缓存时返回 null。
-  List<PageBlockSlice>? pageBlocks(int pageIndex);
+  List<PackedBlockSlice>? pageBlocks(int pageIndex);
 
   /// In-place repaginate：复用现有 session handle，更新 config。
   /// handle 不存在时退化到 [beginPaginate]（用真实 bookId/chapterIndex）。
@@ -47,7 +46,7 @@ abstract class PaginationSession {
     BigInt? maxChars,
   });
 
-  /// 尝试从 Rust STREAMER_CACHE adopt 现有 session（零重 paginate）。
+  /// 尝试从分页缓存 adopt 现有 session（零重 paginate）。
   /// 未命中时退化到 [beginPaginate]（full createPaginationSession）。
   Future<({int totalPages, bool isPartial})> beginPaginateFromCache({
     required String bookId,
@@ -69,7 +68,7 @@ abstract class PaginationSession {
 
   void warmPageCache(int pageIndex, String content);
 
-  /// 章级 charOffset → pageIndex（session 可用时走 Rust 精确解析）。
+  /// 章级 charOffset → pageIndex（优先 session，回退 descriptor 二分）。
   int? resolvePageIndexForCharOffset(int charOffset);
 
   void dispose();

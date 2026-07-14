@@ -12,6 +12,23 @@ use crate::storage::storage_pool;
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+// ============================================================
+// 文件作用：双语对齐与高亮配对 API。
+//
+// 公有结构体：
+//   - AlignedSegment — 对齐片段
+//   - BilingualAlignment — 对齐结果
+//   - BilingualHighlightPair — 双语高亮配对
+//   - BilingualHighlightParams — 创建配对参数
+//
+// 公有函数：
+//   - align_bilingual_content() — 对齐双语文本（基于相似度匹配）
+//   - create_bilingual_highlight_pair() — 创建双语高亮配对
+//   - get_bilingual_highlight_pairs() — 获取章节双语高亮配对
+//   - delete_bilingual_highlight_pair() — 删除一对双语高亮
+// ============================================================
+
 /// 对齐片段
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[frb(non_opaque)]
@@ -72,7 +89,7 @@ pub async fn align_bilingual_content(
     let similarity = min_similarity.max(0.3).min(1.0);
 
     tokio::task::spawn_blocking(move || {
-        crate::text::bilingual::align_bilingual_content(
+        crate::parser::bilingual::align_bilingual_content(
             chinese_content,
             english_content,
             similarity,

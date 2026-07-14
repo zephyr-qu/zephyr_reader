@@ -1,25 +1,23 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 
 void main() {
   group('PaginationEngine.chapterCharOffsetMax', () {
     const descriptors = [
-      PageDescriptor(
+      PackedPage(
         pageIndex: 0,
         startOffset: 0,
         endOffset: 100,
+        slices: [],
         isLastPage: false,
-        firstParagraphIndex: 0,
-        lastParagraphIndex: 0,
       ),
-      PageDescriptor(
+      PackedPage(
         pageIndex: 1,
         startOffset: 100,
         endOffset: 105,
+        slices: [],
         isLastPage: true,
-        firstParagraphIndex: 0,
-        lastParagraphIndex: 0,
       ),
     ];
 

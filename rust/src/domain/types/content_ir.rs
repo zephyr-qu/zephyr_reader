@@ -1,7 +1,18 @@
-//! 章节内容 IR（Intermediate Representation）
-//!
-//! Phase 2 块分页输入。EPUB/TXT 解析归一为 [`ContentBlock`] 流；
-//! plain 投影规则见 ADR-008（图片 = `\uFFFC`）。
+// ============================================================
+// 文件作用：章节内容中间表示（ContentBlock 流）
+//
+// 公有常量：
+//   - IMAGE_PLAIN_PLACEHOLDER — Image 块在 plain 中的占位符字符 (\u{FFFC})
+//   - IMAGE_PLAIN_CHAR_LEN — 图片块在 plain 中的字符长度
+//
+// 公有类型/函数：
+//   - struct BlockPlainRange — 块级 plain 坐标（start + len）
+//   - struct TextBlockStyle — 文本块级样式
+//   - struct TextBlock — 文本内容块
+//   - struct ImageBlock — 图片内容块
+//   - enum ContentBlock — 章节 IR 块（Text | Image）
+//   - struct ChapterContentIr — 一章的 IR 产物（块流 + plain 投影）
+// ============================================================
 
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};

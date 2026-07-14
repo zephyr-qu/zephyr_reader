@@ -1,3 +1,25 @@
+// ============================================================
+// 文件作用：EPUB 按需内容提供器 — EpubContentProvider 基于 EpubFile 实现
+//           spine item 粒度的懒加载。
+//
+// 公有类型/函数：
+//   - EpubContentProvider — EPUB 按需内容提供器
+//     - open_from_bounds() — 使用 DB 中的 spine 边界打开章节
+//     - read_text_range() / read_html_range() — 读取文本/HTML 范围
+//     - content_length() / format() — 内容长度和格式
+//     - read_resource_bytes() — 读取资源原始字节
+//     - read_spine_html() — 读取单个 spine 原始 HTML
+//     - spine_count() / spine_internal_path() / primary_spine_href()
+//     - asset_registry() — 构建 manifest asset 注册表
+//
+// 私有函数：
+//   - ensure_spine_text() — 确保 spine 纯文本已缓存
+//   - build_offsets_up_to() — 惰性构建偏移数组
+//   - html_to_plain_text() — HTML 片段转纯文本（2-pass 策略）
+//   - decode_entity() — 解码单个 HTML 实体
+//   - clean_whitespace() — 清理空白字符
+// ============================================================
+
 //! EPUB 按需内容提供器
 //!
 //! `EpubContentProvider` 基于 `EpubFile` 实现 spine item 粒度的懒加载。
@@ -225,9 +247,6 @@ impl ChapterContentProvider for EpubContentProvider {
         BookFormat::Epub
     }
 
-    fn supports_chunked_pagination(&self) -> bool {
-        true
-    }
     fn read_html_range(&self, _start: u64, _end: u64) -> Option<Result<String, AppError>> {
         Some((|| {
             let mut html = String::new();

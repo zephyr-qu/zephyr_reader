@@ -1,24 +1,18 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show ValueNotifier;
 import 'package:injectable/injectable.dart';
-import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
-import 'package:zephyr_reader/features/reader/domain/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.dart';
 import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
-import 'package:zephyr_reader/features/reader/data/rich_text_converter.dart';
-import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/features/reader/domain/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_staging_preloader.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_staging_store.dart';
-import 'package:zephyr_reader/src/rust/api/core.dart' as core_api;
-import 'package:zephyr_reader/src/rust/api/types.dart' as types_api;
 import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/data/chapter.dart' as chapter_api;
-import 'package:zephyr_reader/src/rust/api/epub.dart' as epub_api;
+import 'package:zephyr_reader/src/rust/api/reader.dart' as reader_api;
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
-import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
-import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 @Injectable(as: ChapterContentRepository)
@@ -29,8 +23,6 @@ class RustChapterContentRepository implements ChapterContentRepository {
   PaginationParams? _layoutParams;
   bool _pendingEpubRichSkipped = false;
 
-  TextSpan? _currentRichContent;
-  List<RichParagraph>? _currentRichParagraphs;
   ChapterContentIr? _currentChapterIr;
   String? _currentChapterFilePath;
 
@@ -45,14 +37,6 @@ class RustChapterContentRepository implements ChapterContentRepository {
 
   @override
   final preloadGeneration = ValueNotifier<int>(0);
-
-  final _richTextConverter = const RichTextConverter();
-
-  @override
-  TextSpan? get currentRichContent => _currentRichContent;
-
-  @override
-  List<RichParagraph>? get currentRichParagraphs => _currentRichParagraphs;
 
   @override
   ChapterContentIr? get currentChapterIr => _currentChapterIr;
@@ -87,7 +71,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
       chapterId,
       readingMode: readingMode,
     );
-    _applyCurrentRich(chapterId, payload);
+    _applyCurrentIr(payload);
     _setChapterFilePath((await _getBook(bookId)).filePath);
     return payload.content;
   }
@@ -99,13 +83,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
     ReadingMode? readingMode,
   }) => _loadChapterPayload(bookId, chapterId, readingMode: readingMode);
 
-  /// 仅双语模式需要 EPUB 富文本；scroll 走 IR；分页路径只用 plain。
-  static bool _needsRichContent(ReadingMode? mode) =>
-      mode == ReadingMode.bilingual;
-
-  void _applyCurrentRich(int chapterId, ScrollChapterPayload payload) {
-    _currentRichContent = payload.richRootSpan;
-    _currentRichParagraphs = payload.richParagraphs;
+  void _applyCurrentIr(ScrollChapterPayload payload) {
     _currentChapterIr = payload.chapterIr;
   }
 
@@ -113,8 +91,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
     _currentChapterFilePath = path;
   }
 
-  /// scroll 模式优先走 IR（EPUB/TXT）；双语仍走 rich 路径。
-  /// M2: book_id 替代 file_path（ADR-014）。
+  /// 尝试加载 scroll IR（EPUB/TXT）。
   Future<ScrollChapterPayload?> _tryLoadScrollIr({
     required String bookId,
     required int chapterId,
@@ -128,7 +105,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
 
     final sw = Stopwatch()..start();
     try {
-      final ir = await core_api.getChapterContentIr(
+      final ir = await reader_api.getChapterContentIr(
         bookId: bookId,
         chapterIndex: chapterId,
       );
@@ -153,71 +130,6 @@ class RustChapterContentRepository implements ChapterContentRepository {
     final pending = _pendingEpubRichSkipped;
     _pendingEpubRichSkipped = false;
     return pending;
-  }
-
-  void _flagEpubRichSkipped(bool skipped) {
-    if (skipped) _pendingEpubRichSkipped = true;
-  }
-
-  TypesetConfig _buildTypesetFromParams(PaginationParams p) {
-    final layoutInsets = paginatedTypesetLayoutInsets(
-      fontSize: p.fontSize,
-      lineHeight: p.lineHeight,
-      paragraphSpacing: p.paragraphSpacing,
-      measuredLineHeightDp: null,
-    );
-    return buildTypesetConfig(
-      width: p.width,
-      height: p.height,
-      fontSize: p.fontSize,
-      lineHeight: p.lineHeight,
-      padding: p.padding,
-      contentVerticalPadding: layoutInsets.contentVerticalPadding,
-      pageHeightLineBuffer: layoutInsets.pageHeightLineBuffer,
-      devicePixelRatio: p.devicePixelRatio,
-      calibration: null,
-      fontFamily: p.fontFamily,
-      letterSpacing: p.letterSpacing,
-      paragraphSpacing: p.paragraphSpacing,
-      punctuationSqueeze: p.punctuationSqueeze,
-      language: p.language,
-      autoSpaceRatio: p.autoSpaceRatio,
-      firstLineIndent: p.firstLineIndent ? 2 : 0,
-    );
-  }
-
-  TypesetConfig _resolveTypesetConfig() {
-    final p = _layoutParams;
-    if (p != null) {
-      return _buildTypesetFromParams(p);
-    }
-    return buildTypesetConfig(
-      width: 400,
-      height: 600,
-      fontSize: _config.fontSize.value,
-      lineHeight: _config.lineHeight.value,
-      padding: _config.padding.value,
-      devicePixelRatio: _layoutParams?.devicePixelRatio ?? 1.0,
-      contentVerticalPadding: paginatedTypesetLayoutInsets(
-        fontSize: _config.fontSize.value,
-        lineHeight: _config.lineHeight.value,
-        paragraphSpacing: _config.paragraphSpacing.value,
-        measuredLineHeightDp: null,
-      ).contentVerticalPadding,
-      pageHeightLineBuffer: paginatedTypesetLayoutInsets(
-        fontSize: _config.fontSize.value,
-        lineHeight: _config.lineHeight.value,
-        paragraphSpacing: _config.paragraphSpacing.value,
-        measuredLineHeightDp: null,
-      ).pageHeightLineBuffer,
-      fontFamily: 'Noto Sans SC',
-      letterSpacing: _config.letterSpacing.value,
-      paragraphSpacing: _config.paragraphSpacing.value,
-      punctuationSqueeze: _config.punctuationSqueeze.value,
-      language: _config.language.value,
-      autoSpaceRatio: _config.autoSpaceRatio.value,
-      firstLineIndent: _config.firstLineIndent.value ? 2 : 0,
-    );
   }
 
   PaginationParams _resolveStagingParams({
@@ -287,6 +199,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
       }
 
       return _loadRichCapablePayload(
+        bookId: bookId,
         filePath: filePath,
         chapterId: chapterId,
         readingMode: readingMode,
@@ -314,8 +227,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
       readingMode: ReadingMode.scroll,
     );
     if (irPayload != null) {
-      _flagEpubRichSkipped(false);
-      _applyCurrentRich(chapterId, irPayload);
+      _applyCurrentIr(irPayload);
       _setChapterFilePath(filePath);
       return irPayload;
     }
@@ -325,8 +237,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
       '[Timing] loadScrollPayload plain fallback: ${sw.elapsedMilliseconds}ms',
     );
     final plainPayload = scrollPlainPayload(content, chapterFilePath: filePath);
-    _flagEpubRichSkipped(false);
-    _applyCurrentRich(chapterId, plainPayload);
+    _applyCurrentIr(plainPayload);
     _setChapterFilePath(filePath);
     return plainPayload;
   }
@@ -335,13 +246,9 @@ class RustChapterContentRepository implements ChapterContentRepository {
     String filePath,
     int chapterId,
   ) async {
-    final result = await core_api.getChapter(
+    final content = await reader_api.getChapter(
       filePath: filePath,
       chapterIndex: chapterId,
-    );
-    final content = result.when(
-      raw: (text) => text,
-      pages: (pages) => pages.map((p) => p.content).join('\n\n'),
     );
     if (content.isEmpty) {
       throw Exception('Chapter content is empty');
@@ -349,71 +256,45 @@ class RustChapterContentRepository implements ChapterContentRepository {
     return content;
   }
 
-  /// 双语 / 默认路径：可加载 EPUB rich；大章可触发 epubRichSkipped。
+  /// 双语 / 默认路径：通过 IR 加载（替代已移除的 EPUB rich 路径）。
   Future<ScrollChapterPayload> _loadRichCapablePayload({
+    required String bookId,
     required String filePath,
     required int chapterId,
     ReadingMode? readingMode,
     required Stopwatch sw,
   }) async {
-    final loadRich = _needsRichContent(readingMode);
     final isEpub = filePath.toLowerCase().endsWith('.epub');
 
-    Future<List<RichParagraph>>? epubRichFuture;
-    if (isEpub && loadRich) {
-      final config = _resolveTypesetConfig();
-      epubRichFuture = epub_api
-          .getEpubChapterRichContent(
-            filePath: filePath,
-            chapterIndex: chapterId,
-            config: config,
-          )
-          .catchError((Object e) {
-            Logging.warning(
-              'getEpubChapterRichContent failed, falling back to plain text: $e',
-            );
-            return <RichParagraph>[];
-          });
+    // bilingual 模式尝试加载 IR，否则走纯文本。
+    Future<ChapterContentIr> contentIrFuture;
+    if (isEpub && readingMode == ReadingMode.bilingual) {
+      contentIrFuture = reader_api.getChapterContentIr(
+        bookId: bookId,
+        chapterIndex: chapterId,
+      );
+    } else {
+      contentIrFuture = Future.error('no IR requested');
     }
 
     final results = await Future.wait([
-      core_api.getChapter(filePath: filePath, chapterIndex: chapterId),
-      if (epubRichFuture != null)
-        epubRichFuture
-      else
-        Future<Object?>.value(null),
+      reader_api.getChapter(filePath: filePath, chapterIndex: chapterId),
+      contentIrFuture.then<ChapterContentIr?>((v) => v).catchError((_) {
+        Logging.warning(
+          'getChapterContentIr failed, falling back to plain text',
+        );
+        return null;
+      }),
     ]);
-    var content = (results[0] as types_api.ChapterContent).when(
-      raw: (text) => text,
-      pages: (pages) => pages.map((p) => p.content).join('\n\n'),
-    );
+    final content = results[0] as String;
+    final ir = results[1] as ChapterContentIr?;
 
-    var epubRichSkipped = false;
-    if (isEpub && content.length > 500 * 1024) {
-      Logging.warning(
-        'loadContent: content too large (${content.length} bytes), '
-        'discarding rich text typesetting result',
+    if (ir != null && ir.blocks.isNotEmpty) {
+      Logging.info(
+        '[Timing] loadRichCapablePayload IR: ${sw.elapsedMilliseconds}ms '
+        'blocks=${ir.blocks.length}',
       );
-      epubRichSkipped = true;
-    } else if (epubRichFuture != null && results[1] is List<RichParagraph>) {
-      try {
-        final paragraphs = results[1] as List<RichParagraph>;
-        if (paragraphs.isNotEmpty) {
-          final result = _richTextConverter.toTextSpan(paragraphs);
-          content = result.$2;
-          _flagEpubRichSkipped(false);
-          return (
-            content: content,
-            richParagraphs: paragraphs,
-            richRootSpan: result.$1,
-            epubRichSkipped: false,
-            chapterIr: null,
-            chapterFilePath: filePath,
-          );
-        }
-      } catch (e) {
-        Logging.error('loadContent EPUB rich typeset failed: $e');
-      }
+      return scrollIrPayload(chapterIr: ir, chapterFilePath: filePath);
     }
 
     if (content.isEmpty) {
@@ -425,12 +306,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
       '(EPUB=$isEpub)',
     );
 
-    _flagEpubRichSkipped(epubRichSkipped);
-    return scrollPlainPayload(
-      content,
-      epubRichSkipped: epubRichSkipped,
-      chapterFilePath: filePath,
-    );
+    return scrollPlainPayload(content, chapterFilePath: filePath);
   }
 
   Future<String> _loadRawContent(String bookId, int chapterId) async {
@@ -438,14 +314,11 @@ class RustChapterContentRepository implements ChapterContentRepository {
     if (book.filePath.isEmpty) {
       throw Exception('Book not found: $bookId');
     }
-    final result = await core_api.getChapter(
+    final result = await reader_api.getChapter(
       filePath: book.filePath,
       chapterIndex: chapterId,
     );
-    return result.when(
-      raw: (text) => text,
-      pages: (pages) => pages.map((p) => p.content).join('\n\n'),
-    );
+    return result;
   }
 
   @override

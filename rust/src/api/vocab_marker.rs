@@ -3,11 +3,23 @@
 //! 提供在文本中扫描内置词库（CET-6、IELTS、TOEFL）生词的功能。
 //! 用于在阅读器中高亮标记已知词汇表中的单词。
 
-use crate::{
-    domain::AppError,
-    vocab_marker::{self as engine},
-};
+use crate::{dictionary::vocab as engine, dictionary::wordlists, domain::AppError};
 use flutter_rust_bridge::frb;
+
+// ============================================================
+// 文件作用：生词标记 API — 扫描文本中的内置词库生词。
+//
+// 公有结构体：
+//   - VocabMatch — 匹配到的单词及其位置
+//
+// 公有函数：
+//   - scan_for_vocabulary() — 扫描文本中的生词
+//   - get_all_vocabulary_words() — 获取所有内置词汇
+//   - get_cet6_words() — 获取 CET-6 词汇
+//   - get_ielts_words() — 获取 IELTS 词汇
+//   - get_toefl_words() — 获取 TOEFL 词汇
+// ============================================================
+
 #[frb]
 pub struct VocabMatch {
     /// 匹配到的单词
@@ -41,26 +53,26 @@ pub fn scan_for_vocabulary(text: &str) -> Result<Vec<VocabMatch>, AppError> {
 /// 用于 Dart 端一次性初始化生词集合
 #[frb(sync)]
 pub fn get_all_vocabulary_words() -> Result<Vec<String>, AppError> {
-    Ok(engine::wordlists::all_words())
+    Ok(wordlists::all_words())
 }
 
 /// 获取所有 CET-6 词汇
 #[frb(sync)]
 // TODO: 多词库管理页面
 pub fn get_cet6_words() -> Result<Vec<String>, AppError> {
-    Ok(engine::wordlists::cet6_words())
+    Ok(wordlists::cet6_words())
 }
 
 /// 获取所有 IELTS 词汇
 // TODO: 多词库管理页面
 #[frb(sync)]
 pub fn get_ielts_words() -> Result<Vec<String>, AppError> {
-    Ok(engine::wordlists::ielts_words())
+    Ok(wordlists::ielts_words())
 }
 
 // TODO: 多词库管理页面
 /// 获取所有 TOEFL 词汇
 #[frb(sync)]
 pub fn get_toefl_words() -> Result<Vec<String>, AppError> {
-    Ok(engine::wordlists::toefl_words())
+    Ok(wordlists::toefl_words())
 }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/reader/rendering/page_curl_widget.dart';
 import 'package:zephyr_reader/features/reader/rendering/page_turn_shell.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 
 void main() {
   testWidgets('maps logical pageIndex to physical index with virtual prev', (
@@ -16,29 +16,26 @@ void main() {
           hasPreviousChapter: true,
           hasNextStagingPage: false,
           descriptors: const [
-            PageDescriptor(
+            PackedPage(
               pageIndex: 0,
               startOffset: 0,
               endOffset: 99,
+              slices: [],
               isLastPage: false,
-              firstParagraphIndex: 0,
-              lastParagraphIndex: 0,
             ),
-            PageDescriptor(
+            PackedPage(
               pageIndex: 1,
               startOffset: 100,
               endOffset: 199,
+              slices: [],
               isLastPage: false,
-              firstParagraphIndex: 1,
-              lastParagraphIndex: 1,
             ),
-            PageDescriptor(
+            PackedPage(
               pageIndex: 2,
               startOffset: 200,
               endOffset: 299,
+              slices: [],
               isLastPage: true,
-              firstParagraphIndex: 2,
-              lastParagraphIndex: 2,
             ),
           ],
           onLogicalPageChanged: (_) {},

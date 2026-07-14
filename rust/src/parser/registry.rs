@@ -1,3 +1,12 @@
+// ============================================================
+// 文件作用：Parser registry — Format-to-parser mapping via free functions。
+//
+// 公有类型/函数：
+//   - parser_for_format() — 根据 BookFormat 返回对应的 Parser
+//   - format_from_extension() — 根据文件扩展名返回 BookFormat
+//   - parser_for_file() — 根据文件路径返回对应的 Parser
+// ============================================================
+
 //! Parser registry
 //! Format-to-parser mapping via free functions
 

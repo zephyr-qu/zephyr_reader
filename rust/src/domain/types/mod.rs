@@ -1,26 +1,21 @@
-//! 领域类型模块 (Domain Types)
-//!
-//! 按领域拆分为多个子模块：
-//! - `typeset`: 排版配置
-//! - `rich_text`: 富文本结构
-//! - `content_ir`: Phase 2 章节 IR（ContentBlock）
-//! - `pagination`: 分页内容
-//! - `metadata`: 元数据（EPUB/解析结果）
+// ============================================================
+// 文件作用：领域类型模块声明和统一重新导出
+//
+// 公有模块：
+//   - content_ir — 章节中间表示（ContentBlock 流）
+//   - pagination — 兼容性分页类型（SearchResult / IndexStats）
+//   - plain_projection — IR 到 plain text 的投影
+//   - rich_text — 富文本结构（段落、样式段、链接）
+// ============================================================
 
 // 子模块声明
-pub mod block_pagination;
 pub mod content_ir;
-pub mod metadata;
 pub mod pagination;
 pub mod plain_projection;
 pub mod rich_text;
-pub mod typeset;
 
 // 统一导出所有公共类型
-pub use block_pagination::*;
 pub use content_ir::*;
-pub use metadata::*;
 pub use pagination::*;
 pub use plain_projection::*;
 pub use rich_text::*;
-pub use typeset::*;

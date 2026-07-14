@@ -1,4 +1,4 @@
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 import 'package:zephyr_reader/features/reader/domain/model/page_info.dart';
 
 /// 无状态分页引擎。
@@ -44,7 +44,7 @@ class PaginationEngine {
   /// ADR-001：block 模式 plain 含 `\uFFFC`，上界以 descriptor `endOffset` 为准。
   static int chapterCharOffsetMax({
     required ChapterPaginationMode sessionMode,
-    required List<PageDescriptor>? descriptors,
+    required List<PackedPage>? descriptors,
     required String phase1PlainContent,
   }) {
     if (sessionMode == ChapterPaginationMode.contentBlocks &&
@@ -55,9 +55,9 @@ class PaginationEngine {
     return phase1PlainContent.length;
   }
 
-  /// 二分查找字符偏移所在的页码（PageDescriptor 列表）。
+  /// 二分查找字符偏移所在的页码（PackedPage 列表）。
   static int resolvePageIndexForOffset(
-    List<PageDescriptor> descriptors,
+    List<PackedPage> descriptors,
     int charOffset,
   ) => _resolvePageIndex(
     descriptors,

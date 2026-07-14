@@ -1,5 +1,5 @@
 import 'package:zephyr_reader/features/reader/domain/config/reader_typography_defaults.dart';
-import 'package:zephyr_reader/src/rust/domain/types/typeset.dart';
+import 'package:zephyr_reader/features/reader/domain/config/language_type.dart';
 
 /// 分页排版参数聚合体。
 ///

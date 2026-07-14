@@ -2,8 +2,15 @@ use crate::domain::AppError;
 use crate::parser::registry::parser_for_file;
 use crate::storage::repos::{BookRepository, ChapterRepository};
 use crate::storage::storage_pool;
-use crate::utils::security::validate_file_path;
+use crate::domain::security::validate_file_path;
 use flutter_rust_bridge::frb;
+
+// ============================================================
+// 文件作用：书籍解析入口 — 验证路径、选择解析器、保存元数据。
+//
+// 公有函数：
+//   - parse_book() — 解析书籍文件并保存到数据库
+// ============================================================
 
 const MAX_FILE_SIZE: u64 = 500 * 1024 * 1024;
 

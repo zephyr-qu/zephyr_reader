@@ -1,11 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show ValueNotifier;
 import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.dart';
 import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
-import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 
@@ -74,20 +73,14 @@ abstract class ReaderRepositoryInterface {
 
   // ==================== 缓存和页面内容 ====================
 
-  /// 当前章节的富文本内容（EPUB）。
-  TextSpan? get currentRichContent;
-
-  /// 当前章节的富文本段落（EPUB）。
-  List<RichParagraph>? get currentRichParagraphs;
-
-  /// P4-1：当前章 IR（scroll）。
+  /// 当前章 IR（scroll）。
   ChapterContentIr? get currentChapterIr;
 
   /// 当前章书籍文件路径。
   String? get currentChapterFilePath;
 
-  /// 页面描述符列表（轻量级）。
-  List<PageDescriptor>? get descriptors;
+  /// 页面列表（Flutter 装箱产出）。
+  List<PackedPage>? get descriptors;
 
   /// 预加载生成计数器。
   ValueNotifier<int> get preloadGeneration;
@@ -98,10 +91,10 @@ abstract class ReaderRepositoryInterface {
   /// 确保指定页面及其周围页面的内容已缓存。
   void ensurePageWindow(int centerPage);
 
-  /// 章级 charOffset → pageIndex（session 可用时走 Rust 精确解析）。
+  /// 章级 charOffset → pageIndex（优先 session，回退 descriptor 二分）。
   int? resolvePageIndexForCharOffset(int charOffset);
 
-  /// 释放 Rust 分页会话并清空本地页缓存。
+  /// 释放分页会话并清空本地页缓存。
   void disposePagination();
 
   /// 当前分页会话的下一章预加载 staging。
@@ -150,7 +143,7 @@ abstract class ReaderRepositoryInterface {
     BigInt? maxChars,
   });
 
-  /// 尝试从 Rust STREAMER_CACHE adopt 现有 session（零重 paginate）。
+  /// 尝试从分页缓存 adopt 现有 session（零重 paginate）。
   /// 未命中时退化到 [beginPaginate]（full createPaginationSession）。
   Future<({int totalPages, bool isPartial})> beginPaginateFromCache({
     required String bookId,

@@ -1,3 +1,17 @@
+// ============================================================
+// 文件作用：阅读统计仓储，管理每日阅读统计和全局统计
+//
+// 公有类型/函数：
+//   - StatsRepository — 阅读统计仓储结构体
+//   - find_by_today() / find_by_range() / find_by_days() — 按日查询
+//   - find_by_global() — 全局统计汇总
+//   - update_by_daily() — 更新每日统计
+//   - find_by_days_with_fill() — 最近 N 天含补零
+//
+// 私有函数：
+//   - calculate_consecutive_reading_days() — 连续阅读天数
+// ============================================================
+
 use std::collections::HashSet;
 
 use crate::domain::AppError;

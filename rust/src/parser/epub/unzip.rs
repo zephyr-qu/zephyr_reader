@@ -1,8 +1,29 @@
+// ============================================================
+// 文件作用：EPUB 文件解压与读取，使用 epub crate 读取 EPUB 文件结构。
+//
+// 公有类型/函数：
+//   - EpubFile — EPUB 文件句柄（带 LRU 缓存）
+//     - open() — 打开 EPUB 文件
+//     - title() / author() / cover_path() — 元数据访问
+//     - toc() / spine() — 目录/阅读顺序访问
+//     - read_resource() / read_resource_bytes() / read_chapter()
+//     - resources() / raw_metadata()
+//     - publisher() / translator() / identifier()
+//     - read_cover() / find_spine_index_by_toc_href()
+//   - get_epub_metadata() — 获取 EPUB 元数据（快速预览）
+//
+// 私有函数：
+//   - get_metadata_first() / get_translator() — 元数据辅助
+//   - find_resource_by_href_or_path() — 资源查找
+//   - flatten_toc() — 递归展开 NavPoint 树
+// ============================================================
+
 //! EPUB 文件解压与读取
 //! 使用 epub 库读取 EPUB 文件结构
 //! 注意：epub crate 2.x API 与 1.x 不兼容
 
-use crate::domain::{AppError, EpubMetadata};
+use crate::domain::AppError;
+use crate::parser::epub::{EpubMetadata, EpubTocItem};
 use super::asset_registry::normalize_asset_path;
 use epub::doc::{EpubDoc, ResourceItem, SpineItem};
 use lru::LruCache;
@@ -441,7 +462,7 @@ pub fn get_epub_metadata(file_path: &str) -> Result<EpubMetadata, AppError> {
     let toc = epub_file
         .toc()
         .into_iter()
-        .map(|(label, href, level)| crate::domain::EpubTocItem { label, href, level })
+        .map(|(label, href, level)| EpubTocItem { label, href, level })
         .collect();
     let spine = epub_file.spine();
 

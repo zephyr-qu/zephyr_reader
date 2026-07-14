@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/reader/core/data/epub_block_image_cache.dart';
-import 'package:zephyr_reader/src/rust/domain/types/block_pagination.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 
 void main() {
   group('EpubBlockImageCache', () {
@@ -85,12 +85,10 @@ void main() {
           filePath: '/book.epub',
           maxWidthPx: 400,
           blocks: const [
-            PageBlockSlice.image(
-              PageImageBlockSlice(
-                blockIndex: 0,
-                assetId: 'img1',
-                layout: ImageBlockLayout.inlineContain,
-              ),
+            PackedBlockSlice.image(
+              blockIndex: 0,
+              assetId: 'img1',
+              imageLayout: ImageBlockLayout.inlineContain,
             ),
           ],
         );

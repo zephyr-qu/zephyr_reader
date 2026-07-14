@@ -1,3 +1,14 @@
+// ============================================================
+// 文件作用：分类仓储，管理书籍分类的增删改查
+//
+// 公有类型/函数：
+//   - CategoryRepository — 分类仓储结构体
+//   - list() / find_by_id() — 查询分类
+//   - save() / delete_by_id() / reorder() — 写入与排序
+//   - assign_by_book() / remove_by_book() / set_by_book() — 书籍分类关联
+//   - list_by_book() / list_books_by_category() — 按分类查询
+// ============================================================
+
 use crate::domain::AppError;
 use sqlx::SqlitePool;
 

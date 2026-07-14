@@ -11,6 +11,18 @@ use crate::storage::repos::SessionRepository;
 
 pub use crate::storage::models::ReadingSession;
 
+// ============================================================
+// 文件作用：阅读会话 API — 会话记录、查询、删除。
+//
+// 公有函数：
+//   - list_sessions_by_book() — 书籍的会话列表
+//   - list_sessions_by_date_range() — 按日期范围查询
+//   - list_sessions_by_recent() — 最近会话列表
+//   - create_session() — 创建阅读会话
+//   - upsert_session() — 新增或更新会话
+//   - clear_sessions_by_book() — 清除书籍所有会话
+// ============================================================
+
 /// 获取书籍的阅读会话列表
 ///
 /// # 参数

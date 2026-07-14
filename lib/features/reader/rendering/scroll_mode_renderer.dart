@@ -94,7 +94,7 @@ class ScrollModeRenderer extends HookWidget {
     }
 
     // Fallback: plain text content（IR 未命中时）
-    // IR 未命中——此路径在 Phase 4 后不应触发，出现则表示上游 IR 加载失败。
+    // IR 未命中——此路径不应被触发，出现则表示上游 IR 加载失败。
     debugPrint(
       '[ScrollModeRenderer] WARNING: IR unavailable, falling back to plain text. '
       'hasSegments=$hasSegments chapterIr=${chapterIr != null} blocks=${chapterIr?.blocks.length ?? 0}',

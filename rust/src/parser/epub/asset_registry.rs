@@ -1,3 +1,19 @@
+// ============================================================
+// 文件作用：EPUB 图片 asset 注册表（M1.4），将 IR ImageBlock::asset_id
+//           解析为 manifest 资源 id，并提供包内路径查询。
+//
+// 公有类型/函数：
+//   - EpubAssetEntry — 注册表条目（asset_id + internal_path）
+//   - EpubAssetRegistry — EPUB manifest 资源注册表
+//     - from_manifest() / from_epub() — 构建注册表
+//     - len() / get() / internal_path() / resolve()
+//     - read_bytes() — 读取 asset 原始字节
+//   - canonicalize_chapter_image_assets() — 规范化章 IR 中图片 asset_id
+//   - normalize_asset_id() — 规范化 img src
+//   - resolve_relative_href() — 解析相对 href
+//   - normalize_asset_path() — 折叠路径分量
+// ============================================================
+
 //! EPUB 图片 asset 注册表（M1.4）
 //!
 //! 将 IR [`ImageBlock::asset_id`] 解析为 manifest 资源 id，并提供包内路径查询。

@@ -1,12 +1,30 @@
+// ============================================================
+// 文件作用：EPUB 解析模块，负责 EPUB 文件的解压、结构解析、文本提取、按需内容提供。
+//
+// 公有类型/函数：
+//   - EpubParser — EPUB 文件解析器（FRB opaque struct）
+//   - EpubParser::new() / parse() / extract_metadata()
+//   - EpubAssetRegistry — 图片 asset 注册表
+//   - get_chapter_content_ir() — 获取 EPUB 章节 IR
+//   - html_to_chapter_ir() — HTML 片段 → 章 IR
+//   - parse_epub() — EPUB 文件解析入口
+//
+// 子模块：
+//   - asset_registry, content_ir, metadata, parse, processed_image, provider, toc, unzip
+// ============================================================
+
 //! EPUB 解析模块
 //! 负责 EPUB 文件的解压、结构解析、文本提取、按需内容提供
 
 pub mod asset_registry;
 pub mod content_ir;
+pub mod css;
 pub mod parse;
+pub mod rich_text;
 pub mod processed_image;
 pub mod provider;
 pub mod toc;
+pub mod metadata;
 pub mod unzip;
 
 pub use asset_registry::{
@@ -14,13 +32,14 @@ pub use asset_registry::{
     resolve_relative_href,
 };
 pub use content_ir::{get_chapter_content_ir, html_to_chapter_ir};
+pub use metadata::{EpubMetadata, EpubTocItem, ParseResult};
 
 use std::path::Path;
 
 use flutter_rust_bridge::frb;
 
-use crate::domain::{AppError, ParseResult};
-use crate::parser::book_parser::BookMetadata;
+use crate::domain::AppError;
+use crate::parser::BookMetadata;
 
 pub use parse::parse_epub;
 

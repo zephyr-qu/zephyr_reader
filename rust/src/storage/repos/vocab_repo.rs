@@ -1,3 +1,15 @@
+// ============================================================
+// 文件作用：生词仓储，管理生词本的增删改查
+//
+// 公有类型/函数：
+//   - VocabRepository — 生词仓储结构体
+//   - save() — 添加生词条目
+//   - find_by_status() / search() — 查询与搜索
+//   - update_by_status() — 更新生词状态
+//   - delete_by_id() — 删除生词
+//   - count() / count_by_book() — 统计
+// ============================================================
+
 use crate::domain::AppError;
 use chrono::Utc;
 use sqlx::{QueryBuilder, SqlitePool};

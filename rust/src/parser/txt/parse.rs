@@ -1,12 +1,26 @@
+// ============================================================
+// 文件作用：TXT 文件解析，负责章节提取、内容分段、元数据提取。
+//
+// 公有类型/函数：
+//   - parse_txt() — 解析 TXT 文件，返回 ParseResult
+//
+// 私有函数：
+//   - extract_metadata_from_content() — 从内容头部提取元数据
+//   - extract_kv() — 从一行提取键值对
+//   - extract_chapters() — 从内容中提取章节
+//   - parse_txt_inner() — 内部解析逻辑
+// ============================================================
+
 //! TXT 文件解析
 //! 负责章节提取、内容分段
 
 use std::path::Path;
 
 use super::decode;
-use crate::domain::{AppError, ParseResult};
+use crate::domain::AppError;
+use crate::parser::epub::ParseResult;
 use crate::storage::models::{Book, BookFormat, Chapter};
-use crate::text::chapter_detect;
+use crate::parser::txt::chapter_detect;
 
 /// 解析 TXT 文件
 pub fn parse_txt(file_path: String) -> Result<ParseResult, AppError> {

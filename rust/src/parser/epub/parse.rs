@@ -1,3 +1,13 @@
+// ============================================================
+// 文件作用：EPUB 文件解析 — 整合 EPUB 解压、元数据提取、章节内容读取。
+//
+// 公有类型/函数：
+//   - parse_epub() — 解析 EPUB 文件，返回 ParseResult
+//
+// 私有函数：
+//   - estimate_total_chars() — 使用首/中/尾三章采样估算总字符数
+// ============================================================
+
 //! EPUB 文件解析
 //! 整合 EPUB 解压、元数据提取、章节内容读取
 use std::path::Path;
@@ -6,14 +16,9 @@ use uuid::Uuid;
 
 use super::toc::extract_chapters_from_epub;
 use super::unzip::EpubFile;
-use super::provider::EpubContentProvider;
-use crate::parser::provider::ChapterContentProvider;
-use crate::domain::{
-    AppError, ParseResult, RichChapterContent, RichParagraph, TypesetConfig,
-};
+use crate::domain::AppError;
+use crate::parser::epub::ParseResult;
 use crate::storage::models::{Book, BookFormat, Chapter};
-
-use crate::text::rich_text;
 /// EPUB 分页：每页最小行数
 /// 防止每页行数过少导致显示异常
 /// EPUB 分页：每页最小字符数
@@ -146,152 +151,7 @@ fn estimate_total_chars(epub_file: &mut EpubFile, chapters: &[Chapter]) -> i64 {
 }
 
 
-/// 分页处理
-// ==================== 富文本支持 ====================
-/// 获取章节富文本内容（保留 HTML 样式）
-///
-/// 解析 EPUB 章节的 HTML 内容，提取为结构化的富文本段落。
-///
-/// # 参数
-///
-/// * `file_path` - EPUB 文件路径
-/// * `chapter_id` - 章节 ID（从 0 开始）
-///
-/// # 返回值
-///
-/// * `Ok(RichChapterContent)` - 富文本章节内容
-/// * `Err(AppError)` - 解析失败
-pub fn get_chapter_content_rich(
-    file_path: &str,
-    start_index: i32,
-    end_index: i32,
-) -> Result<RichChapterContent, AppError> {
-    tracing::info!(
-        "[get_chapter_content_rich] start: file_path={}, spine={}..{}",
-        file_path,
-        start_index,
-        end_index
-    );
 
-    let provider = EpubContentProvider::open_from_bounds(file_path, start_index, end_index)?;
-    let html_content = provider.read_html_range(0, u64::MAX)
-        .ok_or_else(|| AppError::EpubParseError { reason: "rich HTML extraction not supported".into() })??;
-    tracing::info!(
-        "[get_chapter_content_rich] HTML content length: {} bytes",
-        html_content.len()
-    );
-
-    // ── 内容过大保护 ─────────────────────────────────────
-    // 单章 HTML > 100KB 时跳过 html5ever 解析（耗时可达 20+ 秒），
-    // 直接回退到纯文本路径。此类章节通常因 HTML 文件过大导致，
-    // 富文本排版收益有限，不值得等待。
-    const MAX_HTML_SIZE: usize = 100 * 1024;
-    if html_content.len() > MAX_HTML_SIZE {
-        tracing::warn!(
-            "[get_chapter_content_rich] HTML too large ({} bytes), \
-             skipping rich text parsing, fallback to plain text",
-            html_content.len(),
-        );
-        return Ok(RichChapterContent {
-            chapter_id: format!("{start_index}..{end_index}"),
-            paragraphs: Vec::new(),
-            total_characters: 0,
-        });
-    }
-    tracing::debug!(
-        "[get_chapter_content_rich] HTML first 200 chars: {:?}",
-        &html_content.chars().take(200).collect::<String>()
-    );
-
-    // 使用 html5ever 解析 HTML 为富文本
-    let mut paragraphs = rich_text::parse_html_to_rich_text(&html_content)?;
-    tracing::info!(
-        "[get_chapter_content_rich] parse result: {} paragraphs",
-        paragraphs.len()
-    );
-
-    // 解析图片：遍历段落，加载图片数据
-    for p in &mut paragraphs {
-        if p.is_image
-            && let Some(src) = &p.image_src {
-                if let Some(bytes) = provider.read_resource_bytes(src) {
-                    p.image_data = bytes;
-                    tracing::info!(
-                        "[get_chapter_content_rich] loading image: src={}, size={} bytes",
-                        src,
-                        p.image_data.len()
-                    );
-                } else {
-                    tracing::warn!(
-                        "[get_chapter_content_rich] unable to load image: src={}",
-                        src
-                    );
-                }
-            }
-    }
-    if let Some(first) = paragraphs.first() {
-        tracing::info!(
-            "[get_chapter_content_rich] first paragraph: spans={}, indent={}, is_heading={}, text={:?}",
-            first.spans.len(),
-            first.indent,
-            first.is_heading,
-            &first.full_text().chars().take(80).collect::<String>()
-        );
-    }
-
-    // 计算总字符数
-    let total_characters = paragraphs
-        .iter()
-        .map(|p| p.full_text().chars().count() as i64)
-        .sum();
-    tracing::info!(
-        "[get_chapter_content_rich] done: total_characters={}",
-        total_characters
-    );
-
-    Ok(RichChapterContent {
-        chapter_id: format!("{start_index}..{end_index}"),
-        paragraphs,
-        total_characters,
-    })
-}
-
-/// 获取章节富文本内容（带排版配置）
-///
-/// 在保留 HTML 样式的基础上，应用排版配置（首行缩进、标点优化等）。
-///
-/// # 参数
-///
-/// * `file_path` - EPUB 文件路径
-/// * `chapter_id` - 章节 ID
-/// * `config` - 排版配置
-///
-/// # 返回值
-///
-/// * `Ok(Vec<RichParagraph>)` - 排版后的富文本段落
-/// * `Err(AppError)` - 解析失败
-pub fn get_chapter_content_rich_with_typeset(
-    file_path: &str,
-    start_index: i32,
-    end_index: i32,
-    config: &TypesetConfig,
-) -> Result<Vec<RichParagraph>, AppError> {
-    let rich_content = get_chapter_content_rich(file_path, start_index, end_index)?;
-
-    // 对富文本段落应用排版优化
-    let mut optimized_paragraphs = Vec::with_capacity(rich_content.paragraphs.len());
-
-    for paragraph in rich_content.paragraphs {
-        // 应用首行缩进
-        let mut optimized = paragraph.clone();
-        if !paragraph.is_heading && config.first_line_indent > 0 {
-            optimized.indent = config.first_line_indent;
-        }
-        optimized_paragraphs.push(optimized);
-    }
-
-    Ok(optimized_paragraphs)
-}
 
 #[cfg(test)]
 mod tests {

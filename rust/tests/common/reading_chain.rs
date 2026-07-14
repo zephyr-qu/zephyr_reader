@@ -8,26 +8,6 @@ use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
 use rust_lib_zephyr_reader::api::data::init::init_storage;
-use rust_lib_zephyr_reader::domain::{LanguageType, PageDescriptor, TypesetConfig};
-
-// ---------------------------------------------------------------------------
-// Config
-// ---------------------------------------------------------------------------
-
-/// Fixed `TypesetConfig` matching the strategy used by Dart
-/// `core_pagination_test.dart`.  A fixed small viewport avoids page-boundary
-/// drift that can happen with `Default`.
-pub fn test_typeset_config() -> TypesetConfig {
-    TypesetConfig {
-        page_width: 800,
-        page_height: 600,
-        font_size: 16,
-        line_spacing: 1.5,
-        language: LanguageType::Mixed,
-        ..Default::default()
-    }
-    .validate_and_fix()
-}
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -148,26 +128,4 @@ pub async fn setup_parsed_image_epub() -> Option<(TempDir, String)> {
 // ---------------------------------------------------------------------------
 // Shared assertions  (P0 regression checks)
 // ---------------------------------------------------------------------------
-
-/// Every page's `start_offset ≤ end_offset` and offsets are non-decreasing.
-pub fn assert_monotonic_descriptors(descriptors: &[PageDescriptor]) {
-    for (i, desc) in descriptors.iter().enumerate() {
-        assert!(
-            desc.start_offset <= desc.end_offset,
-            "page {}: start_offset {} > end_offset {}",
-            i,
-            desc.start_offset,
-            desc.end_offset,
-        );
-        if i > 0 {
-            assert!(
-                desc.start_offset >= descriptors[i - 1].end_offset,
-                "page {} start_offset {} < previous end_offset {}",
-                i,
-                desc.start_offset,
-                descriptors[i - 1].end_offset,
-            );
-        }
-    }
-}
 

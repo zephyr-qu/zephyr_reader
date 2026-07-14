@@ -1,99 +1,18 @@
-/// 富文本 → Flutter Widget 渲染树转换器
+/// 行内 RichTextSpan → Flutter TextSpan 转换器。
 ///
-/// 将 Rust 侧解析的 [RichParagraph]/[RichTextSpan]（EPUB/MD 排版结果）
-/// 转换为 Flutter [TextSpan] 树，同时提取纯文本内容。
-/// 纯函数，无状态，无 FRB 依赖，可单独做纯 Dart 单元测试。
+/// 分页和 scroll 共用此转换器处理 `RichTextSpan[]` → `TextSpan` 树。
+/// RichParagraph 管线已随 Phase 8 移除，scroll 模式走 IR 路径。
 library;
 
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
 
-/// 富文本转换器
-///
-/// 用法：
-/// ```dart
-/// final converter = RichTextConverter();
-/// final (span, plain) = converter.toTextSpan(paragraphs);
-/// ```
-
-/// 从 [RichTextSpan] 提取纯文本内容的辅助函数。
+/// 从 [RichTextSpan] 提取纯文本。
 String _spanText(RichTextSpan span) =>
     span.when(styled: (_, data) => data.text, link: (data, _) => data.text);
 
-/// 根据 [RichParagraph.textIndentEm] 生成首行缩进字符。
-///
-/// 使用 CJK 全角空格 `\u3000`（≈1em），取 ceil 保证非零值至少 1 个空格。
-/// 返回空字符串当 `textIndentEm` 为 `null` 或 ≤ 0。
-String _resolveIndentPrefix(RichParagraph p) {
-  final em = p.textIndentEm;
-  if (em == null || em <= 0) return '';
-  // 1em ≈ 1 CJK fullwidth space; round up to at least 1
-  final count = em.ceil().clamp(1, 8); // cap at 8 spaces to avoid abuse
-  return String.fromCharCodes(List.filled(count, 0x3000));
-}
-
 class RichTextConverter {
   const RichTextConverter();
-
-  /// 将 [RichParagraph] 列表转换为 [TextSpan] 树（保留样式），
-  /// 同时返回拼接后的纯文本。
-  ///
-  /// 跳过图片段落（`p.isImage == true`）。
-  /// 段落之间插入 `\n\n` 分隔。
-  (TextSpan, String) toTextSpan(
-    List<RichParagraph> paragraphs, {
-    double baseFontSize = 16,
-    double baseLineHeight = 1.6,
-  }) {
-    final children = <InlineSpan>[];
-    final plainParts = <String>[];
-    for (int i = 0; i < paragraphs.length; i++) {
-      final p = paragraphs[i];
-      if (p.isImage) continue;
-
-      final indentPrefix = _resolveIndentPrefix(p);
-      final paraText = p.spans.map(_spanText).join();
-      if (paraText.isEmpty && indentPrefix.isEmpty) continue;
-
-      final blockStyle = paragraphBlockStyle(
-        p,
-        baseFontSize: baseFontSize,
-        baseLineHeight: baseLineHeight,
-      );
-
-      // Build per-paragraph InlineSpan list, injecting indent into the first span.
-      final spanChildren = <InlineSpan>[];
-      if (p.spans.isNotEmpty) {
-        spanChildren.add(
-          TextSpan(
-            text: indentPrefix + _spanText(p.spans.first),
-            style: spanToStyle(p.spans.first),
-          ),
-        );
-        for (int j = 1; j < p.spans.length; j++) {
-          spanChildren.add(
-            TextSpan(
-              text: _spanText(p.spans[j]),
-              style: spanToStyle(p.spans[j]),
-            ),
-          );
-        }
-      }
-
-      if (blockStyle != const TextStyle()) {
-        children.add(TextSpan(style: blockStyle, children: spanChildren));
-      } else {
-        children.addAll(spanChildren);
-      }
-      plainParts.add(indentPrefix + paraText);
-
-      if (i < paragraphs.length - 1) {
-        children.add(const TextSpan(text: '\n\n'));
-      }
-    }
-    final plain = plainParts.where((t) => t.isNotEmpty).join('\n\n');
-    return (TextSpan(children: children), plain);
-  }
 
   /// 将单个 [RichTextSpan] 映射为 [TextStyle]。
   TextStyle spanToStyle(RichTextSpan span) {
@@ -129,28 +48,5 @@ class RichTextConverter {
           )
           .toList(),
     );
-  }
-
-  /// 生成段落级样式（CSS block 属性 + 标题回退）。
-  TextStyle paragraphBlockStyle(
-    RichParagraph p, {
-    required double baseFontSize,
-    required double baseLineHeight,
-  }) {
-    TextStyle style = TextStyle(fontSize: baseFontSize, height: baseLineHeight);
-    if (p.isHeading && p.headingLevel > 0) {
-      final headingFs = switch (p.headingLevel) {
-        1 => 24.0,
-        2 => 20.0,
-        3 => 18.0,
-        4 => 16.0,
-        _ => 14.0,
-      };
-      if (style.fontSize == null || style.fontSize == baseFontSize) {
-        style = style.copyWith(fontSize: headingFs);
-      }
-      style = style.copyWith(fontWeight: FontWeight.bold);
-    }
-    return style;
   }
 }

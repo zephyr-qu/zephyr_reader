@@ -36,8 +36,6 @@ class ScrollSegmentFactory {
       chapterIndex: chapterIndex,
       paragraphs: paragraphs,
       paragraphCharOffsets: offsets,
-      richParagraphs: payload.richParagraphs,
-      richRootSpan: payload.richRootSpan,
       chapterFilePath: payload.chapterFilePath,
     );
   }

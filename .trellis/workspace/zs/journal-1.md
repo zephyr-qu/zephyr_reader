@@ -1,23 +1,16 @@
-# Journal - zs (Part 1)
+# zs 工作日志
 
-> AI development session journal
-> Started: 2026-07-02
+## 2026-07-13
 
----
+### Phase 7（暂停）
 
-## 2026-07-05 — P0: 分页估算不准确（pageHeight 未扣 vPad）
+- 完成了：去 spike 命名、ADR/Phase 注释清理、Rust 死代码整肃、PackedPage↔PageDescriptor 合并、typeset_calibrator 死函数清理、api/types.rs 删除、compute_config_hash 删除、core.rs→reader.rs 重命名
+- 未完成（P8 合并后继续）：`buildTypesetConfig` 的 `calibration` 参数残留、`TODO(p4-5)` 双语 auto-fetch 等零星清理
+- 当前分支：phase/7-cleanup-redundant-code（已提交）
+- 待 P8 完成后再合并到 master
 
-**根因确认：**
+### Phase 8（开始于 2026-07-13）
 
-- `reader_shell.dart:108` 设置 `pageHeight = screenHeight - systemPadding`（完整可用高度）
-- `buildTypesetConfig` 不经扣减直接 `pageHeight * dpr` 传入 Rust
-- Rust `BlockPaginator` 按 `page_height_px` 分配行 → 每页多装 ~40dp/lineHeight 行
-- Dart 渲染时 `bodyHeight = constraints.maxHeight - 2*20px`（vPad=20）
-- `PaginatedPageViewport` 有 DEBUG 遗留的 `SingleChildScrollView` → 溢出内容可滑动
-
-**修复方向：**
-
-1. `typeset_calibrator.dart:352` pageHeight 扣减 `2 * padding`
-2. `paginated_page_viewport.dart` 移除 `SingleChildScrollView`
-
-**关联 task:** `07-05-fix-page-estimation-overflow`（child of fix-chapter-layout-jitter）
+- 滚动模式 Flutter 化：用 IR 统一 scroll 和分页渲染路径
+- 目标：删除 `get_epub_chapter_rich_content`、`TypesetConfig` FRB、`RichParagraph` 全链路
+- 分支：phase/8-scroll-flutter-migration

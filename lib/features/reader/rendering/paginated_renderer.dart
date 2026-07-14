@@ -6,8 +6,8 @@ import 'package:zephyr_reader/features/reader/core/data/reader_render_data_sourc
 import 'package:zephyr_reader/features/reader/rendering/block_page_content.dart';
 import 'package:zephyr_reader/features/reader/rendering/highlight_painter.dart';
 import 'package:zephyr_reader/src/rust/storage/models.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
-import 'package:zephyr_reader/features/reader/data/typeset_calibrator.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
+
 import 'package:zephyr_reader/features/reader/rendering/paginated_page_viewport.dart';
 import 'reader_render_config.dart';
 import 'find_render_box.dart';
@@ -38,7 +38,7 @@ class PaginatedModeRenderer extends StatelessWidget {
   final bool hasPreviousChapter;
   final VoidCallback? onReachEnd;
   final VoidCallback? onReachStart;
-  final CalibrationData? layoutCalibration;
+
   const PaginatedModeRenderer({
     super.key,
     required this.config,
@@ -60,7 +60,6 @@ class PaginatedModeRenderer extends StatelessWidget {
     this.hasPreviousChapter = false,
     this.onReachEnd,
     this.onReachStart,
-    this.layoutCalibration,
   });
 
   /// Fallback: 无分页数据时显示错误提示，而非静默近似分页。
@@ -103,7 +102,7 @@ class PaginatedModeRenderer extends StatelessWidget {
     Logging.info(
       '[Render] pageTurnShell descriptors=${descriptors.length} logicalIdx=${pageIndex.clamp(0, descriptors.length - 1)}',
     );
-    // 打印每页内容量（从 descriptors 反推，不依赖 Rust 日志）
+    // 打印每页内容量（从 descriptors 反推）
     for (var i = 0; i < descriptors.length && i < 8; i++) {
       final d = descriptors[i];
       Logging.info(
@@ -135,7 +134,7 @@ class PaginatedModeRenderer extends StatelessWidget {
   Widget _buildPageTurnPhysicalPage(
     BuildContext context,
     int physicalIdx,
-    List<PageDescriptor> descriptors,
+    List<PackedPage> descriptors,
   ) {
     final virtualPrev = paginationVirtualPrevOffset(hasPreviousChapter);
     if (hasPreviousChapter && physicalIdx == 0) {
@@ -155,7 +154,7 @@ class PaginatedModeRenderer extends StatelessWidget {
   /// 构建页面内容组件（描述符模式）。
   /// 如果内容未缓存（null），显示占位符。
   ///
-  /// 分页模式始终使用 Rust [PageStreamer] 按行切分的 plain text。
+  /// 分页模式使用 Flutter 分页产出的 plain text 文本流。
   /// 不使用 rich 段落索引渲染：段落常跨多页，按 RichParagraph 整段
   /// 切片会在相邻页重复显示同一段落。
   Widget _buildPageContent(
@@ -173,7 +172,6 @@ class PaginatedModeRenderer extends StatelessWidget {
       onHighlightTap: onHighlightTap,
       onSelectionChanged: onSelectionChanged,
       onSelectionGlobalPosition: onSelectionGlobalPosition,
-      layoutCalibration: layoutCalibration,
     );
   }
 
@@ -225,7 +223,6 @@ class PaginatedModeRenderer extends StatelessWidget {
             onSelectionChanged: onSelectionChanged,
             onSelectionGlobalPosition: onSelectionGlobalPosition,
             maxContentWidth: constraints.maxWidth,
-            layoutCalibration: layoutCalibration,
           );
         },
       );
@@ -234,7 +231,6 @@ class PaginatedModeRenderer extends StatelessWidget {
       context,
       staging.firstPageContent,
       startOffset,
-      layoutCalibration,
     );
   }
 
@@ -243,7 +239,6 @@ class PaginatedModeRenderer extends StatelessWidget {
     BuildContext context,
     String pageContent,
     int startOffset,
-    CalibrationData? layoutCalibration,
   ) {
     return buildStagingPageContent(
       context: context,
@@ -254,7 +249,6 @@ class PaginatedModeRenderer extends StatelessWidget {
       onHighlightTap: onHighlightTap,
       onSelectionChanged: onSelectionChanged,
       onSelectionGlobalPosition: onSelectionGlobalPosition,
-      layoutCalibration: layoutCalibration,
     );
   }
 
@@ -289,7 +283,7 @@ class PaginatedModeRenderer extends StatelessWidget {
     );
   }
 
-  void _handlePageChanged(List<PageDescriptor> descriptors, int index) {
+  void _handlePageChanged(List<PackedPage> descriptors, int index) {
     // _handlePageChanged 每翻页触发一次
     // 向后虚拟页 → onReachStart
     if (index == 0 && hasPreviousChapter) {
@@ -315,7 +309,7 @@ class PaginatedModeRenderer extends StatelessWidget {
     return staging != null && staging.chapterIndex == chapterId + 1;
   }
 
-  int _extendedPageCount(List<PageDescriptor> descriptors) {
+  int _extendedPageCount(List<PackedPage> descriptors) {
     // Prev virtual page always included (hasPreviousChapter flag is static);
     // hold frame in _buildPreviousChapterPage covers the staging-miss visual.
     final prevOffset = hasPreviousChapter ? 1 : 0;
@@ -415,7 +409,6 @@ Widget buildStagingPageContent({
   required void Function(Note)? onHighlightTap,
   required void Function(String text, int start, int end)? onSelectionChanged,
   required void Function(Offset?)? onSelectionGlobalPosition,
-  CalibrationData? layoutCalibration,
 }) {
   final textStyle = config.buildTextStyle();
   final strutStyle = config.buildStrutStyle();
@@ -492,7 +485,6 @@ Widget buildSinglePageContent({
   required void Function(Note)? onHighlightTap,
   required void Function(String text, int start, int end)? onSelectionChanged,
   required void Function(Offset?)? onSelectionGlobalPosition,
-  CalibrationData? layoutCalibration,
 }) {
   if (dataSource.sessionMode == ChapterPaginationMode.contentBlocks) {
     final blocks = dataSource.pageBlocks(pageIndex);
@@ -522,13 +514,12 @@ Widget buildSinglePageContent({
           onSelectionChanged: onSelectionChanged,
           onSelectionGlobalPosition: onSelectionGlobalPosition,
           maxContentWidth: constraints.maxWidth,
-          layoutCalibration: layoutCalibration,
         );
       },
     );
   }
 
-  // Plain 路径：Rust PageStreamer 行切 plain text。
+  // Plain 路径：Flutter 分页 plain text 文本流。
   final pageContent = dataSource.pageContent(pageIndex);
   if (pageContent == null) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
