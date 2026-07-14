@@ -4,8 +4,8 @@
 //
 // 公有类型/函数：
 //   - load_chapter_content_ir() — 加载整章 IR
-//   - try_get_scroll_ir_cached() (私有) — sled IR 缓存读取
-//   - try_save_scroll_ir_cached() (私有) — sled IR 缓存写入
+//   - try_get_ir_cached() (私有) — sled IR 缓存读取
+//   - try_save_ir_cached() (私有) — sled IR 缓存写入
 // ============================================================
 
 //! 章节 IR 加载（EPUB spine / TXT 字节界）。
@@ -23,13 +23,13 @@ use super::chapter_access::{format_from_file_path, get_chapter_bounds};
 /// 分页：FlutterBlockPaginator.paginateAsync(ir) → PackedPage[]
 /// Scroll：buildScrollIrBlockList(ir.blocks) → 连续滚动
 ///
-/// 优先命中 sled `scroll_ir_cache`，miss 时解析并异步写回缓存。
+/// 优先命中 sled `ir_cache`，miss 时解析并异步写回缓存。
 pub async fn load_chapter_content_ir(
     validated_path: &str,
     chapter_index: i32,
 ) -> Result<ChapterContentIr, AppError> {
     // 1. Try sled cache
-    if let Some(cached) = try_get_scroll_ir_cached(validated_path, chapter_index).await
+    if let Some(cached) = try_get_ir_cached(validated_path, chapter_index).await
     {
         return Ok(cached);
     }
@@ -63,22 +63,22 @@ pub async fn load_chapter_content_ir(
     }?;
 
     // 3. Write-back to cache (fire-and-forget; failure is non-fatal)
-    try_save_scroll_ir_cached(validated_path, chapter_index, &ir).await;
+    try_save_ir_cached(validated_path, chapter_index, &ir).await;
 
     Ok(ir)
 }
 
-/// 尝试从 sled 加载 Scroll IR 缓存
-async fn try_get_scroll_ir_cached(
+/// 尝试从 sled 加载 IR 缓存（分页+scroll 共享）。
+async fn try_get_ir_cached(
     validated_path: &str,
     chapter_index: i32,
 ) -> Option<ChapterContentIr> {
     let storage = crate::storage::storage()?;
     let cache_repo = IrCacheRepository::new(storage.kv());
-    match cache_repo.get_scroll_ir_cache(validated_path, chapter_index) {
+    match cache_repo.get_ir_cache(validated_path, chapter_index) {
         Ok(Some(cache)) => {
             tracing::debug!(
-                "scroll_ir_cache HIT: {}#{}",
+                "ir_cache HIT: {}#{}",
                 validated_path,
                 chapter_index,
             );
@@ -86,14 +86,14 @@ async fn try_get_scroll_ir_cached(
         }
         Ok(None) => None,
         Err(e) => {
-            tracing::warn!("scroll_ir_cache read failed: {}", e);
+            tracing::warn!("ir_cache read failed: {}", e);
             None
         }
     }
 }
 
-/// 保存 Scroll IR 到 sled（写入失败不影响阅读）。
-async fn try_save_scroll_ir_cached(
+/// 保存 IR 到 sled（写入失败不影响阅读）。
+async fn try_save_ir_cached(
     validated_path: &str,
     chapter_index: i32,
     ir: &ChapterContentIr,
@@ -103,7 +103,7 @@ async fn try_save_scroll_ir_cached(
     };
     let cache = ScrollIrCache::new(ir.clone());
     let cache_repo = IrCacheRepository::new(storage.kv());
-    if let Err(e) = cache_repo.save_scroll_ir_cache(validated_path, chapter_index, &cache) {
-        tracing::warn!("scroll_ir_cache save failed: {}", e);
+    if let Err(e) = cache_repo.save_ir_cache(validated_path, chapter_index, &cache) {
+        tracing::warn!("ir_cache save failed: {}", e);
     }
 }

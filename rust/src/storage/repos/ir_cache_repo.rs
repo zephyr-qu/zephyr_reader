@@ -25,24 +25,24 @@ impl IrCacheRepository {
         Self { kv }
     }
 
-    /// 保存 Scroll IR 缓存
-    pub fn save_scroll_ir_cache(
+    /// 保存 IR 缓存
+    pub fn save_ir_cache(
         &self,
         file_path: &str,
         chapter_index: i32,
         cache: &ScrollIrCache,
     ) -> Result<(), AppError> {
         self.kv
-            .save_scroll_ir_cache(file_path, chapter_index, cache)
+            .save_ir_cache(file_path, chapter_index, cache)
     }
 
-    /// 获取 Scroll IR 缓存
-    pub fn get_scroll_ir_cache(
+    /// 获取 IR 缓存
+    pub fn get_ir_cache(
         &self,
         file_path: &str,
         chapter_index: i32,
     ) -> Result<Option<ScrollIrCache>, AppError> {
-        self.kv.get_scroll_ir_cache(file_path, chapter_index)
+        self.kv.get_ir_cache(file_path, chapter_index)
     }
 
     /// 使指定书籍的所有 IR 缓存失效
