@@ -1,3 +1,5 @@
+import 'package:zephyr_reader/src/rust/domain/book/models.dart';
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -14,7 +16,7 @@ import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart';
 import 'package:zephyr_reader/features/bookshelf/page/widgets/book_cover.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 
 /// 书架书籍内容网格。
 class BookshelfBookContent extends StatelessWidget {

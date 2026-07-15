@@ -1,5 +1,10 @@
 import 'package:uuid/uuid.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/domain/book/models.dart';
+import 'package:zephyr_reader/src/rust/domain/bookmark/models.dart';
+import 'package:zephyr_reader/src/rust/domain/category/models.dart';
+import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
+import 'package:zephyr_reader/src/rust/domain/note/models.dart';
+import 'package:zephyr_reader/src/rust/domain/vocabulary/models.dart';
 
 // ===== UUID helper =====
 const _uuid = Uuid();

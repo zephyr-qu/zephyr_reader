@@ -16,7 +16,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/features/reader/rendering/ir_text_block_style.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
+import 'package:zephyr_reader/src/rust/pipeline/types.dart';
 
 /// 使用 TextPainter 从单段文本提取行断点（相对 [text] 起点）。
 ///

@@ -1,4 +1,4 @@
-import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
+import 'package:zephyr_reader/src/rust/pipeline/types.dart';
 
 /// 滚动拼接用单章加载结果（不依赖仓库 current* 单例）。
 typedef ScrollChapterPayload = ({

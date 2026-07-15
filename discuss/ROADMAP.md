@@ -146,28 +146,23 @@ Phase 7 代码清理完成后，此阶段各项已自然完成。
 
 ### 与 Phase 7 的分工
 
-以下划归 **Phase 7 清理**（不改架构，只删代码）：
-
-- 死 FRB 函数删除（`get_bilingual_highlight_pairs`、`get_dictionary`、`suggest_mdict`、`get_epub_metadata`）
-- `storage/repos/` 12 个 CRUD 文件合并
-- `PaginationSession` 接口简化（仅一个实现，去掉抽象层）
-- `ChapterPaginationMode.plainText` 死变体删除
-- `LINE_BREAKS_STORE` 行断点缓存评估
-- FRB 生成类型残留清理
-- Spec 文档（`pagination-guidelines.md` 等）刷新
-
-Phase 9 只包含 **需要架构改造** 的任务。
+Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项目原标记为 Phase 7 但属于架构改造而非纯删除，自下而上移至 Phase 9。
 
 ### 任务清单
 
-| # | 项 | 说明 | 难度 |
-| --- | ----- | ------ | ------ |
-| 1 | **IR 结构优化**：`BlockPlainRange`/`ContentBlock` 枚举 → 扁平 Dart 类型 | 消除 Rust→Flutter 转换层 | 中 |
-| 2 | **RichTextSpan / TextBlockStyle 纯 Dart 化** | 消除 FRB 序列化开销 | 中 |
-| 3 | **`api/data/init.rs` 迁出 api 层** | 数据库初始化不属于 FRB 接口 | 中 |
-| 4 | **`api/vocab_marker.rs` DB CRUD 整合** | 迁入 `api/data/vocabulary.rs` | 低 |
-| 5 | **CJK 标点挤压引擎** | UI toggle 当前无效但用户能看到，属于 visible gap。实现后可提升中文排版专业度。方案：IR 预处理阶段对标点序列做紧凑替换（全角→半宽变体），约 1-2 天。**好处大于投入** | 中 |
-| 6 | **`get_chapter` 退化备选移除评估** | IR 可靠时可删除 plain text fallback | 低 |
+| # | 优先级 | 项 | 说明 |
+| --- | ------ | ----- | ------ |
+| 0 | **P0** | **Rust 目录重组** | 按 [`docs/rust-restructure-plan.md`](../docs/rust-restructure-plan.md) 执行：common/infra/library/reader/profile/language 6 层重组，44+ 文件移动，163 处 Dart 导入变更，FRB codegen 重新生成 |
+| 1 | **P1** | **IR 结构优化**：`BlockPlainRange`/`ContentBlock` 枚举 → 扁平 Dart 类型 | 消除 Rust→Flutter 转换层 |
+| 2 | **P1** | **RichTextSpan / TextBlockStyle 纯 Dart 化** | 消除 FRB 序列化开销 |
+| 3 | **P1** | **`PaginationSession` 接口简化** | 仅一个实现，去掉抽象层 |
+| 4 | **P2** | **`api/data/init.rs` 迁出 api 层** | 数据库初始化不属于 FRB 接口 |
+| 5 | **P2** | **`api/vocab_marker.rs` DB CRUD 整合** | 迁入 `api/data/vocabulary.rs` |
+| 6 | **P2** | **`ChapterPaginationMode.plainText` 死变体删除** | 不再使用的枚举变体 |
+| 7 | **P2** | **`LINE_BREAKS_STORE` 行断点缓存评估** | Rust 侧 HashMap 缓存是否还有必要 |
+| 8 | **P2** | **死 FRB 函数删除** | `get_bilingual_highlight_pairs`、`get_dictionary`、`suggest_mdict`、`get_epub_metadata` |
+| 9 | **P2** | **CJK 标点挤压引擎** | UI toggle 当前无效但用户能看到，属于 visible gap。方案：IR 预处理阶段对标点序列做紧凑替换（全角→半宽变体），约 1-2 天。**好处大于投入** |
+| 10 | **P3** | **`get_chapter` 退化备选移除评估** | IR 可靠时可删除 plain text fallback |
 
 ---
 
@@ -210,4 +205,37 @@ Phase 9 只包含 **需要架构改造** 的任务。
 
 ### 不做
 
+- 每本书独立 pattern 配置（复杂度过高，除非用户需求明确）
+- 自动 pattern 推荐/学习（可等数据积累后再考虑）
+- EPUB 章节检测（EPUB 有 TOC 结构，不需要正则）
+
+### 不做
+
 PDF 阅读、WebView、账号/多端同步、章内搜索 UI、Rust CancellationToken。
+
+---
+
+## Phase 11 — 业务下沉和业务简化（规划中）
+
+**目标**：两条纲领，Phase 11 启动时扫描审查。
+
+### 方向 A：业务下沉
+
+本来在 Repo/SQL 层就能做的事，就不要在业务 Service 层实现。
+
+示例：删除书籍的级联操作应一条 SQL `ON DELETE CASCADE` 或 repo 层事务内完成，
+而不是 Service 层逐表调 delete + API 层再额外跨模块调搜索索引清理。
+
+### 方向 B：业务简化
+
+减少 Flutter → Rust FFI 调用次数。Flutter 需要调多次才能完成的功能，
+Rust 层聚合成一个接口输出。
+
+示例：保存阅读进度和记录阅读会话当前是两个独立 FFI 调用，
+应合并为一个 `save_reading_state` 在 Rust 侧一个事务内完成。
+
+### 启动方式
+
+Phase 11 启动时对整个代码库做一次 `业务下沉 + 简化` 审查扫描，
+列出所有可下沉的 for 循环 SQL 和可聚合的多段 FFI 调用链，然后逐一整改。
+不在启动前预列详细清单。

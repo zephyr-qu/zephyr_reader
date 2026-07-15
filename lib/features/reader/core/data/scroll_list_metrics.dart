@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dart';
-import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
+import 'package:zephyr_reader/src/rust/pipeline/types.dart';
 
 /// 滚动 ListView 每项的 charOffset / 长度 / 估算高度（与 [ScrollModeRenderer] 一致）。
 class ScrollListMetrics {

@@ -1,8 +1,10 @@
+import 'package:zephyr_reader/src/rust/domain/book/models.dart';
+
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 
 /// 阅读状态标签栏。
 ///

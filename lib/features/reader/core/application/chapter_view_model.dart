@@ -12,12 +12,13 @@ import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.d
 import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dart';
 import 'package:zephyr_reader/features/reader/core/application/search_index_lifecycle.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
-import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
+
+import 'package:zephyr_reader/src/rust/pipeline/types.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_notice.dart';
 
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
 
 /// 章节视图模型
 ///

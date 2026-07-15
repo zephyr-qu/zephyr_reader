@@ -6,7 +6,7 @@ use flutter_rust_bridge::frb;
 
 use crate::common::AppError;
 use crate::domain::search::SearchEngine;
-use crate::pipeline::{IndexStats, SearchResult};
+use crate::domain::search::models::{IndexStats, SearchResult};
 use crate::infra::manager::storage_pool;
 
 static SEARCH_ENGINE: OnceLock<SearchEngine> = OnceLock::new();

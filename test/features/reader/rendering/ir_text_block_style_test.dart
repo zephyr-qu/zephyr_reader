@@ -3,8 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/reader/data/rich_text_converter.dart';
 import 'package:zephyr_reader/features/reader/rendering/ir_text_block_style.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
-import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
+import 'package:zephyr_reader/src/rust/pipeline/types.dart';
 
 ReaderRenderConfig _config({bool firstLineIndent = true}) {
   return ReaderRenderConfig(

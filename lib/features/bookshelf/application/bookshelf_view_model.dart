@@ -9,9 +9,11 @@ import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/bookshelf/application/category_view_model.dart';
-import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
-import 'package:zephyr_reader/src/rust/api/data/category.dart' as category_api;
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/api/book.dart' as book_api;
+import 'package:zephyr_reader/src/rust/api/category.dart' as category_api;
+import 'package:zephyr_reader/src/rust/domain/book/models.dart';
+import 'package:zephyr_reader/src/rust/domain/category/models.dart';
+
 
 @lazySingleton
 class BookshelfViewModel {

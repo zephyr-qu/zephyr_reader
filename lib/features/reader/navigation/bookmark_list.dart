@@ -1,10 +1,12 @@
+import 'package:zephyr_reader/src/rust/domain/bookmark/models.dart';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 
 class BookmarkList extends StatelessWidget {
   final List<Bookmark> bookmarks;

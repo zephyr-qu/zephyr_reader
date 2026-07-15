@@ -5,7 +5,7 @@ use std::sync::OnceLock;
 use jieba_rs::Jieba;
 use sqlx::{QueryBuilder, SqlitePool};
 
-use crate::pipeline::{IndexStats, SearchResult};
+use super::models::{IndexStats, SearchResult};
 
 static JIEBA: OnceLock<Jieba> = OnceLock::new();
 

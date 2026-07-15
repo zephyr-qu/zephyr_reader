@@ -1,3 +1,5 @@
+import 'package:zephyr_reader/src/rust/domain/bookmark/models.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
@@ -8,7 +10,7 @@ import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/utils/time_formatters.dart';
 import 'package:zephyr_reader/features/reader/annotations/application/bookmark_manage_view_model.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 
 /// 书签排序类型。
 enum BookmarkSortType { createdAt, chapterIndex, position }

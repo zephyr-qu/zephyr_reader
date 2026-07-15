@@ -1,8 +1,10 @@
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/src/rust/api/data/session.dart' as session_api;
-import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/api/session.dart' as session_api;
+import 'package:zephyr_reader/src/rust/api/book.dart' as book_api;
+import 'package:zephyr_reader/src/rust/domain/sessions/models.dart';
+import 'package:zephyr_reader/src/rust/domain/book/models.dart';
+
 
 /// 阅读会话列表 ViewModel。
 ///

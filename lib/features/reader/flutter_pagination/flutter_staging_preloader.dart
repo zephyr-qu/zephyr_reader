@@ -8,7 +8,7 @@ import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dar
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_staging_store.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_viewport_metrics.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
+import 'package:zephyr_reader/src/rust/api/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/reader.dart' as reader_api;
 
 /// 方案三 T2：用与当前章相同的 Flutter 装箱算法预取相邻章。

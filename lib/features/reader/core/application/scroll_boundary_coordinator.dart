@@ -8,7 +8,7 @@ import 'package:zephyr_reader/features/reader/core/data/scroll_segment_factory.d
 import 'package:zephyr_reader/features/reader/core/application/scroll_document_composer.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_notice.dart';
-import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
+import 'package:zephyr_reader/src/rust/pipeline/types.dart';
 
 /// 滚动模式章界协调器。
 ///

@@ -8,6 +8,7 @@ import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:zephyr_reader/src/rust/api/backup.dart' as backup_api;
+import 'package:zephyr_reader/src/rust/domain/backup/models.dart';
 
 /// 备份操作的最终结果。
 enum BackupResult { cancelled, success, error }
@@ -41,7 +42,7 @@ class BackupViewModel {
   final status = signal(BackupStatus.idle);
   final errorMessage = signal<String?>(null);
   final lastBackupAt = signal<DateTime?>(null);
-  final currentStats = asyncSignal<backup_api.BackupStats?>(
+  final currentStats = asyncSignal<BackupStats?>(
     AsyncState.loading(),
   );
 
@@ -130,7 +131,7 @@ class BackupViewModel {
   /// [filePath] 为备份文件路径，[manifest] 为备份时记录的清单信息。
   Future<RestoreResult> performRestore(
     String filePath,
-    backup_api.BackupManifest manifest,
+    BackupManifest manifest,
   ) async {
     if (status.value != BackupStatus.idle) return RestoreResult.error;
 

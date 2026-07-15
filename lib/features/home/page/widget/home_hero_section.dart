@@ -1,3 +1,5 @@
+import 'package:zephyr_reader/src/rust/domain/book/models.dart';
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -7,7 +9,7 @@ import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/utils/cover_utils.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 
 // Hero 卡片：有书/空态共用同一布局结构
 class _HeroCard extends StatelessWidget {

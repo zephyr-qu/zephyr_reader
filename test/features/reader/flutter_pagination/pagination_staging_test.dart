@@ -3,7 +3,7 @@ import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_block_paginator.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_pagination_session.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_staging_store.dart';
-import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
+import 'package:zephyr_reader/src/rust/pipeline/types.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

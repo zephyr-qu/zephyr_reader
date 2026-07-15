@@ -3,7 +3,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:zephyr_reader/features/reader/core/application/scroll_boundary_coordinator.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_notice.dart';
-import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
+import 'package:zephyr_reader/src/rust/pipeline/types.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_segment_factory.dart';

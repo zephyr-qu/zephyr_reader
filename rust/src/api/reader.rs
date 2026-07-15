@@ -9,7 +9,7 @@ use parking_lot::Mutex;
 use crate::common::AppError;
 use crate::domain::book::book_repo::BookRepository;
 use crate::infra::manager::storage_pool;
-use crate::pipeline::{chapter_ir, orchestration, ChapterContentIr};
+use crate::pipeline::{chapter_ir, ChapterContentIr};
 
 /// 全局行断点缓存
 type LineBreaksStore = LazyLock<Mutex<HashMap<(String, i32, u64), Vec<u32>>>>;
@@ -26,7 +26,7 @@ async fn resolve_book_path(book_id: &str) -> Result<String, AppError> {
 /// 获取指定章节的原始文本内容（退化备选）
 #[frb]
 pub async fn get_chapter(file_path: String, chapter_index: i32) -> Result<String, AppError> {
-    orchestration::get_chapter(file_path, chapter_index).await
+    chapter_ir::get_chapter(file_path, chapter_index).await
 }
 
 /// 存储 Flutter 行断点

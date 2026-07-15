@@ -1,0 +1,31 @@
+{
+  "id": "phase9-flutter-path-update",
+  "name": "phase9-flutter-path-update",
+  "title": "更新 Flutter 侧 import 路径以匹配 Rust 目录迁移后的 FRB 生成结构",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P0",
+  "creator": "zs",
+  "assignee": "zs",
+  "createdAt": "2026-07-15",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "phase/9-flutter-native-ir",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {},
+  "completed_at": "2026-07-15",
+  "completion_audit": {
+    "status": "completed",
+    "pre_existing": "1 info-level use_build_context_synchronously in bookshelf_batch_toolbar.dart (pre-existing, not caused by import path changes)"
+  }
+}

@@ -1,7 +1,8 @@
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
-import 'package:zephyr_reader/src/rust/api/data/vocabulary.dart' as vocab_api;
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/api/book.dart' as book_api;
+import 'package:zephyr_reader/src/rust/api/vocab.dart' as vocab_api;
+import 'package:zephyr_reader/src/rust/domain/vocabulary/models.dart';
+
 
 /// 生词本 ViewModel。
 ///

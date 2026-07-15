@@ -14,7 +14,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
-import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
+import 'package:zephyr_reader/src/rust/pipeline/types.dart';
 
 TextStyle _cjkStyle() =>
     const TextStyle(fontSize: 16, height: 1.5, fontFamily: 'Roboto');

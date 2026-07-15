@@ -1,8 +1,10 @@
+import 'package:zephyr_reader/src/rust/domain/vocabulary/models.dart';
+
 import 'package:flutter/material.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/presentation/widgets/selection_chip.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 
 /// Filter chips row for vocabulary status and word list selection.
 ///

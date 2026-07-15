@@ -8,7 +8,8 @@ import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/src/rust/api/dictionary.dart' as dict_api;
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/domain/dictionary/models.dart';
+
 
 @injectable
 /// 词典管理 ViewModel。

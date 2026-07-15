@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:zephyr_reader/features/reader/data/rich_text_converter.dart';
 import 'package:zephyr_reader/features/reader/rendering/highlight_painter.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
-import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/domain/note/models.dart';
+import 'package:zephyr_reader/src/rust/pipeline/types.dart';
+
 
 /// ADR-010：IR 块样式 → Flutter 排版（scroll + pagination 共用）。
 abstract final class IrTextBlockStyle {

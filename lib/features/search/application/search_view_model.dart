@@ -2,12 +2,15 @@ import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/features/search/page/search_results.dart';
-import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
-import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
-import 'package:zephyr_reader/src/rust/api/data/vocabulary.dart' as vocab_api;
+import 'package:zephyr_reader/src/rust/api/book.dart' as book_api;
+import 'package:zephyr_reader/src/rust/api/note.dart' as note_api;
+import 'package:zephyr_reader/src/rust/api/vocab.dart' as vocab_api;
 import 'package:zephyr_reader/src/rust/api/search.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/domain/book/models.dart';
+import 'package:zephyr_reader/src/rust/domain/note/models.dart';
+import 'package:zephyr_reader/src/rust/domain/search/models.dart';
+import 'package:zephyr_reader/src/rust/domain/vocabulary/models.dart';
+
 
 /// 搜索功能 ViewModel
 ///

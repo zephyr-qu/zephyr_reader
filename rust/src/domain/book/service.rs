@@ -21,7 +21,7 @@ use crate::domain::sessions::session_repo::SessionRepository;
 use crate::domain::vocabulary::vocab_repo::VocabRepository;
 use crate::infra::manager::storage_pool;
 use crate::parser::registry::parser_for_file;
-use crate::pipeline::ir_cache::IrCacheRepository;
+use crate::pipeline::chapter_ir::IrCacheRepository;
 
 /// 获取书籍详情（聚合查询，返回各组件供 API 层组装 BookDetail）
 pub async fn get_book_detail(

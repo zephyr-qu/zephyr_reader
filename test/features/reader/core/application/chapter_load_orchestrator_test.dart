@@ -35,7 +35,7 @@ import 'package:zephyr_reader/features/reader/domain/config/reader_typography_de
 import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 import 'package:zephyr_reader/features/reader/domain/config/language_type.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
 
 import '../../../../helpers/fixtures.dart';
 

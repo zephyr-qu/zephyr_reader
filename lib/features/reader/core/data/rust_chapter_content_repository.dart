@@ -9,11 +9,13 @@ import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_staging_preloader.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_staging_store.dart';
-import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
-import 'package:zephyr_reader/src/rust/api/data/chapter.dart' as chapter_api;
+import 'package:zephyr_reader/src/rust/api/book.dart' as book_api;
+import 'package:zephyr_reader/src/rust/api/chapter.dart' as chapter_api;
 import 'package:zephyr_reader/src/rust/api/reader.dart' as reader_api;
-import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/pipeline/types.dart';
+import 'package:zephyr_reader/src/rust/domain/book/models.dart';
+import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
+
 
 @Injectable(as: ChapterContentRepository)
 class RustChapterContentRepository implements ChapterContentRepository {

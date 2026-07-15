@@ -1,4 +1,4 @@
-import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
+import 'package:zephyr_reader/src/rust/pipeline/types.dart';
 
 /// 与 Flutter 装箱索引一致：Dart [String] UTF-16 码元下标（对齐 `substring` /
 /// packer 的 `sliceLocalStart`）。BMP 中文与 Rust Unicode scalar 一致。

@@ -1,3 +1,5 @@
+import 'package:zephyr_reader/src/rust/domain/note/models.dart';
+
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
@@ -5,7 +7,7 @@ import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dar
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'package:zephyr_reader/features/reader/rendering/block_page_content.dart';
 import 'package:zephyr_reader/features/reader/rendering/highlight_painter.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 
 import 'package:zephyr_reader/features/reader/rendering/paginated_page_viewport.dart';

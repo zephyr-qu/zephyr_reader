@@ -1,3 +1,5 @@
+import 'package:zephyr_reader/src/rust/domain/note/models.dart';
+
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -12,7 +14,7 @@ import 'package:zephyr_reader/features/reader/rendering/ir_text_block_style.dart
 import 'package:zephyr_reader/features/reader/rendering/paginated_page_viewport.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 
 /// 块分页页 Widget（Text + Image 块列表）。
 Widget buildBlockPageContent({
