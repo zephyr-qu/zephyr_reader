@@ -9,6 +9,15 @@
 - 当前分支：phase/7-cleanup-redundant-code（已提交）
 - 待 P8 完成后再合并到 master
 
+### Phase 9-A（完成于 2026-07-15）
+
+- **API 层薄封装化**：15 个 api/*.rs 全部改造完成
+- 创建/补齐 9 个 domain service.rs（category, chapter, cover, progress, vocabulary, bilingual, dictionary, note, stats）
+- 修复 flutter_rust_bridge.yaml domain 路径（移除 domain::library::*, domain::reader::*, domain::profile::*, domain::language::*）
+- FRB codegen 重新生成成功
+- 提交：`b59cec7`
+- 域名结构已明确为扁平模式（非嵌套），captured 在 `.trellis/spec/backend/directory-structure.md`
+
 ### Phase 8（开始于 2026-07-13）
 
 - 滚动模式 Flutter 化：用 IR 统一 scroll 和分页渲染路径

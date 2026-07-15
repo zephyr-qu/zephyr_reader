@@ -8,6 +8,7 @@
 
 use flutter_rust_bridge::frb;
 
+use crate::common::AppError;
 use crate::parser;
 
 /// 应用初始化入口函数
@@ -41,4 +42,10 @@ pub fn init_app() {
     tracing::info!("Cover extractor registry initialized");
 
     tracing::info!("Rust reader engine initialized");
+}
+
+// Reserved: FRB binding exists for binary compatibility (frb_generated.rs).
+#[frb]
+pub fn test_connection() -> Result<String, AppError> {
+    Ok("Rust reader engine connected successfully".to_string())
 }

@@ -32,7 +32,7 @@ pub use asset_registry::{
     resolve_relative_href,
 };
 pub use content_ir::{get_chapter_content_ir, html_to_chapter_ir};
-pub use metadata::{EpubMetadata, EpubTocItem, ParseResult};
+pub use metadata::{EpubMetadata, EpubTocItem};
 
 use std::path::Path;
 
@@ -40,6 +40,7 @@ use flutter_rust_bridge::frb;
 
 use crate::domain::AppError;
 use crate::parser::BookMetadata;
+use crate::parser::types::ParseResult;
 
 pub use parse::parse_epub;
 

@@ -4,8 +4,8 @@
 
 mod common;
 
-use rust_lib_zephyr_reader::api::data::stats;
-use rust_lib_zephyr_reader::storage::models::ReadingStats;
+use rust_lib_zephyr_reader::api::stats;
+use rust_lib_zephyr_reader::domain::stats::models::ReadingStats;
 
 
 fn make_stats(book_id: &str, date: &str, secs: i64, chars: i64) -> ReadingStats {

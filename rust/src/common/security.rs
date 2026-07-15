@@ -8,7 +8,7 @@
 //! 文件路径安全校验
 //! 提供文件路径的规范化和安全性验证功能
 
-use crate::domain::AppError;
+use crate::common::AppError;
 use std::path::Path;
 
 /// 验证文件路径（同步）

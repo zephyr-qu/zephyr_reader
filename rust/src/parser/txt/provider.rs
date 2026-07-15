@@ -25,8 +25,8 @@ use encoding_rs::{Encoding, UTF_8};
 use memmap2::Mmap;
 
 use crate::domain::AppError;
+use crate::domain::book::BookFormat;
 use crate::parser::provider::ChapterContentProvider;
-use crate::storage::models::BookFormat;
 
 /// 内存映射文件最大大小（100MB）
 const MMAP_MAX_SIZE: u64 = 100 * 1024 * 1024;

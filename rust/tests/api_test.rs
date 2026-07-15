@@ -1,7 +1,6 @@
 mod common;
 
-use rust_lib_zephyr_reader::api;
-use rust_lib_zephyr_reader::api::data::chapter;
+use rust_lib_zephyr_reader::api::chapter;
 
 // ==================== 格式检测测试 ====================
 
@@ -63,7 +62,7 @@ async fn test_parse_book_txt() {
     let data_dir = temp_dir.path().to_str().unwrap().to_string();
 
     // 初始化存储
-    if let Err(e) = rust_lib_zephyr_reader::api::data::init::init_storage(data_dir.clone()).await {
+    if let Err(e) = rust_lib_zephyr_reader::infra::manager::init_storage(data_dir.clone()).await {
         println!("存储初始化失败（可接受）: {:?}", e);
     }
 
@@ -74,7 +73,7 @@ async fn test_parse_book_txt() {
     );
 
     // 测试解析 TXT 文件
-    let result = api::parse_book(file_path.clone()).await;
+    let result = rust_lib_zephyr_reader::api::book::parse_book(file_path.clone()).await;
 
     // 验证解析结果
     assert!(result.is_ok(), "TXT 文件解析应该成功: {:?}", result);
@@ -91,7 +90,7 @@ async fn test_parse_book_invalid_file() {
     common::init_logger();
 
     // 测试不存在的文件
-    let result = api::parse_book("/nonexistent/path/book.txt".to_string()).await;
+    let result = rust_lib_zephyr_reader::api::book::parse_book("/nonexistent/path/book.txt".to_string()).await;
 
     // 应该返回错误
     assert!(result.is_err(), "不存在的文件应该返回错误");
@@ -106,14 +105,14 @@ async fn test_parse_book_empty_content() {
     // 初始化临时存储
     let temp_dir = tempfile::TempDir::new().expect("failed to create temp dir");
     let data_dir = temp_dir.path().to_str().unwrap().to_string();
-    if let Err(e) = rust_lib_zephyr_reader::api::data::init::init_storage(data_dir.clone()).await {
+    if let Err(e) = rust_lib_zephyr_reader::infra::manager::init_storage(data_dir.clone()).await {
         println!("存储初始化失败（可接受）: {:?}", e);
     }
 
     // 创建空文件
     let (_temp_dir, file_path) = common::create_temp_file("empty.txt", "");
 
-    let book_id = api::parse_book(file_path).await;
+    let book_id = rust_lib_zephyr_reader::api::book::parse_book(file_path).await;
     let parse_result = book_id.unwrap();
     let result = chapter::list_chapters_by_book(parse_result).await;
 
@@ -174,7 +173,7 @@ async fn test_bilingual_alignment_empty() {
     let english = String::new();
     let min_similarity = 0.5;
 
-    let result = api::align_bilingual_content(chinese, english, min_similarity).await;
+    let result = rust_lib_zephyr_reader::api::bilingual::align_bilingual_content(chinese, english, min_similarity).await;
 
     // 空输入应该返回空输出
     assert!(result.is_ok(), "空内容对齐应该成功");
@@ -193,7 +192,7 @@ async fn test_bilingual_alignment_simple() {
     let english = "Hello world\nThis is a test".to_string();
     let min_similarity = 0.3;
 
-    let result = api::align_bilingual_content(chinese, english, min_similarity).await;
+    let result = rust_lib_zephyr_reader::api::bilingual::align_bilingual_content(chinese, english, min_similarity).await;
 
     // 应该成功对齐
     assert!(result.is_ok(), "简单对齐应该成功: {:?}", result);
@@ -224,7 +223,7 @@ async fn test_api_error_handling_null_path() {
     common::init_logger();
 
     // 测试空路径的错误处理
-    let result = api::parse_book("".to_string()).await;
+    let result = rust_lib_zephyr_reader::api::book::parse_book("".to_string()).await;
     assert!(result.is_err(), "空路径应该返回错误");
 
     println!("空路径错误处理正确: {:?}", result);
@@ -260,7 +259,7 @@ async fn test_concurrent_format_checks() {
 #[test]
 fn test_parser_for_format_txt() {
     let parser = rust_lib_zephyr_reader::parser::registry::parser_for_format(
-        rust_lib_zephyr_reader::storage::models::BookFormat::Txt,
+        rust_lib_zephyr_reader::domain::book::BookFormat::Txt,
     );
     assert_eq!(parser.name(), "TXT Parser");
     assert!(parser.supported_formats().contains(&"txt"));
@@ -269,7 +268,7 @@ fn test_parser_for_format_txt() {
 #[test]
 fn test_parser_for_format_epub() {
     let parser = rust_lib_zephyr_reader::parser::registry::parser_for_format(
-        rust_lib_zephyr_reader::storage::models::BookFormat::Epub,
+        rust_lib_zephyr_reader::domain::book::BookFormat::Epub,
     );
     assert_eq!(parser.name(), "EPUB Parser");
     assert!(parser.supported_formats().contains(&"epub"));
@@ -277,7 +276,7 @@ fn test_parser_for_format_epub() {
 
 #[test]
 fn test_parser_for_format_epub_only() {
-    use rust_lib_zephyr_reader::storage::models::BookFormat;
+    use rust_lib_zephyr_reader::domain::book::BookFormat;
     for format in &[BookFormat::Txt, BookFormat::Epub] {
         let parser = rust_lib_zephyr_reader::parser::registry::parser_for_format(*format);
         let name = parser.name();
@@ -308,7 +307,7 @@ fn test_parser_for_file_no_extension() {
 
 #[test]
 fn test_parser_name_covers_all_formats() {
-    use rust_lib_zephyr_reader::storage::models::BookFormat;
+    use rust_lib_zephyr_reader::domain::book::BookFormat;
     for format in &[BookFormat::Txt, BookFormat::Epub] {
         let parser = rust_lib_zephyr_reader::parser::registry::parser_for_format(*format);
         let name = parser.name();

@@ -4,12 +4,13 @@
 
 mod common;
 
-use rust_lib_zephyr_reader::api::data::chapter::{
+use rust_lib_zephyr_reader::api::chapter::{
     clear_chapters_by_book, get_chapter_by_index, list_chapters_by_book, upsert_chapters,
 };
-use rust_lib_zephyr_reader::storage::ensure_storage;
-use rust_lib_zephyr_reader::storage::models::{Book, BookFormat, Chapter};
-use rust_lib_zephyr_reader::storage::repos::BookRepository;
+use rust_lib_zephyr_reader::infra::manager::ensure_storage;
+use rust_lib_zephyr_reader::domain::book::{Book, BookFormat};
+use rust_lib_zephyr_reader::domain::chapter::Chapter;
+use rust_lib_zephyr_reader::domain::book::book_repo::BookRepository;
 
 
 // 创建测试书籍用于 FK 约束
@@ -27,9 +28,9 @@ async fn ensure_test_book(book_id: &str) {
     }
 
     let book = Book::new(
-        &format!("/test/path/{book_id}.epub"),
+        format!("/test/path/{book_id}.epub"),
         0,
-        "Test Book",
+        "Test Book".to_string(),
         BookFormat::Epub,
         10,
         10000,

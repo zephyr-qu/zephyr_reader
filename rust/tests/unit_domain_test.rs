@@ -3,10 +3,10 @@
 //! 测试 AppError、RichParagraph、RichTextSpan 等领域类型
 //! 无需外部依赖，纯函数测试
 
-use rust_lib_zephyr_reader::domain::types::rich_text::{
+use rust_lib_zephyr_reader::pipeline::types::{
     RichParagraph, RichTextSpan, RichTextSpanData, SpanStyle,
 };
-use rust_lib_zephyr_reader::domain::AppError;
+use rust_lib_zephyr_reader::common::AppError;
 
 // ==================== AppError ====================
 
