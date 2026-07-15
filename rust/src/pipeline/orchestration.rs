@@ -40,7 +40,7 @@ pub static BOOK_ID_CACHE: LazyLock<Mutex<BookIdCache>> =
 
 
     /// 从文件路径推断格式
-pub fn format_from_file_path(file_path: &str) -> Result<BookFormat, AppError> {
+pub(crate) fn format_from_file_path(file_path: &str) -> Result<BookFormat, AppError> {
     let ext = std::path::Path::new(file_path)
         .extension()
         .and_then(|e| e.to_str())
