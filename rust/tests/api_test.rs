@@ -62,7 +62,7 @@ async fn test_parse_book_txt() {
     let data_dir = temp_dir.path().to_str().unwrap().to_string();
 
     // 初始化存储
-    if let Err(e) = rust_lib_zephyr_reader::infra::manager::init_storage(data_dir.clone()).await {
+    if let Err(e) = rust_lib_zephyr_reader::infra::init::init_storage(data_dir.clone()).await {
         println!("存储初始化失败（可接受）: {:?}", e);
     }
 
@@ -105,7 +105,7 @@ async fn test_parse_book_empty_content() {
     // 初始化临时存储
     let temp_dir = tempfile::TempDir::new().expect("failed to create temp dir");
     let data_dir = temp_dir.path().to_str().unwrap().to_string();
-    if let Err(e) = rust_lib_zephyr_reader::infra::manager::init_storage(data_dir.clone()).await {
+    if let Err(e) = rust_lib_zephyr_reader::infra::init::init_storage(data_dir.clone()).await {
         println!("存储初始化失败（可接受）: {:?}", e);
     }
 

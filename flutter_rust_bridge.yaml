@@ -1,6 +1,7 @@
 rust_input: >-
   crate::api,
   crate::common,
+  crate::infra::init,
   crate::domain::book::models,
   crate::domain::category::models,
   crate::domain::chapter::models,
