@@ -68,51 +68,6 @@ impl RichTextSpan {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct RichParagraph {
-    pub spans: Vec<RichTextSpan>,
-    pub indent: u8,
-    pub is_heading: bool,
-    pub heading_level: u8,
-    pub class_name: Option<String>,
-    pub text_align: Option<String>,
-    pub margin_top_em: Option<f32>,
-    pub margin_bottom_em: Option<f32>,
-    pub text_indent_em: Option<f32>,
-    pub font_size: Option<f32>,
-    pub is_image: bool,
-    pub image_src: Option<String>,
-    pub image_data: Vec<u8>,
-    pub image_alt: Option<String>,
-}
-
-impl RichParagraph {
-    #[frb(ignore)]
-    pub fn full_text(&self) -> String {
-        self.spans.iter().map(|s| s.text()).collect()
-    }
-
-    #[frb(ignore)]
-    pub fn image_placeholder(src: String, alt: String) -> Self {
-        Self {
-            spans: Vec::new(),
-            indent: 0,
-            is_heading: false,
-            heading_level: 0,
-            class_name: None,
-            text_align: None,
-            margin_top_em: None,
-            margin_bottom_em: None,
-            text_indent_em: None,
-            font_size: None,
-            is_image: true,
-            image_src: Some(src),
-            image_data: Vec::new(),
-            image_alt: Some(alt),
-        }
-    }
-}
-
 // ==================== 文本块 ====================
 
 #[derive(

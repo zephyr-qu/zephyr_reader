@@ -23,8 +23,9 @@ use super::asset_registry::{canonicalize_chapter_image_assets, normalize_asset_i
 use crate::common::AppError;
 use crate::pipeline::{
     append_chapter_ir_to_builder, BlockJoinedPlainBuilder, ChapterContentIr,
-    ContentBlock, PlainProjectionStyle, RichParagraph, TextBlockStyle,
+    ContentBlock, PlainProjectionStyle, TextBlockStyle,
 };
+use super::rich_paragraph::RichParagraph;
 use crate::parser::epub::rich_text;
 
 use super::provider::EpubContentProvider;

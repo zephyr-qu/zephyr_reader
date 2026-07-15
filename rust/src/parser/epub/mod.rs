@@ -25,6 +25,7 @@ pub mod processed_image;
 pub mod provider;
 pub mod toc;
 pub mod metadata;
+pub mod rich_paragraph;
 pub mod unzip;
 
 pub use asset_registry::{

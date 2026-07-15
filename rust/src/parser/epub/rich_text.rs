@@ -18,9 +18,10 @@
 //! 富文本解析
 //! 解析 HTML 内容为富文本段落列表，支持内联 CSS 样式提取和图片占位
 
+use super::rich_paragraph::RichParagraph;
 use crate::common::AppError;
 use crate::parser::epub::css;
-use crate::pipeline::{RichParagraph, RichTextSpan, RichTextSpanData, SpanStyle};
+use crate::pipeline::{RichTextSpan, RichTextSpanData, SpanStyle};
 use html5ever::parse_document;
 use html5ever::tendril::TendrilSink;
 use html5ever::Attribute;
