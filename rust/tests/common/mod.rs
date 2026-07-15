@@ -46,7 +46,7 @@ pub async fn init_test_storage() {
     let temp_dir = TempDir::new().expect("failed to create temp dir");
     let data_dir = temp_dir.path().to_str().unwrap().to_string();
 
-    if let Err(e) = rust_lib_zephyr_reader::infra::manager::init_storage(data_dir).await {
+    if let Err(e) = rust_lib_zephyr_reader::infra::init::init_storage(data_dir).await {
         if !e.to_string().contains("already initialized") {
             panic!("failed to init storage: {e}");
         }

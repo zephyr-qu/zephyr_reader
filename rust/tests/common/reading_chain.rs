@@ -7,7 +7,7 @@ use tempfile::TempDir;
 use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
-use rust_lib_zephyr_reader::infra::manager::init_storage;
+use rust_lib_zephyr_reader::infra::init::init_storage;
 
 // ---------------------------------------------------------------------------
 // Setup

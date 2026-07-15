@@ -16,7 +16,6 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::OnceLock;
 
-use flutter_rust_bridge::frb;
 use parking_lot::Mutex;
 use sqlx::SqlitePool;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
@@ -46,49 +45,6 @@ pub fn storage_pool() -> Result<SqlitePool, AppError> {
         .map_err(|e| AppError::DatabaseError {
             reason: e.to_string(),
         })
-}
-
-/// 初始化全局存储实例
-///
-/// 创建 `StorageManager`（SQLite 连接池 + sled KV），注入全局单例 `STORAGE`。
-/// 首次调用时创建数据目录并初始化存储；重复调用直接返回成功（幂等）。
-///
-/// # 参数
-/// * `data_dir` - 数据存储目录路径
-#[frb]
-pub async fn init_storage(data_dir: String) -> Result<(), AppError> {
-    let dir = Path::new(&data_dir).to_path_buf();
-
-    if STORAGE.get().is_some() {
-        tracing::warn!(
-            "init_storage called repeatedly, ignored (data_dir={:?})",
-            dir
-        );
-        return Ok(());
-    }
-
-    if !dir.exists() {
-        tokio::fs::create_dir_all(&dir).await.map_err(|e| {
-            AppError::FileWriteError { path: data_dir.into(), details: format!("Failed to create data directory: {}", e).into() }
-        })?;
-        tracing::info!("data_dir did not exist, created: {:?}", dir);
-    } else {
-        let db_path = dir.join("reader.db");
-        if !db_path.exists() {
-            tracing::warn!(
-                "data_dir exists but reader.db not found, data may be lost: {:?}",
-                dir
-            );
-        }
-    }
-
-    let manager = StorageManager::new(&dir).await?;
-    STORAGE
-        .set(manager)
-        .map_err(|_| AppError::InternalError { reason: "Storage already initialized".into() })?;
-
-    tracing::info!("init_storage complete: data_dir={:?}", dir);
-    Ok(())
 }
 
 // ==================== StorageManager ====================
