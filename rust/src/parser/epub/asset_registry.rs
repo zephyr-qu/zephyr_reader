@@ -24,7 +24,7 @@ use std::collections::HashMap;
 use epub::doc::ResourceItem;
 
 use super::unzip::EpubFile;
-use crate::domain::{ChapterContentIr, ContentBlock};
+use crate::pipeline::{ChapterContentIr, ContentBlock};
 
 /// 注册表条目：`asset_id`（manifest key）→ EPUB 包内路径。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -65,7 +65,7 @@ pub fn resolve_relative_href(chapter_href: &str, src: &str) -> String {
         return src;
     }
     if src.starts_with('/') {
-        return normalize_asset_path(&src[1..]);
+        return normalize_asset_path(src.trim_start_matches('/'));
     }
     let base_dir = chapter_href
         .rfind('/')
@@ -113,6 +113,10 @@ impl EpubAssetRegistry {
     /// 从已打开的 EPUB 构建注册表。
     pub fn from_epub(epub: &EpubFile) -> Self {
         Self::from_manifest(epub.resources())
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.by_asset_id.is_empty()
     }
 
     pub fn len(&self) -> usize {
@@ -244,6 +248,8 @@ mod tests {
 
     use epub::doc::ResourceItem;
 
+    use crate::pipeline::ImageBlock;
+
     use super::*;
 
     fn sample_registry() -> EpubAssetRegistry {
@@ -319,7 +325,7 @@ mod tests {
     #[test]
     fn canonicalize_rewrites_image_asset_id() {
         let mut ir = ChapterContentIr::new(
-            vec![ContentBlock::Image(crate::domain::ImageBlock::new(
+            vec![ContentBlock::Image(ImageBlock::new(
                 0,
                 "../Images/cover.jpg".into(),
                 None,

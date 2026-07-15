@@ -4,8 +4,8 @@
 
 mod common;
 
-use rust_lib_zephyr_reader::api::data::session;
-use rust_lib_zephyr_reader::storage::models::ReadingSession;
+use rust_lib_zephyr_reader::api::session;
+use rust_lib_zephyr_reader::domain::sessions::models::ReadingSession;
 
 
 #[tokio::test]

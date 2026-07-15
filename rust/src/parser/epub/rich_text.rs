@@ -18,8 +18,9 @@
 //! 富文本解析
 //! 解析 HTML 内容为富文本段落列表，支持内联 CSS 样式提取和图片占位
 
-use crate::domain::{AppError, RichParagraph, RichTextSpan, RichTextSpanData, SpanStyle};
+use crate::common::AppError;
 use crate::parser::epub::css;
+use crate::pipeline::{RichParagraph, RichTextSpan, RichTextSpanData, SpanStyle};
 use html5ever::parse_document;
 use html5ever::tendril::TendrilSink;
 use html5ever::Attribute;
@@ -205,6 +206,7 @@ impl ComputedStyle {
 }
 
 /// 构建段落对象的辅助函数，填充不随标签变动的固定字段。
+#[allow(clippy::too_many_arguments)]
 fn build_paragraph(
     spans: Vec<RichTextSpan>,
     indent: u8,

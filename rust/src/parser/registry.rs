@@ -10,9 +10,10 @@
 //! Parser registry
 //! Format-to-parser mapping via free functions
 
+use crate::domain::book::BookFormat;
 use crate::domain::AppError;
+
 use crate::parser::Parser;
-use crate::storage::models::BookFormat;
 
 /// 根据 BookFormat 返回对应的 Parser
 pub fn parser_for_format(format: BookFormat) -> Parser {

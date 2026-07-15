@@ -34,7 +34,7 @@ use super::asset_registry::EpubAssetRegistry;
 use super::unzip::EpubFile;
 use crate::domain::AppError;
 use crate::parser::provider::ChapterContentProvider;
-use crate::storage::models::BookFormat;
+use crate::domain::book::BookFormat;
 
 /// EPUB 按需内容提供器
 ///

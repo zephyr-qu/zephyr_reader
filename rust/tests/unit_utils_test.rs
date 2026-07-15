@@ -1,6 +1,6 @@
 //! 工具模块纯函数单元测试
 
-use rust_lib_zephyr_reader::utils::security::{validate_file_path};
+use rust_lib_zephyr_reader::common::security::{validate_file_path};
 
 mod common;
 
@@ -26,7 +26,7 @@ fn test_validate_nonexistent_path() {
     assert!(
         matches!(
             err,
-            rust_lib_zephyr_reader::domain::AppError::FileNotFound { .. }
+            rust_lib_zephyr_reader::common::AppError::FileNotFound { .. }
         ),
         "expected FileNotFound, got {:?}",
         err
@@ -70,7 +70,7 @@ async fn test_validate_async_nonexistent() {
     assert!(
         matches!(
             err,
-            rust_lib_zephyr_reader::domain::AppError::FileNotFound { .. }
+            rust_lib_zephyr_reader::common::AppError::FileNotFound { .. }
         ),
         "expected FileNotFound, got {:?}",
         err

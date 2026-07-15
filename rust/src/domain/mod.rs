@@ -1,14 +1,22 @@
 // ============================================================
-// 文件作用：领域层模块声明和重导出
-//
-// 公有模块：
-//   - pub mod error — 应用统一错误类型
-//   - pub mod types — 领域类型集合（排版、富文本、分页等）
+// 文件作用：领域层模块声明 — 所有子领域拍平到 domain/ 根级
 // ============================================================
 
-pub mod error;
-pub mod security;
-pub mod types;
+pub mod backup;
+pub mod bilingual;
+pub mod book;
+pub mod bookmark;
+pub mod category;
+pub mod chapter;
+pub mod cover;
+pub mod dictionary;
+pub mod note;
+pub mod progress;
+pub mod search;
+pub mod sessions;
+pub mod stats;
+pub mod vocabulary;
+pub mod wordlist;
 
-pub use error::*;
-pub use types::*;
+pub(crate) use crate::common::security;
+pub(crate) use crate::common::AppError;

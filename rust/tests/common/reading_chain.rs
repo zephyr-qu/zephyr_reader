@@ -7,7 +7,7 @@ use tempfile::TempDir;
 use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
-use rust_lib_zephyr_reader::api::data::init::init_storage;
+use rust_lib_zephyr_reader::infra::manager::init_storage;
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -34,7 +34,7 @@ pub async fn setup_parsed_epub(fixture_path: &Path) -> (TempDir, String, String)
     std::fs::copy(fixture_path, &dest).expect("failed to copy fixture");
     let file_path = dest.to_string_lossy().to_string();
 
-    let book_id = rust_lib_zephyr_reader::api::import::parse_book(file_path.clone())
+    let book_id = rust_lib_zephyr_reader::api::book::parse_book(file_path.clone())
         .await
         .expect("parse_book should succeed");
 
@@ -118,7 +118,7 @@ pub async fn setup_parsed_image_epub() -> Option<(TempDir, String)> {
         }
     }
 
-    rust_lib_zephyr_reader::api::import::parse_book(file_path.clone())
+    rust_lib_zephyr_reader::api::book::parse_book(file_path.clone())
         .await
         .expect("parse_book should succeed");
 
