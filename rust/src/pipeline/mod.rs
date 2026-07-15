@@ -4,8 +4,6 @@
 //! 依赖：common/, infra/
 
 pub mod chapter_ir;
-pub mod ir_cache;
-pub mod orchestration;
 pub mod plain_projection;
 pub mod types;
 

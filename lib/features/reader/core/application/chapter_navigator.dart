@@ -1,3 +1,5 @@
+import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
+
 import 'dart:async';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
@@ -7,7 +9,7 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_loader.da
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 
 /// 章节与页面导航。
 class ChapterNavigator {

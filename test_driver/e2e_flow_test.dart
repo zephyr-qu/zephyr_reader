@@ -18,8 +18,7 @@ import 'package:zephyr_reader/core/app_config.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/main_layout.dart';
 import 'package:zephyr_reader/features/reader/data/vocabulary_marker_service.dart';
-import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
-import 'package:zephyr_reader/src/rust/api/import.dart' as import_api;
+import 'package:zephyr_reader/src/rust/api/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/search.dart';
 import 'package:zephyr_reader/src/rust/frb_generated.dart';
 
@@ -36,7 +35,7 @@ Future<List<String>> _seedFixtures() async {
   final titles = <String>[];
   for (final name in fixtures) {
     final path = await copyFixtureFile(name);
-    final bookId = await import_api.parseBook(filePath: path);
+    final bookId = await book_api.parseBook(filePath: path);
     final result = await book_api.getBook(bookId: bookId);
     titles.add(result!.title);
   }

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
-import 'package:zephyr_reader/src/rust/api/epub.dart' as epub_api;
+import 'package:zephyr_reader/src/rust/api/book.dart' as epub_api;
 
 /// 解码 EPUB 图片字节（可注入以便测试）。
 typedef EpubImageLoader =

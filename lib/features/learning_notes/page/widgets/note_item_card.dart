@@ -1,9 +1,11 @@
+import 'package:zephyr_reader/src/rust/domain/note/models.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import 'package:zephyr_reader/core/utils/time_formatters.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 
 /// A single note card with left accent border, selected-text preview,
 /// content body, and footer (type icon + book title + date).

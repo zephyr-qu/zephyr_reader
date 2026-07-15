@@ -1,3 +1,5 @@
+import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
+
 import 'dart:async';
 
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
@@ -9,7 +11,7 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_view_mode
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 
 /// 章节内容加载编排。
 ///

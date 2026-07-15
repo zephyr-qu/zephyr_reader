@@ -15,8 +15,9 @@ import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/api/dictionary.dart' as dict_api;
-import 'package:zephyr_reader/src/rust/dictionary/models.dart';
+import 'package:zephyr_reader/src/rust/api/dictionary.dart'
+    as dict_api;
+import 'package:zephyr_reader/src/rust/domain/dictionary/models.dart';
 
 import 'package:zephyr_reader/features/reader/core/application/reader_view_model.dart';
 import 'reader_page_actions.dart';

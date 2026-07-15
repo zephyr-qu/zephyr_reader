@@ -1,5 +1,4 @@
-import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
-import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
+import 'package:zephyr_reader/src/rust/pipeline/types.dart';
 
 /// 分页引擎模式（纯 Dart 版；原由 FRB 生成，因无 FFI 引用而停止生成）。
 enum ChapterPaginationMode {

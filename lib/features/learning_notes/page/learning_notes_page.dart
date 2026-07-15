@@ -1,3 +1,5 @@
+import 'package:zephyr_reader/src/rust/domain/note/models.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:signals_hooks/signals_hooks.dart';
@@ -6,7 +8,7 @@ import 'package:zephyr_reader/features/learning_notes/page/widgets/note_list_wid
 import 'package:zephyr_reader/features/learning_notes/page/widgets/stat_dashboard_widget.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/features/profile/page/widgets/settings_app_bar.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 
 /// 学习笔记页面。
 ///

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/core/utils/app_error_mapper.dart';
-import 'package:zephyr_reader/src/rust/domain/error.dart';
+import 'package:zephyr_reader/src/rust/common/error.dart';
 
 void main() {
   group('AppErrorMapper.humanReadable', () {

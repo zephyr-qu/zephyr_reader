@@ -5,7 +5,7 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
+import 'package:zephyr_reader/src/rust/pipeline/types.dart';
 
 /// 从 [RichTextSpan] 提取纯文本。
 String _spanText(RichTextSpan span) =>

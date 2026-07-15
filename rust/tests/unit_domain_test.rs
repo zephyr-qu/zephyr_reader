@@ -3,10 +3,8 @@
 //! 测试 AppError、RichTextSpan 等领域类型
 //! 无需外部依赖，纯函数测试
 
-use rust_lib_zephyr_reader::pipeline::types::{
-    RichTextSpan, RichTextSpanData, SpanStyle,
-};
 use rust_lib_zephyr_reader::common::AppError;
+use rust_lib_zephyr_reader::pipeline::types::{RichTextSpan, RichTextSpanData, SpanStyle};
 
 // ==================== AppError ====================
 

@@ -13,7 +13,9 @@ rust_input: >-
   crate::domain::stats::models,
   crate::domain::vocabulary::models,
   crate::domain::dictionary::models,
-  crate::domain::bilingual::models
+  crate::domain::bilingual::models,
+  crate::domain::wordlist,
+  crate::domain::search::models
 rust_root: rust/
 dart_output: lib/src/rust
 c_output: rust_builder/cargokit/build_output/include

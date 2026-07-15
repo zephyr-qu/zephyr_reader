@@ -434,7 +434,7 @@ impl ChapterContentIr {
 mod tests {
     use super::*;
     use crate::pipeline::{
-        ContentBlock, SpanStyle, TextBlock, TextBlockStyle,
+        ContentBlock, TextBlock, TextBlockStyle,
         IMAGE_PLAIN_PLACEHOLDER,
     };
 

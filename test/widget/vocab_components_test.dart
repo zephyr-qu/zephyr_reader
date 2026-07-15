@@ -12,7 +12,7 @@ import 'package:zephyr_reader/l10n/app_localizations_en.dart';
 import 'package:zephyr_reader/features/vocabulary/page/widgets/vocab_status_chip.dart';
 import 'package:zephyr_reader/features/vocabulary/page/widgets/vocab_list_item_tile.dart';
 import 'package:zephyr_reader/features/vocabulary/page/widgets/vocab_stats_row.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/domain/vocabulary/models.dart';
 
 final testL10n = AppLocalizationsEn();
 

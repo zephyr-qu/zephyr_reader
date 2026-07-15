@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart' show ValueNotifier;
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
-import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
+import 'package:zephyr_reader/src/rust/pipeline/types.dart';
 
 /// 渲染器所需的数据源：分页会话状态 + 富文本 + 预加载。
 abstract class ReaderRenderDataSource {

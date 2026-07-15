@@ -3,8 +3,9 @@ import 'dart:async';
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/src/rust/api/data/category.dart' as category_api;
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/api/category.dart' as category_api;
+import 'package:zephyr_reader/src/rust/domain/category/models.dart';
+
 
 @injectable
 class CategoryViewModel {

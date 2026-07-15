@@ -5,9 +5,10 @@ import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dar
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
-import 'package:zephyr_reader/src/rust/api/bilingual.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 import 'package:zephyr_reader/features/reader/rendering/find_render_box.dart';
+import 'package:zephyr_reader/src/rust/domain/bilingual/models.dart';
+import 'package:zephyr_reader/src/rust/domain/note/models.dart';
 
 /// 双语对照模式渲染器。
 ///
@@ -127,26 +128,12 @@ class BilingualModeRenderer extends StatelessWidget {
       );
     }
 
+    // BilingualHighlightPair 现只含 noteId 和文本（无完整 Note 对象），
+    // 双语高亮渲染需配合 annotationsService 按 noteId 查询 Note 后实现（待完善）。
     final cnHighlights = highlights
         .where((h) => h.language == null || h.language == 'zh')
         .toList();
     final enHighlights = highlights.where((h) => h.language == 'en').toList();
-    for (final pair in bilingualPairs) {
-      if (pair.sourceNote.language == null ||
-          pair.sourceNote.language == 'zh') {
-        cnHighlights.add(pair.sourceNote);
-      } else {
-        enHighlights.add(pair.sourceNote);
-      }
-      final target = pair.targetNote;
-      if (target != null) {
-        if (target.language == null || target.language == 'zh') {
-          cnHighlights.add(target);
-        } else {
-          enHighlights.add(target);
-        }
-      }
-    }
 
     final chineseStyle = config.buildTextStyle();
     final chineseStrut = config.buildStrutStyle();

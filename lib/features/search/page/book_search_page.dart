@@ -8,7 +8,7 @@ import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/features/search/application/book_search_view_model.dart';
 import 'package:zephyr_reader/features/search/page/widgets/search_result_tile.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
+import 'package:zephyr_reader/src/rust/domain/search/models.dart';
 
 /// 书籍内搜索页面。
 ///

@@ -4,9 +4,10 @@ import 'package:injectable/injectable.dart';
 
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/src/rust/api/data/progress.dart' as progress_api;
-import 'package:zephyr_reader/src/rust/api/data/session.dart' as session_api;
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/api/progress.dart' as progress_api;
+import 'package:zephyr_reader/src/rust/api/session.dart' as session_api;
+import 'package:zephyr_reader/src/rust/domain/progress/models.dart';
+
 
 import 'chapter_view_model.dart';
 

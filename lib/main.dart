@@ -6,8 +6,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:zephyr_reader/app.dart';
 import 'package:zephyr_reader/core/app_config.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/src/rust/api/data/init.dart';
 import 'package:zephyr_reader/src/rust/api/search.dart';
+import 'package:zephyr_reader/src/rust/infra/init.dart';
 import 'package:zephyr_reader/src/rust/frb_generated.dart';
 
 import 'di/service_locator.dart';

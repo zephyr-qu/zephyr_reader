@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/bookshelf/page/category_management_page.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/domain/category/models.dart';
 
 void main() {
   group('CategoryColor.colorValue', () {

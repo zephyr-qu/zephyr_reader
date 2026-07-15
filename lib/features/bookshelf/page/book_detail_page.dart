@@ -22,9 +22,10 @@ import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_progres
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_toc_section.dart';
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_desc_section.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
-import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/api/book.dart' as book_api;
+import 'package:zephyr_reader/src/rust/api/note.dart' as note_api;
+import 'package:zephyr_reader/src/rust/domain/book/models.dart';
+
 
 class BookDetailPage extends HookWidget {
   final String bookId;

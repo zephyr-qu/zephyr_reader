@@ -1,3 +1,5 @@
+import 'package:zephyr_reader/src/rust/domain/dictionary/models.dart';
+
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -8,7 +10,7 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
 import 'package:zephyr_reader/core/presentation/widgets/snack_utils.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/profile/application/dictionary_settings_view_model.dart';
 import 'package:zephyr_reader/features/profile/page/widgets/settings_app_bar.dart';

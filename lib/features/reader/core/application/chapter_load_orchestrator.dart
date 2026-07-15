@@ -1,3 +1,5 @@
+import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
+
 // ignore_for_file: prefer_initializing_formals
 
 import 'dart:async';
@@ -20,7 +22,7 @@ import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.d
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_progress_hook.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_viewport_metrics.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 
 /// 章节加载显式状态机：分阶段执行 [ChapterLoadRequest] 并防止竞态写信号。
 class ChapterLoadOrchestrator {

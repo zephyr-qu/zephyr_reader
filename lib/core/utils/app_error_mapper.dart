@@ -10,7 +10,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
 
 // 导入 FRB 生成的类型化 AppError 子类
-import '../../src/rust/domain/error.dart';
+import '../../src/rust/common/error.dart';
 
 /// 应用错误映射器 — 按异常类型（而非字符串）匹配。
 class AppErrorMapper {

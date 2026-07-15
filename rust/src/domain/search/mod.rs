@@ -3,4 +3,7 @@
 //! 集成 jieba-rs 中文分词支持
 
 pub mod engine;
+pub mod models;
+
 pub use engine::*;
+pub use models::{IndexStats, SearchResult};

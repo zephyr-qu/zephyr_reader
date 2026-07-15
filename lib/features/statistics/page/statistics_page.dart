@@ -1,3 +1,5 @@
+import 'package:zephyr_reader/src/rust/domain/stats/models.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -10,7 +12,8 @@ import 'package:zephyr_reader/features/statistics/page/widgets/today_reading_car
 import 'package:zephyr_reader/features/statistics/page/widgets/vocab_stats_section.dart';
 import 'package:zephyr_reader/features/statistics/page/widgets/reading_heatmap.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/domain/vocabulary/models.dart';
+
 
 /// 阅读统计页面。
 ///

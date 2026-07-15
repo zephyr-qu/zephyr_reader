@@ -11,10 +11,11 @@ import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_prog
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_staging_store.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_viewport_metrics.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
+import 'package:zephyr_reader/src/rust/api/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/reader.dart' as reader_api;
-import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/pipeline/types.dart';
+import 'package:zephyr_reader/src/rust/domain/book/models.dart';
+
 
 /// Flutter 精确分页会话（ADR-016）：只拉 IR，本地装箱；不创建 Rust pagination session。
 ///

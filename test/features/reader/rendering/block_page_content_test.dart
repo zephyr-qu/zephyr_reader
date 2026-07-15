@@ -3,8 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 import 'package:zephyr_reader/features/reader/rendering/block_page_content.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
-import 'package:zephyr_reader/src/rust/domain/types/rich_text.dart';
+import 'package:zephyr_reader/src/rust/pipeline/types.dart';
 
 const _defaultStyle = TextBlockStyle(
   isHeading: false,

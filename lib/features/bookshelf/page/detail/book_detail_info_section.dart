@@ -1,8 +1,11 @@
+import 'package:zephyr_reader/src/rust/domain/book/models.dart';
+import 'package:zephyr_reader/src/rust/domain/category/models.dart';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:zephyr_reader/core/utils/format_utils.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 
 /// 书籍详情信息表格（格式/大小/出版社/译者等）
 class BookDetailInfoSection extends StatelessWidget {
