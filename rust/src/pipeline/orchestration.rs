@@ -22,7 +22,7 @@ use crate::parser::registry;
 use crate::domain::book::book_repo::BookRepository;
 use crate::domain::chapter::chapter_repo::ChapterRepository;
 use crate::infra::manager::storage_pool;
-use crate::domain::security::validate_file_path;
+use crate::common::security::validate_file_path;
 use parking_lot::Mutex;
 use std::num::NonZeroUsize;
 use std::sync::{Arc, LazyLock};

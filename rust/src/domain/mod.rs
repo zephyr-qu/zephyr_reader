@@ -18,5 +18,4 @@ pub mod stats;
 pub mod vocabulary;
 pub mod wordlist;
 
-pub(crate) use crate::common::security;
 pub(crate) use crate::common::AppError;

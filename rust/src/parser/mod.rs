@@ -26,5 +26,11 @@ pub mod types;
 /// 获取封面提取器注册表。
 pub use crate::domain::cover::cover_extractor::get_cover_registry;
 
+/// 初始化解析器模块（日志、注册表等）
+pub fn init_parser() {
+    get_cover_registry();
+    tracing::info!("Parser and cover extractor registries initialized");
+}
+
 // 公共类型通过 types 模块统一导出
 pub use types::*;
