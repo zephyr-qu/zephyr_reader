@@ -1,6 +1,6 @@
 //! 词典业务逻辑
 //!
-//! 提供词典 CRUD、MDict 引擎生命周期管理和查询功能。
+//! 引擎操作委托给 Engine，数据访问委托给 DictionaryRepository。
 //! 数据访问委托给 DictionaryRepository，引擎操作委托给 MdictEngine。
 
 use std::sync::LazyLock;
@@ -10,13 +10,13 @@ use parking_lot::Mutex;
 use crate::common::AppError;
 use crate::domain::dictionary::dictionary_repo::DictionaryRepository;
 use crate::domain::dictionary::DictSearchResult;
-use crate::domain::dictionary::mdict_engine::MdictEngine;
+use crate::domain::dictionary::engine::Engine;
 use crate::domain::dictionary::models::Dictionary;
 use crate::infra::manager::storage_pool;
 
 // ==================== 全局 MDict 引擎 ====================
 
-static MDICT: LazyLock<Mutex<Option<MdictEngine>>> = LazyLock::new(|| Mutex::new(None));
+static MDICT: LazyLock<Mutex<Option<Engine>>> = LazyLock::new(|| Mutex::new(None));
 
 // ==================== 词典数据 CRUD ====================
 
@@ -63,7 +63,7 @@ pub async fn delete_dictionary(id: &str) -> Result<bool, AppError> {
 
 /// 初始化 MDict 词典引擎
 pub async fn init_dictionary(mdx_path: &str, mdd_path: Option<String>) -> Result<(), AppError> {
-    let engine = MdictEngine::open(mdx_path, mdd_path.as_deref())
+    let engine = Engine::open(mdx_path, mdd_path.as_deref())
         .map_err(|e| AppError::InternalError {
             reason: format!("Failed to open MDict: {e}"),
         })?;

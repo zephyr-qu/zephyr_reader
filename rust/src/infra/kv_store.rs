@@ -21,8 +21,7 @@ use crate::common::AppError;
 use flutter_rust_bridge::frb;
 use redb::{Database, ReadableTable, TableDefinition};
 
-const SCROLL_IR_TABLE: TableDefinition<&str, &[u8]> =
-    TableDefinition::new("scroll_ir_cache");
+const SCROLL_IR_TABLE: TableDefinition<&str, &[u8]> = TableDefinition::new("scroll_ir_cache");
 
 /// redb 磁盘缓存条目上限。超过时按 key 顺序淘汰最旧。
 const SCROLL_IR_MAX_ENTRIES: usize = 256;
@@ -68,11 +67,11 @@ impl KvStore {
         let write_tx = db.begin_write().map_err(|e| AppError::DatabaseError {
             reason: format!("Failed to begin write tx: {e}"),
         })?;
-        write_tx.open_table(SCROLL_IR_TABLE).map_err(|e| {
-            AppError::DatabaseError {
+        write_tx
+            .open_table(SCROLL_IR_TABLE)
+            .map_err(|e| AppError::DatabaseError {
                 reason: format!("Failed to open ir table: {e}"),
-            }
-        })?;
+            })?;
         write_tx.commit().map_err(|e| AppError::DatabaseError {
             reason: format!("Failed to commit table creation: {e}"),
         })?;
@@ -93,35 +92,30 @@ impl KvStore {
         value: &ScrollIrCache,
     ) -> Result<(), AppError> {
         let key = format!("{}#{}", file_path, chapter_index);
-        let bytes =
-            bincode::encode_to_vec(value, bincode::config::standard()).map_err(|e| {
-                AppError::DatabaseError {
-                    reason: format!("Failed to serialize ir: {e}"),
-                }
-            })?;
-        let write_tx = self
-            .db
-            .begin_write()
-            .map_err(|e| AppError::DatabaseError {
-                reason: format!("Failed to begin write tx: {e}"),
-            })?;
+        let bytes = bincode::encode_to_vec(value, bincode::config::standard()).map_err(|e| {
+            AppError::DatabaseError {
+                reason: format!("Failed to serialize ir: {e}"),
+            }
+        })?;
+        let write_tx = self.db.begin_write().map_err(|e| AppError::DatabaseError {
+            reason: format!("Failed to begin write tx: {e}"),
+        })?;
         {
-            let mut table = write_tx
-                .open_table(SCROLL_IR_TABLE)
-                .map_err(|e| AppError::DatabaseError {
-                    reason: format!("Failed to open ir table: {e}"),
-                })?;
+            let mut table =
+                write_tx
+                    .open_table(SCROLL_IR_TABLE)
+                    .map_err(|e| AppError::DatabaseError {
+                        reason: format!("Failed to open ir table: {e}"),
+                    })?;
             table
                 .insert(&*key, bytes.as_slice())
                 .map_err(|e| AppError::DatabaseError {
                     reason: format!("Failed to insert ir cache: {e}"),
                 })?;
         }
-        write_tx
-            .commit()
-            .map_err(|e| AppError::DatabaseError {
-                reason: format!("Failed to commit ir cache: {e}"),
-            })?;
+        write_tx.commit().map_err(|e| AppError::DatabaseError {
+            reason: format!("Failed to commit ir cache: {e}"),
+        })?;
         self.enforce_scroll_ir_capacity()?;
         Ok(())
     }
@@ -133,12 +127,9 @@ impl KvStore {
         chapter_index: i32,
     ) -> Result<Option<ScrollIrCache>, AppError> {
         let key = format!("{}#{}", file_path, chapter_index);
-        let read_tx = self
-            .db
-            .begin_read()
-            .map_err(|e| AppError::DatabaseError {
-                reason: format!("Failed to begin read tx: {e}"),
-            })?;
+        let read_tx = self.db.begin_read().map_err(|e| AppError::DatabaseError {
+            reason: format!("Failed to begin read tx: {e}"),
+        })?;
         let table = read_tx
             .open_table(SCROLL_IR_TABLE)
             .map_err(|e| AppError::DatabaseError {
@@ -157,10 +148,7 @@ impl KvStore {
                     Ok((cache, _)) if cache.is_valid() => Ok(Some(cache)),
                     Ok(_) => Ok(None),
                     Err(e) => {
-                        tracing::warn!(
-                            "ScrollIrCache deserialize failed (corrupted?): {}",
-                            e
-                        );
+                        tracing::warn!("ScrollIrCache deserialize failed (corrupted?): {}", e);
                         Ok(None)
                     }
                 }
@@ -171,27 +159,23 @@ impl KvStore {
 
     /// 按 key 前缀删除所有 IR 缓存条目（用于删书时清缓存）。
     pub fn delete_ir_cache_by_prefix(&self, prefix: &str) -> Result<(), AppError> {
-        let write_tx = self
-            .db
-            .begin_write()
-            .map_err(|e| AppError::DatabaseError {
-                reason: format!("Failed to begin write tx: {e}"),
-            })?;
+        let write_tx = self.db.begin_write().map_err(|e| AppError::DatabaseError {
+            reason: format!("Failed to begin write tx: {e}"),
+        })?;
         {
-            let mut table = write_tx
-                .open_table(SCROLL_IR_TABLE)
-                .map_err(|e| AppError::DatabaseError {
-                    reason: format!("Failed to open ir table: {e}"),
-                })?;
+            let mut table =
+                write_tx
+                    .open_table(SCROLL_IR_TABLE)
+                    .map_err(|e| AppError::DatabaseError {
+                        reason: format!("Failed to open ir table: {e}"),
+                    })?;
             // redb range is [start, end); use prefix as start and a high bound
             let keys_to_remove: Vec<String> = table
                 .range(prefix..)
                 .map_err(|e| AppError::DatabaseError {
                     reason: format!("Failed to scan ir cache: {e}"),
                 })?
-                .take_while(|r| {
-                    r.as_ref().is_ok_and(|(k, _)| k.value().starts_with(prefix))
-                })
+                .take_while(|r| r.as_ref().is_ok_and(|(k, _)| k.value().starts_with(prefix)))
                 .filter_map(|r| r.ok())
                 .map(|(k, _)| k.value().to_string())
                 .collect();
@@ -203,28 +187,24 @@ impl KvStore {
                     })?;
             }
         }
-        write_tx
-            .commit()
-            .map_err(|e| AppError::DatabaseError {
-                reason: format!("Failed to commit cache deletion: {e}"),
-            })?;
+        write_tx.commit().map_err(|e| AppError::DatabaseError {
+            reason: format!("Failed to commit cache deletion: {e}"),
+        })?;
         Ok(())
     }
 
     /// 容量淘汰：当 scroll_ir_cache 条目超过上限时，按版本号淘汰无效条目，再按 key 顺序淘汰最旧。
     fn enforce_scroll_ir_capacity(&self) -> Result<(), AppError> {
-        let write_tx = self
-            .db
-            .begin_write()
-            .map_err(|e| AppError::DatabaseError {
-                reason: format!("Failed to begin eviction write tx: {e}"),
-            })?;
+        let write_tx = self.db.begin_write().map_err(|e| AppError::DatabaseError {
+            reason: format!("Failed to begin eviction write tx: {e}"),
+        })?;
         {
-            let mut table = write_tx
-                .open_table(SCROLL_IR_TABLE)
-                .map_err(|e| AppError::DatabaseError {
-                    reason: format!("Failed to open ir table: {e}"),
-                })?;
+            let mut table =
+                write_tx
+                    .open_table(SCROLL_IR_TABLE)
+                    .map_err(|e| AppError::DatabaseError {
+                        reason: format!("Failed to open ir table: {e}"),
+                    })?;
             let mut total = 0usize;
             let mut valid_keys: Vec<String> = Vec::new();
             let mut stale_keys: Vec<String> = Vec::new();
@@ -232,16 +212,13 @@ impl KvStore {
                 reason: format!("Failed to iterate ir table: {e}"),
             })? {
                 total += 1;
-                let (key_bytes, value_bytes) =
-                    item.map_err(|e| AppError::DatabaseError {
-                        reason: format!("Failed to read from redb: {e}"),
-                    })?;
-                if let Ok((cache, _)) =
-                    bincode::decode_from_slice::<ScrollIrCache, _>(
-                        value_bytes.value(),
-                        bincode::config::standard(),
-                    )
-                {
+                let (key_bytes, value_bytes) = item.map_err(|e| AppError::DatabaseError {
+                    reason: format!("Failed to read from redb: {e}"),
+                })?;
+                if let Ok((cache, _)) = bincode::decode_from_slice::<ScrollIrCache, _>(
+                    value_bytes.value(),
+                    bincode::config::standard(),
+                ) {
                     if cache.is_valid() {
                         valid_keys.push(key_bytes.value().to_string());
                     } else {
@@ -281,11 +258,9 @@ impl KvStore {
                 );
             }
         }
-        write_tx
-            .commit()
-            .map_err(|e| AppError::DatabaseError {
-                reason: format!("Failed to commit eviction: {e}"),
-            })?;
+        write_tx.commit().map_err(|e| AppError::DatabaseError {
+            reason: format!("Failed to commit eviction: {e}"),
+        })?;
         Ok(())
     }
 }

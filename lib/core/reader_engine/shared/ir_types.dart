@@ -1,6 +1,6 @@
 /// 纯 Dart 侧 IR 类型（替代 FRB `pipeline/types.dart`）。
 ///
-/// 这些类型在 Rust→Dart 边界处由 [`RustChapterContentRepository`] 从 FRB 类型转换而来，
+/// 这些类型在 Rust→Dart 边界处由 [`ChapterContentRepository`] 从 FRB 类型转换而来，
 /// 下游代码不再依赖 FRB 序列化。
 library;
 
@@ -169,7 +169,7 @@ class ReaderChapterIr {
 
 /// 将 FRB `ReaderChapterIr` 转换为纯 Dart `ReaderChapterIr`。
 ///
-/// 在 [`RustChapterContentRepository`] 中收到 FRB 结果后立即调用一次，
+/// 在 [`ChapterContentRepository`] 中收到 FRB 结果后立即调用一次，
 /// 后续所有代码使用纯 Dart 类型。
 ReaderChapterIr convertChapterIrFromFrb(dynamic frbIr) {
   return ReaderChapterIr(

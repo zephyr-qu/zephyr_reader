@@ -12,7 +12,7 @@ import 'package:zephyr_reader/features/statistics/page/widgets/today_reading_car
 import 'package:zephyr_reader/features/statistics/page/widgets/vocab_stats_section.dart';
 import 'package:zephyr_reader/features/statistics/page/widgets/reading_heatmap.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/domain/vocabulary/models.dart';
+import 'package:zephyr_reader/src/rust/domain/vocab/models.dart';
 
 
 /// 阅读统计页面。

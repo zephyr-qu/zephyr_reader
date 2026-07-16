@@ -18,7 +18,7 @@ use crate::domain::note::note_repo::NoteRepository;
 use crate::domain::progress::models::ReadingProgress;
 use crate::domain::progress::progress_repo::ProgressRepository;
 use crate::domain::sessions::session_repo::SessionRepository;
-use crate::domain::vocabulary::vocab_repo::VocabRepository;
+use crate::domain::vocab::vocab_repo::VocabRepository;
 use crate::infra::manager::storage_pool;
 use crate::parser::registry::parser_for_file;
 use crate::pipeline::chapter_ir::IrCacheRepository;
@@ -88,7 +88,7 @@ pub async fn list_bookshelf_books(
 }
 
 /// 获取书名映射
-pub async fn map_book_titles() -> Result<HashMap<String, String>, AppError> {
+pub async fn list_book_titles() -> Result<HashMap<String, String>, AppError> {
     let pool = storage_pool()?;
     let titles = BookRepository::list_titles(&pool).await?;
     Ok(titles.into_iter().map(|t| (t.book_id, t.title)).collect())

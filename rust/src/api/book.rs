@@ -76,9 +76,9 @@ pub async fn list_bookshelf_books(
 
 /// 获取书名映射
 #[frb]
-pub async fn map_book_titles() -> Result<HashMap<String, String>, AppError> {
-    tracing::debug!("[book] map_book_titles");
-    service::map_book_titles().await
+pub async fn list_book_titles() -> Result<HashMap<String, String>, AppError> {
+    tracing::debug!("[book] list_book_titles");
+    service::list_book_titles().await
 }
 
 /// 新增或更新书籍

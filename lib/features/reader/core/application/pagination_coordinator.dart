@@ -100,15 +100,12 @@ class PaginationCoordinator {
     );
   }
 
-  /// 全章分页（字号变更后重装箱；maxChars=null）。
-  Future<({int totalPages, bool isPartial})> paginateFullChapter(
-    int chapterIndex,
-  ) {
-    return _engine.session.beginPaginate(
+  /// 全章分页（字号变更后重装箱；复用 session 内 IR，不触发二次 FFI）。
+  Future<({int totalPages, bool isPartial})> paginateFullChapter(int chapterIndex) {
+    return _engine.session.expandToFullChapter(
       bookId: _chapterVM.bookId.value,
       chapterIndex: chapterIndex,
       params: buildPaginationParams(),
-      maxChars: null,
     );
   }
 

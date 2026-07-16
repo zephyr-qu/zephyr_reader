@@ -4,7 +4,7 @@
 //! 用于在阅读器中高亮标记已知词汇表中的单词。
 
 use crate::common::AppError;
-use crate::domain::wordlist::vocab as engine;
+use crate::domain::wordlist::vocabulary as engine;
 use crate::domain::wordlist::wordlists;
 use flutter_rust_bridge::frb;
 

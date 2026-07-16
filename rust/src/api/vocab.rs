@@ -3,8 +3,8 @@
 use flutter_rust_bridge::frb;
 
 use crate::common::AppError;
-use crate::domain::vocabulary::{Vocab, VocabStats, VocabStatus};
-use crate::domain::vocabulary::vocab_repo::VocabRepository;
+use crate::domain::vocab::{Vocab, VocabStats, VocabStatus};
+use crate::domain::vocab::vocab_repo::VocabRepository;
 use crate::infra::manager::storage_pool;
 /// 创建生词记录
 #[allow(clippy::too_many_arguments)]

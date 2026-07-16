@@ -15,7 +15,7 @@ pub mod progress;
 pub mod search;
 pub mod sessions;
 pub mod stats;
-pub mod vocabulary;
+pub mod vocab;
 pub mod wordlist;
 
 pub(crate) use crate::common::AppError;

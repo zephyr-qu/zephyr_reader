@@ -1,8 +1,8 @@
 //! 封面管理领域
 
-pub mod cover_extractor;
+pub mod engine;
 pub mod models;
 pub mod service;
 
-pub use cover_extractor::*;
+pub use engine::*;
 pub use service::*;

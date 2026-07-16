@@ -1,8 +1,8 @@
 // ============================================================
-// 文件作用：双语对齐模块，基于句子相似度实现中英对照句子对齐
+// 文件作用：双语对齐引擎，基于句子相似度实现中英对照句子对齐
 //
 // 公有类型/函数：
-//   - BilingualAligner — 双语对齐器
+//   - BilingualEngine — 双语对齐器
 //   - SentenceSegmenter — 句子分割器
 //   - SimilarityCalculator — 相似度计算器
 //   - align_bilingual_content() — 对齐入口函数
@@ -196,15 +196,15 @@ struct SentenceGraphemes<'a> {
     graphemes: Vec<&'a str>,
 }
 
-/// 双语对齐器
-pub struct BilingualAligner {
+/// 双语对齐引擎
+pub struct BilingualEngine {
     /// 相似度阈值
     threshold: f32,
     /// 最大窗口大小（用于动态规划）
     window_size: usize,
 }
 
-impl BilingualAligner {
+impl BilingualEngine {
     /// 创建新的对齐器
     pub fn new(threshold: f32, window_size: usize) -> Self {
         Self {
@@ -367,7 +367,7 @@ pub fn align_bilingual_content(
     english_content: String,
     min_similarity: f32,
 ) -> Result<BilingualAlignment, AppError> {
-    let aligner = BilingualAligner::new(min_similarity.max(0.3), 5);
+    let aligner = BilingualEngine::new(min_similarity.max(0.3), 5);
     Ok(aligner.align(&chinese_content, &english_content))
 }
 
