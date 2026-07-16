@@ -1,9 +1,12 @@
+import 'package:zephyr_reader/src/rust/domain/book/models.dart';
+import 'package:zephyr_reader/src/rust/domain/category/models.dart';
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/features/bookshelf/page/widgets/book_cover.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 import 'package:zephyr_reader/core/utils/cover_utils.dart';
 
 /// 封面 + 元数据（标题/作者/分类标签/文件信息）

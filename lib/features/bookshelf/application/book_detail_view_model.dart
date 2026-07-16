@@ -1,7 +1,7 @@
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/async_utils.dart';
-import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
-import 'package:zephyr_reader/src/rust/storage/models.dart' show Book;
+import 'package:zephyr_reader/src/rust/api/book.dart' as book_api;
+import 'package:zephyr_reader/src/rust/domain/book/models.dart';
 
 /// 书籍详情 ViewModel。
 ///

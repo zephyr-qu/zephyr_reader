@@ -1,3 +1,6 @@
+import 'package:zephyr_reader/src/rust/domain/bookmark/models.dart';
+import 'package:zephyr_reader/src/rust/domain/note/models.dart';
+
 import 'dart:async';
 
 import 'package:signals_flutter/signals_flutter.dart';
@@ -5,7 +8,7 @@ import 'package:zephyr_reader/core/utils/app_error_mapper.dart';
 import 'package:flutter/services.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 import 'package:zephyr_reader/features/reader/annotations/application/bookmark_view_model.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/annotations/application/annotation_view_model.dart';

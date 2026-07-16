@@ -3,8 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
-import 'package:zephyr_reader/src/rust/api/dictionary.dart' as dict_api;
-import 'package:zephyr_reader/src/rust/api/data/vocabulary.dart' as vocab_api;
+import 'package:zephyr_reader/src/rust/api/dictionary.dart'
+    as dict_api;
+import 'package:zephyr_reader/src/rust/api/vocab.dart' as vocab_api;
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_view_model.dart';
 

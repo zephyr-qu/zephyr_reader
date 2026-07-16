@@ -41,15 +41,12 @@ class PaginationEngine {
     getEnd: (p) => p.endOffset,
   );
 
-  /// ADR-001：block 模式 plain 含 `\uFFFC`，上界以 descriptor `endOffset` 为准。
+  /// ADR-001：IR 块模式 plain 含 `\uFFFC`，上界以 descriptor `endOffset` 为准。
   static int chapterCharOffsetMax({
-    required ChapterPaginationMode sessionMode,
     required List<PackedPage>? descriptors,
     required String phase1PlainContent,
   }) {
-    if (sessionMode == ChapterPaginationMode.contentBlocks &&
-        descriptors != null &&
-        descriptors.isNotEmpty) {
+    if (descriptors != null && descriptors.isNotEmpty) {
       return descriptors.last.endOffset;
     }
     return phase1PlainContent.length;

@@ -1,3 +1,6 @@
+import 'package:zephyr_reader/src/rust/domain/sessions/models.dart';
+import 'package:zephyr_reader/src/rust/domain/book/models.dart';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
@@ -5,7 +8,7 @@ import 'package:zephyr_reader/core/presentation/widgets/confirm_action_dialog.da
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/core/utils/format_utils.dart';
 import 'package:zephyr_reader/core/utils/time_formatters.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 
 /// 按书籍分组的阅读会话区块。
 ///

@@ -58,9 +58,8 @@ pub fn decode_file(file_path: &str) -> Result<String, AppError> {
     // SAFETY: 文件以只读方式打开（File::open），映射为只读 Mmap；
     // 文件在映射生命周期内不会被写入或截断（调用方保证）。
     // memmap2 在 Drop 时自动解除映射。
-    let mmap = unsafe {
-        Mmap::map(&file).map_err(|e| AppError::FileReadError { path: file_path.into(), details: e.to_string() })?
-    };
+    let mmap = unsafe { Mmap::map(&file) }
+        .map_err(|e| AppError::FileReadError { path: file_path.into(), details: e.to_string() })?;
     if mmap.is_empty() {
         return Ok(String::new());
     }

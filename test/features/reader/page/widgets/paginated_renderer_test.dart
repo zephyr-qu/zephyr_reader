@@ -26,9 +26,6 @@ void _stubDataSource(_MockDataSource dataSource) {
   when(() => dataSource.preloadGeneration).thenReturn(ValueNotifier<int>(0));
   when(() => dataSource.prevChapterStaging).thenReturn(null);
   when(() => dataSource.nextChapterStaging).thenReturn(null);
-  when(
-    () => dataSource.sessionMode,
-  ).thenReturn(ChapterPaginationMode.plainText);
   when(() => dataSource.sessionFilePath).thenReturn(null);
   when(() => dataSource.pageBlocks(any())).thenReturn(null);
 }
@@ -125,16 +122,13 @@ void main() {
 
     testWidgets('contentBlocks 模式渲染 Image 占位', (tester) async {
       final dataSource = _mockDataSource();
-      when(
-        () => dataSource.sessionMode,
-      ).thenReturn(ChapterPaginationMode.contentBlocks);
       when(() => dataSource.sessionFilePath).thenReturn('/books/test.epub');
       when(() => dataSource.pageBlocks(0)).thenReturn([
         const PackedBlockSlice.image(
           blockIndex: 1,
           assetId: 'img_cover',
-          imageLayout: ImageBlockLayout.inlineContain,
-          alt: 'cover',
+          imageLayout: ReaderIrBlockLayout.inlineContain,
+          imageAlt: 'cover',
         ),
       ]);
 
@@ -280,13 +274,12 @@ void main() {
           ],
           firstPageContent: '',
           isPartial: false,
-          paginationMode: ChapterPaginationMode.contentBlocks,
           anchorPageBlocks: const [
             PackedBlockSlice.image(
               blockIndex: 1,
               assetId: 'img_staging',
-              imageLayout: ImageBlockLayout.inlineContain,
-              alt: 'staging',
+              imageLayout: ReaderIrBlockLayout.inlineContain,
+              imageAlt: 'staging',
             ),
           ],
         ),

@@ -1,6 +1,5 @@
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/data/epub_block_image_cache.dart';
-import 'package:zephyr_reader/features/reader/core/domain/pagination_session.dart';
 import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
@@ -11,17 +10,17 @@ import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_prog
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_staging_store.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_viewport_metrics.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
+import 'package:zephyr_reader/src/rust/api/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/reader.dart' as reader_api;
-import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/features/reader/data/ir_types.dart';
+import 'package:zephyr_reader/src/rust/domain/book/models.dart';
 
-/// Flutter 精确分页会话（ADR-016）：只拉 IR，本地装箱；不创建 Rust pagination session。
+/// 精确分页会话（ADR-016）：只拉 IR，本地装箱；不创建 Rust pagination session。
 ///
 /// **T3**：主 isolate 分块 `paginateAsync`（TextPainter 不能进普通 isolate）+
 /// generation 取消；`maxChars` 首屏截断后由 [expandToFullChapter] 补全。
-class FlutterPaginationSession implements PaginationSession {
-  FlutterPaginationSession({this._onCacheUpdated});
+class PaginationSession {
+  PaginationSession({this._onCacheUpdated});
 
   final void Function()? _onCacheUpdated;
 
@@ -32,7 +31,7 @@ class FlutterPaginationSession implements PaginationSession {
   List<PackedPage>? _descriptors;
   final Map<int, String> _pageCache = {};
   final Map<int, List<PackedBlockSlice>> _blockCache = {};
-  ChapterContentIr? _ir;
+  ReaderChapterIr? _ir;
   int? _chapterIndex;
   BigInt? _configHash;
   String? _sessionFilePath;
@@ -40,35 +39,23 @@ class FlutterPaginationSession implements PaginationSession {
   bool _sessionIsPartial = false;
   int _paginateGen = 0;
 
-  @override
-  ChapterPaginationMode get sessionMode => ChapterPaginationMode.contentBlocks;
-
-  @override
   List<PackedPage>? get descriptors => _descriptors;
 
-  @override
   BigInt? get sessionConfigHash => _configHash;
 
-  @override
   int? get sessionChapterIndex => _chapterIndex;
 
-  @override
   bool get sessionIsPartial => _sessionIsPartial;
 
-  @override
   String? get sessionFilePath => _sessionFilePath;
 
-  @override
   List<PackedBlockSlice>? pageBlocks(int pageIndex) => _blockCache[pageIndex];
 
-  @override
   String? pageContent(int pageIndex) => _pageCache[pageIndex];
 
-  @override
   Future<String?> fetchPageContent(int pageIndex) async =>
       pageContent(pageIndex);
 
-  @override
   Future<({int totalPages, bool isPartial})> beginPaginate({
     required String bookId,
     required int chapterIndex,
@@ -81,7 +68,6 @@ class FlutterPaginationSession implements PaginationSession {
     maxChars: maxChars,
   );
 
-  @override
   Future<({int totalPages, bool isPartial})> beginPaginateFromCache({
     required String bookId,
     required int chapterIndex,
@@ -107,7 +93,6 @@ class FlutterPaginationSession implements PaginationSession {
     );
   }
 
-  @override
   Future<({int totalPages, bool isPartial})> repaginateInPlace({
     required String bookId,
     required int chapterIndex,
@@ -137,7 +122,6 @@ class FlutterPaginationSession implements PaginationSession {
     );
   }
 
-  @override
   Future<({int totalPages, bool isPartial})> expandToFullChapter({
     required String bookId,
     required int chapterIndex,
@@ -169,7 +153,6 @@ class FlutterPaginationSession implements PaginationSession {
     );
   }
 
-  @override
   void ensureWindow(int centerPage) {
     if (_descriptors == null || _ir == null) return;
     final plain = _ir!.plainText;
@@ -188,19 +171,16 @@ class FlutterPaginationSession implements PaginationSession {
     }
   }
 
-  @override
   void warmPageCache(int pageIndex, String content) {
     _pageCache[pageIndex] = content;
   }
 
-  @override
   int? resolvePageIndexForCharOffset(int charOffset) {
     final descriptors = _descriptors;
     if (descriptors == null || descriptors.isEmpty) return null;
     return PaginationEngine.resolvePageIndexForOffset(descriptors, charOffset);
   }
 
-  @override
   void dispose() {
     _paginateGen++;
     _descriptors = null;
@@ -259,10 +239,11 @@ class FlutterPaginationSession implements PaginationSession {
     );
     epubBlockImageCache.clear();
 
-    final ir = await reader_api.getChapterContentIr(
+    final frbIr = await reader_api.getReaderChapterIr(
       bookId: bookId,
       chapterIndex: chapterIndex,
     );
+    final ir = convertChapterIrFromFrb(frbIr);
 
     return _installPages(
       ir: ir,
@@ -274,7 +255,7 @@ class FlutterPaginationSession implements PaginationSession {
   }
 
   Future<({int totalPages, bool isPartial})> _installPages({
-    required ChapterContentIr ir,
+    required ReaderChapterIr ir,
     required int chapterIndex,
     required PaginationParams params,
     BigInt? maxChars,

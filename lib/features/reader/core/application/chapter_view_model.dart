@@ -11,13 +11,16 @@ import 'package:zephyr_reader/features/reader/core/application/scroll_boundary_c
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dart';
 import 'package:zephyr_reader/features/reader/core/application/search_index_lifecycle.dart';
-import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
-import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
+import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
+import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_pagination_session.dart';
+
+import 'package:zephyr_reader/features/reader/data/ir_types.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_notice.dart';
 
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
 
 /// 章节视图模型
 ///
@@ -46,6 +49,11 @@ class ChapterViewModel {
   /// 待 UI 层展示的用户通知（如 EPUB 富文本降级）。
   final readerNotice = signal<ReaderNotice?>(null);
 
+  final ChapterContentRepository _contentRepo;
+  final PaginationSession _session;
+  final ProgressRepository _progressRepo;
+  final ReaderConfig _config;
+
   late final ScrollBoundaryCoordinator _scrollBoundary;
   late final PaginationCoordinator _pagination;
   late final ChapterLoader _loader;
@@ -53,12 +61,9 @@ class ChapterViewModel {
   late final ChapterNavigator _navigator;
   late final AutoScrollController _autoScroll;
 
-  ChapterViewModel(
-    @factoryParam ReaderRepositoryInterface repo,
-    @factoryParam ReaderConfig config,
-  ) {
+  ChapterViewModel(this._contentRepo, this._session, this._progressRepo, this._config) {
     _scrollBoundary = ScrollBoundaryCoordinator(
-      repo: repo,
+      contentRepo: _contentRepo,
       onPositionChanged: (chapterIdx, offset) {
         chapterIndex.value = chapterIdx;
         currentCharOffset.value = offset;
@@ -73,13 +78,14 @@ class ChapterViewModel {
         readerNotice.value = notice;
       },
     );
-    _pagination = PaginationCoordinator(repo, config, this);
-    _loader = ChapterLoader(repo, this, _pagination);
+    _pagination = PaginationCoordinator(_contentRepo, _session, _config, this);
+    _loader = ChapterLoader(_contentRepo, _progressRepo, _session, this, _pagination);
     _searchIndex = SearchIndexLifecycle(this, _loader.chapters);
     _loader.scheduleSearchIndex = _searchIndex.scheduleIndex;
     _navigator = ChapterNavigator(
-      repo,
-      config,
+      _contentRepo,
+      _session,
+      _config,
       this,
       _loader,
       _pagination,
@@ -88,7 +94,7 @@ class ChapterViewModel {
       _loader.pageIndex,
     );
     _loader.preloadAdjacentFirstPages = _navigator.preloadAdjacentFirstPages;
-    _autoScroll = AutoScrollController(config);
+    _autoScroll = AutoScrollController(_config);
   }
 
   // ==================== 委托信号 ====================
@@ -191,7 +197,7 @@ class ChapterViewModel {
   void resetScrollDocument(
     String content,
     int chapterIndex, {
-    ChapterContentIr? chapterIr,
+    ReaderChapterIr? chapterIr,
     String? chapterFilePath,
   }) {
     _scrollBoundary.reset(

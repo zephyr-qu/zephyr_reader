@@ -1,8 +1,10 @@
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/async_utils.dart';
-import 'package:zephyr_reader/src/rust/api/data/book.dart' as book_api;
-import 'package:zephyr_reader/src/rust/api/data/stats.dart' as stats_api;
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/api/book.dart' as book_api;
+import 'package:zephyr_reader/src/rust/api/stats.dart' as stats_api;
+import 'package:zephyr_reader/src/rust/domain/book/models.dart';
+import 'package:zephyr_reader/src/rust/domain/stats/models.dart';
+
 
 /// 首页最近阅读列表最大条目数
 final _recentBookLimit = 4;

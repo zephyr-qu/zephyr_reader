@@ -2,10 +2,10 @@ import 'package:zephyr_reader/features/reader/core/domain/bilingual_reader_deleg
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_view_model.dart';
-import 'package:zephyr_reader/features/reader/core/data/pagination_session_factory.dart';
 import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
 import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_pagination_session.dart';
 
 /// Per-book reading session — owns a dedicated [ReaderViewModel] instance.
 class ReaderSession {
@@ -27,20 +27,21 @@ typedef BilingualReaderDelegateFactory =
 class ReaderSessionFactory {
   final ChapterContentRepository _chapterContent;
   final ProgressRepository _progress;
-  final PaginationSessionFactory _sessionFactory;
   final ReaderConfig _config;
   final BilingualReaderDelegateFactory? _bilingualFactory;
 
   ReaderSessionFactory(
     this._chapterContent,
     this._progress,
-    this._sessionFactory,
     this._config, [
     this._bilingualFactory,
   ]);
 
   ReaderSession create() {
-    final repo = ReaderRepository(_chapterContent, _progress, _sessionFactory);
+    final session = PaginationSession(
+      onCacheUpdated: () => _chapterContent.preloadGeneration.value++,
+    );
+    final repo = ReaderRepository(_chapterContent, _progress, session);
     final vm = ReaderViewModel(repo: repo, config: _config);
     final bilingualFactory = _bilingualFactory;
     if (bilingualFactory != null) {

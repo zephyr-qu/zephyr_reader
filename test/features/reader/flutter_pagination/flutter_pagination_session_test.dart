@@ -9,7 +9,7 @@ import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_pagination_session.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_staging_store.dart';
-import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
+import 'package:zephyr_reader/src/rust/pipeline/types.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -76,7 +76,6 @@ void main() {
       expect(session.sessionChapterIndex, isNull);
       expect(session.sessionIsPartial, isFalse);
       expect(session.sessionFilePath, isNull);
-      expect(session.sessionMode, ChapterPaginationMode.contentBlocks);
       expect(session.pageBlocks(0), isNull);
       expect(session.pageContent(0), isNull);
       expect(session.resolvePageIndexForCharOffset(0), isNull);

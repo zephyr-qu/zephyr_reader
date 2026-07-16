@@ -1,7 +1,9 @@
+import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
+
 import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 
 /// 目录手风琴
 class BookDetailTocSection extends StatelessWidget {

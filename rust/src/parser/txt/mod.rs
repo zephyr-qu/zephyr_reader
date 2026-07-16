@@ -24,7 +24,7 @@ pub mod provider;
 use flutter_rust_bridge::frb;
 
 use crate::domain::AppError;
-use crate::parser::epub::ParseResult;
+use crate::parser::types::ParseResult;
 use crate::parser::BookMetadata;
 
 pub use chapter_detect::extract_chapters;

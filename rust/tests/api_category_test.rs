@@ -4,7 +4,7 @@
 
 mod common;
 
-use rust_lib_zephyr_reader::api::data::category;
+use rust_lib_zephyr_reader::api::category;
 
 
 // ==================== 分类 CRUD ====================

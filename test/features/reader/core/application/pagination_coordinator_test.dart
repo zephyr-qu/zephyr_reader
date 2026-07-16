@@ -311,7 +311,6 @@ void main() {
   group('applyFullResult', () {
     test('maps totalPages and resolves pageIndex from charOffset', () {
       when(() => repo.descriptors).thenReturn(_descriptors3);
-      when(() => repo.sessionMode).thenReturn(ChapterPaginationMode.plainText);
       when(() => repo.resolvePageIndexForCharOffset(any())).thenReturn(null);
       when(() => repo.ensurePageWindow(any())).thenReturn(null);
       final coordinator = PaginationCoordinator(repo, config, chapterVM);
@@ -326,27 +325,5 @@ void main() {
       // 150 → page 1 via binary search
       expect(result.pageIndex, 1);
     });
-  });
-
-  group('storeLineBreaks', () {
-    test('handles empty text gracefully', () async {
-      final coordinator = PaginationCoordinator(repo, config, chapterVM);
-      // Should not throw or FFI-call for empty content
-      await coordinator.storeLineBreaks('');
-      // No crash — FFI error is caught by try/catch
-    });
-
-    test(
-      'I_phase6: storeLineBreaks handles non-empty text without crashing',
-      () async {
-        final coordinator = PaginationCoordinator(repo, config, chapterVM);
-        // In unit tests, reader_api.storeLineBreaks will fail with
-        // "flutter_rust_bridge has not been initialized" — this is
-        // caught by the try/catch inside storeLineBreaks.
-        // The test validates the method doesn't throw externally.
-        await coordinator.storeLineBreaks('测试文本测试文本测试文本测试文本');
-        // No crash — TextPainter extraction + FFI call wrapped in try/catch
-      },
-    );
   });
 }

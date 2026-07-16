@@ -10,12 +10,14 @@ import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/domain/bilingual_reader_delegate.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 import 'package:zephyr_reader/features/bilingual/application/bilingual_config.dart';
 import 'package:zephyr_reader/features/bilingual/data/bilingual_cache.dart';
 import 'package:zephyr_reader/features/bilingual/domain/bilingual_service.dart';
 import 'package:zephyr_reader/features/bilingual/presentation/bilingual_content_shell.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:zephyr_reader/src/rust/domain/bilingual/models.dart';
+import 'package:zephyr_reader/src/rust/domain/note/models.dart';
 
 /// 双语视图模型。
 ///
@@ -235,21 +237,19 @@ class BilingualViewModel implements BilingualReaderDelegate {
     final seg = a.segments[segmentIndex];
     final targetText = targetLanguage == 'zh' ? seg.chinese : seg.english;
 
+    final isChineseSelection = sourceLanguage == 'zh';
     await createBilingualHighlightPair(
       params: BilingualHighlightParams(
-        sourceBookId: bookId,
-        sourceChapterIndex: chapterIndex,
-        sourceCharOffset: selectionStart,
-        sourceLength: length,
-        sourceSelectedText: selectedText,
-        sourceLanguage: sourceLanguage,
-        targetBookId: bookId,
-        targetChapterIndex: chapterIndex,
-        targetCharOffset: targetOffset,
-        targetLength: targetText.length,
-        targetSelectedText: targetText,
-        targetLanguage: targetLanguage,
+        bookId: bookId,
+        chapterIndex: chapterIndex,
+        chineseText: isChineseSelection ? selectedText : targetText,
+        englishText: isChineseSelection ? targetText : selectedText,
+        chineseCharOffset: isChineseSelection ? selectionStart : targetOffset,
+        chineseLength: isChineseSelection ? length : targetText.length,
+        englishCharOffset: isChineseSelection ? targetOffset : selectionStart,
+        englishLength: isChineseSelection ? targetText.length : length,
         highlightColor: 0xFFE91E63,
+        language: isChineseSelection ? 'zh' : 'en',
       ),
     );
 
@@ -259,7 +259,11 @@ class BilingualViewModel implements BilingualReaderDelegate {
   /// 删除与指定笔记关联的双语高亮对（幂等）。
   @override
   Future<void> deleteBilingualPair({required String noteId}) async {
-    await deleteBilingualHighlightPair(noteId: noteId);
+    // 传入同一 noteId 作为两个参数：Rust 侧对同一 ID 的二次删除为空操作
+    await deleteBilingualHighlightPair(
+      chineseNoteId: noteId,
+      englishNoteId: noteId,
+    );
   }
 
   /// 重置所有信号到初始状态，取消进行中的翻译。

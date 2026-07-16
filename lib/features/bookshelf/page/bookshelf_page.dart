@@ -1,3 +1,5 @@
+import 'package:zephyr_reader/src/rust/domain/book/models.dart';
+
 import 'dart:async';
 
 import 'package:file_picker/file_picker.dart';
@@ -24,7 +26,7 @@ import 'package:zephyr_reader/features/bookshelf/page/shelf/bookshelf_status_tab
 import 'package:zephyr_reader/features/bookshelf/page/shelf/menu_row.dart';
 import 'package:zephyr_reader/features/bookshelf/page/shelf/sort_setting_tile.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 
 /// 书架页面。
 ///

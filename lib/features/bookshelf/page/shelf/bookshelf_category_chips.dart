@@ -1,7 +1,9 @@
+import 'package:zephyr_reader/src/rust/domain/category/models.dart';
+
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 
 /// 分类筛选标签栏。
 ///

@@ -16,7 +16,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/features/reader/rendering/ir_text_block_style.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
+import 'package:zephyr_reader/features/reader/data/ir_types.dart';
 
 /// 使用 TextPainter 从单段文本提取行断点（相对 [text] 起点）。
 ///
@@ -117,7 +117,7 @@ List<int> _lineBreakIndicesSimple({
 /// [contentMaxWidth] 为正文可用宽（通常 `pageWidth - 2 * pageMargin`），
 /// 与分页 `LayoutBuilder` 约束对齐。
 List<int> computeChapterLineBreakIndicesFromBlocks({
-  required List<ContentBlock> blocks,
+  required List<ReaderIrBlock> blocks,
   required ReaderRenderConfig config,
   required double contentMaxWidth,
 }) {
@@ -127,54 +127,39 @@ List<int> computeChapterLineBreakIndicesFromBlocks({
   final indices = <int>[];
 
   for (final block in blocks) {
-    block.when(
-      text: (t) {
-        if (t.text.isEmpty) return;
-        final irStyle = t.style;
-        final blockFontSize = IrTextBlockStyle.effectiveFontSize(
-          irStyle,
-          config,
-        );
-        final blockLineHeight = IrTextBlockStyle.effectiveLineHeight(
-          irStyle,
-          config,
-        );
-        final textStyle = config
-            .buildTextStyle(fontSizeMultiplier: blockFontSize / config.fontSize)
-            .copyWith(height: blockLineHeight);
-        final indentPx = IrTextBlockStyle.resolveFirstLineIndentPx(
-          irStyle,
-          config,
-        );
-        final blockPadding = IrTextBlockStyle.resolveBlockPadding(
-          irStyle,
-          config,
-        );
-        final layoutMaxWidth = (maxWidth - blockPadding.horizontal).clamp(
-          1.0,
-          maxWidth,
-        );
-        final strutStyle = config.buildStrutStyle(
-          fontSizeMultiplier: blockFontSize / config.fontSize,
-          lineHeight: blockLineHeight,
-        );
-        final local = computeLineBreakIndices(
-          text: t.text,
-          style: textStyle,
-          maxWidth: layoutMaxWidth,
-          strutStyle: strutStyle,
-          firstLineIndentPx: indentPx,
-        );
-        final base = t.plain.plainStart;
-        for (final end in local) {
-          indices.add(base + end);
-        }
-      },
-      image: (img) {
-        // 图片在 plain 中占 1 个 \uFFFC；作为单行交给 Rust 按图高装箱。
-        indices.add(img.plain.plainStart + img.plain.plainLen);
-      },
+    if (block.kind == ReaderIrBlockKind.image) {
+      // 图片在 plain 中占 1 个 \uFFFC；作为单行交给 Rust 按图高装箱。
+      indices.add(block.plainStart + block.plainLen);
+      continue;
+    }
+    if (block.text.isEmpty) continue;
+
+    final blockFontSize = IrReaderIrBlock.effectiveFontSize(block, config);
+    final blockLineHeight = IrReaderIrBlock.effectiveLineHeight(block, config);
+    final textStyle = config
+        .buildTextStyle(fontSizeMultiplier: blockFontSize / config.fontSize)
+        .copyWith(height: blockLineHeight);
+    final indentPx =
+        IrReaderIrBlock.resolveFirstLineIndentPx(block, config);
+    final blockPadding = IrReaderIrBlock.resolveBlockPadding(block, config);
+    final layoutMaxWidth = (maxWidth - blockPadding.horizontal).clamp(
+      1.0,
+      maxWidth,
     );
+    final strutStyle = config.buildStrutStyle(
+      fontSizeMultiplier: blockFontSize / config.fontSize,
+      lineHeight: blockLineHeight,
+    );
+    final local = computeLineBreakIndices(
+      text: block.text,
+      style: textStyle,
+      maxWidth: layoutMaxWidth,
+      strutStyle: strutStyle,
+      firstLineIndentPx: indentPx,
+    );
+    for (final end in local) {
+      indices.add(block.plainStart + end);
+    }
   }
 
   indices.sort();

@@ -1,5 +1,5 @@
-use rust_lib_zephyr_reader::domain::{RichTextSpan, SpanStyle};
-use rust_lib_zephyr_reader::text::parse_html_to_rich_text;
+use rust_lib_zephyr_reader::parser::epub::rich_text::parse_html_to_rich_text;
+use rust_lib_zephyr_reader::pipeline::types::{RichTextSpan, SpanStyle};
 
 #[test]
 fn test_parse_empty_html() {
@@ -34,7 +34,10 @@ fn test_parse_simple_text() {
     assert!(!para.spans.is_empty());
     let text = para.full_text();
     assert!(text.contains("Hello World"));
-    assert!(para.spans[0].is_plain());
+    assert!(matches!(
+        &para.spans[0],
+        RichTextSpan::Styled(SpanStyle::Plain, _)
+    ));
 }
 
 #[test]

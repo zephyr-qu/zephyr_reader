@@ -3,8 +3,8 @@ import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
-import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/features/reader/data/ir_types.dart';
+import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
 
 /// 章节内容仓库抽象。
 abstract class ChapterContentRepository {
@@ -26,7 +26,7 @@ abstract class ChapterContentRepository {
   Future<void> preload(String bookId, int chapterId);
 
   /// 当前章节的 IR 块流（scroll 主路径）。
-  ChapterContentIr? get currentChapterIr;
+  ReaderChapterIr? get currentChapterIr;
 
   /// 当前章节对应书籍文件路径（EPUB 图片解码用）。
   String? get currentChapterFilePath;

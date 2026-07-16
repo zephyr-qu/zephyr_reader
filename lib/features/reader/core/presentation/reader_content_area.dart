@@ -1,3 +1,6 @@
+import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
+import 'package:zephyr_reader/src/rust/domain/note/models.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -18,7 +21,7 @@ import 'package:zephyr_reader/features/reader/page/ui/battery_indicator.dart';
 import 'package:zephyr_reader/features/reader/page/ui/brightness_mask.dart';
 import 'package:zephyr_reader/features/reader/page/widgets/reader_content.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 
 class ReaderContentArea extends HookWidget {
   const ReaderContentArea({

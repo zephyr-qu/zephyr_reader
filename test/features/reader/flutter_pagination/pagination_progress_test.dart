@@ -4,7 +4,7 @@ import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dar
 import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_block_paginator.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_progress.dart';
-import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
+import 'package:zephyr_reader/src/rust/pipeline/types.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

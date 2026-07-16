@@ -4,7 +4,7 @@ import 'package:zephyr_reader/features/reader/rendering/ir_text_block_style.dart
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/slice_rich_spans.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
-import 'package:zephyr_reader/src/rust/domain/types/content_ir.dart';
+import 'package:zephyr_reader/features/reader/data/ir_types.dart';
 
 /// 无 intrinsic 时图片高度 = 内容宽 × 此比（与 Rust `DEFAULT_IMAGE_HEIGHT_RATIO` 对齐）。
 const kDefaultImageHeightRatio = 0.55;
@@ -55,7 +55,7 @@ double imageDisplayHeightDp({
 abstract final class FlutterBlockPaginator {
   /// 同步装箱（单测 / 小章）。
   static List<PackedPage> paginate(
-    ChapterContentIr ir, {
+    ReaderChapterIr ir, {
     required ReaderRenderConfig config,
     required double contentWidthDp,
     required double contentHeightDp,
@@ -83,12 +83,10 @@ abstract final class FlutterBlockPaginator {
     );
 
     for (var i = 0; i < blocks.length; i++) {
-      final stop = blocks[i].when(
-        text: (t) =>
-            packer.packTextSync(blockIndex: i, block: t, maxWidth: maxW),
-        image: (img) =>
-            packer.packImage(blockIndex: i, block: img, maxWidth: maxW),
-      );
+      final block = blocks[i];
+      final stop = block.kind == ReaderIrBlockKind.text
+          ? packer.packTextSync(blockIndex: i, block: block, maxWidth: maxW)
+          : packer.packImage(blockIndex: i, block: block, maxWidth: maxW);
       if (stop) break;
       if (stopAfterPlainOffset != null &&
           packer.plainEnd >= stopAfterPlainOffset &&
@@ -103,7 +101,7 @@ abstract final class FlutterBlockPaginator {
 
   /// 异步分块装箱；大块按 [kLineBreakChunkChars] 切窗并 yield。
   static Future<FlutterPaginateOutcome> paginateAsync(
-    ChapterContentIr ir, {
+    ReaderChapterIr ir, {
     required ReaderRenderConfig config,
     required double contentWidthDp,
     required double contentHeightDp,
@@ -156,23 +154,23 @@ abstract final class FlutterBlockPaginator {
     var chunkOrdinal = 0;
     for (var i = 0; i < blocks.length; i++) {
       checkCancel();
-      final stop = await blocks[i].when(
-        text: (t) => packer.packTextAsync(
-          blockIndex: i,
-          block: t,
-          maxWidth: maxW,
-          onChunkDone: () async {
-            chunkOrdinal++;
-            report();
-            if (yieldEveryChunks > 0 && chunkOrdinal % yieldEveryChunks == 0) {
-              await Future<void>.delayed(Duration.zero);
-              checkCancel();
-            }
-          },
-        ),
-        image: (img) async =>
-            packer.packImage(blockIndex: i, block: img, maxWidth: maxW),
-      );
+      final block = blocks[i];
+      final stop = block.kind == ReaderIrBlockKind.text
+          ? await packer.packTextAsync(
+              blockIndex: i,
+              block: block,
+              maxWidth: maxW,
+              onChunkDone: () async {
+                chunkOrdinal++;
+                report();
+                if (yieldEveryChunks > 0 &&
+                    chunkOrdinal % yieldEveryChunks == 0) {
+                  await Future<void>.delayed(Duration.zero);
+                  checkCancel();
+                }
+              },
+            )
+          : packer.packImage(blockIndex: i, block: block, maxWidth: maxW);
       if (stop) break;
 
       if (stopAfterPlainOffset != null &&
@@ -189,16 +187,26 @@ abstract final class FlutterBlockPaginator {
     return FlutterPaginateOutcome(pages: pages, isPartial: packer.stoppedEarly);
   }
 
-  static List<ContentBlock> _resolveBlocks(ChapterContentIr ir) {
+  static List<ReaderIrBlock> _resolveBlocks(ReaderChapterIr ir) {
     if (ir.blocks.isNotEmpty) return ir.blocks;
     return [
-      ContentBlock.text(
-        TextBlock(
-          plain: BlockPlainRange(plainStart: 0, plainLen: ir.plainText.length),
-          text: ir.plainText,
-          style: const TextBlockStyle(isHeading: false, headingLevel: 0),
-          spans: const [],
-        ),
+      ReaderIrBlock(
+        kind: ReaderIrBlockKind.text,
+        plainStart: 0,
+        plainLen: ir.plainText.length,
+        text: ir.plainText,
+        runs: const [],
+        isHeading: false,
+        headingLevel: 0,
+        textIndentEm: null,
+        marginTopEm: null,
+        marginBottomEm: null,
+        textAlign: null,
+        fontSize: null,
+        imageAssetId: null,
+        imageAlt: null,
+        imageIntrinsicWidth: null,
+        imageIntrinsicHeight: null,
       ),
     ];
   }
@@ -267,7 +275,7 @@ class _PagePacker {
 
   bool packTextSync({
     required int blockIndex,
-    required TextBlock block,
+    required ReaderIrBlock block,
     required double maxWidth,
   }) {
     return _packText(
@@ -280,7 +288,7 @@ class _PagePacker {
 
   Future<bool> packTextAsync({
     required int blockIndex,
-    required TextBlock block,
+    required ReaderIrBlock block,
     required double maxWidth,
     required Future<void> Function() onChunkDone,
   }) {
@@ -295,7 +303,7 @@ class _PagePacker {
   /// 同步版：onChunkDone 忽略。
   bool _packText({
     required int blockIndex,
-    required TextBlock block,
+    required ReaderIrBlock block,
     required double maxWidth,
     required Future<void> Function()? onChunkDone,
   }) {
@@ -310,12 +318,12 @@ class _PagePacker {
 
   Future<bool> _packTextAsync({
     required int blockIndex,
-    required TextBlock block,
+    required ReaderIrBlock block,
     required double maxWidth,
     required Future<void> Function() onChunkDone,
   }) async {
     // 用同步 body + 手动切窗循环，便于 await。
-    final plainEnd = block.plain.plainStart + block.plain.plainLen;
+    final plainEnd = block.plainStart + block.plainLen;
     if (block.text.isEmpty) {
       _pageEnd = plainEnd;
       return false;
@@ -363,11 +371,11 @@ class _PagePacker {
 
   bool _packTextBody({
     required int blockIndex,
-    required TextBlock block,
+    required ReaderIrBlock block,
     required double maxWidth,
     required void Function()? afterChunk,
   }) {
-    final plainEnd = block.plain.plainStart + block.plain.plainLen;
+    final plainEnd = block.plainStart + block.plainLen;
     if (block.text.isEmpty) {
       _pageEnd = plainEnd;
       return false;
@@ -412,19 +420,19 @@ class _PagePacker {
 
   bool packImage({
     required int blockIndex,
-    required ImageBlock block,
+    required ReaderIrBlock block,
     required double maxWidth,
   }) {
     final imgH = imageDisplayHeightDp(
       contentWidthDp: maxWidth,
-      intrinsicWidth: block.intrinsicWidth,
-      intrinsicHeight: block.intrinsicHeight,
+      intrinsicWidth: block.imageIntrinsicWidth,
+      intrinsicHeight: block.imageIntrinsicHeight,
     );
     // 内联路径渲染有 ±4dp padding；装箱必须计入，否则页底易溢出。
     final inlinePackedH = imgH + kInlineImageVerticalPaddingDp;
     final remaining = packBudget - _used;
-    final start = block.plain.plainStart;
-    final end = start + block.plain.plainLen;
+    final start = block.plainStart;
+    final end = start + block.plainLen;
 
     if (inlinePackedH <= remaining) {
       _pageStart ??= start;
@@ -432,9 +440,9 @@ class _PagePacker {
       _slices.add(
         PackedBlockSlice.image(
           blockIndex: blockIndex,
-          assetId: block.assetId,
-          alt: block.alt,
-          imageLayout: ImageBlockLayout.inlineContain,
+          assetId: block.imageAssetId ?? '',
+          imageAlt: block.imageAlt,
+          imageLayout: ReaderIrBlockLayout.inlineContain,
         ),
       );
       _used += inlinePackedH;
@@ -450,9 +458,9 @@ class _PagePacker {
     _slices.add(
       PackedBlockSlice.image(
         blockIndex: blockIndex,
-        assetId: block.assetId,
-        alt: block.alt,
-        imageLayout: ImageBlockLayout.fullPage,
+        assetId: block.imageAssetId ?? '',
+        imageAlt: block.imageAlt,
+        imageLayout: ReaderIrBlockLayout.fullPage,
       ),
     );
     _pageHasContent = true;
@@ -507,7 +515,7 @@ class _PagePacker {
   }
 }
 
-/// 单个 TextBlock 的断行+装箱状态机。
+/// 单个 ReaderIrBlock 的断行+装箱状态机。
 class _TextPackContext {
   _TextPackContext({
     required this.packer,
@@ -525,13 +533,13 @@ class _TextPackContext {
   factory _TextPackContext.create({
     required _PagePacker packer,
     required int blockIndex,
-    required TextBlock block,
+    required ReaderIrBlock block,
     required double maxWidth,
   }) {
-    final irStyle = block.style;
+    final irStyle = block;
     final config = packer.config;
-    final blockFontSize = IrTextBlockStyle.effectiveFontSize(irStyle, config);
-    final blockLineHeight = IrTextBlockStyle.effectiveLineHeight(
+    final blockFontSize = IrReaderIrBlock.effectiveFontSize(irStyle, config);
+    final blockLineHeight = IrReaderIrBlock.effectiveLineHeight(
       irStyle,
       config,
     );
@@ -542,8 +550,8 @@ class _TextPackContext {
       fontSizeMultiplier: blockFontSize / config.fontSize,
       lineHeight: blockLineHeight,
     );
-    final indentPx = IrTextBlockStyle.resolveFirstLineIndentPx(irStyle, config);
-    final blockPadding = IrTextBlockStyle.resolveBlockPadding(irStyle, config);
+    final indentPx = IrReaderIrBlock.resolveFirstLineIndentPx(irStyle, config);
+    final blockPadding = IrReaderIrBlock.resolveBlockPadding(irStyle, config);
     final layoutMaxWidth = (maxWidth - blockPadding.horizontal).clamp(
       1.0,
       maxWidth,
@@ -564,14 +572,14 @@ class _TextPackContext {
 
   final _PagePacker packer;
   final int blockIndex;
-  final TextBlock block;
+  final ReaderIrBlock block;
   final TextStyle textStyle;
   final StrutStyle strutStyle;
   final double indentPx;
   final EdgeInsets blockPadding;
   final double layoutMaxWidth;
   final double blockLineHeight;
-  final TextBlockStyle irStyle;
+  final ReaderIrBlock irStyle;
 
   var localStart = 0;
   var isBlockStart = true;
@@ -603,7 +611,7 @@ class _TextPackContext {
   void flushSlice({required bool isBlockEnd}) {
     if (lineBuf.isEmpty) return;
     final text = lineBuf.toString();
-    final absStart = block.plain.plainStart + sliceLocalStart;
+    final absStart = block.plainStart + sliceLocalStart;
     final absEnd = absStart + text.length;
     packer._pageStart ??= absStart;
     packer._pageEnd = absEnd;
@@ -615,7 +623,7 @@ class _TextPackContext {
         isBlockEnd: isBlockEnd,
         style: irStyle,
         spans: sliceRichSpans(
-          block.spans,
+          block.runs,
           start: sliceLocalStart,
           len: text.length,
         ),
@@ -694,7 +702,7 @@ class _TextPackContext {
       packer._pageHasContent = true;
       localStart = localEnd;
       isBlockStart = false;
-      packer._pageEnd = block.plain.plainStart + localEnd;
+      packer._pageEnd = block.plainStart + localEnd;
 
       if (packer._hitStop()) {
         packer._pastStop = true;

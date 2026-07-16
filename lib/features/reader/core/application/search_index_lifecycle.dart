@@ -3,7 +3,8 @@ import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/src/rust/api/search.dart' as search_api;
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
+
 
 /// 章节全文搜索索引生命周期管理。
 ///

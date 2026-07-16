@@ -46,7 +46,7 @@ pub async fn init_test_storage() {
     let temp_dir = TempDir::new().expect("failed to create temp dir");
     let data_dir = temp_dir.path().to_str().unwrap().to_string();
 
-    if let Err(e) = rust_lib_zephyr_reader::api::data::init::init_storage(data_dir).await {
+    if let Err(e) = rust_lib_zephyr_reader::infra::init::init_storage(data_dir).await {
         if !e.to_string().contains("already initialized") {
             panic!("failed to init storage: {e}");
         }
@@ -68,8 +68,8 @@ pub async fn init_test_search_engine() {
 /// 创建（或更新）一个最小测试书籍，标准默认字段
 #[allow(dead_code)]
 pub async fn ensure_test_book(book_id: &str) {
-    use rust_lib_zephyr_reader::api::data::book;
-    use rust_lib_zephyr_reader::storage::models::Book;
+    use rust_lib_zephyr_reader::api::book;
+    use rust_lib_zephyr_reader::domain::book::Book;
 
     let b = Book {
         book_id: book_id.to_string(),
