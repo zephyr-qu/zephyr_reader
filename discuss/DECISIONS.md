@@ -11,6 +11,7 @@
 | [005](./adr/005-bilingual-optional.md) | 双语 = 设置项，非主加载链 | **已接受** | 2026-06-18 |
 | [006](./adr/006-rust-flutter-division.md) | Rust IR+分页；Flutter 渲染+staging | **已接受** | 2026-06-18 |
 | [007](./adr/007-plaintext-segmentation-stability.md) | plainText 分段冻结；charOffset 稳定 | **已接受** | 2026-06-18 |
+| [017](./adr/017-reading-offset-utf16-contract.md) | charOffset 跨 Rust/Flutter/SQLite 统一为 UTF-16 code unit | **已接受** | 2026-07-16 |
 | [008](./adr/008-ir-image-plain-placeholder.md) | IR 图片在 plain 中用 `\uFFFC` 占位 | **已接受** | 2026-06-18 |
 | [009](./adr/009-scroll-ir-unification.md) | Scroll 统一 Chunked IR | **已接受** | 2026-06-25 |
 | [010](./adr/010-block-css-in-ir.md) | IR Text 块基础 CSS；版式窄义 | **已接受** | 2026-06-25 |

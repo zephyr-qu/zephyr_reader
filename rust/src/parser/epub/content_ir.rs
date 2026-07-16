@@ -13,16 +13,15 @@
 // ============================================================
 
 use super::asset_registry::{canonicalize_chapter_image_assets, normalize_asset_id};
-use crate::common::AppError;
-use crate::pipeline::{
-    append_chapter_ir_to_builder, BlockJoinedPlainBuilder, BlockStyle,
-    PlainProjectionStyle, ReaderChapterIr,
-};
-use crate::parser::epub::rich_parser;
+use super::image_size::resolve_image_dimensions;
 use super::provider::EpubContentProvider;
 use super::rich_paragraph::RichParagraph;
-use super::image_size::resolve_image_dimensions;
-
+use crate::common::AppError;
+use crate::parser::epub::rich_parser;
+use crate::pipeline::{
+    BlockJoinedPlainBuilder, BlockStyle, PlainProjectionStyle, ReaderChapterIr,
+    append_chapter_ir_to_builder,
+};
 
 /// 与 `get_chapter_content_rich` 相同：单个 html5ever 片段超过此值则分块或降级。
 const MAX_HTML_CHUNK_BYTES: usize = 100 * 1024;
@@ -56,10 +55,14 @@ fn split_html_at_block_boundaries(html: &str, max_bytes: usize) -> Vec<String> {
         }
 
         let window_end = utf8_safe_byte_index(tail, max_bytes);
-        let split_end = find_last_block_boundary(tail, window_end, &BOUNDARY_TAGS)
-            .unwrap_or(window_end);
+        let split_end =
+            find_last_block_boundary(tail, window_end, &BOUNDARY_TAGS).unwrap_or(window_end);
 
-        let end = if split_end == 0 { window_end } else { split_end };
+        let end = if split_end == 0 {
+            window_end
+        } else {
+            split_end
+        };
         chunks.push(tail[..end].to_string());
         start += end;
     }
@@ -143,16 +146,25 @@ fn append_spine_html_to_builder(
                 }
                 Err(e) => {
                     tracing::warn!(
-                        "[get_chapter_content_ir] chunk IR parse failed ({} bytes), plain fallback: {e}",
-                        piece.len(),
+                        target: "reader_ir_fallback",
+                        stage = "parse",
+                        fallback = "plain",
+                        fallback_succeeded = true,
+                        chunk_bytes = piece.len(),
+                        error = %e,
+                        "EPUB IR chunk parse failed; using plain projection",
                     );
                     append_plain_html_to_builder(builder, &piece);
                 }
             }
         } else {
             tracing::warn!(
-                "[get_chapter_content_ir] chunk still {} bytes after split, plain fallback",
-                piece.len(),
+                target: "reader_ir_fallback",
+                stage = "split",
+                fallback = "plain",
+                fallback_succeeded = true,
+                chunk_bytes = piece.len(),
+                "EPUB IR chunk remains oversized; using plain projection",
             );
             append_plain_html_to_builder(builder, &piece);
         }
@@ -189,7 +201,11 @@ pub fn chapter_ir_from_rich_paragraphs(paragraphs: &[RichParagraph]) -> ReaderCh
             is_heading: p.is_heading,
             heading_level: p.heading_level,
             // text_indent_em: EPUB/CSS 显式值；None → Flutter 侧用用户首行缩进设置。
-            text_indent_em: if p.is_heading { Some(0.0) } else { p.text_indent_em },
+            text_indent_em: if p.is_heading {
+                Some(0.0)
+            } else {
+                p.text_indent_em
+            },
             margin_top_em: p.margin_top_em,
             margin_bottom_em: p.margin_bottom_em,
             text_align: p.text_align.clone(),
@@ -220,7 +236,6 @@ pub fn html_to_chapter_ir(html: &str) -> Result<ReaderChapterIr, AppError> {
         }
     }
 }
-
 
 /// 获取 EPUB 章节 IR（spine 范围与 `get_chapter_content_rich` 一致）。
 pub fn get_chapter_content_ir(

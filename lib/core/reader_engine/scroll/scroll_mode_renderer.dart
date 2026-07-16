@@ -7,7 +7,7 @@ import 'package:zephyr_reader/core/reader_engine/rendering/highlight_painter.dar
 
 import 'package:zephyr_reader/core/reader_engine/data/chapter_content_repository.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/core/reader_engine/rendering/find_render_box.dart';
+import 'package:zephyr_reader/core/utils/find_render_box.dart';
 import 'package:zephyr_reader/core/reader_engine/scroll/scroll_chapter_segment.dart';
 import 'package:zephyr_reader/core/reader_engine/scroll/scroll_ir_block_list.dart';
 

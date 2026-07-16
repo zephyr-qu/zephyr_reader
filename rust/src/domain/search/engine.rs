@@ -11,6 +11,43 @@ static JIEBA: OnceLock<Jieba> = OnceLock::new();
 
 /// 搜索分块大小（每块 500 个字符）
 pub const SEARCH_CHUNK_SIZE: usize = 500;
+const SEARCH_OFFSET_VERSION: &str = "2";
+
+/// 将原始 plainText 分块，并保留每块在原文中的 UTF-16 起点。
+fn build_search_chunks(content: &str) -> Vec<(i64, String)> {
+    if content.is_empty() {
+        return Vec::new();
+    }
+
+    let mut chunks = Vec::new();
+    let mut chunk_start_byte = 0usize;
+    let mut chunk_start_utf16 = 0u32;
+    let mut utf16_cursor = 0u32;
+    let mut chars_in_chunk = 0usize;
+
+    for (byte_index, ch) in content.char_indices() {
+        if chars_in_chunk == SEARCH_CHUNK_SIZE {
+            chunks.push((
+                i64::from(chunk_start_utf16),
+                tokenize_chinese_text(&content[chunk_start_byte..byte_index]),
+            ));
+            chunk_start_byte = byte_index;
+            chunk_start_utf16 = utf16_cursor;
+            chars_in_chunk = 0;
+        }
+        utf16_cursor = utf16_cursor.saturating_add(ch.len_utf16() as u32);
+        chars_in_chunk += 1;
+    }
+
+    if chunk_start_byte < content.len() {
+        chunks.push((
+            i64::from(chunk_start_utf16),
+            tokenize_chinese_text(&content[chunk_start_byte..]),
+        ));
+    }
+
+    chunks
+}
 /// 搜索引擎
 ///
 /// 基于 SQLite FTS5 全文检索引擎，支持中文分词（jieba-rs）
@@ -30,6 +67,7 @@ impl SearchEngine {
 
     /// 确保 FTS5 表已创建（幂等，可重复调用）
     pub async fn ensure_table(&self) -> Result<(), sqlx::Error> {
+        let mut tx = self.pool.begin().await?;
         sqlx::query(
             "CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts5(
                 content,
@@ -41,8 +79,40 @@ impl SearchEngine {
                 tokenize='unicode61'
             )",
         )
-        .execute(&self.pool)
+        .execute(&mut *tx)
         .await?;
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS search_meta(
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            )",
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        let stored_version = sqlx::query_scalar::<_, String>(
+            "SELECT value FROM search_meta WHERE key = 'offset_version'",
+        )
+        .fetch_optional(&mut *tx)
+        .await?;
+        if stored_version.as_deref() != Some(SEARCH_OFFSET_VERSION) {
+            sqlx::query("DELETE FROM search_index")
+                .execute(&mut *tx)
+                .await?;
+            sqlx::query(
+                "INSERT INTO search_meta(key, value) VALUES('offset_version', ?)
+                 ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            )
+            .bind(SEARCH_OFFSET_VERSION)
+            .execute(&mut *tx)
+            .await?;
+            tracing::info!(
+                target: "search_index",
+                offset_version = SEARCH_OFFSET_VERSION,
+                "search index invalidated for UTF-16 offset contract"
+            );
+        }
+        tx.commit().await?;
         Ok(())
     }
 
@@ -63,34 +133,8 @@ impl SearchEngine {
             content.len()
         );
 
-        let tokenized_content = tokenize_chinese_text(content);
         let tokenized_title = tokenize_chinese_text(chapter_title);
-
-        // M1: 使用 char_indices 直接分块，避免 Vec<char> 中间分配
-        let char_count = tokenized_content.chars().count();
-        let num_chunks = char_count.div_ceil(SEARCH_CHUNK_SIZE);
-        let char_boundaries: Vec<usize> = tokenized_content
-            .char_indices()
-            .map(|(i, _)| i)
-            .collect();
-
-        let mut chunks: Vec<(i64, String)> = Vec::with_capacity(num_chunks);
-
-        for i in 0..num_chunks {
-            let char_start = i * SEARCH_CHUNK_SIZE;
-            let char_end = ((i + 1) * SEARCH_CHUNK_SIZE).min(char_count);
-            let byte_start = char_boundaries[char_start];
-            let byte_end = if char_end < char_count {
-                char_boundaries[char_end]
-            } else {
-                tokenized_content.len()
-            };
-            let position = char_start as i64;
-            chunks.push((
-                position,
-                tokenized_content[byte_start..byte_end].to_string(),
-            ));
-        }
+        let chunks = build_search_chunks(content);
 
         let mut tx = self.pool.begin().await?;
 
@@ -108,11 +152,11 @@ impl SearchEngine {
             );
             query_builder.push_values(chunks.iter(), |mut b, (position, chunk_str)| {
                 b.push_bind(book_id)
-                 .push_bind(chapter_id)
-                 .push_bind(chapter_index.to_string())
-                 .push_bind(&tokenized_title)
-                 .push_bind(chunk_str)
-                 .push_bind(position);
+                    .push_bind(chapter_id)
+                    .push_bind(chapter_index.to_string())
+                    .push_bind(&tokenized_title)
+                    .push_bind(chunk_str)
+                    .push_bind(position);
             });
             query_builder.build().execute(&mut *tx).await?;
         }
@@ -294,7 +338,6 @@ fn escape_fts5_query(query: &str) -> String {
     format!("\"{escaped}\"")
 }
 
-
 #[cfg(test)]
 fn truncate_snippet(text: &str, max_len: usize) -> String {
     let char_count = text.chars().count();
@@ -325,5 +368,45 @@ mod tests {
         let result = tokenize_chinese_text("Hello 世界");
         assert!(result.contains("Hello"));
         assert!(result.contains("世界"));
+    }
+
+    #[test]
+    fn search_chunk_positions_use_original_utf16_offsets() {
+        let content = format!("{}😀B", "A".repeat(SEARCH_CHUNK_SIZE - 1));
+        let chunks = build_search_chunks(&content);
+
+        assert_eq!(chunks.len(), 2);
+        assert_eq!(chunks[0].0, 0);
+        assert_eq!(chunks[1].0, (SEARCH_CHUNK_SIZE + 1) as i64);
+        assert_eq!(chunks[1].1, "B");
+    }
+
+    #[tokio::test]
+    async fn stale_offset_version_clears_derived_search_index() {
+        let pool = SqlitePool::connect("sqlite::memory:")
+            .await
+            .expect("open in-memory sqlite");
+        let engine = SearchEngine::new(pool.clone());
+        engine.ensure_table().await.expect("create search tables");
+
+        sqlx::query(
+            "INSERT INTO search_index(content, book_id, chapter_id, chapter_index, chapter_title, position)
+             VALUES('text', 'book', 'chapter', '0', 'title', 1)",
+        )
+        .execute(&pool)
+        .await
+        .expect("insert derived row");
+        sqlx::query("UPDATE search_meta SET value = '1' WHERE key = 'offset_version'")
+            .execute(&pool)
+            .await
+            .expect("mark stale version");
+
+        engine.ensure_table().await.expect("invalidate stale index");
+
+        let count = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM search_index")
+            .fetch_one(&pool)
+            .await
+            .expect("count search rows");
+        assert_eq!(count, 0);
     }
 }

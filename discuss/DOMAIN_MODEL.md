@@ -39,7 +39,7 @@ erDiagram
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `chapterIndex` | int | |
-| `charOffset` | int | 在 `plainText` 内的字符索引 |
+| `charOffset` | int | 在 `plainText` 内的 UTF-16 code-unit offset（ADR-017） |
 
 **不持久化** `pageIndex`（ADR-001）。
 

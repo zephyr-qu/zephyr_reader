@@ -18,6 +18,15 @@ import 'package:zephyr_reader/core/reader_engine/rendering/ir_text_block_style.d
 import 'package:zephyr_reader/core/reader_engine/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/ir_types.dart';
 
+bool _isUtf16Boundary(String text, int index) {
+  if (index <= 0 || index >= text.length) return true;
+  final previous = text.codeUnitAt(index - 1);
+  final current = text.codeUnitAt(index);
+  final previousIsHighSurrogate = previous >= 0xD800 && previous <= 0xDBFF;
+  final currentIsLowSurrogate = current >= 0xDC00 && current <= 0xDFFF;
+  return !(previousIsHighSurrogate && currentIsLowSurrogate);
+}
+
 /// 使用 TextPainter 从单段文本提取行断点（相对 [text] 起点）。
 ///
 /// [firstLineIndentPx] > 0 时与 [measureSliceLayout] / 分页渲染一致：
@@ -47,16 +56,19 @@ List<int> computeLineBreakIndices({
     strutStyle: strutStyle,
     textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
   );
+  var previousBoundary = 0;
   for (var n = 1; n <= text.length; n++) {
+    if (!_isUtf16Boundary(text, n)) continue;
     probe.text = TextSpan(text: text.substring(0, n), style: style);
     probe.layout(maxWidth: narrowWidth);
     if (probe.computeLineMetrics().length > 1) {
-      firstLineChars = n - 1;
+      firstLineChars = previousBoundary;
       break;
     }
+    previousBoundary = n;
   }
   if (firstLineChars <= 0) {
-    firstLineChars = 1;
+    firstLineChars = _isUtf16Boundary(text, 1) ? 1 : 2;
   }
 
   if (firstLineChars >= text.length) {
@@ -134,13 +146,25 @@ List<int> computeChapterLineBreakIndicesFromBlocks({
     }
     if (block.text.isEmpty) continue;
 
-    final blockFontSize = IrReaderIrBlock.effectiveFontSize(block.style, config);
-    final blockLineHeight = IrReaderIrBlock.effectiveLineHeight(block.style, config);
+    final blockFontSize = IrReaderIrBlock.effectiveFontSize(
+      block.style,
+      config,
+    );
+    final blockLineHeight = IrReaderIrBlock.effectiveLineHeight(
+      block.style,
+      config,
+    );
     final textStyle = config
         .buildTextStyle(fontSizeMultiplier: blockFontSize / config.fontSize)
         .copyWith(height: blockLineHeight);
-    final indentPx = IrReaderIrBlock.resolveFirstLineIndentPx(block.style, config);
-    final blockPadding = IrReaderIrBlock.resolveBlockPadding(block.style, config);
+    final indentPx = IrReaderIrBlock.resolveFirstLineIndentPx(
+      block.style,
+      config,
+    );
+    final blockPadding = IrReaderIrBlock.resolveBlockPadding(
+      block.style,
+      config,
+    );
     final layoutMaxWidth = (maxWidth - blockPadding.horizontal).clamp(
       1.0,
       maxWidth,

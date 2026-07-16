@@ -38,13 +38,13 @@ class _PageCurlWidgetState extends State<PageCurlWidget>
   double _dragProgress = 0.0;
   double _totalDx = 0.0;
   bool _committed = false;
+  final Map<int, Widget> _pageCache = {};
 
   @override
   void initState() {
     super.initState();
     _direction = widget.isForward ? 1 : -1;
     _ctrl = AnimationController(vsync: this, duration: AnimTokens.slow)
-      ..addListener(() => setState(() {}))
       ..addStatusListener((status) {
         if (status == AnimationStatus.completed) _onTurnCompleted();
       });
@@ -59,12 +59,20 @@ class _PageCurlWidgetState extends State<PageCurlWidget>
   @override
   void didUpdateWidget(PageCurlWidget old) {
     super.didUpdateWidget(old);
+    if (old.pageIndex != widget.pageIndex ||
+        old.totalPages != widget.totalPages ||
+        old.pageBuilder != widget.pageBuilder) {
+      _pageCache.clear();
+    }
     if (old.pageIndex != widget.pageIndex && !_ctrl.isAnimating) {
       _dragProgress = 0.0;
       _totalDx = 0.0;
       _committed = false;
     }
   }
+
+  Widget _pageAt(int index) =>
+      _pageCache.putIfAbsent(index, () => widget.pageBuilder(index));
 
   double get _progress => _ctrl.isAnimating ? _ctrl.value : _dragProgress;
   bool get _isForward => _direction == 1;
@@ -160,28 +168,45 @@ class _PageCurlWidgetState extends State<PageCurlWidget>
 
   @override
   Widget build(BuildContext context) {
-    final progress = _progress;
-    final showCurl = progress > 0;
-
-    Widget? nextPage;
-    if (showCurl) {
-      final next = _isForward ? widget.pageIndex + 1 : widget.pageIndex - 1;
-      if (next >= 0 && next < widget.totalPages) {
-        nextPage = widget.pageBuilder(next);
-      }
-    }
-
-    final currentPage = widget.pageBuilder(widget.pageIndex);
+    final currentPage = _pageAt(widget.pageIndex);
+    final previousPage = widget.pageIndex > 0
+        ? _pageAt(widget.pageIndex - 1)
+        : null;
+    final nextPage = widget.pageIndex < widget.totalPages - 1
+        ? _pageAt(widget.pageIndex + 1)
+        : null;
 
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onHorizontalDragUpdate: _onHorizontalDragUpdate,
       onHorizontalDragEnd: _onHorizontalDragEnd,
       onTapUp: _onTapUp,
-      child: ClipRect(
-        child: Stack(
-          children: [
-            // Next page (bottom layer)
-            if (nextPage != null) Positioned.fill(child: nextPage),
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder: (context, _) => _buildCurlFrame(
+          currentPage: currentPage,
+          previousPage: previousPage,
+          nextPage: nextPage,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCurlFrame({
+    required Widget currentPage,
+    required Widget? previousPage,
+    required Widget? nextPage,
+  }) {
+    final progress = _progress;
+    final showCurl = progress > 0;
+    final revealedPage = _isForward ? nextPage : previousPage;
+
+    return ClipRect(
+      child: Stack(
+        children: [
+          // Next page (bottom layer)
+          if (showCurl && revealedPage != null)
+            Positioned.fill(child: revealedPage),
             // Current page with clip & transform
             if (showCurl)
               ClipPath(
@@ -204,7 +229,7 @@ class _PageCurlWidgetState extends State<PageCurlWidget>
             else
               currentPage,
             // Shadow overlay (on reveal side of fold)
-            if (showCurl && nextPage != null)
+            if (showCurl && revealedPage != null)
               Positioned.fill(
                 child: IgnorePointer(
                   child: CustomPaint(
@@ -215,8 +240,7 @@ class _PageCurlWidgetState extends State<PageCurlWidget>
                   ),
                 ),
               ),
-          ],
-        ),
+        ],
       ),
     );
   }

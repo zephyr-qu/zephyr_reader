@@ -4,7 +4,7 @@
 // 公有类型/函数：
 //   - enum PlainProjectionStyle — plain 投影风格
 //   - enum PlainProjectionError — 投影校验失败原因
-//   - fn slice_by_char_range() — 按 Unicode 字符索引切片
+//   - fn slice_by_utf16_range() — 按 UTF-16 code-unit 索引安全切片
 //   - fn slice_inline_runs() — 裁剪 ReaderInlineRun 流
 //   - fn project_block_joined() — 从块流重建 plain
 //   - fn validate_chapter_plain() — 校验章 IR plain 投影
@@ -17,8 +17,8 @@
 use std::fmt;
 
 use crate::pipeline::types::{
-    ReaderChapterIr, ReaderInlineRun, ReaderIrBlock, ReaderIrBlockKind, IMAGE_PLAIN_CHAR_LEN,
-    IMAGE_PLAIN_PLACEHOLDER,
+    IMAGE_PLAIN_CHAR_LEN, IMAGE_PLAIN_PLACEHOLDER, ReaderChapterIr, ReaderInlineRun, ReaderIrBlock,
+    ReaderIrBlockKind,
 };
 
 /// plain 投影 / 校验风格。
@@ -127,12 +127,39 @@ impl fmt::Display for PlainProjectionError {
 
 impl std::error::Error for PlainProjectionError {}
 
-/// 按 Unicode 字符索引切片（与 `charOffset` 语义一致）。
-pub fn slice_by_char_range(text: &str, start: u32, len: u32) -> String {
-    text.chars()
-        .skip(start as usize)
-        .take(len as usize)
-        .collect()
+/// 返回字符串的 UTF-16 code-unit 长度。
+pub fn utf16_len(text: &str) -> u32 {
+    text.encode_utf16().count() as u32
+}
+
+/// 将 UTF-16 code-unit offset 映射为 UTF-8 byte index。
+///
+/// 落在代理对中间或越界时返回 `None`，避免静默切坏 Unicode scalar。
+fn byte_index_at_utf16_offset(text: &str, offset: u32) -> Option<usize> {
+    if offset == 0 {
+        return Some(0);
+    }
+
+    let mut utf16_cursor = 0u32;
+    for (byte_index, ch) in text.char_indices() {
+        if utf16_cursor == offset {
+            return Some(byte_index);
+        }
+        utf16_cursor = utf16_cursor.saturating_add(ch.len_utf16() as u32);
+        if utf16_cursor > offset {
+            return None;
+        }
+    }
+
+    (utf16_cursor == offset).then_some(text.len())
+}
+
+/// 按 UTF-16 code-unit 半开区间安全切片。
+pub fn slice_by_utf16_range(text: &str, start: u32, len: u32) -> Option<&str> {
+    let end = start.checked_add(len)?;
+    let start_byte = byte_index_at_utf16_offset(text, start)?;
+    let end_byte = byte_index_at_utf16_offset(text, end)?;
+    text.get(start_byte..end_byte)
 }
 
 /// 将 [`ReaderInlineRun`] 流按块内字符范围裁剪（分页切片用）。
@@ -145,7 +172,7 @@ pub fn slice_inline_runs(runs: &[ReaderInlineRun], start: u32, len: u32) -> Vec<
     let mut out = Vec::new();
 
     for run in runs {
-        let span_len = run.text.chars().count() as u32;
+        let span_len = utf16_len(&run.text);
         let span_start = cursor;
         let span_end = cursor.saturating_add(span_len);
         cursor = span_end;
@@ -160,9 +187,11 @@ pub fn slice_inline_runs(runs: &[ReaderInlineRun], start: u32, len: u32) -> Vec<
         if slice_len == 0 {
             continue;
         }
-        let text = slice_by_char_range(&run.text, overlap_start, slice_len);
+        let Some(text) = slice_by_utf16_range(&run.text, overlap_start, slice_len) else {
+            continue;
+        };
         out.push(ReaderInlineRun {
-            text,
+            text: text.to_string(),
             style: run.style,
             url: run.url.clone(),
         });
@@ -180,7 +209,7 @@ pub fn project_block_joined(blocks: &[ReaderIrBlock]) -> String {
             ReaderIrBlockKind::Text => {
                 super::block_joined_builder::append_block_separator(&mut plain, &mut cursor);
                 plain.push_str(&block.text);
-                cursor += block.text.chars().count() as u32;
+                cursor += utf16_len(&block.text);
             }
             ReaderIrBlockKind::Image => {
                 super::block_joined_builder::append_block_separator(&mut plain, &mut cursor);
@@ -198,7 +227,7 @@ pub fn validate_chapter_plain(
     ir: &ReaderChapterIr,
     style: PlainProjectionStyle,
 ) -> Result<(), PlainProjectionError> {
-    let plain_len = ir.plain_text.chars().count() as u32;
+    let plain_len = utf16_len(&ir.plain_text);
 
     if ir.image_block_count() != ir.image_placeholder_count() {
         return Err(PlainProjectionError::ImagePlaceholderCountMismatch {
@@ -233,7 +262,7 @@ pub fn validate_chapter_plain(
 
         match block.kind {
             ReaderIrBlockKind::Text => {
-                let expected_len = block.text.chars().count() as u32;
+                let expected_len = utf16_len(&block.text);
                 if block.plain_len != expected_len {
                     return Err(PlainProjectionError::TextBlockPlainLenMismatch {
                         block_index: i,
@@ -241,8 +270,9 @@ pub fn validate_chapter_plain(
                         actual: block.plain_len,
                     });
                 }
-                let slice = slice_by_char_range(&ir.plain_text, block.plain_start, block.plain_len);
-                if slice != block.text {
+                let slice =
+                    slice_by_utf16_range(&ir.plain_text, block.plain_start, block.plain_len);
+                if slice != Some(block.text.as_str()) {
                     return Err(PlainProjectionError::TextBlockPlainLenMismatch {
                         block_index: i,
                         expected: expected_len,
@@ -264,8 +294,8 @@ pub fn validate_chapter_plain(
                 if block.plain_len != IMAGE_PLAIN_CHAR_LEN {
                     return Err(PlainProjectionError::ImageBlockPlainLenInvalid { block_index: i });
                 }
-                let ch = slice_by_char_range(&ir.plain_text, block.plain_start, 1);
-                if ch != IMAGE_PLAIN_PLACEHOLDER.to_string() {
+                let ch = slice_by_utf16_range(&ir.plain_text, block.plain_start, 1);
+                if ch != Some("\u{FFFC}") {
                     return Err(PlainProjectionError::ImageBlockPlaceholderMismatch {
                         block_index: i,
                         plain_start: block.plain_start,
@@ -281,19 +311,20 @@ pub fn validate_chapter_plain(
 // ==================== ReaderChapterIr 实例方法 ====================
 
 impl ReaderChapterIr {
-    /// 章级 plain 字符数（`charOffset` 上界）。
+    /// 章级 plain UTF-16 code-unit 数（`charOffset` 上界）。
     pub fn plain_char_count(&self) -> u32 {
-        self.plain_text.chars().count() as u32
+        utf16_len(&self.plain_text)
     }
 
-    /// 读取 plain 中某字符（越界返回 `None`）。
+    /// 读取 UTF-16 offset 起始处的 Unicode scalar（代理对中间返回 `None`）。
     pub fn char_at_offset(&self, char_offset: u32) -> Option<char> {
-        self.plain_text.chars().nth(char_offset as usize)
+        let byte_index = byte_index_at_utf16_offset(&self.plain_text, char_offset)?;
+        self.plain_text.get(byte_index..)?.chars().next()
     }
 
-    /// plain 切片 `[start, start+len)`（字符索引）。
-    pub fn plain_slice(&self, start: u32, len: u32) -> String {
-        slice_by_char_range(&self.plain_text, start, len)
+    /// plain 切片 `[start, start+len)`（UTF-16 code-unit 索引）。
+    pub fn plain_slice(&self, start: u32, len: u32) -> Option<&str> {
+        slice_by_utf16_range(&self.plain_text, start, len)
     }
 
     /// 校验 plain 投影。
@@ -408,5 +439,27 @@ mod tests {
         assert_eq!(sliced.len(), 1);
         assert_eq!(sliced[0].style, ReaderInlineStyle::Bold);
         assert_eq!(sliced[0].text, "bold");
+    }
+
+    #[test]
+    fn utf16_ranges_reject_surrogate_pair_midpoints() {
+        let text = "A😀B";
+        assert_eq!(utf16_len(text), 4);
+        assert_eq!(slice_by_utf16_range(text, 1, 2), Some("😀"));
+        assert_eq!(slice_by_utf16_range(text, 2, 1), None);
+        assert_eq!(slice_by_utf16_range(text, 0, 4), Some(text));
+    }
+
+    #[test]
+    fn inline_runs_slice_with_utf16_offsets() {
+        let runs = vec![ReaderInlineRun {
+            text: "A😀B".into(),
+            style: ReaderInlineStyle::Bold,
+            url: None,
+        }];
+
+        let sliced = slice_inline_runs(&runs, 1, 2);
+        assert_eq!(sliced.len(), 1);
+        assert_eq!(sliced[0].text, "😀");
     }
 }

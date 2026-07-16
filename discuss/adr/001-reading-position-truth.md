@@ -7,7 +7,7 @@
 ## 决策
 
 1. 持久化进度、书签、笔记锚点 = **ReadingPosition** `{ chapterIndex, charOffset }`。
-2. `charOffset` 是章节 **plainText** 内的字符索引（从 0 起）。
+2. `charOffset` 是章节 **plainText** 内从 0 起的 UTF-16 code-unit offset，详见 [ADR-017](./017-reading-offset-utf16-contract.md)。
 3. `pageIndex` **不写入数据库**；由 `charOffset` + 当前分页 descriptors 每次推算。
 
 ## 通俗解释（给 G3）

@@ -12,8 +12,8 @@
 //! 投影/校验委托给 plain_projector 模块
 
 use crate::pipeline::types::{
-    BlockStyle, ReaderChapterIr, ReaderInlineRun, ReaderIrBlock, ReaderIrBlockKind,
-    IMAGE_PLAIN_PLACEHOLDER,
+    BlockStyle, IMAGE_PLAIN_PLACEHOLDER, ReaderChapterIr, ReaderInlineRun, ReaderIrBlock,
+    ReaderIrBlockKind,
 };
 
 /// 块级 `\n` 分隔符（ADR-007 单换行）。
@@ -50,7 +50,7 @@ impl BlockJoinedPlainBuilder {
         append_block_separator(&mut self.plain, &mut self.cursor);
         let start = self.cursor;
         self.plain.push_str(&text);
-        self.cursor += text.chars().count() as u32;
+        self.cursor += super::plain_projector::utf16_len(&text);
         self.blocks
             .push(ReaderIrBlock::text(start, text, runs, style));
     }
@@ -149,6 +149,20 @@ mod tests {
         let ir = b.finish();
         assert_eq!(ir.plain_text, format!("sample\n{IMAGE_PLAIN_PLACEHOLDER}"));
         assert_eq!(ir.blocks[1].plain_start, 7);
+        ir.validate_plain(crate::pipeline::plain_projector::PlainProjectionStyle::BlockJoined)
+            .unwrap();
+    }
+
+    #[test]
+    fn offsets_use_utf16_code_units() {
+        let mut b = BlockJoinedPlainBuilder::new();
+        b.push_text("A😀B".into(), BlockStyle::empty());
+        b.push_image("sample_asset".into(), None, None, None);
+        let ir = b.finish();
+
+        assert_eq!(ir.blocks[0].plain_len, 4);
+        assert_eq!(ir.blocks[1].plain_start, 5);
+        assert!(ir.is_image_placeholder_offset(5));
         ir.validate_plain(crate::pipeline::plain_projector::PlainProjectionStyle::BlockJoined)
             .unwrap();
     }

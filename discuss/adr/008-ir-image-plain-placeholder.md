@@ -19,7 +19,7 @@
 1. **投影规则**（EPUB/TXT → IR 时同步生成 plain）  
    - `Text` 块：按 ADR-007 现有规则写入 plain（块级单 `\n` 等）。  
    - `Image` 块：在 DOM/IR 顺序对应位置 append **一个** `\uFFFC`。  
-   - 每个 `Image` 块记录 `plain_start`（UTF-8 字节偏移或 Rust char index，与现有 `charOffset` 语义一致）且 **`plain_len = 1`**。
+   - 每个 `Image` 块记录 UTF-16 code-unit `plain_start`（[ADR-017](./017-reading-offset-utf16-contract.md)）且 **`plain_len = 1`**。
 
 2. **进度与分页**  
    - 书签/笔记/持久化进度：仍只存 `{ chapterIndex, charOffset }`（ADR-001）。  

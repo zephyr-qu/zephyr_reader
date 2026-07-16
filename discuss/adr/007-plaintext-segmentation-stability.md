@@ -7,7 +7,7 @@
 ## 决策
 
 1. **Phase 1 ~ Phase 2 前**：EPUB→plain 维持现有 `html_to_plain_text` 规则——块级标签产 **单 `\n`**，再经 `clean_whitespace` 整理；**不**改为 `\n\n` 或按标签分级间距。
-2. **charOffset 绝对稳定**：不得在无版本迁移的情况下静默改变 plain 编码规则；已存书签/进度/笔记偏移必须可复现。
+2. **charOffset 绝对稳定**：坐标单位固定为 UTF-16 code unit（[ADR-017](./017-reading-offset-utf16-contract.md)）；不得在无版本迁移的情况下静默改变 plain 编码规则；已存书签/进度/笔记偏移必须可复现。
 3. **验收**：Rust 单元测试（HTML fixture）+ 至少 1 本结构复杂 EPUB 黄金样章人工核对（R4-2 A+B）。记录见 [007-epub-golden-verification.md](./007-epub-golden-verification.md)。
 4. **Phase 2 预留**：视觉段落间距改由 **ContentBlock / IR** 表达；是否调整 plain 与 IR 的映射在 Phase 2 单独立项，须新 ADR + 迁移策略。
 
