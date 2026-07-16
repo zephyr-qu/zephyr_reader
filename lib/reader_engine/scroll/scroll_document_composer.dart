@@ -1,5 +1,5 @@
-import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
-import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dart';
+import 'package:zephyr_reader/reader_engine/scroll/scroll_chapter_segment.dart';
+import 'package:zephyr_reader/reader_engine/scroll/scroll_layout_params.dart';
 
 /// 滚动模式多章拼接的滑动窗口（最多 3 段：prev/current/next）。
 ///

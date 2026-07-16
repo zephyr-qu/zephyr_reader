@@ -13,15 +13,14 @@ import 'package:zephyr_reader/features/reader/core/application/reader_view_model
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'package:zephyr_reader/features/reader/annotations/presentation/reader_annotation_dialog.dart';
 import 'package:zephyr_reader/features/reader/annotations/presentation/reader_highlight_sheet.dart';
-import 'package:zephyr_reader/features/reader/rendering/paginated_renderer.dart';
-import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/features/reader/rendering/scroll_mode_renderer.dart';
-import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
+import 'package:zephyr_reader/reader_engine/rendering/paginated_renderer.dart';
+import 'package:zephyr_reader/reader_engine/rendering/reader_render_config.dart';
+import 'package:zephyr_reader/reader_engine/scroll/scroll_mode_renderer.dart';
+import 'package:zephyr_reader/reader_engine/scroll/scroll_chapter_segment.dart';
 import 'package:zephyr_reader/features/reader/page/ui/battery_indicator.dart';
 import 'package:zephyr_reader/features/reader/page/ui/brightness_mask.dart';
 import 'package:zephyr_reader/features/reader/page/widgets/reader_content.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-
 
 class ReaderContentArea extends HookWidget {
   const ReaderContentArea({

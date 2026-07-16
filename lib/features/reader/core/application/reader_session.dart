@@ -5,7 +5,7 @@ import 'package:zephyr_reader/features/reader/core/application/reader_view_model
 import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
 import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart';
 import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_pagination_session.dart';
+import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
 
 /// Per-book reading session — owns a dedicated [ReaderViewModel] instance.
 class ReaderSession {

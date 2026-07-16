@@ -2,9 +2,9 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_load_requ
 import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
 import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_pagination_session.dart';
+import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
+import 'package:zephyr_reader/reader_engine/pagination/packed_page.dart';
 
 /// 首屏 partial 分页下的页码与 charOffset 推算结果。
 class QuickPageResolveResult {

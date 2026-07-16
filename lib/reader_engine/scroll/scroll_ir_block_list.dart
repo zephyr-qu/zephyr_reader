@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
-import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
-import 'package:zephyr_reader/features/reader/rendering/ir_text_block_style.dart';
-import 'package:zephyr_reader/features/reader/rendering/block_page_content.dart';
-import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
+import 'package:zephyr_reader/reader_engine/scroll/scroll_chapter_segment.dart';
+import 'package:zephyr_reader/reader_engine/rendering/ir_text_block_style.dart';
+import 'package:zephyr_reader/reader_engine/rendering/block_page_content.dart';
+import 'package:zephyr_reader/reader_engine/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/domain/note/models.dart';
-import 'package:zephyr_reader/features/reader/data/ir_types.dart';
+import 'package:zephyr_reader/reader_engine/shared/ir_types.dart';
 
 /// scroll 模式按 [ReaderIrBlock] 流渲染（与 pagination 块分页同源 IR）。
 Widget buildScrollIrBlockList({

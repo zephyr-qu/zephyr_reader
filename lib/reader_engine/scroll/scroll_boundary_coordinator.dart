@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
-import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
-import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dart';
-import 'package:zephyr_reader/features/reader/core/data/scroll_segment_factory.dart';
-import 'package:zephyr_reader/features/reader/core/application/scroll_document_composer.dart';
+import 'package:zephyr_reader/reader_engine/scroll/scroll_chapter_segment.dart';
+import 'package:zephyr_reader/reader_engine/scroll/scroll_layout_params.dart';
+import 'package:zephyr_reader/reader_engine/scroll/scroll_segment_factory.dart';
+import 'package:zephyr_reader/reader_engine/scroll/scroll_document_composer.dart';
 import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_notice.dart';
-import 'package:zephyr_reader/features/reader/data/ir_types.dart';
+import 'package:zephyr_reader/reader_engine/shared/ir_types.dart';
 
 /// 滚动模式章界协调器。
 ///

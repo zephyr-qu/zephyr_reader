@@ -6,14 +6,14 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/features/reader/core/data/epub_block_image_cache.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_block_paginator.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/active_chapter_ir.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_viewport_metrics.dart';
-import 'package:zephyr_reader/features/reader/rendering/ir_text_block_style.dart';
-import 'package:zephyr_reader/features/reader/rendering/paginated_page_viewport.dart';
-import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
+import 'package:zephyr_reader/reader_engine/rendering/image_cache.dart';
+import 'package:zephyr_reader/reader_engine/pagination/flutter_block_paginator.dart';
+import 'package:zephyr_reader/reader_engine/pagination/active_chapter_ir.dart';
+import 'package:zephyr_reader/reader_engine/pagination/pagination_viewport_metrics.dart';
+import 'package:zephyr_reader/reader_engine/rendering/ir_text_block_style.dart';
+import 'package:zephyr_reader/reader_engine/rendering/paginated_page_viewport.dart';
+import 'package:zephyr_reader/reader_engine/rendering/reader_render_config.dart';
+import 'package:zephyr_reader/reader_engine/pagination/packed_page.dart';
 
 /// 块分页页 Widget（Text + Image 块列表）。
 Widget buildBlockPageContent({

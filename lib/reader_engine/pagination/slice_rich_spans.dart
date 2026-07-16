@@ -1,4 +1,4 @@
-import 'package:zephyr_reader/features/reader/data/ir_types.dart';
+import 'package:zephyr_reader/reader_engine/shared/ir_types.dart';
 
 /// 获取 run 的文本内容。
 String runText(ReaderInlineRun run) => run.text;

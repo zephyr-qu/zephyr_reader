@@ -5,16 +5,16 @@ import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
-import 'package:zephyr_reader/features/reader/rendering/block_page_content.dart';
-import 'package:zephyr_reader/features/reader/rendering/highlight_painter.dart';
+import 'package:zephyr_reader/reader_engine/rendering/block_page_content.dart';
+import 'package:zephyr_reader/reader_engine/rendering/highlight_painter.dart';
 
-import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
+import 'package:zephyr_reader/reader_engine/pagination/packed_page.dart';
 
-import 'package:zephyr_reader/features/reader/rendering/paginated_page_viewport.dart';
+import 'package:zephyr_reader/reader_engine/rendering/paginated_page_viewport.dart';
 import 'reader_render_config.dart';
 import 'find_render_box.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_viewport_index.dart';
-import 'package:zephyr_reader/features/reader/rendering/page_turn_shell.dart';
+import 'package:zephyr_reader/reader_engine/rendering/page_turn_shell.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 
 /// 分页模式渲染器。

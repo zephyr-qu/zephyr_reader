@@ -1,4 +1,4 @@
-import 'package:zephyr_reader/features/reader/data/ir_types.dart';
+import 'package:zephyr_reader/reader_engine/shared/ir_types.dart';
 
 /// 当前 FlutterPaginationSession 持有的章 IR（供渲染查 Image intrinsic，避免改 FRB）。
 abstract final class ActiveChapterIr {

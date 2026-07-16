@@ -3,14 +3,13 @@ import 'package:zephyr_reader/src/rust/domain/note/models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
-import 'highlight_painter.dart';
-
+import 'package:zephyr_reader/reader_engine/rendering/highlight_painter.dart';
 
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
-import 'reader_render_config.dart';
-import 'find_render_box.dart';
-import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
-import 'scroll_ir_block_list.dart';
+import 'package:zephyr_reader/reader_engine/rendering/reader_render_config.dart';
+import 'package:zephyr_reader/reader_engine/rendering/find_render_box.dart';
+import 'package:zephyr_reader/reader_engine/scroll/scroll_chapter_segment.dart';
+import 'package:zephyr_reader/reader_engine/scroll/scroll_ir_block_list.dart';
 
 /// 滚动模式渲染器。
 ///

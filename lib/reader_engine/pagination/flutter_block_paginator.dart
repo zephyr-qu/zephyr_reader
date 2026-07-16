@@ -1,10 +1,10 @@
 import 'package:flutter/painting.dart';
-import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
-import 'package:zephyr_reader/features/reader/rendering/ir_text_block_style.dart';
-import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/slice_rich_spans.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
-import 'package:zephyr_reader/features/reader/data/ir_types.dart';
+import 'package:zephyr_reader/reader_engine/rendering/line_break_extractor.dart';
+import 'package:zephyr_reader/reader_engine/rendering/ir_text_block_style.dart';
+import 'package:zephyr_reader/reader_engine/rendering/reader_render_config.dart';
+import 'package:zephyr_reader/reader_engine/pagination/slice_rich_spans.dart';
+import 'package:zephyr_reader/reader_engine/pagination/packed_page.dart';
+import 'package:zephyr_reader/reader_engine/shared/ir_types.dart';
 
 /// 无 intrinsic 时图片高度 = 内容宽 × 此比（与 Rust `DEFAULT_IMAGE_HEIGHT_RATIO` 对齐）。
 const kDefaultImageHeightRatio = 0.55;

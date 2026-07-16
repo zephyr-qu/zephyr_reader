@@ -1,4 +1,4 @@
-import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
+import 'package:zephyr_reader/reader_engine/pagination/packed_page.dart';
 
 class NextChapterStaging {
   final int chapterIndex;

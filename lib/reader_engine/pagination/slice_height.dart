@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
+import 'package:zephyr_reader/reader_engine/rendering/reader_render_config.dart';
 
 /// 与 [IrReaderIrBlock.buildHighlightedSpan] 同构的高度测量（WidgetSpan 首行缩进）。
 ///

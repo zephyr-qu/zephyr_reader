@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
+import 'package:zephyr_reader/reader_engine/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/domain/bilingual/models.dart';
 import 'package:zephyr_reader/src/rust/domain/note/models.dart';
 

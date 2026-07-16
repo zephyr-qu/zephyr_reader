@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/features/reader/rendering/highlight_painter.dart';
-import 'package:zephyr_reader/features/reader/rendering/ir_text_block_style.dart';
-import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
+import 'package:zephyr_reader/reader_engine/rendering/highlight_painter.dart';
+import 'package:zephyr_reader/reader_engine/rendering/ir_text_block_style.dart';
+import 'package:zephyr_reader/reader_engine/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 
-import 'package:zephyr_reader/features/reader/rendering/find_render_box.dart';
+import 'package:zephyr_reader/reader_engine/rendering/find_render_box.dart';
 import 'package:zephyr_reader/src/rust/domain/bilingual/models.dart';
 import 'package:zephyr_reader/src/rust/domain/note/models.dart';
 
