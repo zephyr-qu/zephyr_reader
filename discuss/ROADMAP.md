@@ -183,7 +183,7 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 | 7 | **P1** | 删除 `ReaderRepository` 中间人 | ✅ 已完成 — 提交 `2ff0862` 删除 `reader_repository_interface.dart`(163 行) 和 `rust_reader_repository.dart`(240 行) |
 | 8 | **P2** | 删除 4 个假抽象接口 | ✅ 已完成 — 合并到具体类：`ProgressRepository`/`ReaderRenderDataSource`/`ChapterContentRepository`/`BilingualReaderDelegate` |
 | 9 | **P2** | 合并 `core/domain/` 和 `domain/` | ✅ 已完成 |
-| 10 | **P2** | 合并小文件 | ⏳ 部分完成 — `features/reader/` 从 ~108 降至 69，39 个引擎文件迁至 `reader_engine/` |
+| 10 | **P2** | 合并小文件 | ✅ 已完成 — `features/reader/` 从 ~108 降至 69，39 个引擎文件迁至 `reader_engine/`；3 个独立小文件（`chapter_load_phase`/`chapter_load_request`/`chapter_pagination_intent`）合并入消费者，-60 行 -3 文件 |
 
 ### 不做
 
