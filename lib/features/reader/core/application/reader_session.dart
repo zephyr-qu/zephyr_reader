@@ -1,9 +1,9 @@
-import 'package:zephyr_reader/features/reader/core/domain/bilingual_reader_delegate.dart';
+import 'package:zephyr_reader/features/reader/domain/bilingual_reader_delegate.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_view_model.dart';
-import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
-import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart';
+import 'package:zephyr_reader/features/reader/domain/chapter_content_repository.dart';
+import 'package:zephyr_reader/features/reader/domain/progress_repository.dart';
 import 'package:zephyr_reader/features/reader/core/data/default_reader_render_data_source.dart';
 import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
 

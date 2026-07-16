@@ -3,7 +3,7 @@ import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/reader_engine/scroll/scroll_chapter_payload.dart';
-import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
+import 'package:zephyr_reader/features/reader/domain/chapter_content_repository.dart';
 import 'package:zephyr_reader/reader_engine/shared/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_typography_defaults.dart';
