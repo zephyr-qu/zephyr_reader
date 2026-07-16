@@ -1,7 +1,7 @@
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/reader_engine/rendering/image_cache.dart';
 import 'package:zephyr_reader/reader_engine/shared/ir_types.dart';
-import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
+import 'package:zephyr_reader/reader_engine/shared/next_chapter_staging.dart';
 import 'package:zephyr_reader/reader_engine/rendering/line_break_extractor.dart';
 import 'package:zephyr_reader/reader_engine/shared/pagination_params.dart';
 import 'package:zephyr_reader/reader_engine/pagination/flutter_block_paginator.dart';

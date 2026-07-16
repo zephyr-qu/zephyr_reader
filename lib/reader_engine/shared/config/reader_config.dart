@@ -4,9 +4,9 @@ import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/local/preferences_service.dart';
-import 'package:zephyr_reader/features/reader/domain/config/reader_typography_defaults.dart';
-import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
-import 'package:zephyr_reader/features/reader/domain/config/language_type.dart';
+import 'package:zephyr_reader/reader_engine/shared/config/reader_typography_defaults.dart';
+import 'package:zephyr_reader/reader_engine/shared/config/reading_mode_utils.dart';
+import 'package:zephyr_reader/reader_engine/shared/config/language_type.dart';
 
 /// 阅读器翻页点击区域布局（右手/左手习惯）
 enum TapLayout { rightHanded, leftHanded }

@@ -1,10 +1,8 @@
+import 'package:zephyr_reader/reader_engine/shared/page_info.dart';
 import 'package:zephyr_reader/reader_engine/pagination/packed_page.dart';
-import 'package:zephyr_reader/features/reader/domain/model/page_info.dart';
 
-/// 无状态分页引擎。
-///
-/// 封装分页工具方法。
-class PaginationEngine {
+/// 无状态分页工具方法。
+class PaginationUtils {
   /// 首屏快速分页截止字符数（2000 字符）。
   static final BigInt firstScreenMaxChars = BigInt.from(2000);
 

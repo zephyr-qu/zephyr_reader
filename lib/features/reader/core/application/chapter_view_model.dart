@@ -11,15 +11,15 @@ import 'package:zephyr_reader/reader_engine/scroll/scroll_boundary_coordinator.d
 import 'package:zephyr_reader/reader_engine/scroll/scroll_chapter_segment.dart';
 import 'package:zephyr_reader/reader_engine/scroll/scroll_layout_params.dart';
 import 'package:zephyr_reader/features/reader/core/application/search_index_lifecycle.dart';
-import 'package:zephyr_reader/features/reader/domain/chapter_content_repository.dart';
+import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
 import 'package:zephyr_reader/features/reader/domain/progress_repository.dart';
 import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
 
 import 'package:zephyr_reader/reader_engine/shared/ir_types.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
-import 'package:zephyr_reader/features/reader/domain/reader_notice.dart';
+import 'package:zephyr_reader/reader_engine/shared/config/reader_notice.dart';
 
-import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
 import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
 
 /// 章节视图模型

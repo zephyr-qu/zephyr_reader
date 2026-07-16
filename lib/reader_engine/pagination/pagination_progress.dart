@@ -1,12 +1,12 @@
-import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
+import 'package:zephyr_reader/reader_engine/pagination/engine_utils.dart';
 import 'package:zephyr_reader/reader_engine/pagination/packed_page.dart';
 
 /// Spike 进度：charOffset ↔ pageIndex（ADR-001 半开区间语义）。
 abstract final class PaginationProgress {
-  /// 章级 [charOffset] 落在哪一页（与 [PaginationEngine.resolvePageIndexForOffset] 一致）。
+  /// 章级 [charOffset] 落在哪一页（与 [PaginationUtils.resolvePageIndexForOffset] 一致）。
   static int pageIndexAtCharOffset(List<PackedPage> pages, int charOffset) {
     if (pages.isEmpty) return 0;
-    return PaginationEngine.resolvePageIndexForOffset(pages, charOffset);
+    return PaginationUtils.resolvePageIndexForOffset(pages, charOffset);
   }
 
   /// 翻页写回用的锚点：页内偏移（避免边界落在上一页）。

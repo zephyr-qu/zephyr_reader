@@ -5,7 +5,7 @@ import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
-import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
 import 'package:zephyr_reader/core/utils/app_error_mapper.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_phase.dart';
@@ -14,12 +14,12 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_paginatio
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
-import 'package:zephyr_reader/features/reader/domain/chapter_content_repository.dart';
+import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
 import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
-import 'package:zephyr_reader/features/reader/domain/reader_notice.dart';
-import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
+import 'package:zephyr_reader/reader_engine/shared/config/reader_notice.dart';
+import 'package:zephyr_reader/reader_engine/pagination/engine_utils.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
+import 'package:zephyr_reader/reader_engine/shared/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/reader_engine/pagination/pagination_progress_hook.dart';
 import 'package:zephyr_reader/reader_engine/pagination/pagination_viewport_metrics.dart';
 
@@ -525,7 +525,7 @@ class ChapterLoadOrchestrator {
     if (_isStale(gen)) return;
 
     final descriptors = _session.descriptors;
-    final maxOffset = PaginationEngine.chapterCharOffsetMax(
+    final maxOffset = PaginationUtils.chapterCharOffsetMax(
       descriptors: descriptors,
       phase1PlainContent: content,
     );

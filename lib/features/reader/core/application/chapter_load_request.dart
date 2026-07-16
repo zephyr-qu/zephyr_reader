@@ -1,4 +1,4 @@
-import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
 
 /// 章节导航类型（影响分页意图推导与 UI 动效）。
 enum ChapterNavigationKind {

@@ -1,7 +1,7 @@
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/reader_engine/rendering/image_cache.dart';
 import 'package:zephyr_reader/reader_engine/rendering/line_break_extractor.dart';
-import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
+import 'package:zephyr_reader/reader_engine/pagination/engine_utils.dart';
 import 'package:zephyr_reader/reader_engine/shared/pagination_params.dart';
 import 'package:zephyr_reader/reader_engine/pagination/active_chapter_ir.dart';
 import 'package:zephyr_reader/reader_engine/pagination/flutter_block_paginator.dart';
@@ -178,7 +178,7 @@ class PaginationSession {
   int? resolvePageIndexForCharOffset(int charOffset) {
     final descriptors = _descriptors;
     if (descriptors == null || descriptors.isEmpty) return null;
-    return PaginationEngine.resolvePageIndexForOffset(descriptors, charOffset);
+    return PaginationUtils.resolvePageIndexForOffset(descriptors, charOffset);
   }
 
   void dispose() {
