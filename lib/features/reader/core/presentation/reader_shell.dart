@@ -11,12 +11,12 @@ import 'package:zephyr_reader/features/profile/application/tts_settings_view_mod
 import 'package:zephyr_reader/features/reader/core/application/reader_session.dart';
 import 'package:zephyr_reader/core/reader_engine/data/chapter_content_repository.dart';
 import 'package:zephyr_reader/features/reader/domain/progress_repository.dart';
-import 'package:zephyr_reader/core/reader_engine/shared/config/reader_notice.dart';
+
 import 'package:zephyr_reader/features/reader/core/presentation/reader_scaffold.dart';
 import 'package:zephyr_reader/features/reader/core/presentation/reader_ui_state.dart';
 import 'package:zephyr_reader/features/reader/data/vocabulary_marker_service.dart';
 import 'package:zephyr_reader/features/reader/settings/reader_panel_type.dart';
-import 'package:zephyr_reader/l10n/app_localizations.dart';
+
 
 class ReaderShell extends HookWidget {
   const ReaderShell({
@@ -74,19 +74,7 @@ class ReaderShell extends HookWidget {
       }
     });
 
-    useSignalEffect(() {
-      final notice = vm.chapterManager.readerNotice.value;
-      if (notice == null) return;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!context.mounted) return;
-        final l10n = AppLocalizations.of(context)!;
-        final message = switch (notice) {
-          ReaderNotice.epubRichSkipped => l10n.epubRichTextSkipped,
-        };
-        vm.toastMessage.value = message;
-        vm.chapterManager.readerNotice.value = null;
-      });
-    });
+
 
     useSignalEffect(() {
       final font = fontRepo.currentFontFamily;

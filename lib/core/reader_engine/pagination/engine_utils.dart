@@ -1,4 +1,3 @@
-import 'package:zephyr_reader/core/reader_engine/shared/page_info.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart';
 
 /// 无状态分页工具方法。
@@ -29,26 +28,6 @@ class PaginationUtils {
   }
 
   /// 二分查找字符偏移所在的页码（PageInfo 列表）。
-  static int resolvePageIndexFromPageInfo(
-    List<PageInfo> pages,
-    int charOffset,
-  ) => _resolvePageIndex(
-    pages,
-    charOffset,
-    getStart: (p) => p.startOffset,
-    getEnd: (p) => p.endOffset,
-  );
-
-  /// ADR-001：IR 块模式 plain 含 `\uFFFC`，上界以 descriptor `endOffset` 为准。
-  static int chapterCharOffsetMax({
-    required List<PackedPage>? descriptors,
-    required String phase1PlainContent,
-  }) {
-    if (descriptors != null && descriptors.isNotEmpty) {
-      return descriptors.last.endOffset;
-    }
-    return phase1PlainContent.length;
-  }
 
   /// 二分查找字符偏移所在的页码（PackedPage 列表）。
   static int resolvePageIndexForOffset(
