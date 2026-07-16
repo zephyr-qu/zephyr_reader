@@ -197,14 +197,18 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 
 **目标**：两阶段：先收尾 Flutter 侧 Phase 9/10 架构余留问题，再对 Rust 业务层做业务下沉+API 简化。
 
+### 阶段 A 状态：A1～A3 ✅ 已完成，A4 ⏳ 待执行
+
+- `reader_engine/` 现在完全独立，**zero imports from `features/reader/`** ✅
+
 ### 阶段 A：Flutter 架构收尾
 
 | # | 优先级 | 项 | 说明 |
 | --- | -------- | ----- | ------ |
-| 1 | **P1** | **engine config 迁移** | config 类型从 `features/reader/domain/config/` 迁至 `reader_engine/shared/config/`，消除 `reader_engine` → `features/reader` 反向依赖 |
-| 2 | **P1** | **`ChapterContentRepository` 放回 data 层** | 从 `domain/` 移回 `data/repositories/`，保持 domain 纯模型 |
-| 3 | **P1** | **`ReaderRenderDataSource` 删除** | 纯委托适配器，内联到消费者 |
-| 4 | **P1** | **`PaginationSession` 生命周期统一** | 4 处持有 → 统一到 `PaginationEngine` |
+| 1 | **P1** | **engine config 迁移** | ✅ 已完成 — 5 个 config 文件迁至 `reader_engine/shared/config/`，消除反向依赖 |
+| 2 | **P1** | **`ChapterContentRepository` 放回 data 层** | ✅ 已完成 — 移至 `reader_engine/data/`，连带 `NextChapterStaging`/`PaginationUtils`/`PaginationViewportIndex`/`PageInfo` 一并迁移 |
+| 3 | **P1** | **`ReaderRenderDataSource` 删除** | ✅ 已完成 — 内联到消费者，删 11KB 委托代码 |
+| 4 | **P1** | **`PaginationSession` 生命周期统一** | ⏳ 待执行 — 统一到 `PaginationEngine` |
 
 ### 阶段 B：Rust 后端重构
 

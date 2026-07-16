@@ -71,6 +71,46 @@
 - ROADMAP.md 已更新：Phase 19 从 TBD 改为测试修复
 - 修复范围包括：Rust 集成测试 import、Dart FRB 引用、Widget 测试构造参数
 
+### Phase 10 补丁 + Phase 11-A 前 3 项（2026-07-16）
+
+#### 4 个假抽象接口清理 ✅
+
+- `ProgressRepository` + `ReaderRenderDataSource` + `ChapterContentRepository` + `BilingualReaderDelegate` 全部合并到具体类
+- 删除 4 个旧文件，更新 DI 配置
+- 提交 `a8638cd`
+
+#### ROADMAP 更新 ✅
+
+- Phase 10 项 7（ReaderRepository 删除）状态从 ❌ 改为 ✅
+- Phase 10 项 8（假抽象接口）状态从 ❌ 改为 ✅
+- Phase 11 重写：分为 Flutter 收尾（A）+ Rust 重构（B）
+- Phase 13 移除已迁移到 Phase 11 的项
+
+#### Phase 11-A1：engine config 迁移 ✅
+
+- `ReaderConfig`、`ReaderTypographyDefaults`、`ReadingModeUtils`、`LanguageType`、`ReaderNotice` 五文件从 `features/reader/domain/config/` 迁至 `reader_engine/shared/config/`
+- 更新 39 个文件 import 路径
+- 提交 `1ff046b`
+
+#### Phase 11-A2：类型搬迁 ✅
+
+- `ChapterContentRepository` → `reader_engine/data/`
+- `NextChapterStaging` → `reader_engine/shared/`
+- `PaginationEngine` 静态工具重命名为 `PaginationUtils` → `reader_engine/pagination/engine_utils.dart`
+- `PaginationViewportIndex` → `reader_engine/pagination/viewport_index.dart`
+- `PageInfo` → `reader_engine/shared/`
+- 提交 `1ff046b`
+
+#### Phase 11-A3：删除 ReaderRenderDataSource ✅
+
+- 纯委托类 11KB 删除，所有消费者直接持有 `ChapterContentRepository` + `PaginationSession`
+- `reader_engine/` 现在 **zero imports from `features/reader/`** ✅
+- 提交 `d5901d1`
+
+#### 待办：A4 PaginationSession 生命周期统一
+
+- 推迟到下一 session
+
 ### Phase 8（开始于 2026-07-13）
 
 - 滚动模式 Flutter 化：用 IR 统一 scroll 和分页渲染路径
