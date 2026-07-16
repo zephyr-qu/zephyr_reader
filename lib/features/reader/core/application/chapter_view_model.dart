@@ -3,7 +3,7 @@ import 'package:signals_flutter/signals_flutter.dart';
 import 'package:injectable/injectable.dart';
 
 import 'package:zephyr_reader/reader_engine/shared/auto_scroll_controller.dart';
-import 'package:zephyr_reader/features/reader/core/application/chapter_load_phase.dart';
+import 'package:zephyr_reader/features/reader/core/application/chapter_load_orchestrator.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_loader.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_navigator.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
@@ -16,7 +16,7 @@ import 'package:zephyr_reader/features/reader/domain/progress_repository.dart';
 import 'package:zephyr_reader/reader_engine/pagination/engine.dart';
 
 import 'package:zephyr_reader/reader_engine/shared/ir_types.dart';
-import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
+
 import 'package:zephyr_reader/reader_engine/shared/config/reader_notice.dart';
 
 import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';

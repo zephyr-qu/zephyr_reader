@@ -3,7 +3,8 @@ import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
 import 'dart:async';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
-import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
+
+import 'package:zephyr_reader/features/reader/core/application/chapter_load_orchestrator.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_loader.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
