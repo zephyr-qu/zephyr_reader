@@ -1,4 +1,5 @@
 import 'package:zephyr_reader/src/rust/domain/note/models.dart';
+import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -10,7 +11,6 @@ import 'package:zephyr_reader/reader_engine/rendering/reader_render_config.dart'
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 import 'package:zephyr_reader/core/theme/anim_tokens.dart';
-import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'package:zephyr_reader/reader_engine/scroll/scroll_chapter_segment.dart';
 import 'package:zephyr_reader/reader_engine/scroll/scroll_layout_params.dart';
 import 'package:zephyr_reader/reader_engine/scroll/scroll_position_mapper.dart';
@@ -24,7 +24,7 @@ class ReaderContent extends HookWidget {
   final int chapterId;
   final int pageIndex;
   final int totalPages;
-  final ReaderRenderDataSource dataSource;
+  final ChapterContentRepository contentRepo;
   final ReaderRenderConfig renderConfig;
   final ReadingMode readingMode;
   final PaginationSkin paginationSkin;
@@ -61,7 +61,7 @@ class ReaderContent extends HookWidget {
 
   const ReaderContent({
     super.key,
-    required this.dataSource,
+    required this.contentRepo,
     required this.bookId,
     required this.chapterId,
     required this.pageIndex,
@@ -99,7 +99,7 @@ class ReaderContent extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dataSource = this.dataSource;
+    
     final renderConfig = this.renderConfig;
     // 永不重建 PageController — 跨章时手动 jumpToPage(0)
     final pageController = useMemoized(
@@ -109,7 +109,7 @@ class ReaderContent extends HookWidget {
     final scrollController = useScrollController();
     final disableAnim = MediaQuery.disableAnimationsOf(context);
     final viewportHeight = MediaQuery.sizeOf(context).height;
-    final nextStaging = dataSource.nextChapterStaging;
+    final nextStaging = contentRepo.nextChapterStaging;
     final nextStagingReady =
         hasNextChapter &&
         nextStaging != null &&
