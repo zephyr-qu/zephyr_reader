@@ -106,6 +106,12 @@ pub async fn upsert_book(book: &Book) -> Result<(), AppError> {
 pub async fn delete_book(book_id: &str, covers_dir: &str) -> Result<(), AppError> {
     let pool = storage_pool()?;
 
+    // 先查 file_path（级联删除后 book 行消失）
+    let file_path = match BookRepository::find_by_id(&pool, book_id).await {
+        Ok(Some(book)) => Some(book.file_path),
+        _ => None,
+    };
+
     // 删除封面文件
     if let Ok(Some(cover_path)) = BookRepository::find_cover_path(&pool, book_id).await {
         let full_path = std::path::Path::new(covers_dir).join(&cover_path);
@@ -121,10 +127,14 @@ pub async fn delete_book(book_id: &str, covers_dir: &str) -> Result<(), AppError
         .map_err(|e| AppError::DatabaseError { reason: e.to_string() })?;
 
     // 失效 IR 缓存
-    let kv = crate::infra::ensure_storage()?.kv();
-    let cache_repo = IrCacheRepository::new(kv);
-    if let Err(e) = cache_repo.invalidate_book_cache(book_id) {
-        tracing::warn!("[book] failed to clear book cache: {}", e);
+    if let Some(ref fp) = file_path {
+        let kv = crate::infra::ensure_storage()?.kv();
+        let cache_repo = IrCacheRepository::new(kv);
+        if let Err(e) = cache_repo.invalidate_book_cache(fp) {
+            tracing::warn!("[book] failed to clear ir cache for '{}': {}", fp, e);
+        }
+    } else {
+        tracing::warn!("[book] book '{}' not found — cannot invalidate IR cache", book_id);
     }
 
     Ok(())
