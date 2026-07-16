@@ -22,7 +22,7 @@ class ChapterContentRepository {
 
   final ReaderConfig _config;
   PaginationParams? _layoutParams;
-  bool _pendingEpubRichSkipped = false;
+
 
   ReaderChapterIr? _currentChapterIr;
   String? _currentChapterFilePath;
@@ -121,10 +121,7 @@ class ChapterContentRepository {
     _layoutParams = params;
   }
 
-  bool consumeEpubRichSkippedNotice() {
-    final pending = _pendingEpubRichSkipped;
-    _pendingEpubRichSkipped = false;
-    return pending;
+
   }
 
   PaginationParams _resolveStagingParams({
@@ -271,7 +268,7 @@ class ChapterContentRepository {
     }
 
     final results = await Future.wait([
-      reader_api.getChapter(filePath: filePath, chapterIndex: chapterId),
+      reader_api.getChapterPlain(bookId: bookId, chapterIndex: chapterId),
       contentIrFuture
           .then<ReaderChapterIr?>((v) => convertChapterIrFromFrb(v))
           .catchError((_) {
@@ -309,8 +306,8 @@ class ChapterContentRepository {
     if (book.filePath.isEmpty) {
       throw Exception('Book not found: $bookId');
     }
-    final result = await reader_api.getChapter(
-      filePath: book.filePath,
+    final result = await reader_api.getChapterPlain(
+      bookId: bookId,
       chapterIndex: chapterId,
     );
     return result;

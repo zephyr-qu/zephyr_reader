@@ -2,7 +2,7 @@ import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/src/rust/api/stats.dart' as stats_api;
 import 'package:zephyr_reader/src/rust/api/vocab.dart' as vocab_api;
 import 'package:zephyr_reader/src/rust/domain/stats/models.dart';
-import 'package:zephyr_reader/src/rust/domain/vocabulary/models.dart';
+import 'package:zephyr_reader/src/rust/domain/vocab/models.dart';
 
 
 /// 统计时段枚举

@@ -1,4 +1,4 @@
-import 'package:zephyr_reader/src/rust/domain/vocabulary/models.dart';
+import 'package:zephyr_reader/src/rust/domain/vocab/models.dart';
 
 import 'package:flutter/material.dart';
 

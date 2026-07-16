@@ -13,7 +13,7 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_view_mode
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
 import 'package:zephyr_reader/core/reader_engine/data/chapter_content_repository.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/engine.dart';
-import 'package:zephyr_reader/core/reader_engine/shared/config/reader_notice.dart';
+
 import 'package:zephyr_reader/core/reader_engine/pagination/engine_utils.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/config/reading_mode_utils.dart';
@@ -379,8 +379,7 @@ class ChapterLoadOrchestrator {
       });
     };
     try {
-      final full = await _pagination.paginateFullChapter(request.chapterIndex);
-      totalPages = full.totalPages;
+      totalPages = await _pagination.expandToFullChapter(request.chapterIndex);
     } finally {
       paginationProgressHook = null;
     }
@@ -468,11 +467,7 @@ class ChapterLoadOrchestrator {
           chapterFilePath: _contentRepo.currentChapterFilePath,
         );
       }
-      if (_contentRepo.consumeEpubRichSkippedNotice()) {
-        if (request.readingMode == ReadingMode.bilingual) {
-          _chapterVM.readerNotice.value = ReaderNotice.epubRichSkipped;
-        }
-      }
+
     });
 
     // scroll 模式预加载相邻章 IR 内容，避免跨章滚动时等待 FFI
@@ -578,9 +573,7 @@ class ChapterLoadOrchestrator {
       _chapterVM.pendingJumpCharOffset.value =
           _chapterVM.currentCharOffset.value;
       _error.value = null;
-      if (_contentRepo.consumeEpubRichSkippedNotice()) {
-        _chapterVM.readerNotice.value = ReaderNotice.epubRichSkipped;
-      }
+
     });
   }
 
@@ -591,9 +584,8 @@ class ChapterLoadOrchestrator {
     }
   }
 
-  /// 分页前预加载全文 → 提取 ICU 行断点 → 存入行断点缓存。
-  /// 渲染完成后 _storeLineBreaks 会再次触发（覆盖完整索引），
-  /// 但预加载确保分页引擎在首次 paginate 时就能拿到索引。
+  /// 章节加载后的后备任务：搜索索引 + 相邻章预取。
+  /// ICU 行断点已由 Flutter TextPainter 在分页路径中自动处理，此处不再需要。
   Future<void> _postLoadTasks(
     int gen,
     int chapterIndex,

@@ -1,14 +1,14 @@
 //! 封面管理业务逻辑
 //!
 //! 提供封面提取、数据库保存和格式检测功能。
-//! 封面提取委托给 cover_extractor，数据访问委托给 BookRepository。
+//! 封面提取委托给 engine，数据访问委托给 BookRepository。
 
 use std::path::Path;
 
 use crate::common::AppError;
 use crate::common::security::validate_file_path;
 use crate::domain::book::book_repo::BookRepository;
-use crate::domain::cover::cover_extractor::get_cover_registry;
+use crate::domain::cover::engine::get_cover_registry;
 use crate::infra::manager::storage_pool;
 
 /// 提取书籍封面

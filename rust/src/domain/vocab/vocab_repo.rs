@@ -11,7 +11,7 @@ use flutter_rust_bridge::frb;
 //   - count() / count_by_book() — 统计
 // ============================================================
 
-use crate::domain::vocabulary::models::{Vocab, VocabStatus, VocabStats};
+use crate::domain::vocab::models::{Vocab, VocabStatus, VocabStats};
 use crate::domain::AppError;
 use chrono::Utc;
 use sqlx::{QueryBuilder, SqlitePool};

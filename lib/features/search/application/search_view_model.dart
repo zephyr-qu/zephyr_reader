@@ -9,7 +9,7 @@ import 'package:zephyr_reader/src/rust/api/search.dart';
 import 'package:zephyr_reader/src/rust/domain/book/models.dart';
 import 'package:zephyr_reader/src/rust/domain/note/models.dart';
 import 'package:zephyr_reader/src/rust/domain/search/models.dart';
-import 'package:zephyr_reader/src/rust/domain/vocabulary/models.dart';
+import 'package:zephyr_reader/src/rust/domain/vocab/models.dart';
 
 
 /// 搜索功能 ViewModel

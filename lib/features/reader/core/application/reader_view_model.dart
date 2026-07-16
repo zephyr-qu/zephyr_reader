@@ -17,6 +17,7 @@ import 'package:zephyr_reader/core/reader_engine/data/chapter_content_repository
 import 'package:zephyr_reader/features/reader/domain/progress_repository.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/flutter_pagination_session.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/engine.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/active_chapter_ir.dart';
 
 import 'chapter_view_model.dart';
 import 'reading_session_manager.dart';
@@ -288,8 +289,23 @@ class ReaderViewModel {
     }
     // 切换到 scroll/bilingual 前，释放分页会话，
     // 避免 PaginationSession 和 LRU engine 悬空占用内存。
+    // 先保存 session 的 IR，dispose 后 ActiveChapterIr.current 变 null。
+    final savedIr = mode != ReadingMode.pagination
+        ? ActiveChapterIr.current ?? _contentRepo.currentChapterIr
+        : null;
     if (mode != ReadingMode.pagination) {
       _engine.disposeSession();
+    }
+    if (mode == ReadingMode.scroll) {
+      final content = chapterManager.chapterContent.value.value;
+      if (content != null && content.isNotEmpty) {
+        chapterManager.resetScrollDocument(
+          content,
+          chapterManager.chapterIndex.value,
+          chapterIr: savedIr,
+          chapterFilePath: _contentRepo.currentChapterFilePath,
+        );
+      }
     }
     if (mode == ReadingMode.scroll) {
       final content = chapterManager.chapterContent.value.value;

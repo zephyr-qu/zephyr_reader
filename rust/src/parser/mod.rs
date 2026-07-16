@@ -10,13 +10,13 @@
 //   - get_cover_registry() — 获取封面提取器注册表
 //
 // 子模块：
-//   - bilingual, cover_extractor, epub, provider, registry, txt
+//   - bilingual, engine, epub, provider, registry, txt
 // ============================================================
 
 //! 解析器模块
 //! 管理 EPUB、TXT 格式解析
 
-pub use crate::domain::bilingual::aligner;
+pub use crate::domain::bilingual::engine;
 pub mod epub;
 pub mod provider;
 pub mod registry;
@@ -24,7 +24,7 @@ pub mod txt;
 pub mod types;
 
 /// 获取封面提取器注册表。
-pub use crate::domain::cover::cover_extractor::get_cover_registry;
+pub use crate::domain::cover::engine::get_cover_registry;
 
 /// 初始化解析器模块（日志、注册表等）
 pub fn init_parser() {

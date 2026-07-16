@@ -2,7 +2,7 @@
 //!
 //! 扫描文本匹配内置词库（CET-4/6、IELTS、TOEFL）。
 
-pub mod vocab;
+pub mod vocabulary;
 pub mod vocab_scanner;
 pub mod wordlists;
 

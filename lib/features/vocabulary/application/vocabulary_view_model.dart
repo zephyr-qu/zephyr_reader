@@ -1,7 +1,7 @@
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/src/rust/api/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/vocab.dart' as vocab_api;
-import 'package:zephyr_reader/src/rust/domain/vocabulary/models.dart';
+import 'package:zephyr_reader/src/rust/domain/vocab/models.dart';
 
 
 /// 生词本 ViewModel。
@@ -21,7 +21,7 @@ class VocabularyViewModel {
       final results = await Future.wait([
         vocab_api.listVocabularyByStatus(status: status, wordList: wordList),
         vocab_api.getVocabularyStats(),
-        book_api.mapBookTitles(),
+        book_api.listBookTitles(),
         vocab_api.listWordLists(),
       ]);
       words.value = AsyncState.data(results[0] as List<Vocab>);

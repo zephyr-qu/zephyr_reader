@@ -11,7 +11,7 @@ rust_input: >-
   crate::domain::sessions::models,
   crate::domain::note::models,
   crate::domain::stats::models,
-  crate::domain::vocabulary::models,
+  crate::domain::vocab::models,
   crate::domain::dictionary::models,
   crate::domain::bilingual::models,
   crate::domain::wordlist,
