@@ -58,9 +58,9 @@ import 'package:zephyr_reader/features/reader/core/data/rust_chapter_content_rep
     as _i109;
 import 'package:zephyr_reader/features/reader/core/data/rust_progress_repository.dart'
     as _i433;
-import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart'
+import 'package:zephyr_reader/features/reader/domain/chapter_content_repository.dart'
     as _i291;
-import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart'
+import 'package:zephyr_reader/features/reader/domain/progress_repository.dart'
     as _i768;
 import 'package:zephyr_reader/features/reader/data/vocabulary_marker_service.dart'
     as _i880;

@@ -9,12 +9,11 @@ import 'package:zephyr_reader/features/reader/domain/service/tts_service.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_session.dart';
-import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
-import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart';
-import 'package:zephyr_reader/features/reader/core/domain/reader_notice.dart';
+import 'package:zephyr_reader/features/reader/domain/chapter_content_repository.dart';
+import 'package:zephyr_reader/features/reader/domain/progress_repository.dart';
+import 'package:zephyr_reader/features/reader/domain/reader_notice.dart';
 import 'package:zephyr_reader/features/reader/core/presentation/reader_scaffold.dart';
 import 'package:zephyr_reader/features/reader/core/presentation/reader_ui_state.dart';
-import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart';
 import 'package:zephyr_reader/features/reader/data/vocabulary_marker_service.dart';
 import 'package:zephyr_reader/features/reader/settings/reader_panel_type.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
@@ -40,7 +39,7 @@ class ReaderShell extends HookWidget {
     );
     final vm = session.vm;
     final fontRepo = useMemoized(() => getIt<FontRepository>());
-    final readRepo = vm.repo as ReaderRepository;
+    final dataSource = vm.dataSource;
     final ttsService = useMemoized(() => getIt<TtsService>());
     final config = useMemoized(() => getIt<ReaderConfig>());
     final ttsVm = useMemoized(() => getIt<TtsSettingsViewModel>());
@@ -119,7 +118,7 @@ class ReaderShell extends HookWidget {
 
     return ReaderScaffold(
       vm: vm,
-      readRepo: readRepo,
+      dataSource: dataSource,
       fontRepo: fontRepo,
       config: config,
       ttsService: ttsService,

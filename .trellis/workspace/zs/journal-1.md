@@ -53,6 +53,13 @@
 - 静态工具方法从 `IrReaderIrBlock` 迁入 `ReaderIrBlock` 类
 - 生产代码零编译错误
 
+#### Phase 9 完成（2026-07-15）
+
+- 全部 7 个子任务已完成/评估
+- commit `01ec593`
+- 已合并到 master
+- 新分支 `phase/10-reader-engine` 已创建
+
 ### 决策记录
 
 **Phase 19 = 测试全面修复**（2026-07-15）

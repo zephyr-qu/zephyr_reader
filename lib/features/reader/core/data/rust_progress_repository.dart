@@ -1,5 +1,5 @@
 import 'package:injectable/injectable.dart';
-import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart';
+import 'package:zephyr_reader/features/reader/domain/progress_repository.dart';
 import 'package:zephyr_reader/src/rust/api/progress.dart' as progress_api;
 
 @Injectable(as: ProgressRepository)

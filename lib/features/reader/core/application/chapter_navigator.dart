@@ -7,8 +7,8 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_load_requ
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_loader.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
-import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_pagination_session.dart';
+import 'package:zephyr_reader/features/reader/domain/chapter_content_repository.dart';
+import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
 
