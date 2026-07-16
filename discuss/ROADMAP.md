@@ -193,14 +193,13 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 
 ---
 
-## Phase 11 — 收尾 Phase 9/10 + Rust 后端重构（进行中）
+## Phase 11 — 收尾 Phase 9/10 + Rust 后端重构 ✅ 已完成
 
 **目标**：两阶段：先收尾 Flutter 侧 Phase 9/10 架构余留问题，再对 Rust 业务层做业务下沉+API 简化。
 
-### 阶段 A 状态：A1～A3 ✅ 已完成，A4 ⏳ 待执行
+### 阶段 A 状态：全部完成 ✅
 
 - `reader_engine/` 现在完全独立，**zero imports from `features/reader/`** ✅
-
 ### 阶段 A：Flutter 架构收尾
 
 | # | 优先级 | 项 | 说明 |
@@ -208,8 +207,7 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 | 1 | **P1** | **engine config 迁移** | ✅ 已完成 — 5 个 config 文件迁至 `reader_engine/shared/config/`，消除反向依赖 |
 | 2 | **P1** | **`ChapterContentRepository` 放回 data 层** | ✅ 已完成 — 移至 `reader_engine/data/`，连带 `NextChapterStaging`/`PaginationUtils`/`PaginationViewportIndex`/`PageInfo` 一并迁移 |
 | 3 | **P1** | **`ReaderRenderDataSource` 删除** | ✅ 已完成 — 内联到消费者，删 11KB 委托代码 |
-| 4 | **P1** | **`PaginationSession` 生命周期统一** | ⏳ 待执行 — 统一到 `PaginationEngine` |
-
+| 4 | **P1** | **`PaginationSession` 生命周期统一** | ✅ 已完成 — `PaginationEngine` 为唯一所有者，`createSession`/`disposeSession` 统一入口，去除 5 处直接 `_session` 持有 |
 ### 阶段 B：Rust 后端重构
 
 **讨论**：`discuss/PHASE11_BUSINESS_SIMPLIFICATION.md`
@@ -247,11 +245,11 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 
 | # | 优先级 | 项 | 说明 |
 | --- | -------- | ----- | ------ |
-| 1 | **P1** | 扫描 `domain/*/service.rs` | 用判断框架逐文件审查，标出应下沉的纯 SQL 搬运 service |
-| 2 | **P1** | 逐项整改下沉 | 将纯中间人 service 逻辑合并到对应 repo |
-| 3 | **P2** | 扫描 `api/*.rs` 聚合机会 | 识别 Flutter 侧需多次调用的关联 API |
-| 4 | **P2** | 逐项聚合整改 | 合并同屏/同事务 API 函数 |
-| 5 | **P2** | 验证 | `cargo clippy -D warnings`，FRB codegen，`flutter analyze` |
+| 1 | **P1** | 扫描 `domain/*/service.rs` | ✅ 已完成 — 13 个 service 逐文件审查，标出 7 个纯中间人（progress/chapter/stats/bookmark/vocabulary/sessions/category） |
+| 2 | **P1** | 逐项整改下沉 | ✅ 已完成 — 7 个纯中间人 service 合并到对应 API 层，删除 7 个 service.rs（~470 行），保留 cover/bilingual/backup/book/dictionary/note 等有业务逻辑的 service |
+| 3 | **P2** | 扫描 `api/*.rs` 聚合机会 | ✅ 已完成 — 识别 4 书架 API → 1 统一 API 机会 + upsertProgress/createSession 事务化机会 |
+| 4 | **P2** | 逐项聚合整改 | ✅ 已完成 — 新增 `list_bookshelf_books` 统一接口（支持可选 category/status/sort）；待 FRB codegen 后 Flutter 端简化 |
+| 5 | **P2** | 验证 | ✅ 已完成 — `cargo clippy -D warnings` 零告警，FRB codegen 成功，`flutter analyze lib/` 零错误 |
 
 ---
 
