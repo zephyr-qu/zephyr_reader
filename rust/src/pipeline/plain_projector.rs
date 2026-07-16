@@ -6,13 +6,13 @@
 //   - enum PlainProjectionError — 投影校验失败原因
 //   - fn slice_by_char_range() — 按 Unicode 字符索引切片
 //   - fn slice_inline_runs() — 裁剪 ReaderInlineRun 流
-//   - fn append_block_separator() — 块间 \n 分隔符
 //   - fn project_block_joined() — 从块流重建 plain
-//   - struct BlockJoinedPlainBuilder — BlockJoined 增量构建器
-//   - fn append_chapter_ir_to_builder() — 合并多 spine IR 到 builder
 //   - fn validate_chapter_plain() — 校验章 IR plain 投影
 //   - impl ReaderChapterIr 方法 — 字符读取、搜索、TTS 辅助
 // ============================================================
+
+//! IR 到 plain text 投影及校验
+//! 提供 plain text 投影算法、校验逻辑和 ReaderChapterIr 实例方法
 
 use std::fmt;
 
@@ -170,15 +170,6 @@ pub fn slice_inline_runs(runs: &[ReaderInlineRun], start: u32, len: u32) -> Vec<
     out
 }
 
-/// 块级 `\n` 分隔符（ADR-007 单换行）。
-pub fn append_block_separator(plain: &mut String, plain_cursor: &mut u32) {
-    if plain.is_empty() || plain.ends_with('\n') {
-        return;
-    }
-    plain.push('\n');
-    *plain_cursor += 1;
-}
-
 /// 从块流按 BlockJoined 规则重建 plain。
 pub fn project_block_joined(blocks: &[ReaderIrBlock]) -> String {
     let mut plain = String::new();
@@ -187,12 +178,12 @@ pub fn project_block_joined(blocks: &[ReaderIrBlock]) -> String {
     for block in blocks {
         match block.kind {
             ReaderIrBlockKind::Text => {
-                append_block_separator(&mut plain, &mut cursor);
+                super::block_joined_builder::append_block_separator(&mut plain, &mut cursor);
                 plain.push_str(&block.text);
                 cursor += block.text.chars().count() as u32;
             }
             ReaderIrBlockKind::Image => {
-                append_block_separator(&mut plain, &mut cursor);
+                super::block_joined_builder::append_block_separator(&mut plain, &mut cursor);
                 plain.push(IMAGE_PLAIN_PLACEHOLDER);
                 cursor += 1;
             }
@@ -200,139 +191,6 @@ pub fn project_block_joined(blocks: &[ReaderIrBlock]) -> String {
     }
 
     plain
-}
-
-/// BlockJoined 增量构建器（EPUB HTML → IR 使用）。
-#[derive(Debug, Default)]
-pub struct BlockJoinedPlainBuilder {
-    blocks: Vec<ReaderIrBlock>,
-    plain: String,
-    cursor: u32,
-}
-
-impl BlockJoinedPlainBuilder {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn push_text(
-        &mut self,
-        text: String,
-        is_heading: bool,
-        heading_level: u8,
-        text_indent_em: Option<f32>,
-        margin_top_em: Option<f32>,
-        margin_bottom_em: Option<f32>,
-        text_align: Option<String>,
-        font_size: Option<f32>,
-    ) {
-        self.push_text_spans(
-            text,
-            Vec::new(),
-            is_heading,
-            heading_level,
-            text_indent_em,
-            margin_top_em,
-            margin_bottom_em,
-            text_align,
-            font_size,
-        );
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn push_text_spans(
-        &mut self,
-        text: String,
-        runs: Vec<ReaderInlineRun>,
-        is_heading: bool,
-        heading_level: u8,
-        text_indent_em: Option<f32>,
-        margin_top_em: Option<f32>,
-        margin_bottom_em: Option<f32>,
-        text_align: Option<String>,
-        font_size: Option<f32>,
-    ) {
-        if text.trim().is_empty() {
-            return;
-        }
-        append_block_separator(&mut self.plain, &mut self.cursor);
-        let start = self.cursor;
-        self.plain.push_str(&text);
-        self.cursor += text.chars().count() as u32;
-        self.blocks.push(ReaderIrBlock::text(
-            start,
-            text,
-            runs,
-            is_heading,
-            heading_level,
-            text_indent_em,
-            margin_top_em,
-            margin_bottom_em,
-            text_align,
-            font_size,
-        ));
-    }
-
-    pub fn push_image(
-        &mut self,
-        asset_id: String,
-        alt: Option<String>,
-        intrinsic_width: Option<u32>,
-        intrinsic_height: Option<u32>,
-    ) {
-        append_block_separator(&mut self.plain, &mut self.cursor);
-        let start = self.cursor;
-        self.plain.push(IMAGE_PLAIN_PLACEHOLDER);
-        self.cursor += 1;
-        self.blocks.push(ReaderIrBlock::image(
-            start,
-            asset_id,
-            alt,
-            intrinsic_width,
-            intrinsic_height,
-        ));
-    }
-
-    pub fn image_block_count(&self) -> usize {
-        self.blocks
-            .iter()
-            .filter(|b| b.kind == ReaderIrBlockKind::Image)
-            .count()
-    }
-
-    pub fn finish(self) -> ReaderChapterIr {
-        ReaderChapterIr::new(self.blocks, self.plain)
-    }
-}
-
-/// 将已有章 IR 的块追加进 builder（multi-spine 合并用）。
-pub fn append_chapter_ir_to_builder(builder: &mut BlockJoinedPlainBuilder, ir: ReaderChapterIr) {
-    for block in ir.blocks {
-        match block.kind {
-            ReaderIrBlockKind::Text => {
-                builder.push_text_spans(
-                    block.text,
-                    block.runs,
-                    block.is_heading,
-                    block.heading_level,
-                    block.text_indent_em,
-                    block.margin_top_em,
-                    block.margin_bottom_em,
-                    block.text_align,
-                    block.font_size,
-                );
-            }
-            ReaderIrBlockKind::Image => {
-                builder.push_image(
-                    block.image_asset_id.unwrap_or_default(),
-                    block.image_alt,
-                    block.image_intrinsic_width,
-                    block.image_intrinsic_height,
-                );
-            }
-        }
-    }
 }
 
 /// 校验章 IR 的 plain 投影（ADR-008 + ADR-001）。
@@ -487,66 +345,14 @@ impl ReaderChapterIr {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::pipeline::types::ReaderInlineStyle;
-
-    #[test]
-    fn block_joined_builder_matches_manual_epub() {
-        let mut b = BlockJoinedPlainBuilder::new();
-        b.push_text("Hello".into(), false, 0, None, None, None, None, None);
-        b.push_text("World".into(), false, 0, None, None, None, None, None);
-        let ir = b.finish();
-        assert_eq!(ir.plain_text, "Hello\nWorld");
-        ir.validate_plain(PlainProjectionStyle::BlockJoined)
-            .unwrap();
-    }
-
-    #[test]
-    fn block_joined_with_image_adr008() {
-        let mut b = BlockJoinedPlainBuilder::new();
-        b.push_text("before".into(), false, 0, None, None, None, None, None);
-        b.push_image("pic.jpg".into(), Some("cover".into()), None, None);
-        b.push_text("after".into(), false, 0, None, None, None, None, None);
-        let ir = b.finish();
-        assert_eq!(
-            ir.plain_text,
-            format!("before\n{IMAGE_PLAIN_PLACEHOLDER}\nafter")
-        );
-        ir.validate_plain(PlainProjectionStyle::BlockJoined)
-            .unwrap();
-        assert!(ir.is_image_placeholder_offset(7));
-        assert_eq!(ir.tts_alt_at_offset(7), Some("cover"));
-        assert!(!ir.is_searchable_offset(7));
-        assert!(ir.is_searchable_offset(0));
-    }
+    use crate::pipeline::types::{BlockStyle, ReaderInlineStyle};
 
     #[test]
     fn source_preserved_txt_validation() {
         let ir = ReaderChapterIr::new(
             vec![
-                ReaderIrBlock::text(
-                    0,
-                    "First\n".into(),
-                    Vec::new(),
-                    false,
-                    0,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
-                ReaderIrBlock::text(
-                    7,
-                    "Second".into(),
-                    Vec::new(),
-                    false,
-                    0,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ),
+                ReaderIrBlock::text(0, "First\n".into(), Vec::new(), BlockStyle::empty()),
+                ReaderIrBlock::text(7, "Second".into(), Vec::new(), BlockStyle::empty()),
             ],
             "First\n\nSecond".to_string(),
         );
@@ -564,13 +370,7 @@ mod tests {
                 0,
                 "Hi".into(),
                 Vec::new(),
-                false,
-                0,
-                None,
-                None,
-                None,
-                None,
-                None,
+                BlockStyle::empty(),
             )],
             "Ho".into(),
         );
@@ -608,43 +408,5 @@ mod tests {
         assert_eq!(sliced.len(), 1);
         assert_eq!(sliced[0].style, ReaderInlineStyle::Bold);
         assert_eq!(sliced[0].text, "bold");
-    }
-
-    #[test]
-    fn frb_sample_blocks_match_block_joined() {
-        let mut b = BlockJoinedPlainBuilder::new();
-        b.push_text("sample".into(), false, 0, None, None, None, None, None);
-        b.push_image("sample_asset".into(), None, None, None);
-        let ir = b.finish();
-        assert_eq!(ir.plain_text, format!("sample\n{IMAGE_PLAIN_PLACEHOLDER}"));
-        assert_eq!(ir.blocks[1].plain_start, 7);
-        ir.validate_plain(PlainProjectionStyle::BlockJoined)
-            .unwrap();
-    }
-
-    #[test]
-    fn append_chapter_ir_preserves_image_intrinsic_size() {
-        let source = ReaderChapterIr::new(
-            vec![ReaderIrBlock::image(
-                0,
-                "img_main".into(),
-                Some("cover".into()),
-                Some(640),
-                Some(960),
-            )],
-            IMAGE_PLAIN_PLACEHOLDER.to_string(),
-        );
-
-        let mut builder = BlockJoinedPlainBuilder::new();
-        append_chapter_ir_to_builder(&mut builder, source);
-        let ir = builder.finish();
-        let image = &ir.blocks[0];
-
-        assert_eq!(image.image_asset_id.as_deref(), Some("img_main"));
-        assert_eq!(image.image_alt.as_deref(), Some("cover"));
-        assert_eq!(image.image_intrinsic_width, Some(640));
-        assert_eq!(image.image_intrinsic_height, Some(960));
-        ir.validate_plain(PlainProjectionStyle::BlockJoined)
-            .unwrap();
     }
 }

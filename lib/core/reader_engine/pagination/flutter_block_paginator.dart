@@ -5,6 +5,7 @@ import 'package:zephyr_reader/core/reader_engine/rendering/reader_render_config.
 import 'package:zephyr_reader/core/reader_engine/pagination/slice_rich_spans.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/ir_types.dart';
+import 'package:zephyr_reader/src/rust/pipeline/types.dart' show BlockStyle;
 
 /// 无 intrinsic 时图片高度 = 内容宽 × 此比（与 Rust `DEFAULT_IMAGE_HEIGHT_RATIO` 对齐）。
 const kDefaultImageHeightRatio = 0.55;
@@ -196,13 +197,15 @@ abstract final class FlutterBlockPaginator {
         plainLen: ir.plainText.length,
         text: ir.plainText,
         runs: const [],
-        isHeading: false,
-        headingLevel: 0,
-        textIndentEm: null,
-        marginTopEm: null,
-        marginBottomEm: null,
-        textAlign: null,
-        fontSize: null,
+        style: const BlockStyle(
+          isHeading: false,
+          headingLevel: 0,
+          textIndentEm: null,
+          marginTopEm: null,
+          marginBottomEm: null,
+          textAlign: null,
+          fontSize: null,
+        ),
         imageAssetId: null,
         imageAlt: null,
         imageIntrinsicWidth: null,
@@ -536,7 +539,7 @@ class _TextPackContext {
     required ReaderIrBlock block,
     required double maxWidth,
   }) {
-    final irStyle = block;
+    final irStyle = block.style;
     final config = packer.config;
     final blockFontSize = IrReaderIrBlock.effectiveFontSize(irStyle, config);
     final blockLineHeight = IrReaderIrBlock.effectiveLineHeight(
@@ -579,7 +582,7 @@ class _TextPackContext {
   final EdgeInsets blockPadding;
   final double layoutMaxWidth;
   final double blockLineHeight;
-  final ReaderIrBlock irStyle;
+  final BlockStyle irStyle;
 
   var localStart = 0;
   var isBlockStart = true;

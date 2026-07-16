@@ -1,0 +1,18 @@
+{
+  "id": "07-16-phase13-n5-toolchain",
+  "name": "N5 — 质量门禁归零",
+  "status": "pending",
+  "source": "session:cursor_ea2ad83a-8178-4875-b3a5-14401ffb7788",
+  "created": "2026-07-16",
+  "owner": "zs",
+  "prd": "discuss/ROADMAP.md",
+  "inherits_spec": ["backend", "frontend"],
+  "description": "最终收口，达到零告警稳定基线。",
+  "tasks": [
+    "cargo clippy -- -D warnings — 零告警",
+    "flutter analyze --fatal-infos — 零告警",
+    "FRB codegen 验证 — 生成代码同步、接口稳定",
+    "CI 流水线全部通过",
+    "文档同步 — 更新架构图、记录关键 Bug 与修复"
+  ]
+}

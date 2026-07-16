@@ -1,67 +1,14 @@
 //! 笔记业务逻辑
 //!
 //! 提供笔记的查询业务和导出渲染功能。
-//! 数据访问委托给 NoteRepository。
+//! 纯 CRUD 透传已内联到 api/ 层，此处只保留有实际业务逻辑的操作。
 
 use crate::common::AppError;
-use crate::domain::note::{Note, NoteStats, NoteType, NoteWithBook};
+use crate::domain::note::{Note, NoteType};
 use crate::infra::manager::storage_pool;
 use crate::domain::note::note_repo::NoteRepository;
 
 // ==================== 数据查询 ====================
-
-/// 搜索笔记（内容/选中文本模糊匹配）
-pub async fn search_notes(query: &str) -> Result<Vec<Note>, AppError> {
-    let pool = storage_pool()?;
-    NoteRepository::search(&pool, query).await
-}
-
-/// 跨书分页获取所有笔记
-pub async fn list_all_notes(limit: i64, offset: i64) -> Result<Vec<Note>, AppError> {
-    let pool = storage_pool()?;
-    NoteRepository::list_all_paginated(&pool, limit, offset).await
-}
-
-/// 分页获取笔记列表（带书名）
-pub async fn list_notes_with_titles(limit: i64, offset: i64) -> Result<Vec<NoteWithBook>, AppError> {
-    let pool = storage_pool()?;
-    NoteRepository::list_with_titles(&pool, limit, offset).await
-}
-
-/// 获取笔记总数（可选按 book_id 过滤）
-pub async fn count_notes(book_id: Option<&str>) -> Result<i32, AppError> {
-    let pool = storage_pool()?;
-    NoteRepository::count_filtered(&pool, book_id).await
-}
-
-/// 获取笔记统计
-pub async fn get_note_stats(book_id: &str) -> Result<NoteStats, AppError> {
-    let pool = storage_pool()?;
-    NoteRepository::find_note_stats(&pool, book_id).await
-}
-
-/// 获取书籍的所有笔记
-pub async fn list_notes_by_book(book_id: &str, note_type: Option<NoteType>) -> Result<Vec<Note>, AppError> {
-    let pool = storage_pool()?;
-    match note_type {
-        Some(nt) => NoteRepository::find_by_type(&pool, book_id, nt).await,
-        None => NoteRepository::list_by_book(&pool, book_id).await,
-    }
-}
-
-/// 批量获取多本书的笔记
-pub async fn list_notes_by_books(book_ids: &[String]) -> Result<Vec<(String, Vec<Note>)>, AppError> {
-    let pool = storage_pool()?;
-    let notes_map = NoteRepository::list_by_books_batch(&pool, book_ids).await?;
-    let result = book_ids
-        .iter()
-        .map(|id| {
-            let notes = notes_map.get(id).cloned().unwrap_or_default();
-            (id.clone(), notes)
-        })
-        .collect();
-    Ok(result)
-}
 
 /// 获取章节内的笔记
 pub async fn list_notes_in_chapter(
@@ -110,27 +57,7 @@ pub async fn create_annotation(
     NoteRepository::save(&pool, &note).await
 }
 
-/// 新增或更新笔记
-pub async fn upsert_note(note: &Note) -> Result<Note, AppError> {
-    let pool = storage_pool()?;
-    NoteRepository::save(&pool, note).await
-}
-
-// ==================== 数据删除 ====================
-
-/// 删除单个笔记
-pub async fn delete_note(note_id: &str) -> Result<(), AppError> {
-    let pool = storage_pool()?;
-    NoteRepository::delete_by_id(&pool, note_id).await
-}
-
-/// 清空书籍的所有笔记
-pub async fn delete_notes_by_book(book_id: &str) -> Result<(), AppError> {
-    let pool = storage_pool()?;
-    NoteRepository::delete_by_book(&pool, book_id).await
-}
-
-// ==================== 数据查询 ====================
+// ==================== 导出与渲染 ====================
 
 fn note_type_label(note_type: &NoteType) -> &'static str {
     match note_type {

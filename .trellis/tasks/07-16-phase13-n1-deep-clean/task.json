@@ -1,0 +1,17 @@
+{
+  "id": "07-16-phase13-n1-deep-clean",
+  "name": "N1 — 深度清理与依赖评估",
+  "status": "pending",
+  "source": "session:cursor_ea2ad83a-8178-4875-b3a5-14401ffb7788",
+  "created": "2026-07-16",
+  "owner": "zs",
+  "prd": "discuss/ROADMAP.md",
+  "inherits_spec": ["backend", "frontend"],
+  "description": "清理 N0-N4 遗留死代码 + 依赖审计（sled 评估）。",
+  "tasks": [
+    "死代码清扫 — N2-N4 变更遗留的老接口、未用 import",
+    "#[allow(...)] 审计 — 移除不再需要的 suppress",
+    "sled KV 存储评估 — 查消费者，基准测试辅助决策迁移/保留",
+    "废弃 Cargo/Flutter 依赖 — 检查未用依赖"
+  ]
+}

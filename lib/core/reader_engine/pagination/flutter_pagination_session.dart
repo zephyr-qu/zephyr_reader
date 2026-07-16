@@ -243,7 +243,7 @@ class PaginationSession {
       bookId: bookId,
       chapterIndex: chapterIndex,
     );
-    final ir = convertChapterIrFromFrb(frbIr);
+    final ir = frbIr;
 
     return _installPages(
       ir: ir,

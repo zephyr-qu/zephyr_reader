@@ -17,5 +17,6 @@ pub mod sessions;
 pub mod stats;
 pub mod vocab;
 pub mod wordlist;
+pub mod chapter_detect;
 
 pub(crate) use crate::common::AppError;

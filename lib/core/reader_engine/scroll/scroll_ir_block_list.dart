@@ -49,7 +49,7 @@ Widget buildScrollIrBlockList({
   );
 }
 
-/// 多章 IR 段拼接 ListView（Phase C）。
+/// 多章 IR 段拼接 ListView。
 Widget buildScrollIrMultiSegmentList({
   required BuildContext context,
   required ScrollController scrollController,
@@ -125,19 +125,19 @@ Widget buildScrollIrBlockItem({
       child = const SizedBox.shrink();
     } else {
       final offset = block.plainStart;
-      final blockFontSize = IrReaderIrBlock.effectiveFontSize(block, config);
+      final blockFontSize = IrReaderIrBlock.effectiveFontSize(block.style, config);
       final blockStrutStyle = config.buildStrutStyle(
         fontSizeMultiplier: blockFontSize / config.fontSize,
-        lineHeight: IrReaderIrBlock.effectiveLineHeight(block, config),
+        lineHeight: IrReaderIrBlock.effectiveLineHeight(block.style, config),
       );
       final textAlign = IrReaderIrBlock.resolveTextAlign(
-        block.textAlign,
+        block.style.textAlign,
         config.textAlign,
       );
       final painted = IrReaderIrBlock.buildHighlightedSpan(
         text: block.text,
         spans: block.runs,
-        irStyle: block,
+        irStyle: block.style,
         config: config,
         highlights: highlights,
         contentStart: offset,
@@ -179,7 +179,7 @@ Widget buildScrollIrBlockItem({
   Widget wrapped = child;
   if (block.kind == ReaderIrBlockKind.text) {
     wrapped = Padding(
-      padding: IrReaderIrBlock.resolveBlockPadding(block, config),
+      padding: IrReaderIrBlock.resolveBlockPadding(block.style, config),
       child: child,
     );
   }
@@ -188,7 +188,7 @@ Widget buildScrollIrBlockItem({
     return wrapped;
   }
   final bottomSpacing = block.kind == ReaderIrBlockKind.text
-      ? IrReaderIrBlock.resolveBottomSpacing(block, config)
+      ? IrReaderIrBlock.resolveBottomSpacing(block.style, config)
       : (config.paragraphSpacing / 2).clamp(4, 16);
   if (bottomSpacing <= 0) {
     return wrapped;

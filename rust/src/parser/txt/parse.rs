@@ -21,8 +21,7 @@ use crate::domain::AppError;
 use crate::domain::chapter::Chapter;
 use crate::parser::types::ParseResult;
 use crate::domain::book::{Book, BookFormat};
-use crate::parser::txt::chapter_detect;
-
+use crate::domain::chapter_detect::detector::detect_with_builtin_only;
 /// 解析 TXT 文件
 pub fn parse_txt(file_path: String) -> Result<ParseResult, AppError> {
     parse_txt_inner(file_path)
@@ -161,35 +160,8 @@ fn parse_txt_inner(file_path: String) -> Result<ParseResult, AppError> {
     })
 }
 
-/// 从内容中提取章节
-///
-/// **重要**：返回的 `Chapter.start_index` 和 `end_index` 是**字节偏移**（而非字符索引）。
-/// 在使用这些值切片内容时，必须确保在 UTF-8 字符边界处截断。
 fn extract_chapters(content: &str, book_id: &str) -> Vec<Chapter> {
-    // 使用通用章节检测（支持中文、英文、数字等多种模式）
-    let detected = chapter_detect::extract_chapters(content, 1000, book_id);
-    if !detected.is_empty() {
-        return detected;
-    }
-
-    // 如果没有检测到章节标记，将整个文件作为一章
-    vec![
-
-
-      Chapter::new(book_id, "Full Text", 0, 0, 0,  content.len() as i64)
-
-    //   {
-    //     id: uuid::Uuid::new_v4().to_string(),
-    //     book_id: book_id.to_string(),
-    //     title: "Full Text".to_string(),
-    //     start_index: 0,
-    //     end_index: content.len() as i64,
-    //     chapter_index: 0,
-    //     word_count: 0,
-    //     cached_at: chrono::Utc::now(),
-    //     level: 0,
-    // }
-    ]
+    detect_with_builtin_only(content, book_id)
 }
 
 #[cfg(test)]

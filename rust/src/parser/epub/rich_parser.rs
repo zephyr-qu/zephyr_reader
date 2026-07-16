@@ -1,32 +1,30 @@
 // ============================================================
-// 文件作用：富文本解析，将 HTML 解析为富文本段落列表
+// 文件作用：富文本 HTML 解析，将 HTML 解析为 RichParagraph 列表。
+//           复用 rich_style 模块的 CSS 样式计算。
 //
 // 公有类型/函数：
 //   - parse_html_to_rich_text() — HTML → RichParagraph 列表
-//
-// 私有类型：
-//   - ComputedStyle — CSS 计算后样式
 //
 // 私有函数：
 //   - traverse_dom() — DOM 树遍历
 //   - collect_text_spans() / collect_plain_text() — 文本收集
 //   - walk_paragraph_children() / walk_inline_subtree() — DOM 递归
-//   - extract_inline_css_style() / apply_inline_style() — 内联样式处理
-//   - get_class_name() / get_attribute() — HTML 属性提取
+//   - build_paragraph() / flush_text_paragraph() — 段落构建
+//   - try_emit_image_paragraph() — 图片段落处理
 // ============================================================
 
-//! 富文本解析
+//! 富文本 HTML 解析
 //! 解析 HTML 内容为富文本段落列表，支持内联 CSS 样式提取和图片占位
+//! 样式计算委托给 rich_style 模块
 
-use super::content_ir::RichParagraph;
+use super::rich_paragraph::RichParagraph;
+use super::rich_style;
 use crate::common::AppError;
 use crate::parser::epub::css;
 use crate::pipeline::{ReaderInlineRun, ReaderInlineStyle};
 use html5ever::parse_document;
 use html5ever::tendril::TendrilSink;
-use html5ever::Attribute;
 use markup5ever_rcdom::{Handle, NodeData, RcDom};
-use std::cell::RefCell;
 use std::collections::HashMap;
 
 /// 解析 HTML 内容为富文本段落列表（自动提取内联 CSS 和图片占位）
@@ -63,7 +61,7 @@ pub fn parse_html_to_rich_text(html_content: &str) -> Result<Vec<RichParagraph>,
         &dom.document,
         &mut paragraphs,
         None,
-        &ComputedStyle::root(),
+        &rich_style::ComputedStyle::root(),
         &style_map,
     );
 
@@ -92,118 +90,6 @@ pub fn parse_html_to_rich_text(html_content: &str) -> Result<Vec<RichParagraph>,
     }
 
     Ok(paragraphs)
-}
-
-/// CSS 属性白名单 — ADR-015 精简后仅保留影响块级布局的属性。
-/// `font-family`/`line-height`/`color`/`text-decoration` 已在解析层丢弃。
-#[derive(Debug, Clone, Default)]
-struct ComputedStyle {
-    font_size: Option<f32>,
-    text_align: Option<String>,
-    font_weight: Option<i32>,
-    font_style: Option<String>,
-    text_indent_em: Option<f32>,
-    margin_top_em: Option<f32>,
-    margin_bottom_em: Option<f32>,
-}
-
-impl ComputedStyle {
-    fn root() -> Self {
-        Self {
-            font_size: Some(16.0),
-            ..Default::default()
-        }
-    }
-
-    fn derive(
-        &self,
-        tag: &str,
-        classes: &[String],
-        style_map: &HashMap<String, Vec<css::CssRule>>,
-    ) -> Self {
-        let mut s = self.clone();
-
-        for class in classes {
-            if let Some(rules) = style_map.get(&format!(".{class}")) {
-                s.apply_rules(rules);
-            }
-            if let Some(rules) = style_map.get(&format!("{tag}.{class}")) {
-                s.apply_rules(rules);
-            }
-        }
-        if let Some(rules) = style_map.get(tag) {
-            s.apply_rules(rules);
-        }
-
-        s
-    }
-
-    fn apply_rules(&mut self, rules: &[css::CssRule]) {
-        for rule in rules {
-            for (name, value) in &rule.declarations {
-                self.apply_declaration(name, value);
-            }
-        }
-    }
-
-    fn apply_declaration(&mut self, name: &str, value: &str) {
-        let parent_px = self.font_size.unwrap_or(16.0);
-        match name {
-            "font-size" => {
-                if let Some(px) = css::resolve_font_size(value, parent_px) {
-                    self.font_size = Some(px);
-                }
-            }
-            "text-align" => {
-                let v = value.trim().to_lowercase();
-                if matches!(v.as_str(), "left" | "center" | "right" | "justify") {
-                    self.text_align = Some(v);
-                }
-            }
-            "font-weight" => {
-                let v = value.trim();
-                if let Ok(n) = v.parse::<i32>() {
-                    self.font_weight = Some(n);
-                } else if v == "bold" {
-                    self.font_weight = Some(700);
-                } else if v == "normal" {
-                    self.font_weight = Some(400);
-                }
-            }
-            "font-style" => {
-                let v = value.trim().to_lowercase();
-                if v == "italic" || v == "normal" {
-                    self.font_style = Some(v);
-                }
-            }
-            "text-indent" => {
-                let parent_px = self.font_size.unwrap_or(16.0);
-                if let Some(em) = css::resolve_length_to_em(value, parent_px) {
-                    self.text_indent_em = Some(em);
-                }
-            }
-            "margin-top" => {
-                let parent_px = self.font_size.unwrap_or(16.0);
-                if let Some(em) = css::resolve_length_to_em(value, parent_px) {
-                    self.margin_top_em = Some(em);
-                }
-            }
-            "margin-bottom" => {
-                let parent_px = self.font_size.unwrap_or(16.0);
-                if let Some(em) = css::resolve_length_to_em(value, parent_px) {
-                    self.margin_bottom_em = Some(em);
-                }
-            }
-            _ => {
-                tracing::trace!(
-                    target: "epub.css.whitelist",
-                    "dropped unsupported CSS: {}={}",
-                    name,
-                    value,
-                );
-            }
-        }
-    }
 }
 
 /// 构建段落对象的辅助函数，填充不随标签变动的固定字段。
@@ -240,7 +126,7 @@ fn walk_paragraph_children(
     handle: &Handle,
     paragraphs: &mut Vec<RichParagraph>,
     inherited_class: Option<String>,
-    parent_style: &ComputedStyle,
+    parent_style: &rich_style::ComputedStyle,
     style_map: &HashMap<String, Vec<css::CssRule>>,
 ) {
     let mut spans: Vec<ReaderInlineRun> = Vec::new();
@@ -258,7 +144,11 @@ fn walk_paragraph_children(
         if let NodeData::Element { ref name, .. } = child.data {
             match name.local.as_ref() {
                 "br" => {
-                    spans.push(ReaderInlineRun { text: "\n".to_string(), style: ReaderInlineStyle::Plain, url: None });
+                    spans.push(ReaderInlineRun {
+                        text: "\n".to_string(),
+                        style: ReaderInlineStyle::Plain,
+                        url: None,
+                    });
                 }
                 "p" | "div" | "section" | "article" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6"
                 | "ul" | "ol" | "li" | "blockquote" | "table" | "pre" => {
@@ -308,7 +198,7 @@ fn walk_inline_subtree(
     spans: &mut Vec<ReaderInlineRun>,
     paragraphs: &mut Vec<RichParagraph>,
     inherited_class: Option<String>,
-    parent_style: &ComputedStyle,
+    parent_style: &rich_style::ComputedStyle,
     style_map: &HashMap<String, Vec<css::CssRule>>,
 ) {
     if try_emit_image_paragraph(
@@ -327,18 +217,22 @@ fn walk_inline_subtree(
         ..
     } = handle.data
     {
-        let current_class = get_class_name(attrs);
+        let current_class = rich_style::get_class_name(attrs);
         let classes: Vec<String> = current_class
             .split_whitespace()
             .map(|s| s.to_string())
             .collect();
         let el_style = parent_style.derive(name.local.as_ref(), &classes, style_map);
-        let inline_style = extract_inline_css_style(attrs);
-        let merged_style = apply_inline_style(&el_style, &inline_style);
+        let inline_style = rich_style::extract_inline_css_style(attrs);
+        let merged_style = rich_style::apply_inline_style(&el_style, &inline_style);
 
         match name.local.as_ref() {
             "br" => {
-                spans.push(ReaderInlineRun { text: "\n".to_string(), style: ReaderInlineStyle::Plain, url: None });
+                spans.push(ReaderInlineRun {
+                    text: "\n".to_string(),
+                    style: ReaderInlineStyle::Plain,
+                    url: None,
+                });
             }
             "b" | "strong" | "i" | "em" | "u" | "s" | "strike" | "del" | "code" | "a" | "span" => {
                 collect_text_spans(handle, spans, parent_style, style_map);
@@ -364,48 +258,23 @@ fn walk_inline_subtree(
     } else if let NodeData::Text { ref contents } = handle.data {
         let text = contents.borrow().to_string();
         if !text.is_empty() {
-            push_styled_text_span(spans, text, parent_style);
+            rich_style::push_styled_text_span(spans, text, parent_style);
         }
     }
-}
-
-/// 将 CSS 计算样式映射为行内 [SpanStyle]（`<span style="font-weight:bold">` 等）。
-fn span_style_from_computed(style: &ComputedStyle) -> ReaderInlineStyle {
-    if style.font_weight.unwrap_or(400) >= 700 {
-        return ReaderInlineStyle::Bold;
-    }
-    if style.font_style.as_deref() == Some("italic") {
-        return ReaderInlineStyle::Italic;
-    }
-    ReaderInlineStyle::Plain
-}
-
-fn push_styled_text_span(spans: &mut Vec<ReaderInlineRun>, text: String, style: &ComputedStyle) {
-    if text.is_empty() {
-        return;
-    }
-    spans.push(ReaderInlineRun { text, style: span_style_from_computed(style), url: None });
-}
-
-fn paragraph_indent_chars(style: &ComputedStyle) -> u8 {
-    if let Some(em) = style.text_indent_em {
-        return em.round().clamp(0.0, 12.0) as u8;
-    }
-    2
 }
 
 fn flush_text_paragraph(
     spans: &mut Vec<ReaderInlineRun>,
     paragraphs: &mut Vec<RichParagraph>,
     inherited_class: Option<String>,
-    parent_style: &ComputedStyle,
+    parent_style: &rich_style::ComputedStyle,
 ) {
     if spans.is_empty() {
         return;
     }
     paragraphs.push(build_paragraph(
         std::mem::take(spans),
-        paragraph_indent_chars(parent_style),
+        rich_style::paragraph_indent_chars(parent_style),
         false,
         0,
         inherited_class,
@@ -422,7 +291,7 @@ fn try_emit_image_paragraph(
     spans: &mut Vec<ReaderInlineRun>,
     paragraphs: &mut Vec<RichParagraph>,
     inherited_class: Option<String>,
-    parent_style: &ComputedStyle,
+    parent_style: &rich_style::ComputedStyle,
 ) -> bool {
     if let NodeData::Element {
         ref name,
@@ -433,9 +302,12 @@ fn try_emit_image_paragraph(
         if name.local.as_ref() != "img" {
             return false;
         }
+
+        // 先刷出累积的文本 span
         flush_text_paragraph(spans, paragraphs, inherited_class, parent_style);
-        let src = get_attribute(attrs, "src").unwrap_or_default();
-        let alt = get_attribute(attrs, "alt").unwrap_or_default();
+
+        let src = rich_style::get_attribute(attrs, "src").unwrap_or_default();
+        let alt = rich_style::get_attribute(attrs, "alt").unwrap_or_default();
         paragraphs.push(RichParagraph::image_placeholder(src, alt));
         return true;
     }
@@ -447,7 +319,7 @@ fn traverse_dom(
     handle: &Handle,
     paragraphs: &mut Vec<RichParagraph>,
     inherited_class: Option<String>,
-    style: &ComputedStyle,
+    style: &rich_style::ComputedStyle,
     style_map: &HashMap<String, Vec<css::CssRule>>,
 ) {
     let node = handle;
@@ -458,7 +330,7 @@ fn traverse_dom(
         ..
     } = node.data
     {
-        let current_class = get_class_name(attrs);
+        let current_class = rich_style::get_class_name(attrs);
         let classes: Vec<String> = current_class
             .split_whitespace()
             .map(|s| s.to_string())
@@ -471,13 +343,13 @@ fn traverse_dom(
         };
 
         let el_style = style.derive(name.local.as_ref(), &classes, style_map);
-        let inline_style = extract_inline_css_style(attrs);
-        let merged_style = apply_inline_style(&el_style, &inline_style);
+        let inline_style = rich_style::extract_inline_css_style(attrs);
+        let merged_style = rich_style::apply_inline_style(&el_style, &inline_style);
 
         match name.local.as_ref() {
             "img" => {
-                let src = get_attribute(attrs, "src").unwrap_or_default();
-                let alt = get_attribute(attrs, "alt").unwrap_or_default();
+                let src = rich_style::get_attribute(attrs, "src").unwrap_or_default();
+                let alt = rich_style::get_attribute(attrs, "alt").unwrap_or_default();
                 paragraphs.push(RichParagraph::image_placeholder(src, alt));
             }
 
@@ -539,7 +411,14 @@ fn traverse_dom(
                 collect_text_spans(handle, &mut spans, &merged_style, style_map);
 
                 if !spans.is_empty() {
-                    spans.insert(0, ReaderInlineRun { text: "• ".to_string(), style: ReaderInlineStyle::Plain, url: None });
+                    spans.insert(
+                        0,
+                        ReaderInlineRun {
+                            text: "• ".to_string(),
+                            style: ReaderInlineStyle::Plain,
+                            url: None,
+                        },
+                    );
 
                     paragraphs.push(build_paragraph(
                         spans,
@@ -588,7 +467,7 @@ fn traverse_dom(
 fn collect_text_spans(
     handle: &Handle,
     spans: &mut Vec<ReaderInlineRun>,
-    parent_style: &ComputedStyle,
+    parent_style: &rich_style::ComputedStyle,
     style_map: &HashMap<String, Vec<css::CssRule>>,
 ) {
     let node = handle;
@@ -599,14 +478,14 @@ fn collect_text_spans(
         ..
     } = node.data
     {
-        let current_class = get_class_name(attrs);
+        let current_class = rich_style::get_class_name(attrs);
         let classes: Vec<String> = current_class
             .split_whitespace()
             .map(|s| s.to_string())
             .collect();
         let el_style = parent_style.derive(name.local.as_ref(), &classes, style_map);
-        let inline_style = extract_inline_css_style(attrs);
-        let merged_style = apply_inline_style(&el_style, &inline_style);
+        let inline_style = rich_style::extract_inline_css_style(attrs);
+        let merged_style = rich_style::apply_inline_style(&el_style, &inline_style);
 
         match name.local.as_ref() {
             "b" | "strong" => {
@@ -614,7 +493,11 @@ fn collect_text_spans(
                 collect_plain_text(handle, &mut inner_text);
 
                 if !inner_text.trim().is_empty() {
-                    spans.push(ReaderInlineRun { text: inner_text.trim().to_string(), style: ReaderInlineStyle::Bold, url: None });
+                    spans.push(ReaderInlineRun {
+                        text: inner_text.trim().to_string(),
+                        style: ReaderInlineStyle::Bold,
+                        url: None,
+                    });
                 }
             }
 
@@ -623,7 +506,11 @@ fn collect_text_spans(
                 collect_plain_text(handle, &mut inner_text);
 
                 if !inner_text.trim().is_empty() {
-                    spans.push(ReaderInlineRun { text: inner_text.trim().to_string(), style: ReaderInlineStyle::Italic, url: None });
+                    spans.push(ReaderInlineRun {
+                        text: inner_text.trim().to_string(),
+                        style: ReaderInlineStyle::Italic,
+                        url: None,
+                    });
                 }
             }
 
@@ -633,22 +520,34 @@ fn collect_text_spans(
                 collect_plain_text(handle, &mut inner_text);
 
                 if !inner_text.trim().is_empty() {
-                    spans.push(ReaderInlineRun { text: inner_text.trim().to_string(), style: ReaderInlineStyle::Plain, url: None });
+                    spans.push(ReaderInlineRun {
+                        text: inner_text.trim().to_string(),
+                        style: ReaderInlineStyle::Plain,
+                        url: None,
+                    });
                 }
             }
 
             "a" => {
-                let href = get_attribute(attrs, "href").unwrap_or_default();
+                let href = rich_style::get_attribute(attrs, "href").unwrap_or_default();
                 let mut inner_text = String::new();
                 collect_plain_text(handle, &mut inner_text);
 
                 if !inner_text.trim().is_empty() {
-                    spans.push(ReaderInlineRun { text: inner_text.trim().to_string(), style: ReaderInlineStyle::Plain, url: Some(href) });
+                    spans.push(ReaderInlineRun {
+                        text: inner_text.trim().to_string(),
+                        style: ReaderInlineStyle::Plain,
+                        url: Some(href),
+                    });
                 }
             }
 
             "br" => {
-                spans.push(ReaderInlineRun { text: "\n".to_string(), style: ReaderInlineStyle::Plain, url: None });
+                spans.push(ReaderInlineRun {
+                    text: "\n".to_string(),
+                    style: ReaderInlineStyle::Plain,
+                    url: None,
+                });
             }
 
             "span" => {
@@ -687,7 +586,7 @@ fn collect_text_spans(
     } else if let NodeData::Text { ref contents } = node.data {
         let text = contents.borrow().to_string();
         if !text.is_empty() {
-            push_styled_text_span(spans, text, parent_style);
+            rich_style::push_styled_text_span(spans, text, parent_style);
         }
     }
 }
@@ -702,60 +601,6 @@ fn collect_plain_text(handle: &Handle, text: &mut String) {
             collect_plain_text(child, text);
         }
     }
-}
-
-/// 从 HTML 元素属性中提取内联 CSS 样式
-///
-/// 解析 `style` 属性中的声明（如 `"color: red; font-size: 16px"`），
-/// 返回属性名到属性值的映射表
-fn extract_inline_css_style(attrs: &RefCell<Vec<Attribute>>) -> HashMap<String, String> {
-    let mut result = HashMap::new();
-    for attr in attrs.borrow().iter() {
-        if attr.name.local.as_ref() == "style" {
-            for part in attr.value.as_ref().split(';') {
-                let part = part.trim();
-                if let Some(eq) = part.find(':') {
-                    let name = part[..eq].trim().to_lowercase();
-                    let value = part[eq + 1..].trim().to_string();
-                    if !name.is_empty() {
-                        result.insert(name, value);
-                    }
-                }
-            }
-        }
-    }
-    result
-}
-
-/// 将内联样式应用到基础样式上，返回新的计算后样式
-///
-/// 遍历内联样式声明并逐一调用 `apply_declaration` 合并到基础样式
-fn apply_inline_style(base: &ComputedStyle, inline: &HashMap<String, String>) -> ComputedStyle {
-    let mut s = base.clone();
-    for (name, value) in inline {
-        s.apply_declaration(name, value);
-    }
-    s
-}
-
-/// 获取 class 属性
-fn get_class_name(attrs: &RefCell<Vec<Attribute>>) -> String {
-    for attr in attrs.borrow().iter() {
-        if attr.name.local.as_ref() == "class" {
-            return attr.value.as_ref().to_string();
-        }
-    }
-    String::new()
-}
-
-/// 获取指定属性
-fn get_attribute(attrs: &RefCell<Vec<Attribute>>, name: &str) -> Option<String> {
-    for attr in attrs.borrow().iter() {
-        if attr.name.local.as_ref() == name {
-            return Some(attr.value.as_ref().to_string());
-        }
-    }
-    None
 }
 
 #[cfg(test)]
@@ -822,10 +667,13 @@ mod tests {
         let html = r#"<p><span style="font-weight: bold">bold</span> plain</p>"#;
         let result = parse_html_to_rich_text(html).unwrap();
         assert_eq!(result.len(), 1);
-        assert!(result[0]
-            .spans
-            .iter()
-            .any(|s| matches!(s, ReaderInlineRun { style: ReaderInlineStyle::Bold, .. })));
+        assert!(result[0].spans.iter().any(|s| matches!(
+            s,
+            ReaderInlineRun {
+                style: ReaderInlineStyle::Bold,
+                ..
+            }
+        )));
     }
 
     #[test]
@@ -833,10 +681,13 @@ mod tests {
         let html = r#"<p><span style="font-style: italic">em</span></p>"#;
         let result = parse_html_to_rich_text(html).unwrap();
         assert_eq!(result.len(), 1);
-        assert!(result[0]
-            .spans
-            .iter()
-            .any(|s| matches!(s, ReaderInlineRun { style: ReaderInlineStyle::Italic, .. })));
+        assert!(result[0].spans.iter().any(|s| matches!(
+            s,
+            ReaderInlineRun {
+                style: ReaderInlineStyle::Italic,
+                ..
+            }
+        )));
     }
 
     #[test]

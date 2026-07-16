@@ -22,7 +22,7 @@ use image::ImageFormat as ImgFormat;
 use xxhash_rust::xxh3::xxh3_64;
 
 use super::asset_registry::EpubAssetRegistry;
-use super::unzip::EpubFile;
+use super::archive_reader::EpubFile;
 use crate::domain::AppError;
 
 fn image_cache_root() -> Result<PathBuf, AppError> {

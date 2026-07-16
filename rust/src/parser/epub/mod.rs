@@ -10,7 +10,8 @@
 //   - parse_epub() — EPUB 文件解析入口
 //
 // 子模块：
-//   - asset_registry, content_ir, css, parse, processed_image, provider, toc, unzip
+//   - asset_registry, content_ir, css, entry_extractor, image_size, parse, plain_text,
+//     processed_image, provider, rich_paragraph, rich_parser, rich_style, toc,
 // ============================================================
 
 //! EPUB 解析模块
@@ -20,11 +21,16 @@ pub mod asset_registry;
 pub mod content_ir;
 pub mod css;
 pub mod parse;
-pub mod rich_text;
+pub mod rich_parser;
+pub mod rich_style;
 pub mod processed_image;
+pub mod plain_text;
 pub mod provider;
 pub mod toc;
-pub mod unzip;
+pub mod archive_reader;
+pub mod entry_extractor;
+pub mod image_size;
+pub mod rich_paragraph;
 
 pub use asset_registry::{
     canonicalize_chapter_image_assets, EpubAssetEntry, EpubAssetRegistry, normalize_asset_id,
@@ -133,7 +139,7 @@ impl EpubParser {
                 return Err(AppError::FileNotFound { path: fp });
             }
 
-            let epub_file = unzip::EpubFile::open(&fp)?;
+            let epub_file = archive_reader::EpubFile::open(&fp)?;
 
             let publisher = epub_file.publisher();
             let translator = epub_file.translator();

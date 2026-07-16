@@ -6,5 +6,5 @@ import 'service_locator.config.dart';
 final getIt = GetIt.instance;
 @InjectableInit()
 Future<void> configureDependencies() async {
-  await getIt.init();
+  await GetIt.instance.init();
 }

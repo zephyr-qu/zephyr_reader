@@ -4,8 +4,10 @@
 //! 依赖：common/, infra/
 
 pub mod chapter_ir;
-pub mod plain_projection;
+pub mod block_joined_builder;
+pub mod plain_projector;
 pub mod types;
 
-pub use plain_projection::*;
+pub use block_joined_builder::*;
+pub use plain_projector::*;
 pub use types::*;

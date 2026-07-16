@@ -14,4 +14,5 @@ pub mod stats;
 pub mod vocab;
 pub mod bilingual;
 pub mod dictionary;
+pub mod chapter_detect;
 pub mod reader;

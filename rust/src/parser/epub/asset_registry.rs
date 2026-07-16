@@ -23,7 +23,7 @@ use std::collections::HashMap;
 
 use epub::doc::ResourceItem;
 
-use super::unzip::EpubFile;
+use super::archive_reader::EpubFile;
 use crate::pipeline::{ReaderChapterIr, ReaderIrBlockKind};
 
 /// 注册表条目：`asset_id`（manifest key）→ EPUB 包内路径。

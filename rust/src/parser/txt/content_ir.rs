@@ -8,7 +8,7 @@ use crate::common::AppError;
 use crate::pipeline::PlainProjectionStyle;
 #[cfg(test)]
 use crate::pipeline::ReaderIrBlockKind;
-use crate::pipeline::{slice_by_char_range, ReaderChapterIr, ReaderIrBlock};
+use crate::pipeline::{slice_by_char_range, BlockStyle, ReaderChapterIr, ReaderIrBlock};
 
 use super::provider::TxtContentProvider;
 use crate::parser::provider::ChapterContentProvider;
@@ -49,18 +49,7 @@ pub fn txt_to_chapter_ir(chapter_text: &str) -> ReaderChapterIr {
         if text.trim().is_empty() {
             continue;
         }
-        blocks.push(ReaderIrBlock::text(
-            start,
-            text,
-            Vec::new(), // TXT: no inline runs
-            false,
-            0,
-            None,
-            None,
-            None,
-            None,
-            None,
-        ));
+        blocks.push(ReaderIrBlock::text(start, text, Vec::new(), BlockStyle::empty()));
     }
 
     ReaderChapterIr::new(blocks, chapter_text.to_string())

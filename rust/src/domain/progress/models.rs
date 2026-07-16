@@ -7,7 +7,7 @@ use crate::domain::book::Book;
 /// 单章阅读进度
 ///
 /// 进度只持久化 chapterIndex + charOffset（ADR-001 / I1）。
-/// page_index / total_pages 已于 Phase 4 移除——它们是分页视图的派生值，不属于持久化真理。
+/// page_index / total_pages 已移除——它们是分页视图的派生值，不属于持久化真理。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, sqlx::FromRow)]
 #[frb(dart_metadata = ("freezed"))]
 pub struct ReadingProgress {

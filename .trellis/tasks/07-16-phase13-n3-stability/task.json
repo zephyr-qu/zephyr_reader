@@ -1,0 +1,18 @@
+{
+  "id": "07-16-phase13-n3-stability",
+  "name": "N3 — 核心链路健壮性",
+  "status": "pending",
+  "source": "session:cursor_ea2ad83a-8178-4875-b3a5-14401ffb7788",
+  "created": "2026-07-16",
+  "owner": "zs",
+  "prd": "discuss/ROADMAP.md",
+  "inherits_spec": ["backend", "frontend"],
+  "description": "全链路端到端验证 + FFI 错误路径审计 + Panic 边界检查。",
+  "tasks": [
+    "全链路手动测试 — 开书→画笔记→存进度→杀进程→恢复",
+    "FFI 错误审计 — 所有 FRB 函数返回 Result<T, AppError>",
+    "Panic 边界检查 — 禁用非测试代码 unwrap()",
+    "Flutter 异步错误处理 — 所有 FFI 调用 try-catch",
+    "异常路径验证 — 断网、空书、异常退出"
+  ]
+}

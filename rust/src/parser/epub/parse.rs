@@ -15,7 +15,7 @@ use std::path::Path;
 use uuid::Uuid;
 
 use super::toc::extract_chapters_from_epub;
-use super::unzip::EpubFile;
+use super::archive_reader::EpubFile;
 use crate::domain::chapter::Chapter;
 use crate::domain::AppError;
 use crate::parser::types::ParseResult;
@@ -122,7 +122,7 @@ fn estimate_total_chars(epub_file: &mut EpubFile, chapters: &[Chapter]) -> i64 {
     let mut sampled_count = 0i64;
 
     for &idx in &sample_indices {
-        // Inline: read_chapter_content logic (function deleted in Phase B)
+        // Inline: read_chapter_content logic
         let content: String = {
             let spine = epub_file.spine();
             let start = chapters[idx].start_index as usize;
