@@ -8,14 +8,14 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_view_mode
 import 'package:zephyr_reader/features/reader/core/application/chapter_loader.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
 import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
-import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
+import 'package:zephyr_reader/reader_engine/pagination/engine.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
 
 /// 章节与页面导航。
 class ChapterNavigator {
   final ChapterContentRepository _contentRepo;
-  final PaginationSession _session;
+  final PaginationEngine _engine;
   final ReaderConfig _config;
   final ChapterViewModel _chapterVM;
   final ChapterLoader _loader;
@@ -26,7 +26,7 @@ class ChapterNavigator {
 
   ChapterNavigator(
     this._contentRepo,
-    this._session,
+    this._engine,
     this._config,
     this._chapterVM,
     this._loader,
@@ -116,7 +116,7 @@ class ChapterNavigator {
     if (pageIndex < 0 || pageIndex >= _totalPages.value) return;
     _pageIndex.value = pageIndex;
 
-    final descriptors = _session.descriptors;
+    final descriptors = _engine.session.descriptors;
     if (descriptors != null && pageIndex < descriptors.length) {
       final d = descriptors[pageIndex];
       final start = d.startOffset;
@@ -126,7 +126,7 @@ class ChapterNavigator {
       _chapterVM.currentCharOffset.value = inside;
     }
 
-    _session.ensureWindow(pageIndex);
+    _engine.session.ensureWindow(pageIndex);
     // pageIndex <= 1 时加速上一章 staging 预加载
     ensurePrevChapterStaging(pageIndex);
   }

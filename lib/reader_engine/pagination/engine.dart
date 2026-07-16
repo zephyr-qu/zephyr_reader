@@ -1,46 +1,53 @@
 import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
 import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
 import 'package:zephyr_reader/reader_engine/pagination/packed_page.dart';
-import 'package:zephyr_reader/reader_engine/shared/pagination_params.dart';
 
-/// 分页引擎：封装 [PaginationSession] 创建/复用/释放。
+/// 分页引擎：PaginationSession 唯一所有者。
 ///
-/// ### 生命周期
-/// 1. `createSession(bookId, chapterIndex, params, maxChars?)` — 创建新会话
-/// 2. 通过 [session] 访问会话进行分页
-/// 3. `disposeSession()` — 释放会话
+/// 生命周期：
+/// 1. 构造时自动创建会话
+/// 2. consumer 通过 [session] 或便捷 getter 访问
+/// 3. [disposeSession] 释放（switch 到非分页模式/换书时调用）
+/// 4. [recreateSession] 重建（需要新 session handle 时触发）
 ///
 /// ### 所有权
-/// Engine 持有会话所有权。consumer（如 orchestrator）通过 [session] 引用，
+/// Engine 持有会话所有权。consumer 通过 [session] 引用，
 /// 不管理会话生命周期。
 class PaginationEngine {
-  PaginationSession? _session;
+  PaginationSession _session;
   final ChapterContentRepository _contentRepo;
 
-  PaginationEngine(this._contentRepo);
+  PaginationEngine(this._contentRepo)
+      : _session = PaginationSession(
+            onCacheUpdated: () => _contentRepo.preloadGeneration.value++,
+          );
 
   /// 当前分页会话。
-  PaginationSession? get session => _session;
+  PaginationSession get session => _session;
 
-  /// 当前分页描述子（便捷访问）。
-  List<PackedPage>? get descriptors => _session?.descriptors;
+  /// 当前页描述子。
+  List<PackedPage>? get descriptors => _session.descriptors;
 
-  /// 创建分页会话（如果已有则自动释放）。
-  PaginationSession createSession({
-    required String bookId,
-    required int chapterIndex,
-    required PaginationParams params,
-  }) {
+  /// EPUB 文件路径（图片渲染用）。
+  String? get sessionFilePath => _session.sessionFilePath;
+
+  /// 确保页窗口缓存（page block 预加载）。
+  void ensureWindow(int pageIndex) => _session.ensureWindow(pageIndex);
+
+  /// 重建分页会话（先释放旧会话）。
+  PaginationSession recreateSession() {
     disposeSession();
     _session = PaginationSession(
       onCacheUpdated: () => _contentRepo.preloadGeneration.value++,
     );
-    return _session!;
+    return _session;
   }
 
   /// 释放当前分页会话。
   void disposeSession() {
-    _session?.dispose();
-    _session = null;
+    _session.dispose();
+    _session = PaginationSession(
+      onCacheUpdated: () => _contentRepo.preloadGeneration.value++,
+    );
   }
 }

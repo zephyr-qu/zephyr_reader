@@ -2,7 +2,7 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_load_requ
 import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
 import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
-import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
+import 'package:zephyr_reader/reader_engine/pagination/engine.dart';
 import 'package:zephyr_reader/reader_engine/pagination/engine_utils.dart';
 import 'package:zephyr_reader/reader_engine/pagination/packed_page.dart';
 
@@ -24,7 +24,7 @@ ChapterPaginationIntent resolveChapterPaginationIntent({
   required int chapterIndex,
   required ChapterNavigationKind navigationKind,
   required ChapterContentRepository contentRepo,
-  required PaginationSession session,
+  required PaginationEngine engine,
   required PaginationCoordinator pagination,
 }) {
   if (navigationKind == ChapterNavigationKind.adjacentCrossChapter) {
@@ -44,9 +44,9 @@ ChapterPaginationIntent resolveChapterPaginationIntent({
     }
   }
 
-  final hash = session.sessionConfigHash;
-  final descriptors = session.descriptors;
-  final sessionChapterIndex = session.sessionChapterIndex;
+  final hash = engine.session.sessionConfigHash;
+  final descriptors = engine.session.descriptors;
+  final sessionChapterIndex = engine.session.sessionChapterIndex;
 
   final sessionValid =
       hash != null &&

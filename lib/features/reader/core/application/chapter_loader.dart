@@ -11,7 +11,7 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_view_mode
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
 import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
 import 'package:zephyr_reader/features/reader/domain/progress_repository.dart';
-import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
+import 'package:zephyr_reader/reader_engine/pagination/engine.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
 /// 章节内容加载编排。
@@ -20,7 +20,7 @@ import 'package:signals_flutter/signals_flutter.dart';
 class ChapterLoader {
   final ChapterContentRepository _contentRepo;
   final ProgressRepository _progressRepo;
-  final PaginationSession _session;
+  final PaginationEngine _engine;
   final ChapterViewModel _chapterVM;
   final PaginationCoordinator _pagination;
   late final ChapterLoadOrchestrator _orchestrator;
@@ -54,13 +54,13 @@ class ChapterLoader {
   ChapterLoader(
     this._contentRepo,
     this._progressRepo,
-    this._session,
+    this._engine,
     this._chapterVM,
     this._pagination,
   ) {
     _orchestrator = ChapterLoadOrchestrator(
       contentRepo: _contentRepo,
-      session: _session,
+      engine: _engine,
       chapterVM: _chapterVM,
       pagination: _pagination,
       chapters: chapters,

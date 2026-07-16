@@ -1,7 +1,7 @@
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
-import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
+import 'package:zephyr_reader/reader_engine/pagination/engine.dart';
 import 'package:zephyr_reader/reader_engine/pagination/engine_utils.dart';
 import 'package:zephyr_reader/reader_engine/shared/pagination_params.dart';
 import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
@@ -9,13 +9,13 @@ import 'package:zephyr_reader/reader_engine/pagination/packed_page.dart';
 
 class PaginationCoordinator {
   final ChapterContentRepository _contentRepo;
-  final PaginationSession _session;
+  final PaginationEngine _engine;
   final ReaderConfig _config;
   final ChapterViewModel _chapterVM;
 
   PaginationCoordinator(
     this._contentRepo,
-    this._session,
+    this._engine,
     this._config,
     this._chapterVM,
   );
@@ -92,7 +92,7 @@ class PaginationCoordinator {
       '[FirstLoad] paginateFirstScreen chapter=$chapterIndex'
       ' maxChars=${PaginationUtils.firstScreenMaxChars}',
     );
-    return _session.beginPaginate(
+    return _engine.session.beginPaginate(
       bookId: _chapterVM.bookId.value,
       chapterIndex: chapterIndex,
       params: buildPaginationParams(),
@@ -104,7 +104,7 @@ class PaginationCoordinator {
   Future<({int totalPages, bool isPartial})> paginateFullChapter(
     int chapterIndex,
   ) {
-    return _session.beginPaginate(
+    return _engine.session.beginPaginate(
       bookId: _chapterVM.bookId.value,
       chapterIndex: chapterIndex,
       params: buildPaginationParams(),
@@ -116,7 +116,7 @@ class PaginationCoordinator {
   Future<({int totalPages, bool isPartial})> paginateFirstScreenFromCache(
     int chapterIndex,
   ) {
-    return _session.beginPaginateFromCache(
+    return _engine.session.beginPaginateFromCache(
       bookId: _chapterVM.bookId.value,
       chapterIndex: chapterIndex,
       params: buildPaginationParams(),
@@ -126,7 +126,7 @@ class PaginationCoordinator {
 
   /// 全量 Flutter 分页（升级现有会话）。
   Future<int> expandToFullChapter(int chapterIndex) async {
-    final r = await _session.expandToFullChapter(
+    final r = await _engine.session.expandToFullChapter(
       bookId: _chapterVM.bookId.value,
       chapterIndex: chapterIndex,
       params: buildPaginationParams(),
@@ -139,7 +139,7 @@ class PaginationCoordinator {
   Future<({int totalPages, bool isPartial})> repaginateCurrentChapter({
     BigInt? maxChars,
   }) {
-    return _session.repaginateInPlace(
+    return _engine.session.repaginateInPlace(
       bookId: _chapterVM.bookId.value,
       chapterIndex: _chapterVM.chapterIndex.value,
       params: buildPaginationParams(),
@@ -153,14 +153,14 @@ class PaginationCoordinator {
     required int initialCharOffset,
     required String content,
   }) {
-    final descriptors = _session.descriptors!;
+    final descriptors = _engine.session.descriptors!;
     final maxOffset = PaginationUtils.chapterCharOffsetMax(
       descriptors: descriptors,
       phase1PlainContent: content,
     );
     final charOffset = initialCharOffset.clamp(0, maxOffset);
     final resolvedPage = resolvePageForCharOffset(charOffset, descriptors);
-    _session.ensureWindow(resolvedPage);
+    _engine.session.ensureWindow(resolvedPage);
 
     Logging.debug(
       'loadChapter: pages=${descriptors.length} '
@@ -172,7 +172,7 @@ class PaginationCoordinator {
 
   /// charOffset → pageIndex：优先 session，回退 descriptor 二分。
   int resolvePageForCharOffset(int charOffset, List<PackedPage> descriptors) {
-    final sessionPage = _session.resolvePageIndexForCharOffset(charOffset);
+    final sessionPage = _engine.session.resolvePageIndexForCharOffset(charOffset);
     if (sessionPage != null) {
       return sessionPage.clamp(0, descriptors.length - 1);
     }
@@ -180,11 +180,11 @@ class PaginationCoordinator {
   }
 
   /// 释放分页会话并清空本地缓存。
-  void disposePagination() => _session.dispose();
+  void disposePagination() => _engine.disposeSession();
 
   /// 判断分页是否有效。
   bool isPaginationValid(int total) {
-    final descriptors = _session.descriptors;
+    final descriptors = _engine.session.descriptors;
     return total > 0 && descriptors != null && descriptors.isNotEmpty;
   }
 }
