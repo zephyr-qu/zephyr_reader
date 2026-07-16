@@ -3,7 +3,7 @@ import 'package:zephyr_reader/features/reader/core/domain/progress_repository.da
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.dart';
-import 'package:zephyr_reader/src/rust/pipeline/types.dart';
+import 'package:zephyr_reader/features/reader/data/ir_types.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
@@ -45,9 +45,6 @@ abstract class ReaderRepositoryInterface {
   /// 当前分页结果是否为部分分页。
   bool get sessionIsPartial;
 
-  /// 分页引擎模式。
-  ChapterPaginationMode get sessionMode;
-
   /// 分页 session 文件路径（EPUB 图片用）。
   String? get sessionFilePath;
 
@@ -75,7 +72,7 @@ abstract class ReaderRepositoryInterface {
   // ==================== 缓存和页面内容 ====================
 
   /// 当前章 IR（scroll）。
-  ChapterContentIr? get currentChapterIr;
+  ReaderChapterIr? get currentChapterIr;
 
   /// 当前章书籍文件路径。
   String? get currentChapterFilePath;

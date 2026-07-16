@@ -1,5 +1,6 @@
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/data/epub_block_image_cache.dart';
+import 'package:zephyr_reader/features/reader/data/ir_types.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
@@ -25,10 +26,11 @@ abstract final class FlutterStagingPreloader {
       final book = await book_api.getBook(bookId: bookId);
       if (book == null || book.filePath.isEmpty) return null;
 
-      final ir = await reader_api.getChapterContentIr(
+      final frbIr = await reader_api.getReaderChapterIr(
         bookId: bookId,
         chapterIndex: chapterIndex,
       );
+      final ir = convertChapterIrFromFrb(frbIr);
       if (!PaginationStagingStore.isCurrent(gen)) return null;
 
       final contentWidth =
@@ -123,7 +125,6 @@ abstract final class FlutterStagingPreloader {
       descriptors: pages,
       firstPageContent: plain.substring(start, end),
       isPartial: false,
-      paginationMode: ChapterPaginationMode.contentBlocks,
       bookId: ready.bookId,
       anchorPageBlocks: anchor.slices,
     );

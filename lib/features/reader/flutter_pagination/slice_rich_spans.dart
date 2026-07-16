@@ -1,29 +1,26 @@
-import 'package:zephyr_reader/src/rust/pipeline/types.dart';
+import 'package:zephyr_reader/features/reader/data/ir_types.dart';
 
-/// 与 Flutter 装箱索引一致：Dart [String] UTF-16 码元下标（对齐 `substring` /
-/// packer 的 `sliceLocalStart`）。BMP 中文与 Rust Unicode scalar 一致。
-String richSpanText(RichTextSpan span) =>
-    span.when(styled: (_, data) => data.text, link: (data, _) => data.text);
+/// 获取 run 的文本内容。
+String runText(ReaderInlineRun run) => run.text;
 
-RichTextSpan _cloneSpanWithText(RichTextSpan span, String text) => span.when(
-  styled: (style, _) => RichTextSpan.styled(style, RichTextSpanData(text: text)),
-  link: (_, url) =>
-      RichTextSpan.link(data: RichTextSpanData(text: text), url: url),
-);
+/// 克隆 run 并替换文本。
+ReaderInlineRun _cloneRunWithText(ReaderInlineRun run, String text) {
+  return ReaderInlineRun(text: text, style: run.style, url: run.url);
+}
 
-/// 将块内 span 流按 `[start, start+len)` 裁剪（对齐 Rust `slice_rich_spans`）。
-List<RichTextSpan> sliceRichSpans(
-  List<RichTextSpan> spans, {
+/// 将块内 span 流按 `[start, start+len)` 裁剪（对齐 Rust `slice_inline_runs`）。
+List<ReaderInlineRun> sliceRichSpans(
+  List<ReaderInlineRun> spans, {
   required int start,
   required int len,
 }) {
   if (len <= 0 || spans.isEmpty) return const [];
   final end = start + len;
   var cursor = 0;
-  final out = <RichTextSpan>[];
+  final out = <ReaderInlineRun>[];
 
   for (final span in spans) {
-    final full = richSpanText(span);
+    final full = span.text;
     final spanLen = full.length;
     final spanStart = cursor;
     final spanEnd = cursor + spanLen;
@@ -35,9 +32,7 @@ List<RichTextSpan> sliceRichSpans(
     final overlapEnd = (end - spanStart).clamp(0, spanLen);
     final sliceLen = overlapEnd - overlapStart;
     if (sliceLen <= 0) continue;
-    out.add(
-      _cloneSpanWithText(span, full.substring(overlapStart, overlapEnd)),
-    );
+    out.add(_cloneRunWithText(span, full.substring(overlapStart, overlapEnd)));
   }
   return out;
 }

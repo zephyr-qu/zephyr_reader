@@ -41,12 +41,12 @@ pub const SCROLL_IR_CACHE_VERSION: u8 = 1;
 #[derive(Debug, Clone, PartialEq, bincode::Encode, bincode::Decode)]
 pub struct ScrollIrCache {
     pub version: u8,
-    pub ir: crate::pipeline::ChapterContentIr,
+    pub ir: crate::pipeline::ReaderChapterIr,
     pub created_at: i64,
 }
 
 impl ScrollIrCache {
-    pub fn new(ir: crate::pipeline::ChapterContentIr) -> Self {
+    pub fn new(ir: crate::pipeline::ReaderChapterIr) -> Self {
         Self {
             version: SCROLL_IR_CACHE_VERSION,
             ir,

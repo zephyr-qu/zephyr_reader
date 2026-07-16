@@ -1,13 +1,4 @@
-import 'package:zephyr_reader/src/rust/pipeline/types.dart';
-
-/// 分页引擎模式（纯 Dart 版；原由 FRB 生成，因无 FFI 引用而停止生成）。
-enum ChapterPaginationMode {
-  /// Phase 1 plain 文本流。
-  plainText,
-
-  /// Phase 2 块 IR + `BlockPaginator`（含 Image 块时启用）。
-  contentBlocks,
-}
+import 'package:zephyr_reader/features/reader/data/ir_types.dart';
 
 /// Flutter 装箱页内块切片。
 class PackedBlockSlice {
@@ -20,14 +11,14 @@ class PackedBlockSlice {
     this.spans = const [],
   }) : isImage = false,
        assetId = null,
-       alt = null,
+       imageAlt = null,
        imageLayout = null;
 
   const PackedBlockSlice.image({
     required this.blockIndex,
     required this.assetId,
     required this.imageLayout,
-    this.alt,
+    this.imageAlt,
   }) : isImage = true,
        text = '',
        isBlockStart = true,
@@ -39,14 +30,14 @@ class PackedBlockSlice {
   final bool isImage;
   final String text;
   final String? assetId;
-  final String? alt;
+  final String? imageAlt;
   final bool isBlockStart;
   final bool isBlockEnd;
-  final TextBlockStyle? style;
-  final List<RichTextSpan> spans;
+  final ReaderIrBlock? style;
+  final List<ReaderInlineRun> spans;
 
   /// 仅 Image 切片有效。
-  final ImageBlockLayout? imageLayout;
+  final ReaderIrBlockLayout? imageLayout;
 }
 
 /// Flutter 装箱产出的一页。
@@ -69,7 +60,7 @@ class PackedPage {
 }
 
 /// 页内 Image 块的排版方式（从 FRB block_pagination.dart 迁移到纯 Dart）。
-enum ImageBlockLayout {
+enum ReaderIrBlockLayout {
   /// 剩余页高足够：缩放 contain，与文本同页。
   inlineContain,
 

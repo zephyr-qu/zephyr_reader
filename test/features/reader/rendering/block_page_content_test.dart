@@ -5,16 +5,26 @@ import 'package:zephyr_reader/features/reader/rendering/block_page_content.dart'
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/pipeline/types.dart';
 
-const _defaultStyle = TextBlockStyle(
+const _defaultStyle = ReaderIrBlock(
+  kind: ReaderIrBlockKind.text,
+  plainStart: 0,
+  plainLen: 0,
+  text: '',
+  runs: [],
   isHeading: false,
   headingLevel: 0,
   textIndentEm: null,
   marginTopEm: null,
   marginBottomEm: null,
   textAlign: null,
+  fontSize: null,
+  imageAssetId: null,
+  imageAlt: null,
+  imageIntrinsicWidth: null,
+  imageIntrinsicHeight: null,
 );
 
-const _emptySpans = <RichTextSpan>[];
+const _emptySpans = <ReaderInlineRun>[];
 
 ReaderRenderConfig _config({double paragraphSpacing = 12}) {
   return ReaderRenderConfig(

@@ -7,13 +7,15 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_load_requ
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_loader.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
-import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
+import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_pagination_session.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
 
 /// 章节与页面导航。
 class ChapterNavigator {
-  final ReaderRepositoryInterface _repo;
+  final ChapterContentRepository _contentRepo;
+  final PaginationSession _session;
   final ReaderConfig _config;
   final ChapterViewModel _chapterVM;
   final ChapterLoader _loader;
@@ -23,7 +25,8 @@ class ChapterNavigator {
   final Signal<int> _pageIndex;
 
   ChapterNavigator(
-    this._repo,
+    this._contentRepo,
+    this._session,
     this._config,
     this._chapterVM,
     this._loader,
@@ -113,7 +116,7 @@ class ChapterNavigator {
     if (pageIndex < 0 || pageIndex >= _totalPages.value) return;
     _pageIndex.value = pageIndex;
 
-    final descriptors = _repo.descriptors;
+    final descriptors = _session.descriptors;
     if (descriptors != null && pageIndex < descriptors.length) {
       final d = descriptors[pageIndex];
       final start = d.startOffset;
@@ -123,7 +126,7 @@ class ChapterNavigator {
       _chapterVM.currentCharOffset.value = inside;
     }
 
-    _repo.ensurePageWindow(pageIndex);
+    _session.ensureWindow(pageIndex);
     // pageIndex <= 1 时加速上一章 staging 预加载
     ensurePrevChapterStaging(pageIndex);
   }
@@ -147,7 +150,7 @@ class ChapterNavigator {
     if (centerIndex + 1 < chapterList.length) {
       final nextIdx = centerIndex + 1;
       unawaited(
-        _repo.preloadNextChapterStaging(
+        _contentRepo.preloadNextChapterStaging(
           _chapterVM.bookId.value,
           nextIdx,
           fontSize: _config.fontSize.value,
@@ -165,7 +168,7 @@ class ChapterNavigator {
     if (centerIndex - 1 >= 0) {
       final prevIdx = centerIndex - 1;
       unawaited(
-        _repo.preloadPreviousChapterStaging(
+        _contentRepo.preloadPreviousChapterStaging(
           _chapterVM.bookId.value,
           prevIdx,
           fontSize: _config.fontSize.value,
@@ -185,9 +188,9 @@ class ChapterNavigator {
     if (pageIndex > 2) return;
     final centerIndex = _chapterVM.chapterIndex.value;
     if (centerIndex - 1 < 0) return;
-    if (_repo.prevChapterStaging != null) return;
+    if (_contentRepo.prevChapterStaging != null) return;
     unawaited(
-      _repo.preloadPreviousChapterStaging(
+      _contentRepo.preloadPreviousChapterStaging(
         _chapterVM.bookId.value,
         centerIndex - 1,
         fontSize: _config.fontSize.value,
