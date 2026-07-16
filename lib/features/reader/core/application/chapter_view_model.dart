@@ -17,7 +17,7 @@ import 'package:zephyr_reader/core/reader_engine/pagination/engine.dart';
 
 import 'package:zephyr_reader/core/reader_engine/shared/ir_types.dart';
 
-import 'package:zephyr_reader/core/reader_engine/shared/config/reader_notice.dart';
+
 
 import 'package:zephyr_reader/core/reader_engine/shared/config/reader_config.dart';
 import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
@@ -46,8 +46,6 @@ class ChapterViewModel {
   /// 当前生效的阅读模式（由 [ReaderViewModel] 同步，供导航器加载章节时使用）。
   ReadingMode activeReadingMode = ReadingMode.pagination;
 
-  /// 待 UI 层展示的用户通知（如 EPUB 富文本降级）。
-  final readerNotice = signal<ReaderNotice?>(null);
 
   final ChapterContentRepository _contentRepo;
   final PaginationEngine _engine;
@@ -73,9 +71,6 @@ class ChapterViewModel {
       },
       onSegmentsChanged: (segments) {
         scrollSegments.value = segments;
-      },
-      onReaderNotice: (notice) {
-        readerNotice.value = notice;
       },
     );
     _pagination = PaginationCoordinator(_contentRepo, _engine, _config, this);

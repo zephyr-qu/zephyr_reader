@@ -9,7 +9,7 @@ import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart';
 ///
 /// 推导与契约：`chapter_pagination_intent_resolver.dart` · `discuss/INTENTS.md`
 enum ChapterPaginationIntent {
-  /// 换章 / 无 session：`_runCalibratedPartialPaginate` → beginPaginate(2000) → expand。
+  /// 换章 / 无 session：beginPaginate(2000) → expand。
   normalLoad,
 
   /// 同章 + config 变化（设置重载）：走 in-place `repaginate_session`，不 dispose handle。

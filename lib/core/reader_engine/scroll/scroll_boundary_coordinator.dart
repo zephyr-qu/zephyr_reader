@@ -7,19 +7,17 @@ import 'package:zephyr_reader/core/reader_engine/scroll/scroll_layout_params.dar
 import 'package:zephyr_reader/core/reader_engine/scroll/scroll_segment_factory.dart';
 import 'package:zephyr_reader/core/reader_engine/scroll/scroll_document_composer.dart';
 import 'package:zephyr_reader/core/reader_engine/data/chapter_content_repository.dart';
-import 'package:zephyr_reader/core/reader_engine/shared/config/reader_notice.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/ir_types.dart';
 
 /// 滚动模式章界协调器。
 ///
 /// 管理 [ScrollDocumentComposer] 的生命周期、内容加载与信号更新。
-/// Scroll 主路径走 IR（ADR-009）；双语仍可用 rich + epubRichSkipped 降级。
+/// Scroll 主路径走 IR（ADR-009）。
 class ScrollBoundaryCoordinator {
   final ChapterContentRepository _contentRepo;
   final void Function(int chapterIndex, int charOffset) _onPositionChanged;
   final void Function(int chapterIndex) _onChapterChanged;
   final void Function(List<ScrollChapterSegment> segments) _onSegmentsChanged;
-  final void Function(ReaderNotice notice)? _onReaderNotice;
 
   ScrollDocumentComposer? _composer;
   int _loadingGen = 0;
@@ -31,7 +29,6 @@ class ScrollBoundaryCoordinator {
     required this._onPositionChanged,
     required this._onChapterChanged,
     required this._onSegmentsChanged,
-    this._onReaderNotice,
   });
 
   ScrollDocumentComposer? get composer => _composer;
@@ -50,7 +47,7 @@ class ScrollBoundaryCoordinator {
     _composer!.reset(
       ScrollSegmentFactory.fromPayload(chapterIndex, (
         content: content,
-        epubRichSkipped: false,
+
         chapterIr: chapterIr,
         chapterFilePath: chapterFilePath,
       )),
@@ -81,9 +78,6 @@ class ScrollBoundaryCoordinator {
       if (gen != _loadingGen || _composer == null) return;
       _composer!.appendNext(ScrollSegmentFactory.fromPayload(nextIdx, payload));
       _emitSegments();
-      if (payload.epubRichSkipped && readingMode == ReadingMode.bilingual) {
-        _onReaderNotice?.call(ReaderNotice.epubRichSkipped);
-      }
       unawaited(
         _contentRepo.preload(bookId, nextIdx + 1).catchError((Object e) {
           Logging.debug('[ScrollCoord] preloadChapter(nextIdx+1) failed: $e');
@@ -122,9 +116,6 @@ class ScrollBoundaryCoordinator {
         ScrollSegmentFactory.fromPayload(prevIdx, payload),
       );
       _emitSegments();
-      if (payload.epubRichSkipped && readingMode == ReadingMode.bilingual) {
-        _onReaderNotice?.call(ReaderNotice.epubRichSkipped);
-      }
     } catch (e) {
       Logging.debug('[ScrollCoord] prependPrev failed: $e');
     } finally {
@@ -166,7 +157,7 @@ class ScrollBoundaryCoordinator {
     _composer!.reset(
       ScrollSegmentFactory.fromPayload(chapterIndex, (
         content: content,
-        epubRichSkipped: false,
+
         chapterIr: chapterIr,
         chapterFilePath: chapterFilePath,
       )),

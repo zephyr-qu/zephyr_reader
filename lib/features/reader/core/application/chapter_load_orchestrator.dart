@@ -291,7 +291,7 @@ class ChapterLoadOrchestrator {
   /// Flutter 精确分页（ADR-016 产品路径）。
   ///
   /// 只拉章内容 + 走 [FlutterPaginationSession]；
-  /// 不跑 calibration / metrics backfeed / storeLineBreaks。
+  /// 不跑旧版 calibration/metrics backfeed（Flutter 分页已无此概念）。
   ///
   /// 进度：用 [ChapterLoadRequest.initialCharOffset] 落页（字号变更时由
   /// ViewModel 传入当前 charOffset）；翻页写回仍走现有 renderer → navigator。
