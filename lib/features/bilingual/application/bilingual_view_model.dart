@@ -8,7 +8,6 @@ import 'package:dio/dio.dart';
 import 'package:zephyr_reader/core/utils/async_utils.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
-import 'package:zephyr_reader/features/reader/domain/bilingual_reader_delegate.dart';
 import 'package:zephyr_reader/reader_engine/rendering/reader_render_config.dart';
 
 import 'package:zephyr_reader/features/bilingual/application/bilingual_config.dart';
@@ -23,9 +22,9 @@ import 'package:zephyr_reader/src/rust/domain/note/models.dart';
 ///
 /// 管理翻译 API 调用、双语对齐、双语高亮和翻译缓存。
 /// 从 [ChapterViewModel] 读取 chapterIndex/chapterContent。
-/// 实现 [BilingualReaderDelegate] 供核心阅读器调用。
+/// 供核心阅读器直接调用。
 @injectable
-class BilingualViewModel implements BilingualReaderDelegate {
+class BilingualViewModel {
   final ChapterViewModel _chapterVM;
   final BilingualConfig _config;
   final BilingualService _service;
@@ -45,32 +44,26 @@ class BilingualViewModel implements BilingualReaderDelegate {
        _config = config ?? getIt<BilingualConfig>(),
        _service = service ?? getIt<BilingualService>();
 
-  // ==================== BilingualReaderDelegate ====================
+  // ==================== 双语交互接口 ====================
 
-  @override
   bool get isConfigured => _config.isConfigured;
 
-  @override
   bool get isBilingualLoading => bilingualAlignment.value.isLoading;
 
-  @override
   BilingualAlignment? get alignment => bilingualAlignment.value.value;
 
-  @override
   String? get bilingualError {
     final err = bilingualAlignment.value.error;
     if (err == null) return null;
     return err is BilingualException ? err.message : err.toString();
   }
 
-  @override
   void setTranslationContent(String content) {
     _cancelToken?.cancel();
     // 直接调对齐（无论当前阅读模式 — 上层决定是否需要切换到 bilingual 模式展示）
     _runBilingualAlignment();
   }
 
-  @override
   void onEnterBilingualMode() {
     if (translationContent.value.isNotEmpty) {
       _runBilingualAlignment();
@@ -79,7 +72,6 @@ class BilingualViewModel implements BilingualReaderDelegate {
     }
   }
 
-  @override
   Future<void> translateChapter() async {
     final content = _chapterVM.chapterContent.value.value ?? '';
     if (content.isEmpty) return;
@@ -132,7 +124,6 @@ class BilingualViewModel implements BilingualReaderDelegate {
     }
   }
 
-  @override
   Widget buildBilingualContent(
     BuildContext context,
     ScrollController scrollController,
@@ -184,13 +175,11 @@ class BilingualViewModel implements BilingualReaderDelegate {
     );
   }
 
-  @override
   bool get hasAlignment {
     final a = alignment;
     return a != null && a.segments.isNotEmpty;
   }
 
-  @override
   Future<bool> createHighlightFromSelection({
     required String bookId,
     required int chapterIndex,
@@ -257,7 +246,6 @@ class BilingualViewModel implements BilingualReaderDelegate {
   }
 
   /// 删除与指定笔记关联的双语高亮对（幂等）。
-  @override
   Future<void> deleteBilingualPair({required String noteId}) async {
     // 传入同一 noteId 作为两个参数：Rust 侧对同一 ID 的二次删除为空操作
     await deleteBilingualHighlightPair(
@@ -267,7 +255,6 @@ class BilingualViewModel implements BilingualReaderDelegate {
   }
 
   /// 重置所有信号到初始状态，取消进行中的翻译。
-  @override
   Future<void> reset() async {
     _cancelToken?.cancel();
     _cancelToken = null;

@@ -54,24 +54,22 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_view_mode
     as _i642;
 import 'package:zephyr_reader/features/reader/core/application/reading_session_manager.dart'
     as _i306;
-import 'package:zephyr_reader/features/reader/core/data/rust_chapter_content_repository.dart'
-    as _i109;
-import 'package:zephyr_reader/features/reader/core/data/rust_progress_repository.dart'
-    as _i433;
-import 'package:zephyr_reader/features/reader/domain/chapter_content_repository.dart'
-    as _i291;
-import 'package:zephyr_reader/features/reader/domain/progress_repository.dart'
-    as _i768;
 import 'package:zephyr_reader/features/reader/data/vocabulary_marker_service.dart'
     as _i880;
+import 'package:zephyr_reader/features/reader/domain/chapter_content_repository.dart'
+    as _i166;
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart'
     as _i402;
+import 'package:zephyr_reader/features/reader/domain/progress_repository.dart'
+    as _i199;
 import 'package:zephyr_reader/features/reader/domain/service/custom_font_service.dart'
     as _i693;
 import 'package:zephyr_reader/features/reader/domain/service/tts_service.dart'
     as _i1020;
 import 'package:zephyr_reader/features/search/application/search_view_model.dart'
     as _i1;
+import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart'
+    as _i20;
 
 extension GetItInjectableX on _i174.GetIt {
   // initializes the registration of main-scope dependencies inside of GetIt
@@ -91,6 +89,7 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i965.DataManagementViewModel>(
       () => _i965.DataManagementViewModel(),
     );
+    gh.factory<_i199.ProgressRepository>(() => _i199.ProgressRepository());
     gh.singleton<_i402.ReaderBgColors>(() => _i402.ReaderBgColors());
     gh.lazySingletonAsync<_i772.FileStorage>(() {
       final i = _i772.FileStorage();
@@ -104,7 +103,6 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i1020.TtsService>(() => _i1020.TtsService());
     gh.lazySingleton<_i1.SearchViewModel>(() => _i1.SearchViewModel());
-    gh.factory<_i768.ProgressRepository>(() => _i433.RustProgressRepository());
     gh.factoryParam<_i136.BilingualViewModel, _i642.ChapterViewModel, dynamic>(
       (chapterVM, _) => _i136.BilingualViewModel(
         chapterVM,
@@ -165,13 +163,14 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i361.Dio>(),
       ),
     );
-    gh.factory<_i291.ChapterContentRepository>(
-      () => _i109.RustChapterContentRepository(gh<_i402.ReaderConfig>()),
+    gh.factory<_i166.ChapterContentRepository>(
+      () => _i166.ChapterContentRepository(gh<_i402.ReaderConfig>()),
     );
     gh.factory<_i642.ChapterViewModel>(
       () => _i642.ChapterViewModel(
-        gh<_i291.ChapterContentRepository>(),
-        gh<InvalidType>(),
+        gh<_i166.ChapterContentRepository>(),
+        gh<_i20.PaginationSession>(),
+        gh<_i199.ProgressRepository>(),
         gh<_i402.ReaderConfig>(),
       ),
     );

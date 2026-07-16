@@ -78,7 +78,9 @@ void main() {
 
   setUp(() {
     repo = _MockRepo();
-    when(() => repo.preloadChapter(any(), any())).thenAnswer((_) async {});
+    when(() => repo.preloadChapter(any(), any())).thenAnswer((_) async {
+      return null;
+    });
     emitted = [];
     lastChapter = null;
     lastOffset = null;

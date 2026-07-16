@@ -2,21 +2,20 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:zephyr_reader/features/reader/domain/bilingual_reader_delegate.dart';
+import 'package:zephyr_reader/features/bilingual/application/bilingual_view_model.dart';
 import 'package:zephyr_reader/features/reader/page/widgets/reader_translation_dialog.dart';
 import 'package:zephyr_reader/features/bilingual/presentation/bilingual_renderer.dart';
 import 'package:zephyr_reader/reader_engine/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/domain/bilingual/models.dart';
 import 'package:zephyr_reader/src/rust/domain/note/models.dart';
 
-
 /// 双语内容外壳组件。
 ///
 /// 封装 [BilingualModeRenderer] 和 [ReaderTranslationDialog]，
-/// 通过 [BilingualReaderDelegate] 获取双语状态并驱动翻译流程。
+/// 通过 [BilingualViewModel] 获取双语状态并驱动翻译流程。
 /// 内部管理双语高亮对生命周期，核心阅读器无需感知。
 class BilingualContentShell extends HookWidget {
-  final BilingualReaderDelegate delegate;
+  final BilingualViewModel delegate;
   final ScrollController scrollController;
   final ReaderRenderConfig config;
   final List<Note> highlights;

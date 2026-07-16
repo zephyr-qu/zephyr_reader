@@ -465,15 +465,21 @@ void _stubAllRepo(_MockRepo repo) {
     ),
   ).thenAnswer((_) async => const (totalPages: 3, isPartial: false));
   when(() => repo.fetchPageContent(any())).thenAnswer((_) async => 'page text');
-  when(() => repo.preloadChapter(any(), any())).thenAnswer((_) async {});
+  when(() => repo.preloadChapter(any(), any())).thenAnswer((_) async {
+    return null;
+  });
   when(() => repo.syncChapterTypesetLayout(any())).thenReturn(null);
   when(() => repo.warmPageCache(any(), any())).thenReturn(null);
   when(
     () => repo.preloadPreviousChapterStaging(any(), any()),
-  ).thenAnswer((_) async {});
+  ).thenAnswer((_) async {
+    return null;
+  });
   when(
     () => repo.preloadNextChapterStaging(any(), any()),
-  ).thenAnswer((_) async {});
+  ).thenAnswer((_) async {
+    return null;
+  });
   when(() => repo.clearNextChapterStaging()).thenReturn(null);
   when(
     () => repo.loadScrollSegment(

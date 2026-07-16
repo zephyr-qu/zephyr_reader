@@ -13,7 +13,7 @@ import 'package:zephyr_reader/features/reader/annotations/application/bookmark_v
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/annotations/application/annotation_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
-import 'package:zephyr_reader/features/reader/domain/bilingual_reader_delegate.dart';
+import 'package:zephyr_reader/features/bilingual/application/bilingual_view_model.dart';
 import 'package:zephyr_reader/features/reader/domain/chapter_content_repository.dart';
 import 'package:zephyr_reader/features/reader/domain/progress_repository.dart';
 import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
@@ -28,24 +28,24 @@ import 'package:zephyr_reader/di/service_locator.dart';
 /// 阅读计时和进度保存 → ReadingSessionManager。
 /// 书签 → BookmarkViewModel。
 /// 划词批注 → AnnotationViewModel。
-/// 双语 → BilingualReaderDelegate（可选，core 不依赖实现）。
+/// 双语 → BilingualViewModel（可选）。
 class ReaderViewModel {
-  final ChapterContentRepository _contentRepo;
-  final PaginationSession _session;
-  final ProgressRepository _progressRepo;
-  final ReaderRenderDataSource dataSource;
-  final ReaderConfig _config;
+final ChapterContentRepository _contentRepo;
+final PaginationSession _session;
+final ProgressRepository _progressRepo;
+final ReaderRenderDataSource dataSource;
+final ReaderConfig _config;
 
-  /// 阅读配置
-  ReaderConfig get config => _config;
+/// 阅读配置
+ReaderConfig get config => _config;
 
-  // ==================== 子 ViewModel ====================
+// ==================== 子 ViewModel ====================
 
-  late final ChapterViewModel chapterManager;
-  late final ReadingSessionManager sessionManager;
-  late final BookmarkViewModel bookmarks;
-  late final AnnotationViewModel annotations;
-  BilingualReaderDelegate? bilingual;
+late final ChapterViewModel chapterManager;
+late final ReadingSessionManager sessionManager;
+late final BookmarkViewModel bookmarks;
+late final AnnotationViewModel annotations;
+BilingualViewModel? bilingual;
 
   // ==================== 跨切面信号 ====================
 

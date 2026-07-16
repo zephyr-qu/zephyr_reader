@@ -180,8 +180,8 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 | 4 | **P0** | 移动 rendering 文件 | ✅ 已完成 — `rendering/*` → `reader_engine/rendering/` |
 | 5 | **P1** | 实现 `PaginationEngine` 类 | ✅ 已完成 — `reader_engine/pagination/engine.dart` |
 | 6 | **P1** | 实现 `ScrollEngine` 类 | ✅ 已完成 — `reader_engine/scroll/engine.dart` |
-| 7 | **P1** | 删除 `ReaderRepository` 中间人 | ❌ 未开始 — 调用方直接使用 PaginationEngine + RustChapterContentRepository |
-| 8 | **P2** | 删除 5 个假抽象接口 | ❌ 未开始 — `ReaderRepositoryInterface` 已删，其余暂留（DI 依赖） |
+| 7 | **P1** | 删除 `ReaderRepository` 中间人 | ✅ 已完成 — 提交 `2ff0862` 删除 `reader_repository_interface.dart`(163 行) 和 `rust_reader_repository.dart`(240 行) |
+| 8 | **P2** | 删除 4 个假抽象接口 | ✅ 已完成 — 合并到具体类：`ProgressRepository`/`ReaderRenderDataSource`/`ChapterContentRepository`/`BilingualReaderDelegate` |
 | 9 | **P2** | 合并 `core/domain/` 和 `domain/` | ✅ 已完成 |
 | 10 | **P2** | 合并小文件 | ⏳ 部分完成 — `features/reader/` 从 ~108 降至 69，39 个引擎文件迁至 `reader_engine/` |
 
@@ -193,13 +193,22 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 
 ---
 
-## Phase 11 — 业务下沉和业务简化（规划中）
+## Phase 11 — 收尾 Phase 9/10 + Rust 后端重构（进行中）
 
-**目标**：两条纲领，Phase 11 启动时扫描审查。
+**目标**：两阶段：先收尾 Flutter 侧 Phase 9/10 架构余留问题，再对 Rust 业务层做业务下沉+API 简化。
+
+### 阶段 A：Flutter 架构收尾
+
+| # | 优先级 | 项 | 说明 |
+| --- | -------- | ----- | ------ |
+| 1 | **P1** | **engine config 迁移** | config 类型从 `features/reader/domain/config/` 迁至 `reader_engine/shared/config/`，消除 `reader_engine` → `features/reader` 反向依赖 |
+| 2 | **P1** | **`ChapterContentRepository` 放回 data 层** | 从 `domain/` 移回 `data/repositories/`，保持 domain 纯模型 |
+| 3 | **P1** | **`ReaderRenderDataSource` 删除** | 纯委托适配器，内联到消费者 |
+| 4 | **P1** | **`PaginationSession` 生命周期统一** | 4 处持有 → 统一到 `PaginationEngine` |
+
+### 阶段 B：Rust 后端重构
 
 **讨论**：`discuss/PHASE11_BUSINESS_SIMPLIFICATION.md`
-
-### 判断框架
 
 #### 方向 A：业务下沉
 
@@ -230,10 +239,15 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 - 返回不同类型数据，且独立使用
 - 强行聚合导致接口参数爆炸
 
-### 启动方式
+### 阶段 B 任务清单
 
-Phase 11 启动时对整个代码库做一次 `业务下沉 + 简化` 审查扫描，
-使用判断框架列出待整改项，然后逐一整改。
+| # | 优先级 | 项 | 说明 |
+| --- | -------- | ----- | ------ |
+| 1 | **P1** | 扫描 `domain/*/service.rs` | 用判断框架逐文件审查，标出应下沉的纯 SQL 搬运 service |
+| 2 | **P1** | 逐项整改下沉 | 将纯中间人 service 逻辑合并到对应 repo |
+| 3 | **P2** | 扫描 `api/*.rs` 聚合机会 | 识别 Flutter 侧需多次调用的关联 API |
+| 4 | **P2** | 逐项聚合整改 | 合并同屏/同事务 API 函数 |
+| 5 | **P2** | 验证 | `cargo clippy -D warnings`，FRB codegen，`flutter analyze` |
 
 ---
 
@@ -278,7 +292,7 @@ Phase 11 启动时对整个代码库做一次 `业务下沉 + 简化` 审查扫�
 
 ## Phase 13 — 核心收束扫尾（规划中）
 
-**目标**：给 Phase 9-12 的架构大修做竣工验收，清理遗留碎片，确认核心功能 99% 可用。
+**目标**：竣工验收，确认核心功能 99% 可用。
 
 ### 工作项
 
@@ -286,11 +300,10 @@ Phase 11 启动时对整个代码库做一次 `业务下沉 + 简化` 审查扫�
 | --- | ----- | ------ |
 | 1 | 死代码清扫 | 重构后老接口、旧导入、废弃文件、未用依赖 |
 | 2 | `#[allow(...)]` 审计 | 确认重构过程中加的 suppress 不再需要 |
-| 3 | 架构一致性检查 | API 薄封装、reader_engine 不反引用、假接口已删 |
-| 4 | 核心链路可用确认 | 开书画笔记→存进度→关 app→恢复→搜索 |
-| 5 | 边界场景验证 | 大 TXT（百万字）、含图 EPUB、切换排版立刻生效 |
-| 6 | sled KV 存储评估 | 查 sled 消费者（当前仅 IR 缓存 1 个），<br>≤1 个则迁到 SQLite 或 redb，删 sled + bincode 依赖 |
-| 7 | 工具链确认 | `cargo clippy -D warnings`、`flutter analyze --fatal-infos`、FRB codegen |
+| 3 | 核心链路可用确认 | 开书画笔记→存进度→关 app→恢复→搜索 |
+| 4 | 边界场景验证 | 大 TXT（百万字）、含图 EPUB、切换排版立刻生效 |
+| 5 | sled KV 存储评估 | 查 sled 消费者（当前仅 IR 缓存 1 个），<br>≤1 个则迁到 SQLite 或 redb，删 sled + bincode 依赖 |
+| 6 | 工具链确认 | `cargo clippy -D warnings`、`flutter analyze --fatal-infos`、FRB codegen |
 
 ### 不做
 

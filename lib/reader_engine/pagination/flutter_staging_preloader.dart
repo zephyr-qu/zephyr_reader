@@ -26,7 +26,7 @@ abstract final class FlutterStagingPreloader {
       final book = await book_api.getBook(bookId: bookId);
       if (book == null || book.filePath.isEmpty) return null;
 
-      final frbIr = await reader_api.getReaderChapterIr(
+      final frbIr = await reader_api.getChapterContentIr(
         bookId: bookId,
         chapterIndex: chapterIndex,
       );
