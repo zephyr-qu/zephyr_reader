@@ -1,32 +1,43 @@
 import 'package:flutter/material.dart' show ValueNotifier;
-import 'package:zephyr_reader/reader_engine/pagination/packed_page.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
+import 'package:zephyr_reader/features/reader/domain/chapter_content_repository.dart';
+import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
+import 'package:zephyr_reader/reader_engine/pagination/packed_page.dart';
 import 'package:zephyr_reader/reader_engine/shared/ir_types.dart';
 
-/// 渲染器所需的数据源：分页会话状态 + 富文本 + 预加载。
-abstract class ReaderRenderDataSource {
-  List<PackedPage>? get descriptors;
+/// 渲染数据源：组合 [ChapterContentRepository] 和 [PaginationSession]。
+///
+/// 不是业务中间人——只是将两个稳定组件组合给 widget 渲染层消费。
+class ReaderRenderDataSource {
+  ReaderRenderDataSource(this._content, this._session);
 
-  String? get sessionFilePath;
+  final ChapterContentRepository _content;
+  final PaginationSession _session;
 
-  String? pageContent(int pageIndex);
+  List<PackedPage>? get descriptors => _session.descriptors;
 
-  List<PackedBlockSlice>? pageBlocks(int pageIndex);
+  String? get sessionFilePath => _session.sessionFilePath;
 
-  void warmPageCache(int pageIndex, String content);
+  String? pageContent(int pageIndex) => _session.pageContent(pageIndex);
 
-  ValueNotifier<int> get preloadGeneration;
+  List<PackedBlockSlice>? pageBlocks(int pageIndex) =>
+      _session.pageBlocks(pageIndex);
+
+  void warmPageCache(int pageIndex, String content) =>
+      _session.warmPageCache(pageIndex, content);
+
+  ValueNotifier<int> get preloadGeneration => _content.preloadGeneration;
 
   /// scroll IR 块流；非 null 时 [ScrollModeRenderer] 走块渲染。
-  ReaderChapterIr? get currentChapterIr;
+  ReaderChapterIr? get currentChapterIr => _content.currentChapterIr;
 
   /// 当前章书籍文件路径（scroll IR 图片）。
-  String? get currentChapterFilePath;
+  String? get currentChapterFilePath => _content.currentChapterFilePath;
 
-  NextChapterStaging? get nextChapterStaging;
+  NextChapterStaging? get nextChapterStaging => _content.nextChapterStaging;
 
-  NextChapterStaging? get prevChapterStaging;
+  NextChapterStaging? get prevChapterStaging => _content.prevChapterStaging;
 
   /// Ensure the window around [centerPage] is cached and trigger widget rebuild.
-  void ensureWindow(int centerPage);
+  void ensureWindow(int centerPage) => _session.ensureWindow(centerPage);
 }

@@ -239,7 +239,7 @@ class PaginationSession {
     );
     epubBlockImageCache.clear();
 
-    final frbIr = await reader_api.getReaderChapterIr(
+    final frbIr = await reader_api.getChapterContentIr(
       bookId: bookId,
       chapterIndex: chapterIndex,
     );
