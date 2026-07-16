@@ -39,7 +39,7 @@ class ReadingSessionsViewModel {
   /// 删除指定书籍的所有阅读会话并重新加载。
   Future<void> deleteSessionsByBook(String bookId) async {
     try {
-      await session_api.clearSessionsByBook(bookId: bookId);
+      await session_api.deleteSessionsByBook(bookId: bookId);
       await load();
     } catch (e, stack) {
       Logging.error('删除阅读会话失败', exception: e, stackTrace: stack);

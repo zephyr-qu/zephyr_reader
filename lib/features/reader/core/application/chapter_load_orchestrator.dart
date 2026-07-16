@@ -12,13 +12,11 @@ import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent_resolver.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
-import 'package:zephyr_reader/core/reader_engine/data/chapter_content_repository.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/engine.dart';
 
 import 'package:zephyr_reader/core/reader_engine/pagination/engine_utils.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/config/reading_mode_utils.dart';
-import 'package:zephyr_reader/core/reader_engine/pagination/pagination_progress_hook.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/pagination_viewport_metrics.dart';
 
 /// 章节加载状态机的显式阶段。
@@ -372,18 +370,16 @@ class ChapterLoadOrchestrator {
     Logging.info(
       '[FlutterPagination] gen=$gen rebox after first-screen pages=${quick.totalPages}',
     );
-    paginationProgressHook = (pages, partial) {
-      _applyIfCurrent(gen, () {
-        if (pages > _totalPages.value) {
-          _totalPages.value = pages;
-        }
-      });
-    };
-    try {
-      totalPages = await _pagination.expandToFullChapter(request.chapterIndex);
-    } finally {
-      paginationProgressHook = null;
-    }
+    totalPages = await _pagination.expandToFullChapter(
+      request.chapterIndex,
+      onProgress: (pages, partial) {
+        _applyIfCurrent(gen, () {
+          if (pages > _totalPages.value) {
+            _totalPages.value = pages;
+          }
+        });
+      },
+    );
     if (_isStale(gen)) {
       _setPhase(gen, ChapterLoadPhase.cancelled);
       return;

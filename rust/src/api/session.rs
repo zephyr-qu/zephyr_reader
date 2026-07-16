@@ -71,8 +71,8 @@ pub async fn upsert_session(session: ReadingSession) -> Result<ReadingSession, A
 
 /// 清空书籍的所有会话
 #[frb]
-pub async fn clear_sessions_by_book(book_id: String) -> Result<(), AppError> {
-    tracing::debug!("[session] clear_sessions_by_book: book_id={}", book_id);
+pub async fn delete_sessions_by_book(book_id: String) -> Result<(), AppError> {
+    tracing::debug!("[session] delete_sessions_by_book: book_id={}", book_id);
     let pool = storage_pool()?;
     SessionRepository::delete_by_book(&pool, &book_id).await
 }

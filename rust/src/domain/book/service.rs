@@ -294,8 +294,8 @@ pub async fn batch_set_categories_for_books(
 
 /// 解析书籍文件
 ///
-/// 验证路径、检查大小限制、选择解析器、保存元数据。
-pub async fn parse_book(file_path: &str) -> Result<String, AppError> {
+/// 导入书籍：验证路径、检查大小限制、选择解析器、保存元数据。
+pub async fn import_book(file_path: &str) -> Result<String, AppError> {
     const MAX_FILE_SIZE: u64 = 500 * 1024 * 1024;
 
     let validated_path = validate_file_path(file_path)?;

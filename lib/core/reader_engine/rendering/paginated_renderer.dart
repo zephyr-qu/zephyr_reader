@@ -233,23 +233,6 @@ class PaginatedModeRenderer extends StatelessWidget {
     );
   }
 
-  /// 跨章 staging 页：plain 文本预渲染。
-  Widget _buildStagingPlainPageContent(
-    BuildContext context,
-    String pageContent,
-    int startOffset,
-  ) {
-    return buildStagingPageContent(
-      context: context,
-      pageContent: pageContent,
-      startOffset: startOffset,
-      config: config,
-      highlights: highlights,
-      onHighlightTap: onHighlightTap,
-      onSelectionChanged: onSelectionChanged,
-      onSelectionGlobalPosition: onSelectionGlobalPosition,
-    );
-  }
 
   /// 上一章虚拟页：staging 命中渲染预加载内容，miss 显示当前章首页 hold 帧。
   Widget _buildPreviousChapterPage(BuildContext context) {

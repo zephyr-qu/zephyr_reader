@@ -168,7 +168,7 @@ async fn test_clear_category_from_book() {
         .await
         .expect("failed to assign category");
 
-    category::clear_category_from_book(book_id.to_string(), cat.id.clone())
+    category::delete_category(book_id.to_string(), cat.id.clone())
         .await
         .expect("failed to clear category from book");
 

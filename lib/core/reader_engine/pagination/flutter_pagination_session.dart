@@ -6,7 +6,6 @@ import 'package:zephyr_reader/core/reader_engine/shared/pagination_params.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/active_chapter_ir.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/flutter_block_paginator.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart';
-import 'package:zephyr_reader/core/reader_engine/pagination/pagination_progress_hook.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/pagination_staging_store.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/pagination_viewport_metrics.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/reader_render_config.dart';
@@ -24,9 +23,6 @@ class PaginationSession {
 
   final void Function()? _onCacheUpdated;
 
-  /// expand 过程中推进 UI 总页数（翻页不会卡在首屏页数）。
-  /// 优先 [onPaginationProgress]，否则 [paginationProgressHook]。
-  void Function(int totalPages, bool isPartial)? onPaginationProgress;
 
   List<PackedPage>? _descriptors;
   final Map<int, String> _pageCache = {};
@@ -126,6 +122,7 @@ class PaginationSession {
     required String bookId,
     required int chapterIndex,
     required PaginationParams params,
+    void Function(int totalPages, bool isPartial)? onProgress,
   }) async {
     if (!_sessionIsPartial) {
       final n = _descriptors?.length ?? 0;
@@ -138,6 +135,7 @@ class PaginationSession {
         chapterIndex: chapterIndex,
         params: params,
         maxChars: null,
+        onProgress: onProgress,
       );
     }
     Logging.info(
@@ -150,6 +148,7 @@ class PaginationSession {
       params: params,
       maxChars: null,
       filePath: _sessionFilePath,
+      onProgress: onProgress,
     );
   }
 
@@ -220,6 +219,7 @@ class PaginationSession {
     required int chapterIndex,
     required PaginationParams params,
     BigInt? maxChars,
+    void Function(int totalPages, bool isPartial)? onProgress,
   }) async {
     Logging.info(
       '[FlutterPagination] paginate book=$bookId chapter=$chapterIndex '
@@ -251,6 +251,7 @@ class PaginationSession {
       params: params,
       maxChars: maxChars,
       filePath: book.filePath,
+      onProgress: onProgress,
     );
   }
 
@@ -260,6 +261,7 @@ class PaginationSession {
     required PaginationParams params,
     BigInt? maxChars,
     String? filePath,
+    void Function(int totalPages, bool isPartial)? onProgress,
   }) async {
     final gen = ++_paginateGen;
     final contentWidth =
@@ -306,8 +308,7 @@ class PaginationSession {
                 _applyPages(pages);
                 ensureWindow(0);
                 _onCacheUpdated?.call();
-                onPaginationProgress?.call(pages.length, partial);
-                paginationProgressHook?.call(pages.length, partial);
+                onProgress?.call(pages.length, partial);
               }
             : null,
       );

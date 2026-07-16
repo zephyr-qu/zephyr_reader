@@ -15,13 +15,12 @@ Modular reader feature organized by subdirectories.
 | `settings/` | In-reader settings panels (typesetting, display, more, assist) |
 | `navigation/` | Chapter drawer, bookmark list, TOC |
 
-## Data flow
-
 ```
 ReaderShell → ReaderViewModel (facade)
-  → ChapterLoader / PaginationCoordinator / ChapterNavigator
-  → ChapterContentRepository / PaginationSession / ProgressRepository
-  → Rust FFI
+  → ChapterViewModel (加载、导航、分页滚动协调)
+    → PaginationCoordinator / ScrollBoundaryCoordinator / AutoScrollController
+    → ChapterContentRepository / PaginationEngine / ProgressRepository
+    → Rust FFI
 ```
 
 ## Lifecycle
@@ -56,8 +55,7 @@ ReaderShell → ReaderViewModel (facade)
 | `configReload`  | `true`              | 设置重载保留当前页 |
 | `expandOnly`    | `true`              | retry 保留已渲染内容 |
 
-调用方可通过 `preserveContent: true` 覆盖默认行为（如 `ChapterNavigator`
-跨章节翻页）。
+调用方可通过 `preserveContent: true` 覆盖默认行为（如 `ChapterViewModel` 跨章节翻页）。
 
 ### `configReload` 路径
 

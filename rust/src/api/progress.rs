@@ -31,7 +31,7 @@ pub async fn list_all_progresses() -> Result<Vec<BookWithProgress>, AppError> {
 
 /// 清除书籍阅读进度
 #[frb]
-pub async fn clear_progress(book_id: String) -> Result<(), AppError> {
+pub async fn delete_progress(book_id: String) -> Result<(), AppError> {
     let pool = storage_pool()?;
     ProgressRepository::clear_by_book(&pool, &book_id).await
 }

@@ -17,6 +17,7 @@ import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/api/dictionary.dart'
     as dict_api;
+import 'package:zephyr_reader/src/rust/api/search.dart' as search_api;
 import 'package:zephyr_reader/src/rust/domain/dictionary/models.dart';
 
 import 'package:zephyr_reader/features/reader/core/application/reader_view_model.dart';
@@ -41,7 +42,7 @@ void showDictionaryPanel(
   String? error;
   try {
     result = await dict_api.lookupMdict(word: text.trim());
-    segments = await dict_api.segmentText(text: text.trim());
+    segments = await search_api.segmentChineseText(text: text.trim());
     await HapticFeedback.lightImpact();
   } catch (e) {
     error = e.toString();

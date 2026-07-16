@@ -19,7 +19,7 @@ class BookImportService {
   /// 返回 `(true, null)` 表示成功，`(false, errorMessage)` 表示失败。
   Future<(bool, String?)> importBook(String filePath) async {
     try {
-      final bookId = await book_api.parseBook(filePath: filePath);
+      final bookId = await book_api.importBook(filePath: filePath);
       // 导入后自动提取封面到磁盘
       await _extractCover(bookId, filePath);
       return (true, null);
@@ -69,7 +69,7 @@ class BookImportService {
       files.map(
         (file) => sem.acquire(() async {
           try {
-            final bookId = await book_api.parseBook(filePath: file);
+            final bookId = await book_api.importBook(filePath: file);
             await _extractCover(bookId, file);
             success++;
           } catch (e, stack) {

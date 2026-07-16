@@ -125,7 +125,7 @@ pub async fn delete_note(note_id: &str) -> Result<(), AppError> {
 }
 
 /// 清空书籍的所有笔记
-pub async fn clear_notes_by_book(book_id: &str) -> Result<(), AppError> {
+pub async fn delete_notes_by_book(book_id: &str) -> Result<(), AppError> {
     let pool = storage_pool()?;
     NoteRepository::delete_by_book(&pool, book_id).await
 }

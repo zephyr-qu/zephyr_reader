@@ -35,7 +35,7 @@ Future<List<String>> _seedFixtures() async {
   final titles = <String>[];
   for (final name in fixtures) {
     final path = await copyFixtureFile(name);
-    final bookId = await book_api.parseBook(filePath: path);
+    final bookId = await book_api.importBook(filePath: path);
     final result = await book_api.getBook(bookId: bookId);
     titles.add(result!.title);
   }
