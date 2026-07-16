@@ -1,3 +1,4 @@
+import 'package:zephyr_reader/core/reader_engine/data/chapter_content_repository.dart';
 import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
 
 // ignore_for_file: prefer_initializing_formals
@@ -63,7 +64,7 @@ class ChapterLoadRequest {
 
 /// 章节加载显式状态机：分阶段执行 [ChapterLoadRequest] 并防止竞态写信号。
 class ChapterLoadOrchestrator {
-  static const int _preloadCount = 3;
+  static const int _preloadCount = 1;
 
   ChapterLoadOrchestrator({
     required ChapterContentRepository contentRepo,
