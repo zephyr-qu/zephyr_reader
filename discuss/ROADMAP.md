@@ -174,16 +174,16 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 
 | # | 优先级 | 项 | 说明 |
 | --- | -------- | ----- | ------ |
-| 1 | **P0** | 创建 `lib/reader_engine/` 目录结构 | 按 ADR-017 结构建空文件 |
-| 2 | **P0** | 移动 pagination 文件 | `flutter_pagination/` → `reader_engine/pagination/` |
-| 3 | **P0** | 移动 scroll 文件 | 相关文件 → `reader_engine/scroll/` |
-| 4 | **P0** | 移动 rendering 文件 | `rendering/` → `reader_engine/rendering/` |
-| 5 | **P1** | 实现 `PaginationEngine` 类 | 封装 `FlutterPaginationSession` 创建/复用/释放 |
-| 6 | **P1** | 实现 `ScrollEngine` 类 | `buildScrollView(ir, params)` 工厂方法 |
-| 7 | **P1** | 删除 `ReaderRepository` 中间人 | 调用方直接使用 PaginationEngine + RustChapterContentRepository |
-| 8 | **P2** | 删除 5 个假抽象接口 | 接口和实现合并 |
-| 9 | **P2** | 合并 `core/domain/` 和 `domain/` | 统一 domain 目录 |
-| 10 | **P2** | 合并小文件 | 将 ~108 文件合并到 ~65-75 个 |
+| 1 | **P0** | 创建 `lib/reader_engine/` 目录结构 | ✅ 已完成 |
+| 2 | **P0** | 移动 pagination 文件 | ✅ 已完成 — `flutter_pagination/*` → `reader_engine/pagination/` |
+| 3 | **P0** | 移动 scroll 文件 | ✅ 已完成 — 分散文件汇总到 `reader_engine/scroll/` |
+| 4 | **P0** | 移动 rendering 文件 | ✅ 已完成 — `rendering/*` → `reader_engine/rendering/` |
+| 5 | **P1** | 实现 `PaginationEngine` 类 | ✅ 已完成 — `reader_engine/pagination/engine.dart` |
+| 6 | **P1** | 实现 `ScrollEngine` 类 | ✅ 已完成 — `reader_engine/scroll/engine.dart` |
+| 7 | **P1** | 删除 `ReaderRepository` 中间人 | ❌ 未开始 — 调用方直接使用 PaginationEngine + RustChapterContentRepository |
+| 8 | **P2** | 删除 5 个假抽象接口 | ❌ 未开始 — 接口和实现合并 |
+| 9 | **P2** | 合并 `core/domain/` 和 `domain/` | ❌ 未开始 — 统一 domain 目录 |
+| 10 | **P2** | 合并小文件 | ❌ 未开始 — 将 ~108 文件合并到 ~65-75 个 |
 
 ### 不做
 
