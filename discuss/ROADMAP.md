@@ -2,7 +2,7 @@
 
 > **当前阶段 = Phase 10**（Flutter 架构扁平化与阅读引擎独立）
 > **Phase 0-9** 已完成 ✅
-> **Phase 10** 进行中 🔄（Flutter 架构扁平化与阅读引擎独立）
+> **Phase 10** 已完成 ✅（P0+P1 全部完成）
 > **下一阶段**：Phase 10 TXT 章节检测可配置化
 
 **完整路线图（Phase 0-20）：**
@@ -181,9 +181,9 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 | 5 | **P1** | 实现 `PaginationEngine` 类 | ✅ 已完成 — `reader_engine/pagination/engine.dart` |
 | 6 | **P1** | 实现 `ScrollEngine` 类 | ✅ 已完成 — `reader_engine/scroll/engine.dart` |
 | 7 | **P1** | 删除 `ReaderRepository` 中间人 | ❌ 未开始 — 调用方直接使用 PaginationEngine + RustChapterContentRepository |
-| 8 | **P2** | 删除 5 个假抽象接口 | ❌ 未开始 — 接口和实现合并 |
-| 9 | **P2** | 合并 `core/domain/` 和 `domain/` | ❌ 未开始 — 统一 domain 目录 |
-| 10 | **P2** | 合并小文件 | ❌ 未开始 — 将 ~108 文件合并到 ~65-75 个 |
+| 8 | **P2** | 删除 5 个假抽象接口 | ❌ 未开始 — `ReaderRepositoryInterface` 已删，其余暂留（DI 依赖） |
+| 9 | **P2** | 合并 `core/domain/` 和 `domain/` | ✅ 已完成 |
+| 10 | **P2** | 合并小文件 | ⏳ 部分完成 — `features/reader/` 从 ~108 降至 69，39 个引擎文件迁至 `reader_engine/` |
 
 ### 不做
 
