@@ -78,6 +78,7 @@ class BookshelfBatchToolbar extends StatelessWidget {
                   await vm.loadCategories();
                   final cats = vm.categories.value.value ?? [];
                   final selected = await showCategorySelectionDialog(
+                    // ignore: use_build_context_synchronously
                     context,
                     categories: cats,
                     title: l10n.moveCategory,

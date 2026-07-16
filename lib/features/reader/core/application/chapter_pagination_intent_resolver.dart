@@ -1,7 +1,8 @@
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
-import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
+import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_pagination_session.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 
@@ -22,18 +23,19 @@ class QuickPageResolveResult {
 ChapterPaginationIntent resolveChapterPaginationIntent({
   required int chapterIndex,
   required ChapterNavigationKind navigationKind,
-  required ReaderRepositoryInterface repo,
+  required ChapterContentRepository contentRepo,
+  required PaginationSession session,
   required PaginationCoordinator pagination,
 }) {
   if (navigationKind == ChapterNavigationKind.adjacentCrossChapter) {
-    final nextStaging = repo.nextChapterStaging;
+    final nextStaging = contentRepo.nextChapterStaging;
     if (nextStaging != null && nextStaging.chapterIndex == chapterIndex) {
       final currentHash = pagination.computeConfigHash();
       if (nextStaging.configHash == currentHash) {
         return ChapterPaginationIntent.stagingPromoteForward;
       }
     }
-    final prevStaging = repo.prevChapterStaging;
+    final prevStaging = contentRepo.prevChapterStaging;
     if (prevStaging != null && prevStaging.chapterIndex == chapterIndex) {
       final currentHash = pagination.computeConfigHash();
       if (prevStaging.configHash == currentHash) {
@@ -42,9 +44,9 @@ ChapterPaginationIntent resolveChapterPaginationIntent({
     }
   }
 
-  final hash = repo.sessionConfigHash;
-  final descriptors = repo.descriptors;
-  final sessionChapterIndex = repo.sessionChapterIndex;
+  final hash = session.sessionConfigHash;
+  final descriptors = session.descriptors;
+  final sessionChapterIndex = session.sessionChapterIndex;
 
   final sessionValid =
       hash != null &&

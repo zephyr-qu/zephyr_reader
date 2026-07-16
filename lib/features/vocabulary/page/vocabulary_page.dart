@@ -1,3 +1,5 @@
+import 'package:zephyr_reader/src/rust/domain/vocabulary/models.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
@@ -6,7 +8,7 @@ import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/features/vocabulary/application/vocabulary_view_model.dart';
 import 'package:zephyr_reader/features/vocabulary/page/widgets/vocab_word_list_view.dart';
 import 'package:zephyr_reader/features/vocabulary/page/widgets/vocab_stats_row.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// 生词本页面。

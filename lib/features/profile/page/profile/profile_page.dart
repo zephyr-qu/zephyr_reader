@@ -1,3 +1,5 @@
+import 'package:zephyr_reader/src/rust/domain/stats/models.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -6,7 +8,7 @@ import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/features/profile/application/profile_view_model.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 
 import 'profile_header.dart';
 import 'package:zephyr_reader/features/profile/page/profile/profile_menu_sections.dart';

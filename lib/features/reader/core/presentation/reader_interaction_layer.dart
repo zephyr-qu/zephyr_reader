@@ -1,3 +1,5 @@
+import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -14,7 +16,7 @@ import 'package:zephyr_reader/features/reader/annotations/presentation/reader_an
 import 'package:zephyr_reader/features/reader/page/touch/selection_toolbar.dart';
 import 'package:zephyr_reader/features/reader/page/touch/tap_zone.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 
 double readerSelectionToolbarTop(double screenHeight, Offset? pos) {
   if (pos == null) return 80;

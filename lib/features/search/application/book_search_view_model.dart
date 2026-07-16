@@ -1,6 +1,6 @@
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/src/rust/api/search.dart' as search_api;
-import 'package:zephyr_reader/src/rust/domain/types/pagination.dart';
+import 'package:zephyr_reader/src/rust/domain/search/models.dart';
 
 /// 书籍内搜索 ViewModel（单个搜索页独立使用，非单例）
 class BookSearchViewModel {

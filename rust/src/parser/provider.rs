@@ -13,8 +13,8 @@
 //!
 //! 定义 `ChapterContentProvider` trait，用于封装 EPUB/TXT 的按需内容读取。
 
+use crate::domain::book::BookFormat;
 use crate::domain::AppError;
-use crate::storage::models::BookFormat;
 
 /// 章节内容的按需访问器
 ///

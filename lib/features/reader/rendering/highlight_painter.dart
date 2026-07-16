@@ -1,7 +1,9 @@
+import 'package:zephyr_reader/src/rust/domain/note/models.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 
 /// 文本高亮绘制器。
 ///
@@ -236,7 +238,7 @@ class HighlightPainter {
     void Function(Note)? onHighlightTap,
     Set<String> vocabularyWords = const {},
   }) {
-    final styleHash = span.style.hashCode;
+    final styleHash = span.hashCode;
     if (_paintVersion == _lastRichVersion &&
         _lastRichStyleHash == styleHash &&
         _lastRichSpan == span &&

@@ -21,21 +21,19 @@ void main() {
       ),
     ];
 
-    test('contentBlocks uses last descriptor endOffset', () {
+    test('uses last descriptor endOffset when descriptors provided', () {
       final phase1Plain = 'x' * 100;
       final max = PaginationEngine.chapterCharOffsetMax(
-        sessionMode: ChapterPaginationMode.contentBlocks,
         descriptors: descriptors,
         phase1PlainContent: phase1Plain,
       );
       expect(max, 105);
     });
 
-    test('plainText uses phase1 content length', () {
+    test('uses phase1 content length when descriptors is null', () {
       const phase1Plain = 'hello';
       final max = PaginationEngine.chapterCharOffsetMax(
-        sessionMode: ChapterPaginationMode.plainText,
-        descriptors: descriptors,
+        descriptors: null,
         phase1PlainContent: phase1Plain,
       );
       expect(max, 5);

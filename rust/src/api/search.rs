@@ -1,30 +1,14 @@
-//! 搜索 API
+//! 搜索 API — FRB 薄封装层
 
 use std::sync::OnceLock;
 
-use crate::domain::{AppError, IndexStats, SearchResult};
-use crate::search::SearchEngine;
-use crate::storage::storage_pool;
 use flutter_rust_bridge::frb;
 
-// ============================================================
-// 文件作用：全文搜索 API — FTS5 索引与查询。
-//
-// 公有函数：
-//   - init_search_engine() — 初始化搜索引擎
-//   - index_chapter() — 索引章节内容
-//   - search() — 在书籍中搜索
-//   - count_matches() — 统计搜索结果数量
-//   - search_all_books() — 搜索所有书籍
-//   - clear_all() — 清除所有索引
-//   - delete_by_book() — 删除某本书的索引
-//   - get_index_stats() — 获取索引统计
-//
-// 内部函数：
-//   - get_search_engine() — 获取搜索引擎实例
-// ============================================================
+use crate::common::AppError;
+use crate::domain::search::SearchEngine;
+use crate::domain::search::models::{IndexStats, SearchResult};
+use crate::infra::manager::storage_pool;
 
-/// 全局搜索引擎单例
 static SEARCH_ENGINE: OnceLock<SearchEngine> = OnceLock::new();
 
 /// 初始化搜索引擎
@@ -44,8 +28,7 @@ pub async fn init_search_engine() -> Result<(), AppError> {
     Ok(())
 }
 
-/// 获取搜索引擎实例
-pub(crate) fn get_search_engine() -> Result<&'static SearchEngine, AppError> {
+fn get_search_engine() -> Result<&'static SearchEngine, AppError> {
     SEARCH_ENGINE.get().ok_or_else(|| {
         AppError::InternalError { reason: "Search engine not initialized. Call init_search_engine() first.".into() }
     })
@@ -62,65 +45,37 @@ pub async fn index_chapter(
 ) -> Result<(), AppError> {
     tracing::debug!("[search] index_chapter: book_id={}, chapter_index={}", book_id, chapter_index);
     let engine = get_search_engine()?;
-    engine
-        .index_chapter(
-            &book_id,
-            &chapter_id,
-            chapter_index,
-            &chapter_title,
-            &content,
-        )
-        .await
+    engine.index_chapter(&book_id, &chapter_id, chapter_index, &chapter_title, &content).await
         .map_err(|e| AppError::SearchError { reason: e.to_string().into() })?;
     Ok(())
 }
 
 /// 在书籍中搜索
 #[frb]
-pub async fn search(
-    book_id: String,
-    query: String,
-    limit: i32,
-) -> Result<Vec<SearchResult>, AppError> {
+pub async fn search(book_id: String, query: String, limit: i32) -> Result<Vec<SearchResult>, AppError> {
     tracing::debug!("[search] search: book_id={}, query={}", book_id, query);
     let engine = get_search_engine()?;
-    let limit = limit.max(0) as usize;
-    let results = engine
-        .search(&book_id, &query, limit)
-        .await
-        .map_err(|e| AppError::SearchError { reason: e.to_string().into() })?;
-    Ok(results)
+    engine.search(&book_id, &query, limit.max(0) as usize).await
+        .map_err(|e| AppError::SearchError { reason: e.to_string().into() })
 }
 
 /// 统计搜索结果数量
 #[frb]
 pub async fn count_matches(
-    book_id: String,
-    query: String,
-    chapter_index: Option<i32>,
+    book_id: String, query: String, chapter_index: Option<i32>,
 ) -> Result<i32, AppError> {
     let engine = get_search_engine()?;
-    let count = engine
-        .count_matches(&book_id, &query, chapter_index)
-        .await
+    let count = engine.count_matches(&book_id, &query, chapter_index).await
         .map_err(|e| AppError::SearchError { reason: e.to_string().into() })?;
     Ok(count as i32)
 }
 
 /// 搜索所有书籍内容
 #[frb]
-pub async fn search_all_books(
-    query: String,
-    limit: i32,
-    offset: i32,
-) -> Result<Vec<SearchResult>, AppError> {
-    tracing::debug!("[search] search_all_books: query={}, limit={}, offset={}", query, limit, offset);
+pub async fn search_all_books(query: String, limit: i32, offset: i32) -> Result<Vec<SearchResult>, AppError> {
+    tracing::debug!("[search] search_all_books: query={}", query);
     let engine = get_search_engine()?;
-    let limit = limit.max(1).min(200) as usize;
-    let offset = offset.max(0) as usize;
-    let results = engine
-        .search_all_books(&query, limit, offset)
-        .await
+    let results = engine.search_all_books(&query, limit.max(1).min(200) as usize, offset.max(0) as usize).await
         .map_err(|e| AppError::SearchError { reason: e.to_string().into() })?;
     Ok(results)
 }
@@ -130,11 +85,8 @@ pub async fn search_all_books(
 pub async fn clear_all() -> Result<(), AppError> {
     tracing::info!("[search] clear_all");
     let engine = get_search_engine()?;
-    engine
-        .clear_all()
-        .await
-        .map_err(|e| AppError::SearchError { reason: e.to_string().into() })?;
-    Ok(())
+    engine.clear_all().await
+        .map_err(|e| AppError::SearchError { reason: e.to_string().into() })
 }
 
 /// 删除某本书的搜索索引
@@ -142,11 +94,8 @@ pub async fn clear_all() -> Result<(), AppError> {
 pub async fn delete_by_book(book_id: String) -> Result<(), AppError> {
     tracing::info!("[search] delete_by_book: book_id={}", book_id);
     let engine = get_search_engine()?;
-    engine
-        .delete_by_book(&book_id)
-        .await
-        .map_err(|e| AppError::SearchError { reason: e.to_string().into() })?;
-    Ok(())
+    engine.delete_by_book(&book_id).await
+        .map_err(|e| AppError::SearchError { reason: e.to_string().into() })
 }
 
 /// 获取搜索索引统计信息
@@ -154,8 +103,6 @@ pub async fn delete_by_book(book_id: String) -> Result<(), AppError> {
 pub async fn get_index_stats() -> Result<IndexStats, AppError> {
     tracing::debug!("[search] get_index_stats");
     let engine = get_search_engine()?;
-    engine
-        .get_index_stats()
-        .await
+    engine.get_index_stats().await
         .map_err(|e| AppError::SearchError { reason: e.to_string().into() })
 }

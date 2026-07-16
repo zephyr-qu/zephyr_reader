@@ -1,3 +1,5 @@
+import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
+
 import 'dart:async';
 
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
@@ -7,15 +9,18 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_load_phas
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
-import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
+import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
+import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_pagination_session.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
 
 /// 章节内容加载编排。
 ///
 /// 负责章节列表、阅读进度、章节内容加载及预取。
 class ChapterLoader {
-  final ReaderRepositoryInterface _contentRepo;
+  final ChapterContentRepository _contentRepo;
+  final ProgressRepository _progressRepo;
+  final PaginationSession _session;
   final ChapterViewModel _chapterVM;
   final PaginationCoordinator _pagination;
   late final ChapterLoadOrchestrator _orchestrator;
@@ -46,9 +51,16 @@ class ChapterLoader {
   /// 首屏就绪后预加载相邻章节首页（由 [ChapterNavigator] 注入）。
   Future<void> Function(int chapterIndex)? preloadAdjacentFirstPages;
 
-  ChapterLoader(this._contentRepo, this._chapterVM, this._pagination) {
+  ChapterLoader(
+    this._contentRepo,
+    this._progressRepo,
+    this._session,
+    this._chapterVM,
+    this._pagination,
+  ) {
     _orchestrator = ChapterLoadOrchestrator(
       contentRepo: _contentRepo,
+      session: _session,
       chapterVM: _chapterVM,
       pagination: _pagination,
       chapters: chapters,
@@ -84,9 +96,7 @@ class ChapterLoader {
   /// 加载上次的阅读进度
   Future<void> loadLastProgress() async {
     try {
-      final progress = await _contentRepo.loadReadingProgress(
-        _chapterVM.bookId.value,
-      );
+      final progress = await _progressRepo.load(_chapterVM.bookId.value);
       if (progress != null) {
         _chapterVM.chapterIndex.value = progress.chapterIndex;
         _chapterVM.currentCharOffset.value = progress.charOffset;

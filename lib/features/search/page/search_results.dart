@@ -1,4 +1,8 @@
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/domain/note/models.dart';
+import 'package:zephyr_reader/src/rust/domain/vocabulary/models.dart';
+import 'package:zephyr_reader/src/rust/domain/book/models.dart';
+
+
 
 /// 书籍搜索结果模型。
 class BookSearchItem {

@@ -18,7 +18,7 @@ use std::sync::LazyLock;
 
 use regex::Regex;
 
-use crate::storage::models::Chapter;
+use crate::domain::chapter::Chapter;
 
 // ==================== 排版常量 ====================
 

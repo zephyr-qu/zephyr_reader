@@ -24,9 +24,9 @@ use std::fs::File;
 use encoding_rs::{Encoding, UTF_8};
 use memmap2::Mmap;
 
+use crate::domain::book::BookFormat;
 use crate::domain::AppError;
 use crate::parser::provider::ChapterContentProvider;
-use crate::storage::models::BookFormat;
 
 /// 内存映射文件最大大小（100MB）
 const MMAP_MAX_SIZE: u64 = 100 * 1024 * 1024;
@@ -81,12 +81,10 @@ impl TxtContentProvider {
         // SAFETY: 文件以只读方式打开（File::open），映射为只读 Mmap；
         // 文件在映射生命周期内不会被写入或截断（调用方保证）。
         // memmap2 在 Drop 时自动解除映射。
-        let mmap = unsafe {
-            Mmap::map(&file).map_err(|e| AppError::FileReadError {
-                path: file_path.into(),
-                details: e.to_string(),
-            })?
-        };
+        let mmap = unsafe { Mmap::map(&file) }.map_err(|e| AppError::FileReadError {
+            path: file_path.into(),
+            details: e.to_string(),
+        })?;
         if mmap.is_empty() {
             return Ok(Self {
                 mmap,

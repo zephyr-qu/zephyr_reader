@@ -88,7 +88,7 @@ void main() {
             PackedBlockSlice.image(
               blockIndex: 0,
               assetId: 'img1',
-              imageLayout: ImageBlockLayout.inlineContain,
+              imageLayout: ReaderIrBlockLayout.inlineContain,
             ),
           ],
         );

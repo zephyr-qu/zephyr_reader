@@ -18,8 +18,9 @@ use std::path::Path;
 
 use super::decode;
 use crate::domain::AppError;
-use crate::parser::epub::ParseResult;
-use crate::storage::models::{Book, BookFormat, Chapter};
+use crate::domain::chapter::Chapter;
+use crate::parser::types::ParseResult;
+use crate::domain::book::{Book, BookFormat};
 use crate::parser::txt::chapter_detect;
 
 /// 解析 TXT 文件

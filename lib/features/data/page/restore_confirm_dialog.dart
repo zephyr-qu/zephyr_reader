@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/api/backup.dart';
+import 'package:zephyr_reader/src/rust/domain/backup/models.dart';
 
 /// 恢复确认对话框
 Future<bool?> showRestoreConfirmDialog(

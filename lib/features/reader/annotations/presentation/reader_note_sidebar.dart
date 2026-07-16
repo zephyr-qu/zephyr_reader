@@ -5,8 +5,9 @@ import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_view_model.dart';
-import 'package:zephyr_reader/src/rust/api/data/note.dart' as note_api;
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+import 'package:zephyr_reader/src/rust/api/note.dart' as note_api;
+import 'package:zephyr_reader/src/rust/domain/note/models.dart';
+
 
 /// 阅读器笔记侧边栏。
 ///

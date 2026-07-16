@@ -14,8 +14,8 @@
 //! EPUB table of contents extraction
 //! Extracts chapter information from NCX or Nav documents, supports multi-level TOC
 
+use crate::domain::chapter::Chapter;
 use super::unzip::EpubFile;
-use crate::storage::models::Chapter;
 
 /// Extract chapter information from EPUB (supports multi-level TOC)
 pub fn extract_chapters_from_epub(epub_file: &mut EpubFile, book_id: &str) -> Vec<Chapter> {

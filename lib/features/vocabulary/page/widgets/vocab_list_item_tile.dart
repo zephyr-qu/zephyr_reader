@@ -1,10 +1,12 @@
+import 'package:zephyr_reader/src/rust/domain/vocabulary/models.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/features/vocabulary/page/widgets/vocab_status_chip.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 
 /// A single vocabulary list item with swipe-to-delete and status popup menu.
 ///

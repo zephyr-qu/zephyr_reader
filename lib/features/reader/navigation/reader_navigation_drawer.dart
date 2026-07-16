@@ -1,10 +1,13 @@
+import 'package:zephyr_reader/src/rust/domain/bookmark/models.dart';
+import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
+
 import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/features/reader/navigation/bookmark_list.dart';
 import 'package:zephyr_reader/features/reader/navigation/chapter_list.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/storage/models.dart';
+
 
 /// 阅读器导航侧边栏 — 目录/书签 双 TabBar。
 class ReaderNavigationDrawer extends StatelessWidget {

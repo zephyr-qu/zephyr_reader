@@ -1,6 +1,6 @@
 import 'dart:collection';
 import 'package:injectable/injectable.dart';
-import 'package:zephyr_reader/src/rust/api/vocab_marker.dart' as rust;
+import 'package:zephyr_reader/src/rust/domain/wordlist/vocab_scanner.dart' as vocab_scanner;
 
 @lazySingleton
 /// 生词标记服务。
@@ -12,7 +12,7 @@ class VocabularyMarkerService {
 
   Future<void> ensureLoaded() async {
     if (_loaded) return;
-    _allWords = rust.getAllVocabularyWords().toSet();
+    _allWords = vocab_scanner.getAllVocabularyWords().toSet();
     _loaded = true;
   }
 

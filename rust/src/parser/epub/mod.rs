@@ -10,7 +10,7 @@
 //   - parse_epub() — EPUB 文件解析入口
 //
 // 子模块：
-//   - asset_registry, content_ir, metadata, parse, processed_image, provider, toc, unzip
+//   - asset_registry, content_ir, css, parse, processed_image, provider, toc, unzip
 // ============================================================
 
 //! EPUB 解析模块
@@ -24,7 +24,6 @@ pub mod rich_text;
 pub mod processed_image;
 pub mod provider;
 pub mod toc;
-pub mod metadata;
 pub mod unzip;
 
 pub use asset_registry::{
@@ -32,14 +31,45 @@ pub use asset_registry::{
     resolve_relative_href,
 };
 pub use content_ir::{get_chapter_content_ir, html_to_chapter_ir};
-pub use metadata::{EpubMetadata, EpubTocItem, ParseResult};
+/// EPUB 元数据
+/// 包含书籍标题、作者、封面、目录等信息
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[frb(non_opaque)]
+pub struct EpubMetadata {
+    /// 书籍标题
+    pub title: String,
+    /// 作者
+    pub author: String,
+    /// 封面图片路径
+    pub cover_path: Option<String>,
+    /// 目录列表
+    pub toc: Vec<EpubTocItem>,
+    /// 阅读顺序（spine 中的章节 ID 列表）
+    pub spine: Vec<String>,
+}
+
+/// EPUB 目录项
+/// 表示目录中的一个条目
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[frb(non_opaque)]
+pub struct EpubTocItem {
+    /// 显示标签
+    pub label: String,
+    /// 链接地址（href）
+    pub href: String,
+    /// 层级深度（从 0 开始）
+    pub level: i32,
+}
+
 
 use std::path::Path;
 
 use flutter_rust_bridge::frb;
+use serde::{Deserialize, Serialize};
 
 use crate::domain::AppError;
 use crate::parser::BookMetadata;
+use crate::parser::types::ParseResult;
 
 pub use parse::parse_epub;
 

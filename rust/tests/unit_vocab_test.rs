@@ -3,8 +3,8 @@
 //! 测试 wordlists 词表查询和 scan_for_vocabulary 文本扫描功能。
 //! 词表通过 include_str! 编译时嵌入，无需初始化。
 
-use rust_lib_zephyr_reader::dictionary::vocab;
-use rust_lib_zephyr_reader::dictionary::wordlists;
+use rust_lib_zephyr_reader::domain::wordlist::vocab;
+use rust_lib_zephyr_reader::domain::wordlist::wordlists;
 
 // ==================== wordlists ====================
 

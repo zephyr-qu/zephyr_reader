@@ -4,8 +4,8 @@
 
 mod common;
 
-use rust_lib_zephyr_reader::api::data::progress;
-use rust_lib_zephyr_reader::storage::models::ReadingProgress;
+use rust_lib_zephyr_reader::api::progress;
+use rust_lib_zephyr_reader::domain::progress::models::ReadingProgress;
 
 
 fn make_progress(book_id: &str, chapter_index: i64) -> ReadingProgress {
