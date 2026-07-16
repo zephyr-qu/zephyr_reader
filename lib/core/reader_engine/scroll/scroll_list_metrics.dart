@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:zephyr_reader/src/rust/api/book.dart' as book_api;
+
 import 'package:zephyr_reader/core/reader_engine/scroll/scroll_layout_params.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/ir_types.dart';
 
@@ -194,40 +196,11 @@ int _estimateLineCount(int charLen, ScrollLayoutParams layout) {
   return (charLen / charsPerLine).ceil().clamp(1, 9999);
 }
 
-/// 从 PNG/JPEG 头部读取 intrinsic 尺寸（轻量，无完整解码）。
+/// 通过 Rust image crate 读取图片 intrinsic 尺寸（支持 PNG/JPEG/GIF/WebP）。
 (int width, int height)? readImageDimensions(Uint8List bytes) {
-  if (bytes.length >= 24 &&
-      bytes[0] == 0x89 &&
-      bytes[1] == 0x50 &&
-      bytes[2] == 0x4E &&
-      bytes[3] == 0x47) {
-    final w =
-        (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
-    final h =
-        (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
-    if (w > 0 && h > 0) return (w, h);
+  try {
+    return book_api.getImageDimensions(bytes: bytes);
+  } catch (_) {
+    return null;
   }
-
-  if (bytes.length >= 4 && bytes[0] == 0xFF && bytes[1] == 0xD8) {
-    var i = 2;
-    while (i + 9 < bytes.length) {
-      if (bytes[i] != 0xFF) {
-        i++;
-        continue;
-      }
-      final marker = bytes[i + 1];
-      if (marker == 0xD9 || marker == 0xDA) break;
-      if (i + 3 >= bytes.length) break;
-      final len = (bytes[i + 2] << 8) | bytes[i + 3];
-      if (len < 2) break;
-      if (marker == 0xC0 || marker == 0xC1 || marker == 0xC2) {
-        if (i + 8 >= bytes.length) break;
-        final h = (bytes[i + 5] << 8) | bytes[i + 6];
-        final w = (bytes[i + 7] << 8) | bytes[i + 8];
-        if (w > 0 && h > 0) return (w, h);
-      }
-      i += 2 + len;
-    }
-  }
-  return null;
 }

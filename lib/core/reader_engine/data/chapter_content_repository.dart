@@ -287,19 +287,31 @@ class ChapterContentRepository {
     required Stopwatch sw,
   }) async {
     final isEpub = filePath.toLowerCase().endsWith('.epub');
+    final shouldLoadIr = isEpub && readingMode == ReadingMode.bilingual;
 
-    Future<ReaderChapterIr?> contentIrFuture;
-    if (isEpub && readingMode == ReadingMode.bilingual) {
-      contentIrFuture = reader_api
-          .getChapterContentIr(bookId: bookId, chapterIndex: chapterId)
-          .then<ReaderChapterIr?>((value) => value);
-    } else {
-      contentIrFuture = Future<ReaderChapterIr?>.value();
-    }
-
-    final results = await Future.wait([
-      reader_api.getChapterPlain(bookId: bookId, chapterIndex: chapterId),
-      contentIrFuture.catchError((Object error) {
+    if (shouldLoadIr) {
+      try {
+        final ir = await reader_api.getChapterContentIr(
+          bookId: bookId,
+          chapterIndex: chapterId,
+        );
+        if (ir.blocks.isNotEmpty && ir.plainText.isNotEmpty) {
+          Logging.info(
+            '[Timing] loadRichCapablePayload IR: ${sw.elapsedMilliseconds}ms '
+            'blocks=${ir.blocks.length}',
+          );
+          return scrollIrPayload(chapterIr: ir, chapterFilePath: filePath);
+        }
+        _logIrFallback(
+          stage: 'validate',
+          bookId: bookId,
+          chapterIndex: chapterId,
+          readingMode: readingMode,
+          reason:
+              'empty_ir blocks=${ir.blocks.length} plain=${ir.plainText.length}',
+          fallbackSucceeded: false,
+        );
+      } catch (error) {
         _logIrFallback(
           stage: 'fetch',
           bookId: bookId,
@@ -308,25 +320,12 @@ class ChapterContentRepository {
           reason: error,
           fallbackSucceeded: false,
         );
-        return null;
-      }),
-    ]);
-    final content = results[0] as String;
-    final ir = results[1] as ReaderChapterIr?;
-
-    if (ir != null && ir.blocks.isNotEmpty) {
-      Logging.info(
-        '[Timing] loadRichCapablePayload IR: ${sw.elapsedMilliseconds}ms '
-        'blocks=${ir.blocks.length}',
-      );
-      return scrollIrPayload(chapterIr: ir, chapterFilePath: filePath);
+      }
     }
 
-    if (content.isEmpty) {
-      throw Exception('Chapter content is empty');
-    }
+    final content = await _fetchPlainChapterContent(bookId, chapterId);
 
-    if (ir == null && isEpub && readingMode == ReadingMode.bilingual) {
+    if (shouldLoadIr) {
       _logIrFallback(
         stage: 'plain',
         bookId: bookId,
