@@ -1,6 +1,7 @@
 //! 书籍管理 API — FRB 薄封装层
 
 use std::collections::HashMap;
+use std::io::Cursor;
 
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
@@ -240,6 +241,18 @@ pub fn get_processed_epub_image(
     crate::parser::epub::processed_image::get_processed_epub_image(
         &validated, &asset_id, max_width_px.max(1) as u32,
     )
+}
+
+/// 从图片字节中读取尺寸（只读头部，不解码像素数据）。
+#[frb(sync)]
+pub fn get_image_dimensions(bytes: Vec<u8>) -> Result<(i32, i32), AppError> {
+    let reader = image::ImageReader::new(Cursor::new(bytes))
+        .with_guessed_format()
+        .map_err(|e| AppError::InternalError { reason: e.to_string() })?;
+    reader
+        .into_dimensions()
+        .map(|(w, h)| (w as i32, h as i32))
+        .map_err(|e| AppError::InternalError { reason: e.to_string() })
 }
 
 /// 导入书籍文件（校验→解析→入库）

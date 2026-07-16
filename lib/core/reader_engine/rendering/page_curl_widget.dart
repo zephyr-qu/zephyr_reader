@@ -207,39 +207,39 @@ class _PageCurlWidgetState extends State<PageCurlWidget>
           // Next page (bottom layer)
           if (showCurl && revealedPage != null)
             Positioned.fill(child: revealedPage),
-            // Current page with clip & transform
-            if (showCurl)
-              ClipPath(
-                clipper: _PageCurlClipper(
-                  progress: progress,
-                  isForward: _isForward,
-                ),
-                child: Transform(
-                  alignment: _isForward
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-                  transform: Matrix4.identity()
-                    ..setEntry(3, 2, 0.001)
-                    ..rotateY(
-                      _isForward ? (progress - 1) * 0.3 : (1 - progress) * 0.3,
-                    ),
-                  child: currentPage,
-                ),
-              )
-            else
-              currentPage,
-            // Shadow overlay (on reveal side of fold)
-            if (showCurl && revealedPage != null)
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: CustomPaint(
-                    painter: _CurlShadowPainter(
-                      progress: progress,
-                      isForward: _isForward,
-                    ),
+          // Current page with clip & transform
+          if (showCurl)
+            ClipPath(
+              clipper: _PageCurlClipper(
+                progress: progress,
+                isForward: _isForward,
+              ),
+              child: Transform(
+                alignment: _isForward
+                    ? Alignment.centerRight
+                    : Alignment.centerLeft,
+                transform: Matrix4.identity()
+                  ..setEntry(3, 2, 0.001)
+                  ..rotateY(
+                    _isForward ? (progress - 1) * 0.3 : (1 - progress) * 0.3,
+                  ),
+                child: currentPage,
+              ),
+            )
+          else
+            currentPage,
+          // Shadow overlay (on reveal side of fold)
+          if (showCurl && revealedPage != null)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  painter: _CurlShadowPainter(
+                    progress: progress,
+                    isForward: _isForward,
                   ),
                 ),
               ),
+            ),
         ],
       ),
     );

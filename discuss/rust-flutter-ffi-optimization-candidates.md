@@ -79,27 +79,25 @@ Flutter: Uint8List → audioplayers 播放
 
 ---
 
-## 候选三 · `get_chapter` 退化路径确认 🔷
+## 候选三 · IR → plain 退化路径确认 ✅ 已整改
 
 ### 当前路径
 
-Flutter 侧 `chapter_content_repository.dart` 中，`get_chapter_content_ir()` 失败时回退到 `get_chapter()`（返回富文本 String），再由 Flutter 侧 String → 假 IR。
+Flutter 侧 `chapter_content_repository.dart` 中，`getChapterContentIr()` 失败或返回空 IR 时回退到 `getChapterPlain()`，再构造 plain payload。
 
 ### 问题
 
 这是一条「Rust 侧 IR 路径失败 → 回到富文本 → 再由 Flutter 侧解析」的退化路径。它本应是极端情况的 fallback，但如果因为某些常见原因（如 IR 缓存未命中 + 解析器异常）频繁触发，就会导致：
 
-1. Rust 侧生成富文本（含 HTML 标签）——无用开销
-2. FRB 传输含 HTML 的大型 String
-3. Flutter 侧 strip HTML 标签做回退
+该路径会丢失 EPUB 图片和样式，因此必须是可观测的异常降级，不能成为长期双轨。
 
 ### 验证方法
 
-在日志中加计数器：`get_chapter` 被调用的频率 vs `get_chapter_content_ir`。如果在正常使用中 `get_chapter` 被触发，说明 IR 路径有异常。
+已增加 `[ReaderIrFallback]` 结构化日志字段：stage、book、chapter、mode、reason、fallbackSucceeded。正常语料不应触发。
 
 ### 如果确认频繁触发
 
-优化方向：去掉 `get_chapter` fallback，改为直接修复 IR 路径的问题（N3 核心链路健壮性的范畴）。
+保留显式 plain fallback 作为容错；正常链路的 IR 故障进入 N3 修复，不允许依赖 fallback 掩盖。
 
 ---
 
@@ -150,7 +148,7 @@ pub struct ImageRequest {
 
 ---
 
-## 候选五 · `get_chapter_plain` 大文本 FRB 传输 🔷
+## 候选五 · `get_chapter_plain` 大文本 FRB 传输 ✅ 正常路径已整改
 
 ### 当前路径
 
@@ -171,7 +169,7 @@ Flutter 在两种场景调用 `get_chapter_plain`：
 
 对于搜索/进度锚点场景，不需要整章纯文本——只需要 IR 中的 plainText 字段（`ReaderChapterIr.plain_text`）。当前 `get_chapter_content_ir` 已经返回包含 `plain_text` 的 IR struct，多余的 `get_chapter_plain` 调用其实可以不独立存在。
 
-**更优方案**：IR 路径总是携带 plainText（已经如此），搜索/进度直接从 IR 缓存的 plainText 读取，不需要独立调用 `get_chapter_plain`。
+**已实施**：双语 EPUB 正常路径只请求 IR 并直接使用 `ir.plainText`；仅在 IR 失败或为空时再请求 plain。其他本来只需要 plain 的调用方保持不变。
 
 ### 验证方法
 
@@ -298,9 +296,9 @@ FRB 的 SSE codec 需要遍历整个 IR 树来序列化/反序列化。这个序
 | --- | ------ | ------ | ------ | ------ |
 | 1 | 📦 图片 RGBA 直通 | 🔶 中 | 低 | **Phase 12 已纳入** |
 | 2 | 🖼️ 封面 RGBA 直通 | 🔷 低 | 低 | 随 N2 架构审查时评估 |
-| 3 | 🔙 `get_chapter` fallback | 🔷 低 | 低 | 随 N3 健壮性审计验证 |
+| 3 | 🔙 IR → plain fallback | 🔷 低 | 低 | ✅ 已结构化记录，N3 继续审计根因 |
 | 4 | 📸 图片批量预取 FFI 合并 | 🔷 低 | 低 | 随 N4 边界测试验证 |
-| 5 | 📖 `get_chapter_plain` 冗余 | 🔷 低 | 低 | 随 N2 架构审查验证 |
+| 5 | 📖 `get_chapter_plain` 冗余 | 🔷 低 | 低 | ✅ 双语正常路径已移除 |
 | 6 | 📚 词典查词缓存 | 🔷 低 | 低 | 随手做 |
 | 7 | 🔄 热路径 CRUD 批量化 | 🔹 极低 | 低 | 有症状时再动 |
 | 8 | 🏗️ IR 大 Struct 序列化 | 🔶 中 | 高 | 先测 RTT 再决定 |
@@ -361,7 +359,7 @@ Logging.info('[IrLoad] getChapterContentIr RTT: ${stopwatch.elapsedMilliseconds}
 
 ---
 
-## 候选九 · PageCurl 动画每帧全 Widget 重建 🔶
+## 候选九 · PageCurl 动画每帧全 Widget 重建 ✅ 已整改
 
 > 来源：`page_curl_widget.dart:47` — `_ctrl.addListener(() => setState(() {}))`
 
@@ -391,15 +389,15 @@ AnimatedBuilder(
 )
 ```
 
-### 收益
+### 实施结果
 
-- 典型翻页动画 200-400ms，节省 ~12-24 次全重建
-- 页面含图/富文本时收益显著
-- 重构范围：`page_curl_widget.dart` 内部分拆，不涉及外部接口
+- controller tick 仅重建 ClipPath / Transform / shadow 动画层。
+- 当前页及相邻页由 pageIndex/pageBuilder 生命周期缓存；组件测试锁定动画期间 `pageBuilder` 调用次数不增长。
+- 手势、回弹、跨页回调接口不变。
 
 ---
 
-## 候选十 · `_ContentMeasurer` 调试 Widget 泄漏到生产路径 🔷
+## 候选十 · `_ContentMeasurer` 调试 Widget 泄漏到生产路径 ✅ 已删除
 
 > 来源：`block_page_content.dart:336-367`
 
@@ -408,16 +406,9 @@ AnimatedBuilder(
 `_ContentMeasurer` 是 Phase 4 遗留的度量工具，包裹了每一页的 `Column`。
 每次翻页触发一次 `addPostFrameCallback` + `findRenderObject()`——这不是产品功能。
 
-### 优化方案
+### 实施结果
 
-```dart
-// 选项 A：直接删除（如果是纯调试）
-// 选项 B：加 kReleaseMode 门控
-if (kReleaseMode) {
-  return child;
-}
-return _ContentMeasurer(label: ..., child: child);
-```
+确认没有生产消费者后直接删除 wrapper、post-frame callback 和 `[ContentHeight]` 诊断日志。
 
 ### 收益
 
@@ -521,14 +512,14 @@ final shelfBooks = await bookApi.listBookshelfBooks();  // 两次 FFI
 |---|------|----|------|------|---------|
 | 1 | 📦 图片 RGBA 直通 | FFI 边界 | 🔶 中 | 低 | **Phase 12 已纳入** |
 | 2 | 🖼️ 封面 RGBA 直通 | FFI 边界 | 🔷 低 | 低 | 随 N2 架构审查评估 |
-| 3 | 🔙 `get_chapter` fallback | FFI 边界 | 🔷 低 | 低 | 随 N3 健壮性审计 |
+| 3 | 🔙 IR → plain fallback | FFI 边界 | 🔷 低 | 低 | ✅ 已结构化记录，N3 继续审计根因 |
 | 4 | 📸 图片批量预取 FFI 合并 | FFI 边界 | 🔷 低 | 低 | 随 N4 边界测试验证 |
-| 5 | 📖 `get_chapter_plain` 冗余 | FFI 边界 | 🔷 低 | 低 | 随 N2 架构审查验证 |
+| 5 | 📖 `get_chapter_plain` 冗余 | FFI 边界 | 🔷 低 | 低 | ✅ 双语正常路径已移除 |
 | 6 | 📚 词典查词缓存 | FFI 边界 | 🔷 低 | 低 | 随手做 |
 | 7 | 🔄 热路径 CRUD 批量化 | FFI 边界 | 🔹 极低 | 低 | 有症状时再动 |
 | 8 | 🏗️ IR 大 Struct 序列化 | FFI 边界 | 🔶 中 | 高 | 先测 RTT 再决定 |
-| 9 | 📄 PageCurl 动画全重建 | 渲染管线 | 🔶 中 | 低 | 翻页性能 profile |
-| 10 | 🐞 `_ContentMeasurer` 泄漏 | 渲染管线 | 🔷 低 | 极低 | 检查是否纯调试 |
+| 9 | 📄 PageCurl 动画全重建 | 渲染管线 | 🔶 中 | 低 | ✅ 已隔离并加组件测试 |
+| 10 | 🐞 `_ContentMeasurer` 泄漏 | 渲染管线 | 🔷 低 | 极低 | ✅ 已删除 |
 | 11 | 📐 LayoutBuilder 嵌套 | 渲染管线 | 🔷 低 | 低 | 逐层验证约束链 |
 | 12 | 🖌️ RepaintBoundary 边界 | 渲染管线 | 🔷 低 | 低 | 图片密集页 profile |
 | 13 | 🔄 FRB codegen 增量 | 开发者体验 | 🔷 低 | 低 | 验证 2.12 支持度 |
