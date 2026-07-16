@@ -13,7 +13,8 @@ import 'package:zephyr_reader/features/reader/core/presentation/reader_chrome.da
 import 'package:zephyr_reader/features/reader/core/presentation/reader_content_area.dart';
 import 'package:zephyr_reader/features/reader/core/presentation/reader_interaction_layer.dart';
 import 'package:zephyr_reader/features/reader/core/presentation/reader_ui_state.dart';
-import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
+import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
+import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
 import 'package:zephyr_reader/features/reader/navigation/reader_navigation_drawer.dart';
 import 'package:zephyr_reader/features/reader/annotations/presentation/reader_note_sidebar.dart';
 import 'package:zephyr_reader/features/reader/settings/reader_panel_type.dart';
@@ -26,7 +27,6 @@ class ReaderScaffold extends HookWidget {
   const ReaderScaffold({
     super.key,
     required this.vm,
-    required this.dataSource,
     required this.fontRepo,
     required this.config,
     required this.ttsService,
@@ -37,7 +37,8 @@ class ReaderScaffold extends HookWidget {
   });
 
   final ReaderViewModel vm;
-  final ReaderRenderDataSource dataSource;
+  ChapterContentRepository get _content => vm.contentRepo;
+  PaginationSession get _session => vm.session;
   final FontRepository fontRepo;
   final ReaderConfig config;
   final TtsService ttsService;
@@ -135,7 +136,8 @@ class ReaderScaffold extends HookWidget {
                     children: [
                       ReaderContentArea(
                         vm: vm,
-                        dataSource: dataSource,
+                        contentRepo: _content,
+                        session: _session,
                         fontRepo: fontRepo,
                         vocabWords: uiState.vocabWords,
                         selectionGlobalPos: uiState.selectionGlobalPos,

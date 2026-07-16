@@ -1,3 +1,5 @@
+import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
+import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
 import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
 import 'package:zephyr_reader/src/rust/domain/note/models.dart';
 
@@ -10,7 +12,7 @@ import 'package:zephyr_reader/features/reader/domain/service/custom_font_service
 import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
 import 'package:zephyr_reader/reader_engine/shared/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_view_model.dart';
-import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
+
 import 'package:zephyr_reader/features/reader/annotations/presentation/reader_annotation_dialog.dart';
 import 'package:zephyr_reader/features/reader/annotations/presentation/reader_highlight_sheet.dart';
 import 'package:zephyr_reader/reader_engine/rendering/paginated_renderer.dart';
@@ -26,7 +28,8 @@ class ReaderContentArea extends HookWidget {
   const ReaderContentArea({
     super.key,
     required this.vm,
-    required this.dataSource,
+    required this.contentRepo,
+    required this.session,
     required this.fontRepo,
     required this.vocabWords,
     required this.selectionGlobalPos,
@@ -34,7 +37,8 @@ class ReaderContentArea extends HookWidget {
   });
 
   final ReaderViewModel vm;
-  final ReaderRenderDataSource dataSource;
+  final ChapterContentRepository contentRepo;
+  final PaginationSession session;
   final FontRepository fontRepo;
   final Signal<Set<String>> vocabWords;
   final Signal<Offset?> selectionGlobalPos;
@@ -159,7 +163,7 @@ class ReaderContentArea extends HookWidget {
                     ),
                   );
               return ReaderContent(
-                dataSource: dataSource,
+                contentRepo: contentRepo,
                 bookId: bCurrentbookid,
                 chapterId: bChapterindex,
                 pageIndex: bPageindex,
@@ -177,7 +181,7 @@ class ReaderContentArea extends HookWidget {
                 scrollBuilder: (_, sc) => ScrollModeRenderer(
                   config: renderConfig,
                   scrollController: sc,
-                  dataSource: dataSource,
+                  contentRepo: contentRepo,
                   chapterId: bChapterindex,
                   content: bContent,
                   segments: scrollSegments,
@@ -204,7 +208,8 @@ class ReaderContentArea extends HookWidget {
                 paginatedBuilder: (_, pc) => PaginatedModeRenderer(
                   config: renderConfig,
                   pageController: pc,
-                  dataSource: dataSource,
+                  contentRepo: contentRepo,
+                  session: session,
                   bookId: bCurrentbookid,
                   chapterId: bChapterindex,
                   pageIndex: bPageindex,

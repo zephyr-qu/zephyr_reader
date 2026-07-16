@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
 import 'package:zephyr_reader/reader_engine/shared/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/reader_engine/shared/next_chapter_staging.dart';
-import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
+import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
+import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
 import 'package:zephyr_reader/reader_engine/rendering/block_page_content.dart';
 import 'package:zephyr_reader/reader_engine/rendering/highlight_painter.dart';
 
@@ -23,7 +24,8 @@ import 'package:zephyr_reader/core/utils/logging.dart';
 class PaginatedModeRenderer extends StatelessWidget {
   final ReaderRenderConfig config;
   final PageController pageController;
-  final ReaderRenderDataSource dataSource;
+  final ChapterContentRepository contentRepo;
+  final PaginationSession session;
   final String bookId;
   final int chapterId;
   final int pageIndex;
@@ -45,7 +47,8 @@ class PaginatedModeRenderer extends StatelessWidget {
     super.key,
     required this.config,
     required this.pageController,
-    required this.dataSource,
+    required this.contentRepo,
+    required this.session,
     required this.bookId,
     required this.chapterId,
     required this.pageIndex,
@@ -93,7 +96,7 @@ class PaginatedModeRenderer extends StatelessWidget {
   }
 
   Widget _buildPageTurnShell(BuildContext context) {
-    final descriptors = dataSource.descriptors;
+    final descriptors = session.descriptors;
     if (descriptors == null || descriptors.isEmpty) {
       Logging.warning(
         '[Renderer] _buildPageTurnShell: descriptors null/empty → fallback',
@@ -114,7 +117,7 @@ class PaginatedModeRenderer extends StatelessWidget {
     }
 
     return AnimatedBuilder(
-      animation: dataSource.preloadGeneration,
+      animation: contentRepo.preloadGeneration,
       builder: (context, _) {
         return PageTurnShell(
           logicalPageIndex: pageIndex.clamp(0, descriptors.length - 1),
@@ -168,7 +171,7 @@ class PaginatedModeRenderer extends StatelessWidget {
       context: context,
       pageIndex: pageIndex,
       startOffset: startOffset,
-      dataSource: dataSource,
+      session: session,
       config: config,
       highlights: highlights,
       onHighlightTap: onHighlightTap,
@@ -179,7 +182,7 @@ class PaginatedModeRenderer extends StatelessWidget {
 
   /// 下一章虚拟页：staging 命中渲染预加载内容，miss 显示当前章末页 hold 帧。
   Widget _buildCrossChapterPage(BuildContext context, int virtualIndex) {
-    final staging = dataSource.nextChapterStaging;
+    final staging = contentRepo.nextChapterStaging;
     final stagingReady =
         staging != null && staging.chapterIndex == chapterId + 1;
     if (stagingReady) {
@@ -217,7 +220,7 @@ class PaginatedModeRenderer extends StatelessWidget {
           context: context,
           blocks: blocks,
           startOffset: startOffset,
-          epubFilePath: dataSource.sessionFilePath ?? '',
+          epubFilePath: session.sessionFilePath ?? '',
           config: config,
           highlights: highlights,
           onHighlightTap: onHighlightTap,
@@ -249,7 +252,7 @@ class PaginatedModeRenderer extends StatelessWidget {
 
   /// 上一章虚拟页：staging 命中渲染预加载内容，miss 显示当前章首页 hold 帧。
   Widget _buildPreviousChapterPage(BuildContext context) {
-    final staging = dataSource.prevChapterStaging;
+    final staging = contentRepo.prevChapterStaging;
     if (staging != null && staging.chapterIndex == chapterId - 1) {
       final lastIdx = staging.descriptors.length - 1;
       final startOffset = lastIdx >= 0
@@ -263,7 +266,7 @@ class PaginatedModeRenderer extends StatelessWidget {
 
   /// ADR-012: staging miss 时显示当前章首/末页 hold 帧，替代 spinner。
   Widget _buildHoldFrame(BuildContext context, {required bool isFirstPage}) {
-    final descriptors = dataSource.descriptors;
+    final descriptors = session.descriptors;
     if (descriptors == null || descriptors.isEmpty) {
       return _buildPageSkeleton();
     }
@@ -300,7 +303,7 @@ class PaginatedModeRenderer extends StatelessWidget {
 
   bool _stagingReadyForNext() {
     if (!hasNextChapter) return false;
-    final staging = dataSource.nextChapterStaging;
+    final staging = contentRepo.nextChapterStaging;
     return staging != null && staging.chapterIndex == chapterId + 1;
   }
 
@@ -315,13 +318,13 @@ class PaginatedModeRenderer extends StatelessWidget {
   Widget build(BuildContext context) {
     Logging.info(
       '[Render] build chapter=$chapterId page=$pageIndex mode=${readingMode.name}'
-      ' descCount=${dataSource.descriptors?.length ?? 0}',
+      ' descCount=${session.descriptors?.length ?? 0}',
     );
 
     if (usesPageCurlSkin(mode: readingMode, skin: paginationSkin)) {
       return _buildPageTurnShell(context);
     }
-    final descriptors = dataSource.descriptors;
+    final descriptors = session.descriptors;
     if (descriptors != null && descriptors.isNotEmpty) {
       // 打印每页内容量（从 descriptors 反推）
       for (var i = 0; i < descriptors.length && i < 8; i++) {
@@ -332,7 +335,7 @@ class PaginatedModeRenderer extends StatelessWidget {
         );
       }
       return AnimatedBuilder(
-        animation: dataSource.preloadGeneration,
+        animation: contentRepo.preloadGeneration,
         builder: (context, _) {
           return PageView.builder(
             controller: pageController,
@@ -459,8 +462,8 @@ Widget buildStagingPageContent({
 }
 
 /// ADR-012: page cache miss 骨架占位，替代 spinner。
-/// [ensureWindow] 已在调用方通过 postFrameCallback 触发；
-/// 当 [ReaderRenderDataSource.preloadGeneration] 变化时 AnimatedBuilder 重建本 widget。
+/// [ensureWindow] 已在调用方通过 postFrameCallback 触发。
+/// preloadGeneration 变化时 AnimatedBuilder 重建本 widget。
 Widget _buildPageSkeleton() {
   return Container(
     color: Colors.grey.withValues(alpha: 0.03),
@@ -474,24 +477,24 @@ Widget buildSinglePageContent({
   required BuildContext context,
   required int pageIndex,
   required int startOffset,
-  required ReaderRenderDataSource dataSource,
+  required PaginationSession session,
   required ReaderRenderConfig config,
   required List<Note> highlights,
   required void Function(Note)? onHighlightTap,
   required void Function(String text, int start, int end)? onSelectionChanged,
   required void Function(Offset?)? onSelectionGlobalPosition,
 }) {
-  final blocks = dataSource.pageBlocks(pageIndex);
+  final blocks = session.pageBlocks(pageIndex);
   if (blocks == null) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Logging.info(
         '[Renderer] buildBlockPageContent MISS page=$pageIndex → skeleton + ensureWindow',
       );
-      dataSource.ensureWindow(pageIndex);
+      session.ensureWindow(pageIndex);
     });
     return _buildPageSkeleton();
   }
-  final filePath = dataSource.sessionFilePath;
+  final filePath = session.sessionFilePath;
   if (filePath == null || filePath.isEmpty) {
     return _buildPageSkeleton();
   }

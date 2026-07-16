@@ -12,7 +12,6 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/features/reader/annotations/application/bookmark_view_model.dart';
 import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/annotations/application/annotation_view_model.dart';
-import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'package:zephyr_reader/features/bilingual/application/bilingual_view_model.dart';
 import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
 import 'package:zephyr_reader/features/reader/domain/progress_repository.dart';
@@ -30,22 +29,27 @@ import 'package:zephyr_reader/di/service_locator.dart';
 /// 划词批注 → AnnotationViewModel。
 /// 双语 → BilingualViewModel（可选）。
 class ReaderViewModel {
-final ChapterContentRepository _contentRepo;
-final PaginationSession _session;
-final ProgressRepository _progressRepo;
-final ReaderRenderDataSource dataSource;
-final ReaderConfig _config;
+  final ChapterContentRepository _contentRepo;
+  final PaginationSession _session;
+  final ProgressRepository _progressRepo;
+  final ReaderConfig _config;
 
-/// 阅读配置
-ReaderConfig get config => _config;
+  /// 章节内容仓库。
+  ChapterContentRepository get contentRepo => _contentRepo;
 
-// ==================== 子 ViewModel ====================
+  /// 当前分页会话。
+  PaginationSession get session => _session;
 
-late final ChapterViewModel chapterManager;
-late final ReadingSessionManager sessionManager;
-late final BookmarkViewModel bookmarks;
-late final AnnotationViewModel annotations;
-BilingualViewModel? bilingual;
+  /// 阅读配置
+  ReaderConfig get config => _config;
+
+  // ==================== 子 ViewModel ====================
+
+  late final ChapterViewModel chapterManager;
+  late final ReadingSessionManager sessionManager;
+  late final BookmarkViewModel bookmarks;
+  late final AnnotationViewModel annotations;
+  BilingualViewModel? bilingual;
 
   // ==================== 跨切面信号 ====================
 
@@ -62,7 +66,7 @@ BilingualViewModel? bilingual;
     required this._contentRepo,
     required this._session,
     required this._progressRepo,
-    required this.dataSource,
+
     ReaderConfig? config,
     this.bilingual,
   }) : _config = config ?? getIt<ReaderConfig>() {

@@ -4,7 +4,6 @@ import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_view_model.dart';
 import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
 import 'package:zephyr_reader/features/reader/domain/progress_repository.dart';
-import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
 
 /// Per-book reading session — owns a dedicated [ReaderViewModel] instance.
@@ -41,12 +40,10 @@ class ReaderSessionFactory {
     final session = PaginationSession(
       onCacheUpdated: () => _chapterContent.preloadGeneration.value++,
     );
-    final dataSource = ReaderRenderDataSource(_chapterContent, session);
     final vm = ReaderViewModel(
       contentRepo: _chapterContent,
       session: session,
       progressRepo: _progress,
-      dataSource: dataSource,
       config: _config,
     );
     final bilingualFactory = _bilingualFactory;

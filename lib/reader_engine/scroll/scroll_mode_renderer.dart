@@ -5,7 +5,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 import 'package:zephyr_reader/reader_engine/rendering/highlight_painter.dart';
 
-import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
+import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
 import 'package:zephyr_reader/reader_engine/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/reader_engine/rendering/find_render_box.dart';
 import 'package:zephyr_reader/reader_engine/scroll/scroll_chapter_segment.dart';
@@ -17,7 +17,7 @@ import 'package:zephyr_reader/reader_engine/scroll/scroll_ir_block_list.dart';
 class ScrollModeRenderer extends HookWidget {
   final ReaderRenderConfig config;
   final ScrollController scrollController;
-  final ReaderRenderDataSource dataSource;
+  final ChapterContentRepository contentRepo;
   final int chapterId;
   final String content;
   final List<ScrollChapterSegment> segments;
@@ -32,7 +32,7 @@ class ScrollModeRenderer extends HookWidget {
     super.key,
     required this.config,
     required this.scrollController,
-    required this.dataSource,
+    required this.contentRepo,
     required this.chapterId,
     required this.content,
     this.segments = const [],
@@ -59,7 +59,7 @@ class ScrollModeRenderer extends HookWidget {
       config.fontFamily,
     ]);
 
-    final chapterIr = dataSource.currentChapterIr;
+    final chapterIr = contentRepo.currentChapterIr;
     final hasSegments = segments.isNotEmpty;
 
     if (hasSegments && segments.every((s) => s.isIr)) {
@@ -80,7 +80,7 @@ class ScrollModeRenderer extends HookWidget {
         context: context,
         scrollController: scrollController,
         blocks: chapterIr.blocks,
-        epubFilePath: dataSource.currentChapterFilePath,
+        epubFilePath: contentRepo.currentChapterFilePath,
         chapterIndex: chapterId,
         config: config,
         highlights: highlights,
