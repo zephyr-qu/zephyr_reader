@@ -12,8 +12,11 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/features/reader/annotations/application/bookmark_view_model.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/annotations/application/annotation_view_model.dart';
-import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
+import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'package:zephyr_reader/features/reader/core/domain/bilingual_reader_delegate.dart';
+import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
+import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart';
+import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
 import 'chapter_view_model.dart';
 import 'reading_session_manager.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
@@ -27,7 +30,10 @@ import 'package:zephyr_reader/di/service_locator.dart';
 /// 划词批注 → AnnotationViewModel。
 /// 双语 → BilingualReaderDelegate（可选，core 不依赖实现）。
 class ReaderViewModel {
-  final ReaderRepositoryInterface _repo;
+  final ChapterContentRepository _contentRepo;
+  final PaginationSession _session;
+  final ProgressRepository _progressRepo;
+  final ReaderRenderDataSource dataSource;
   final ReaderConfig _config;
 
   /// 阅读配置
@@ -52,16 +58,24 @@ class ReaderViewModel {
 
   final List<void Function()> _disposers = [];
 
-  ReaderViewModel({required this._repo, ReaderConfig? config, this.bilingual})
-    : _config = config ?? getIt<ReaderConfig>() {
-    chapterManager = getIt<ChapterViewModel>(param1: _repo, param2: _config);
+  ReaderViewModel({
+    required this._contentRepo,
+    required this._session,
+    required this._progressRepo,
+    required this.dataSource,
+    ReaderConfig? config,
+    this.bilingual,
+  }) : _config = config ?? getIt<ReaderConfig>() {
+    chapterManager = ChapterViewModel(
+      _contentRepo,
+      _session,
+      _progressRepo,
+      _config,
+    );
     sessionManager = getIt<ReadingSessionManager>(param1: chapterManager);
     bookmarks = getIt<BookmarkViewModel>(param1: chapterManager);
     annotations = getIt<AnnotationViewModel>(param1: chapterManager);
   }
-
-  /// 公开仓库访问（渲染层使用）。
-  ReaderRepositoryInterface get repo => _repo;
 
   // ==================== 编排方法 ====================
 
@@ -264,7 +278,7 @@ class ReaderViewModel {
     // 切换到 scroll/bilingual 前，释放分页会话，
     // 避免 PaginationSession 和 LRU engine 悬空占用内存。
     if (mode != ReadingMode.pagination) {
-      _repo.disposePagination();
+      _session.dispose();
     }
     if (mode == ReadingMode.scroll) {
       final content = chapterManager.chapterContent.value.value;
@@ -272,8 +286,8 @@ class ReaderViewModel {
         chapterManager.resetScrollDocument(
           content,
           chapterManager.chapterIndex.value,
-          chapterIr: _repo.currentChapterIr,
-          chapterFilePath: _repo.currentChapterFilePath,
+          chapterIr: _contentRepo.currentChapterIr,
+          chapterFilePath: _contentRepo.currentChapterFilePath,
         );
       }
     }
