@@ -8,10 +8,7 @@ import 'package:flutter/widgets.dart';
 import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
 import 'package:zephyr_reader/core/utils/app_error_mapper.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/features/reader/core/application/chapter_load_phase.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent_resolver.dart';
-import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent.dart';
-import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
 import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
@@ -22,6 +19,47 @@ import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/reader_engine/shared/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/reader_engine/pagination/pagination_progress_hook.dart';
 import 'package:zephyr_reader/reader_engine/pagination/pagination_viewport_metrics.dart';
+
+/// 章节加载状态机的显式阶段。
+enum ChapterLoadPhase {
+  idle,
+  starting,
+  firstSpine,
+  awaitingConcurrent,
+  fullPaginate,
+  finalizing,
+  completed,
+  failed,
+  cancelled,
+}
+
+/// 章节导航类型（影响分页意图推导与 UI 动效）。
+enum ChapterNavigationKind {
+  /// 相邻跨章（翻页触发的换章，走 staging promote / 虚拟页）。
+  adjacentCrossChapter,
+
+  /// 手动跳章（TOC / 书签 / 搜索），保留 AnimatedSwitcher 过渡。
+  manualJump,
+}
+
+/// 单次章节加载请求的不可变参数。
+class ChapterLoadRequest {
+  final int chapterIndex;
+  final int initialCharOffset;
+  final ReadingMode readingMode;
+  final bool? preserveContent;
+  final Future<void> Function()? onChapterLoaded;
+  final ChapterNavigationKind navigationKind;
+
+  const ChapterLoadRequest({
+    required this.chapterIndex,
+    this.initialCharOffset = 0,
+    this.readingMode = ReadingMode.pagination,
+    this.preserveContent,
+    this.onChapterLoaded,
+    this.navigationKind = ChapterNavigationKind.manualJump,
+  });
+}
 
 /// 章节加载显式状态机：分阶段执行 [ChapterLoadRequest] 并防止竞态写信号。
 class ChapterLoadOrchestrator {
