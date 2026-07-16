@@ -1,18 +1,18 @@
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/features/reader/core/data/epub_block_image_cache.dart';
-import 'package:zephyr_reader/features/reader/data/line_break_extractor.dart';
+import 'package:zephyr_reader/reader_engine/rendering/image_cache.dart';
+import 'package:zephyr_reader/reader_engine/rendering/line_break_extractor.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
-import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/active_chapter_ir.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_block_paginator.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_progress_hook.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_staging_store.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_viewport_metrics.dart';
-import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
+import 'package:zephyr_reader/reader_engine/shared/pagination_params.dart';
+import 'package:zephyr_reader/reader_engine/pagination/active_chapter_ir.dart';
+import 'package:zephyr_reader/reader_engine/pagination/flutter_block_paginator.dart';
+import 'package:zephyr_reader/reader_engine/pagination/packed_page.dart';
+import 'package:zephyr_reader/reader_engine/pagination/pagination_progress_hook.dart';
+import 'package:zephyr_reader/reader_engine/pagination/pagination_staging_store.dart';
+import 'package:zephyr_reader/reader_engine/pagination/pagination_viewport_metrics.dart';
+import 'package:zephyr_reader/reader_engine/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/api/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/reader.dart' as reader_api;
-import 'package:zephyr_reader/features/reader/data/ir_types.dart';
+import 'package:zephyr_reader/reader_engine/shared/ir_types.dart';
 import 'package:zephyr_reader/src/rust/domain/book/models.dart';
 
 /// 精确分页会话（ADR-016）：只拉 IR，本地装箱；不创建 Rust pagination session。

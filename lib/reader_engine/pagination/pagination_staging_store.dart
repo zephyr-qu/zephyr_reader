@@ -1,5 +1,5 @@
-import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
-import 'package:zephyr_reader/features/reader/data/ir_types.dart';
+import 'package:zephyr_reader/reader_engine/pagination/packed_page.dart';
+import 'package:zephyr_reader/reader_engine/shared/ir_types.dart';
 
 /// 相邻章精确预装箱结果（方案三 T2）。
 ///

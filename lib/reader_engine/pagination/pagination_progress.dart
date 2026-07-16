@@ -1,5 +1,5 @@
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
+import 'package:zephyr_reader/reader_engine/pagination/packed_page.dart';
 
 /// Spike 进度：charOffset ↔ pageIndex（ADR-001 半开区间语义）。
 abstract final class PaginationProgress {

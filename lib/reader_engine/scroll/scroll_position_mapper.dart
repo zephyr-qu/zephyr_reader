@@ -1,5 +1,5 @@
-import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
-import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dart';
+import 'package:zephyr_reader/reader_engine/scroll/scroll_chapter_segment.dart';
+import 'package:zephyr_reader/reader_engine/scroll/scroll_layout_params.dart';
 
 /// 多段滚动列表：章内 charOffset ↔ scrollOffset 映射。
 class ScrollPositionMapper {

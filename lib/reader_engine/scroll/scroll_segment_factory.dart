@@ -1,6 +1,6 @@
-import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.dart';
-import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_segment.dart';
-import 'package:zephyr_reader/features/reader/core/data/scroll_list_metrics.dart';
+import 'package:zephyr_reader/reader_engine/scroll/scroll_chapter_payload.dart';
+import 'package:zephyr_reader/reader_engine/scroll/scroll_chapter_segment.dart';
+import 'package:zephyr_reader/reader_engine/scroll/scroll_list_metrics.dart';
 
 /// 将章节加载结果转为 [ScrollChapterSegment]。
 class ScrollSegmentFactory {

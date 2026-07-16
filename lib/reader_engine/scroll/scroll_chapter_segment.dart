@@ -1,6 +1,6 @@
-import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dart';
-import 'package:zephyr_reader/features/reader/core/data/scroll_list_metrics.dart';
-import 'package:zephyr_reader/features/reader/data/ir_types.dart';
+import 'package:zephyr_reader/reader_engine/scroll/scroll_layout_params.dart';
+import 'package:zephyr_reader/reader_engine/scroll/scroll_list_metrics.dart';
+import 'package:zephyr_reader/reader_engine/shared/ir_types.dart';
 
 /// 滚动模式下单章分段数据。
 ///

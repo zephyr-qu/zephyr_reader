@@ -6,14 +6,14 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_viewport_index.dart';
-import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
+import 'package:zephyr_reader/reader_engine/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 import 'package:zephyr_reader/core/theme/anim_tokens.dart';
-import '../../core/data/reader_render_data_source.dart';
-import '../../core/data/scroll_chapter_segment.dart';
-import '../../core/data/scroll_layout_params.dart';
-import '../../core/data/scroll_position_mapper.dart';
+import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
+import 'package:zephyr_reader/reader_engine/scroll/scroll_chapter_segment.dart';
+import 'package:zephyr_reader/reader_engine/scroll/scroll_layout_params.dart';
+import 'package:zephyr_reader/reader_engine/scroll/scroll_position_mapper.dart';
 
 /// 阅读内容容器组件。
 ///

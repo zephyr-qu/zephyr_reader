@@ -1,4 +1,4 @@
-import 'package:zephyr_reader/features/reader/data/ir_types.dart';
+import 'package:zephyr_reader/reader_engine/shared/ir_types.dart';
 
 /// 滚动拼接用单章加载结果（不依赖仓库 current* 单例）。
 typedef ScrollChapterPayload = ({

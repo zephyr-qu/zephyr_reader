@@ -1,4 +1,4 @@
-import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
+import 'package:zephyr_reader/reader_engine/rendering/reader_render_config.dart';
 
 /// 滚动 ListView 项高度估算所需的排版参数。
 class ScrollLayoutParams {
