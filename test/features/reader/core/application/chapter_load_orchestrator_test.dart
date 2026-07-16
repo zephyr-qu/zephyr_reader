@@ -349,7 +349,6 @@ void main() {
           descriptors: _desc3,
           firstPageContent: 'staging page 0',
           isPartial: false,
-          paginationMode: ChapterPaginationMode.contentBlocks,
         );
         when(() => repo.nextChapterStaging).thenReturn(staging);
         when(

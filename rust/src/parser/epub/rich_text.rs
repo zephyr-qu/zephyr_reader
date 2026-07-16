@@ -21,7 +21,7 @@
 use super::content_ir::RichParagraph;
 use crate::common::AppError;
 use crate::parser::epub::css;
-use crate::pipeline::{RichTextSpan, RichTextSpanData, SpanStyle};
+use crate::pipeline::{ReaderInlineRun, ReaderInlineStyle};
 use html5ever::parse_document;
 use html5ever::tendril::TendrilSink;
 use html5ever::Attribute;
@@ -209,7 +209,7 @@ impl ComputedStyle {
 /// 构建段落对象的辅助函数，填充不随标签变动的固定字段。
 #[allow(clippy::too_many_arguments)]
 fn build_paragraph(
-    spans: Vec<RichTextSpan>,
+    spans: Vec<ReaderInlineRun>,
     indent: u8,
     is_heading: bool,
     heading_level: u8,
@@ -243,7 +243,7 @@ fn walk_paragraph_children(
     parent_style: &ComputedStyle,
     style_map: &HashMap<String, Vec<css::CssRule>>,
 ) {
-    let mut spans: Vec<RichTextSpan> = Vec::new();
+    let mut spans: Vec<ReaderInlineRun> = Vec::new();
 
     for child in handle.children.borrow().iter() {
         if try_emit_image_paragraph(
@@ -258,12 +258,7 @@ fn walk_paragraph_children(
         if let NodeData::Element { ref name, .. } = child.data {
             match name.local.as_ref() {
                 "br" => {
-                    spans.push(RichTextSpan::Styled(
-                        SpanStyle::Plain,
-                        RichTextSpanData {
-                            text: "\n".to_string(),
-                        },
-                    ));
+                    spans.push(ReaderInlineRun { text: "\n".to_string(), style: ReaderInlineStyle::Plain, url: None });
                 }
                 "p" | "div" | "section" | "article" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6"
                 | "ul" | "ol" | "li" | "blockquote" | "table" | "pre" => {
@@ -310,7 +305,7 @@ fn walk_paragraph_children(
 /// `<p>` 内任意深度行内子树（含 `<span><img/></span>`）。
 fn walk_inline_subtree(
     handle: &Handle,
-    spans: &mut Vec<RichTextSpan>,
+    spans: &mut Vec<ReaderInlineRun>,
     paragraphs: &mut Vec<RichParagraph>,
     inherited_class: Option<String>,
     parent_style: &ComputedStyle,
@@ -343,12 +338,7 @@ fn walk_inline_subtree(
 
         match name.local.as_ref() {
             "br" => {
-                spans.push(RichTextSpan::Styled(
-                    SpanStyle::Plain,
-                    RichTextSpanData {
-                        text: "\n".to_string(),
-                    },
-                ));
+                spans.push(ReaderInlineRun { text: "\n".to_string(), style: ReaderInlineStyle::Plain, url: None });
             }
             "b" | "strong" | "i" | "em" | "u" | "s" | "strike" | "del" | "code" | "a" | "span" => {
                 collect_text_spans(handle, spans, parent_style, style_map);
@@ -380,24 +370,21 @@ fn walk_inline_subtree(
 }
 
 /// 将 CSS 计算样式映射为行内 [SpanStyle]（`<span style="font-weight:bold">` 等）。
-fn span_style_from_computed(style: &ComputedStyle) -> SpanStyle {
+fn span_style_from_computed(style: &ComputedStyle) -> ReaderInlineStyle {
     if style.font_weight.unwrap_or(400) >= 700 {
-        return SpanStyle::Bold;
+        return ReaderInlineStyle::Bold;
     }
     if style.font_style.as_deref() == Some("italic") {
-        return SpanStyle::Italic;
+        return ReaderInlineStyle::Italic;
     }
-    SpanStyle::Plain
+    ReaderInlineStyle::Plain
 }
 
-fn push_styled_text_span(spans: &mut Vec<RichTextSpan>, text: String, style: &ComputedStyle) {
+fn push_styled_text_span(spans: &mut Vec<ReaderInlineRun>, text: String, style: &ComputedStyle) {
     if text.is_empty() {
         return;
     }
-    spans.push(RichTextSpan::Styled(
-        span_style_from_computed(style),
-        RichTextSpanData { text },
-    ));
+    spans.push(ReaderInlineRun { text, style: span_style_from_computed(style), url: None });
 }
 
 fn paragraph_indent_chars(style: &ComputedStyle) -> u8 {
@@ -408,7 +395,7 @@ fn paragraph_indent_chars(style: &ComputedStyle) -> u8 {
 }
 
 fn flush_text_paragraph(
-    spans: &mut Vec<RichTextSpan>,
+    spans: &mut Vec<ReaderInlineRun>,
     paragraphs: &mut Vec<RichParagraph>,
     inherited_class: Option<String>,
     parent_style: &ComputedStyle,
@@ -432,7 +419,7 @@ fn flush_text_paragraph(
 
 fn try_emit_image_paragraph(
     handle: &Handle,
-    spans: &mut Vec<RichTextSpan>,
+    spans: &mut Vec<ReaderInlineRun>,
     paragraphs: &mut Vec<RichParagraph>,
     inherited_class: Option<String>,
     parent_style: &ComputedStyle,
@@ -552,15 +539,7 @@ fn traverse_dom(
                 collect_text_spans(handle, &mut spans, &merged_style, style_map);
 
                 if !spans.is_empty() {
-                    spans.insert(
-                        0,
-                        RichTextSpan::Styled(
-                            SpanStyle::Plain,
-                            RichTextSpanData {
-                                text: "• ".to_string(),
-                            },
-                        ),
-                    );
+                    spans.insert(0, ReaderInlineRun { text: "• ".to_string(), style: ReaderInlineStyle::Plain, url: None });
 
                     paragraphs.push(build_paragraph(
                         spans,
@@ -608,7 +587,7 @@ fn traverse_dom(
 /// 收集文本片段（保留样式 + 内联 CSS）
 fn collect_text_spans(
     handle: &Handle,
-    spans: &mut Vec<RichTextSpan>,
+    spans: &mut Vec<ReaderInlineRun>,
     parent_style: &ComputedStyle,
     style_map: &HashMap<String, Vec<css::CssRule>>,
 ) {
@@ -635,12 +614,7 @@ fn collect_text_spans(
                 collect_plain_text(handle, &mut inner_text);
 
                 if !inner_text.trim().is_empty() {
-                    spans.push(RichTextSpan::Styled(
-                        SpanStyle::Bold,
-                        RichTextSpanData {
-                            text: inner_text.trim().to_string(),
-                        },
-                    ));
+                    spans.push(ReaderInlineRun { text: inner_text.trim().to_string(), style: ReaderInlineStyle::Bold, url: None });
                 }
             }
 
@@ -649,12 +623,7 @@ fn collect_text_spans(
                 collect_plain_text(handle, &mut inner_text);
 
                 if !inner_text.trim().is_empty() {
-                    spans.push(RichTextSpan::Styled(
-                        SpanStyle::Italic,
-                        RichTextSpanData {
-                            text: inner_text.trim().to_string(),
-                        },
-                    ));
+                    spans.push(ReaderInlineRun { text: inner_text.trim().to_string(), style: ReaderInlineStyle::Italic, url: None });
                 }
             }
 
@@ -664,12 +633,7 @@ fn collect_text_spans(
                 collect_plain_text(handle, &mut inner_text);
 
                 if !inner_text.trim().is_empty() {
-                    spans.push(RichTextSpan::Styled(
-                        SpanStyle::Plain,
-                        RichTextSpanData {
-                            text: inner_text.trim().to_string(),
-                        },
-                    ));
+                    spans.push(ReaderInlineRun { text: inner_text.trim().to_string(), style: ReaderInlineStyle::Plain, url: None });
                 }
             }
 
@@ -679,22 +643,12 @@ fn collect_text_spans(
                 collect_plain_text(handle, &mut inner_text);
 
                 if !inner_text.trim().is_empty() {
-                    spans.push(RichTextSpan::Link {
-                        data: RichTextSpanData {
-                            text: inner_text.trim().to_string(),
-                        },
-                        url: href,
-                    });
+                    spans.push(ReaderInlineRun { text: inner_text.trim().to_string(), style: ReaderInlineStyle::Plain, url: Some(href) });
                 }
             }
 
             "br" => {
-                spans.push(RichTextSpan::Styled(
-                    SpanStyle::Plain,
-                    RichTextSpanData {
-                        text: "\n".to_string(),
-                    },
-                ));
+                spans.push(ReaderInlineRun { text: "\n".to_string(), style: ReaderInlineStyle::Plain, url: None });
             }
 
             "span" => {
@@ -871,7 +825,7 @@ mod tests {
         assert!(result[0]
             .spans
             .iter()
-            .any(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Bold, _))));
+            .any(|s| matches!(s, ReaderInlineRun { style: ReaderInlineStyle::Bold, .. })));
     }
 
     #[test]
@@ -882,7 +836,7 @@ mod tests {
         assert!(result[0]
             .spans
             .iter()
-            .any(|s| matches!(s, RichTextSpan::Styled(SpanStyle::Italic, _))));
+            .any(|s| matches!(s, ReaderInlineRun { style: ReaderInlineStyle::Italic, .. })));
     }
 
     #[test]

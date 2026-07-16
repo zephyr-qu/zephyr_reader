@@ -6,7 +6,6 @@ class NextChapterStaging {
   final List<PackedPage> descriptors;
   final String firstPageContent;
   final bool isPartial;
-  final ChapterPaginationMode paginationMode;
   final String? bookId;
   final List<PackedBlockSlice>? anchorPageBlocks;
 
@@ -16,7 +15,6 @@ class NextChapterStaging {
     required this.descriptors,
     required this.firstPageContent,
     required this.isPartial,
-    this.paginationMode = ChapterPaginationMode.plainText,
     this.bookId,
     this.anchorPageBlocks,
   });

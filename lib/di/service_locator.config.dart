@@ -54,8 +54,6 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_view_mode
     as _i642;
 import 'package:zephyr_reader/features/reader/core/application/reading_session_manager.dart'
     as _i306;
-import 'package:zephyr_reader/features/reader/core/data/pagination_session_factory.dart'
-    as _i693;
 import 'package:zephyr_reader/features/reader/core/data/rust_chapter_content_repository.dart'
     as _i109;
 import 'package:zephyr_reader/features/reader/core/data/rust_progress_repository.dart'
@@ -64,10 +62,6 @@ import 'package:zephyr_reader/features/reader/core/domain/chapter_content_reposi
     as _i291;
 import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart'
     as _i768;
-import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart'
-    as _i421;
-import 'package:zephyr_reader/features/reader/data/repositories/rust_reader_repository.dart'
-    as _i1054;
 import 'package:zephyr_reader/features/reader/data/vocabulary_marker_service.dart'
     as _i880;
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart'
@@ -97,9 +91,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i965.DataManagementViewModel>(
       () => _i965.DataManagementViewModel(),
     );
-    gh.factory<_i693.PaginationSessionFactory>(
-      () => _i693.PaginationSessionFactory(),
-    );
     gh.singleton<_i402.ReaderBgColors>(() => _i402.ReaderBgColors());
     gh.lazySingletonAsync<_i772.FileStorage>(() {
       final i = _i772.FileStorage();
@@ -121,11 +112,6 @@ extension GetItInjectableX on _i174.GetIt {
         service: gh<_i884.BilingualService>(),
       ),
     );
-    gh.factoryParam<
-      _i642.ChapterViewModel,
-      _i421.ReaderRepositoryInterface,
-      _i402.ReaderConfig
-    >((repo, config) => _i642.ChapterViewModel(repo, config));
     gh.factoryParam<
       _i306.ReadingSessionManager,
       _i642.ChapterViewModel,
@@ -182,11 +168,11 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i291.ChapterContentRepository>(
       () => _i109.RustChapterContentRepository(gh<_i402.ReaderConfig>()),
     );
-    gh.factory<_i421.ReaderRepositoryInterface>(
-      () => _i1054.ReaderRepository(
+    gh.factory<_i642.ChapterViewModel>(
+      () => _i642.ChapterViewModel(
         gh<_i291.ChapterContentRepository>(),
-        gh<_i768.ProgressRepository>(),
-        gh<_i693.PaginationSessionFactory>(),
+        gh<InvalidType>(),
+        gh<_i402.ReaderConfig>(),
       ),
     );
     return this;

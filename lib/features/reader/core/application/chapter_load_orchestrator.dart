@@ -14,22 +14,22 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_paginatio
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
-import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
+import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_pagination_session.dart';
 import 'package:zephyr_reader/features/reader/core/domain/reader_notice.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_progress_hook.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_viewport_metrics.dart';
-import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
-
 
 /// 章节加载显式状态机：分阶段执行 [ChapterLoadRequest] 并防止竞态写信号。
 class ChapterLoadOrchestrator {
   static const int _preloadCount = 3;
 
   ChapterLoadOrchestrator({
-    required ReaderRepositoryInterface contentRepo,
+    required ChapterContentRepository contentRepo,
+    required PaginationSession session,
     required ChapterViewModel chapterVM,
     required PaginationCoordinator pagination,
     required AsyncSignal<List<Chapter>> chapters,
@@ -39,6 +39,7 @@ class ChapterLoadOrchestrator {
     required Signal<String?> error,
     required Signal<ChapterLoadPhase> loadPhase,
   }) : _contentRepo = contentRepo,
+       _session = session,
        _chapterVM = chapterVM,
        _pagination = pagination,
        _chapters = chapters,
@@ -48,7 +49,8 @@ class ChapterLoadOrchestrator {
        _error = error,
        _loadPhase = loadPhase;
 
-  final ReaderRepositoryInterface _contentRepo;
+  final ChapterContentRepository _contentRepo;
+  final PaginationSession _session;
   final ChapterViewModel _chapterVM;
   final PaginationCoordinator _pagination;
   final AsyncSignal<List<Chapter>> _chapters;
@@ -90,7 +92,8 @@ class ChapterLoadOrchestrator {
       final intent = resolveChapterPaginationIntent(
         chapterIndex: request.chapterIndex,
         navigationKind: request.navigationKind,
-        repo: _contentRepo,
+        contentRepo: _contentRepo,
+        session: _session,
         pagination: _pagination,
       );
       final effectivePreserveContent =
@@ -194,7 +197,7 @@ class ChapterLoadOrchestrator {
       return;
     }
 
-    final content = await _contentRepo.loadChapterContent(
+    final content = await _contentRepo.loadContent(
       _chapterVM.bookId.value,
       request.chapterIndex,
       readingMode: request.readingMode,
@@ -204,7 +207,7 @@ class ChapterLoadOrchestrator {
       return;
     }
 
-    final descriptors = _contentRepo.descriptors;
+    final descriptors = _session.descriptors;
     final pageIndex = isForward
         ? 0
         : ((descriptors?.length ?? 1) - 1).clamp(0, 0x7FFFFFFF);
@@ -223,7 +226,7 @@ class ChapterLoadOrchestrator {
       _isLoading.value = false;
     });
     if (pageIndex >= 0) {
-      _contentRepo.ensurePageWindow(pageIndex);
+      _session.ensureWindow(pageIndex);
     }
 
     _contentRepo.clearAdjacentStaging();
@@ -277,7 +280,7 @@ class ChapterLoadOrchestrator {
 
     _setPhase(gen, ChapterLoadPhase.fullPaginate);
     // 正文加载与首屏装箱并行（避免串行等两遍大 TXT）。
-    final contentFuture = _contentRepo.loadChapterContent(
+    final contentFuture = _contentRepo.loadContent(
       _chapterVM.bookId.value,
       request.chapterIndex,
       readingMode: request.readingMode,
@@ -390,7 +393,7 @@ class ChapterLoadOrchestrator {
       _isLoading.value = true;
     });
 
-    final content = await _contentRepo.loadChapterContent(
+    final content = await _contentRepo.loadContent(
       _chapterVM.bookId.value,
       request.chapterIndex,
       readingMode: request.readingMode,
@@ -428,8 +431,7 @@ class ChapterLoadOrchestrator {
         );
       }
       if (_contentRepo.consumeEpubRichSkippedNotice()) {
-        if (request.readingMode == ReadingMode.bilingual &&
-            _contentRepo.sessionMode != ChapterPaginationMode.contentBlocks) {
+        if (request.readingMode == ReadingMode.bilingual) {
           _chapterVM.readerNotice.value = ReaderNotice.epubRichSkipped;
         }
       }
@@ -522,9 +524,8 @@ class ChapterLoadOrchestrator {
     );
     if (_isStale(gen)) return;
 
-    final descriptors = _contentRepo.descriptors;
+    final descriptors = _session.descriptors;
     final maxOffset = PaginationEngine.chapterCharOffsetMax(
-      sessionMode: _contentRepo.sessionMode,
       descriptors: descriptors,
       phase1PlainContent: content,
     );
@@ -540,9 +541,7 @@ class ChapterLoadOrchestrator {
           _chapterVM.currentCharOffset.value;
       _error.value = null;
       if (_contentRepo.consumeEpubRichSkippedNotice()) {
-        if (_contentRepo.sessionMode != ChapterPaginationMode.contentBlocks) {
-          _chapterVM.readerNotice.value = ReaderNotice.epubRichSkipped;
-        }
+        _chapterVM.readerNotice.value = ReaderNotice.epubRichSkipped;
       }
     });
   }
@@ -592,11 +591,11 @@ class ChapterLoadOrchestrator {
       final batch = indices.skip(b).take(batchSize);
       await Future.wait(
         batch.map(
-          (i) => _contentRepo
-              .preloadChapter(_chapterVM.bookId.value, i)
-              .catchError((Object e) {
-                Logging.debug('[Orchestrator] preloadChapter($i) failed: $e');
-              }),
+          (i) => _contentRepo.preload(_chapterVM.bookId.value, i).catchError((
+            Object e,
+          ) {
+            Logging.debug('[Orchestrator] preload($i) failed: $e');
+          }),
         ),
       );
     }

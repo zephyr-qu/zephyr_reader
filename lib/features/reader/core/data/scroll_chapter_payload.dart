@@ -1,10 +1,10 @@
-import 'package:zephyr_reader/src/rust/pipeline/types.dart';
+import 'package:zephyr_reader/features/reader/data/ir_types.dart';
 
 /// 滚动拼接用单章加载结果（不依赖仓库 current* 单例）。
 typedef ScrollChapterPayload = ({
   String content,
   bool epubRichSkipped,
-  ChapterContentIr? chapterIr,
+  ReaderChapterIr? chapterIr,
   String? chapterFilePath,
 });
 
@@ -12,7 +12,7 @@ typedef ScrollChapterPayload = ({
 ScrollChapterPayload scrollPlainPayload(
   String content, {
   bool epubRichSkipped = false,
-  ChapterContentIr? chapterIr,
+  ReaderChapterIr? chapterIr,
   String? chapterFilePath,
 }) => (
   content: content,
@@ -23,7 +23,7 @@ ScrollChapterPayload scrollPlainPayload(
 
 /// IR 章节 payload（scroll 主路径，ADR-009）。
 ScrollChapterPayload scrollIrPayload({
-  required ChapterContentIr chapterIr,
+  required ReaderChapterIr chapterIr,
   required String chapterFilePath,
 }) => (
   content: chapterIr.plainText,

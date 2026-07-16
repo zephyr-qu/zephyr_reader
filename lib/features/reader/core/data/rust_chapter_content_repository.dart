@@ -12,10 +12,9 @@ import 'package:zephyr_reader/features/reader/flutter_pagination/pagination_stag
 import 'package:zephyr_reader/src/rust/api/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/chapter.dart' as chapter_api;
 import 'package:zephyr_reader/src/rust/api/reader.dart' as reader_api;
-import 'package:zephyr_reader/src/rust/pipeline/types.dart';
+import 'package:zephyr_reader/features/reader/data/ir_types.dart';
 import 'package:zephyr_reader/src/rust/domain/book/models.dart';
 import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
-
 
 @Injectable(as: ChapterContentRepository)
 class RustChapterContentRepository implements ChapterContentRepository {
@@ -25,7 +24,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
   PaginationParams? _layoutParams;
   bool _pendingEpubRichSkipped = false;
 
-  ChapterContentIr? _currentChapterIr;
+  ReaderChapterIr? _currentChapterIr;
   String? _currentChapterFilePath;
 
   String? _cachedBookId;
@@ -41,7 +40,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
   final preloadGeneration = ValueNotifier<int>(0);
 
   @override
-  ChapterContentIr? get currentChapterIr => _currentChapterIr;
+  ReaderChapterIr? get currentChapterIr => _currentChapterIr;
 
   @override
   String? get currentChapterFilePath => _currentChapterFilePath;
@@ -107,7 +106,7 @@ class RustChapterContentRepository implements ChapterContentRepository {
 
     final sw = Stopwatch()..start();
     try {
-      final ir = await reader_api.getChapterContentIr(
+      final ir = await reader_api.getReaderChapterIr(
         bookId: bookId,
         chapterIndex: chapterId,
       );
@@ -115,7 +114,10 @@ class RustChapterContentRepository implements ChapterContentRepository {
       Logging.info(
         '[Timing] loadChapterIr: ${sw.elapsedMilliseconds}ms blocks=${ir.blocks.length}',
       );
-      return scrollIrPayload(chapterIr: ir, chapterFilePath: filePath);
+      return scrollIrPayload(
+        chapterIr: convertChapterIrFromFrb(ir),
+        chapterFilePath: filePath,
+      );
     } catch (e) {
       Logging.warning('loadChapterPayload IR failed, fallback rich/plain: $e');
       return null;
@@ -269,9 +271,9 @@ class RustChapterContentRepository implements ChapterContentRepository {
     final isEpub = filePath.toLowerCase().endsWith('.epub');
 
     // bilingual 模式尝试加载 IR，否则走纯文本。
-    Future<ChapterContentIr> contentIrFuture;
+    Future<dynamic> contentIrFuture;
     if (isEpub && readingMode == ReadingMode.bilingual) {
-      contentIrFuture = reader_api.getChapterContentIr(
+      contentIrFuture = reader_api.getReaderChapterIr(
         bookId: bookId,
         chapterIndex: chapterId,
       );
@@ -281,15 +283,17 @@ class RustChapterContentRepository implements ChapterContentRepository {
 
     final results = await Future.wait([
       reader_api.getChapter(filePath: filePath, chapterIndex: chapterId),
-      contentIrFuture.then<ChapterContentIr?>((v) => v).catchError((_) {
-        Logging.warning(
-          'getChapterContentIr failed, falling back to plain text',
-        );
-        return null;
-      }),
+      contentIrFuture
+          .then<ReaderChapterIr?>((v) => convertChapterIrFromFrb(v))
+          .catchError((_) {
+            Logging.warning(
+              'getReaderChapterIr failed, falling back to plain text',
+            );
+            return null;
+          }),
     ]);
     final content = results[0] as String;
-    final ir = results[1] as ChapterContentIr?;
+    final ir = results[1] as ReaderChapterIr?;
 
     if (ir != null && ir.blocks.isNotEmpty) {
       Logging.info(

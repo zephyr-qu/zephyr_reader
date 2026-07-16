@@ -27,7 +27,6 @@ void main() {
         descriptors: [_descriptor],
         firstPageContent: 'hello',
         isPartial: false,
-        paginationMode: ChapterPaginationMode.contentBlocks,
         bookId: 'book-abc',
         anchorPageBlocks: [],
       );
@@ -36,26 +35,11 @@ void main() {
       expect(staging.descriptors, [_descriptor]);
       expect(staging.firstPageContent, 'hello');
       expect(staging.isPartial, false);
-      expect(staging.paginationMode, ChapterPaginationMode.contentBlocks);
       expect(staging.bookId, 'book-abc');
       expect(staging.anchorPageBlocks, isEmpty);
     });
 
-    test(
-      'defaults: paginationMode=plainText, bookId=null, anchorPageBlocks=null',
-      () {
-        final staging = NextChapterStaging(
-          chapterIndex: 1,
-          configHash: _hash1,
-          descriptors: [_descriptor],
-          firstPageContent: 'page0',
-          isPartial: true,
-        );
-        expect(staging.paginationMode, ChapterPaginationMode.plainText);
-        expect(staging.bookId, isNull);
-        expect(staging.anchorPageBlocks, isNull);
-      },
-    );
+
 
     test('bookId supports string value (M2: filePath replaced)', () {
       final staging = NextChapterStaging(

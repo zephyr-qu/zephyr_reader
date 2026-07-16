@@ -24,7 +24,7 @@ use std::collections::HashMap;
 use epub::doc::ResourceItem;
 
 use super::unzip::EpubFile;
-use crate::pipeline::{ChapterContentIr, ContentBlock};
+use crate::pipeline::{ReaderChapterIr, ReaderIrBlockKind};
 
 /// 注册表条目：`asset_id`（manifest key）→ EPUB 包内路径。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -194,17 +194,20 @@ impl EpubAssetRegistry {
 
 /// 将章 IR 中 Image 块的 `asset_id` 规范化为 manifest id（无法解析则保留原值）。
 pub fn canonicalize_chapter_image_assets(
-    ir: &mut ChapterContentIr,
+    ir: &mut ReaderChapterIr,
     registry: &EpubAssetRegistry,
     chapter_href: &str,
 ) {
     for block in &mut ir.blocks {
-        let ContentBlock::Image(img) = block else {
+        if block.kind != ReaderIrBlockKind::Image {
             continue;
+        }
+        let raw = match &block.image_asset_id {
+            Some(id) => id.clone(),
+            None => continue,
         };
-        let raw = img.asset_id.clone();
         if let Some(entry) = registry.resolve(chapter_href, &raw) {
-            img.asset_id = entry.asset_id.clone();
+            block.image_asset_id = Some(entry.asset_id.clone());
         } else {
             tracing::warn!(
                 raw_src = %raw,
@@ -248,9 +251,8 @@ mod tests {
 
     use epub::doc::ResourceItem;
 
-    use crate::pipeline::ImageBlock;
-
     use super::*;
+    use crate::pipeline::{ReaderChapterIr, ReaderIrBlock};
 
     fn sample_registry() -> EpubAssetRegistry {
         let mut resources = HashMap::new();
@@ -324,20 +326,18 @@ mod tests {
 
     #[test]
     fn canonicalize_rewrites_image_asset_id() {
-        let mut ir = ChapterContentIr::new(
-            vec![ContentBlock::Image(ImageBlock::new(
+        let mut ir = ReaderChapterIr::new(
+            vec![ReaderIrBlock::image(
                 0,
                 "../Images/cover.jpg".into(),
-                None,
-            ))],
+                None, None, None,
+            )],
             "\u{FFFC}".to_string(),
         );
         let registry = sample_registry();
         canonicalize_chapter_image_assets(&mut ir, &registry, "OEBPS/Text/chapter1.xhtml");
-        let ContentBlock::Image(img) = &ir.blocks[0] else {
-            panic!("expected image");
-        };
-        assert_eq!(img.asset_id, "img_main");
+        let block = &ir.blocks[0];
+        assert_eq!(block.image_asset_id.as_deref(), Some("img_main"));
     }
 
     #[test]

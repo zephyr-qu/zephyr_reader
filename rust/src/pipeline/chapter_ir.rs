@@ -29,7 +29,7 @@ use crate::infra::kv_store::{KvStore, ScrollIrCache};
 use crate::infra::manager::storage_pool;
 use crate::parser::provider::ChapterContentProvider;
 use crate::parser::registry;
-use crate::pipeline::ChapterContentIr;
+use crate::pipeline::ReaderChapterIr;
 
 // ==================== IrCacheRepository ====================
 
@@ -259,7 +259,7 @@ pub(crate) async fn get_chapter(
 pub async fn load_chapter_content_ir(
     validated_path: &str,
     chapter_index: i32,
-) -> Result<ChapterContentIr, AppError> {
+) -> Result<ReaderChapterIr, AppError> {
     // 1. Try sled cache
     if let Some(cached) = try_get_ir_cached(validated_path, chapter_index).await
     {
@@ -304,7 +304,7 @@ pub async fn load_chapter_content_ir(
 async fn try_get_ir_cached(
     validated_path: &str,
     chapter_index: i32,
-) -> Option<ChapterContentIr> {
+) -> Option<ReaderChapterIr> {
     let storage = crate::infra::storage()?;
     let cache_repo = IrCacheRepository::new(storage.kv());
     match cache_repo.get_ir_cache(validated_path, chapter_index) {
@@ -328,7 +328,7 @@ async fn try_get_ir_cached(
 async fn try_save_ir_cached(
     validated_path: &str,
     chapter_index: i32,
-    ir: &ChapterContentIr,
+    ir: &ReaderChapterIr,
 ) {
     let Some(storage) = crate::infra::storage() else {
         return;

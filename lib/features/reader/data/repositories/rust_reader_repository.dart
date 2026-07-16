@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart' show ValueNotifier;
 import 'dart:async';
-import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
-import 'package:zephyr_reader/features/reader/core/data/pagination_session_factory.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_chapter_payload.dart';
 import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
-import 'package:zephyr_reader/features/reader/core/domain/pagination_session.dart';
 import 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart';
+import 'package:zephyr_reader/features/reader/flutter_pagination/flutter_pagination_session.dart';
 import 'package:zephyr_reader/features/reader/data/pagination_params.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
-import 'package:zephyr_reader/src/rust/pipeline/types.dart';
+import 'package:zephyr_reader/features/reader/data/ir_types.dart';
 
 import 'package:zephyr_reader/features/reader/core/domain/reader_repository_interface.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
@@ -20,18 +18,13 @@ import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
 export 'package:zephyr_reader/features/reader/core/domain/progress_repository.dart'
     show ReadingProgressData;
 
-@Injectable(as: ReaderRepositoryInterface)
 class ReaderRepository
     implements ReaderRepositoryInterface, ReaderRenderDataSource {
   ReaderRepository(
     this._chapterContent,
     this._progress,
-    PaginationSessionFactory sessionFactory,
-  ) : _session = sessionFactory.create(
-        onCacheUpdated: () {
-          _chapterContent.preloadGeneration.value++;
-        },
-      );
+    PaginationSession session,
+  ) : _session = session;
 
   final ChapterContentRepository _chapterContent;
   final ProgressRepository _progress;
@@ -41,9 +34,6 @@ class ReaderRepository
 
   @override
   List<PackedPage>? get descriptors => _session.descriptors;
-
-  @override
-  ChapterPaginationMode get sessionMode => _session.sessionMode;
 
   @override
   String? get sessionFilePath => _session.sessionFilePath;
@@ -75,7 +65,7 @@ class ReaderRepository
       _chapterContent.prevChapterStaging;
 
   @override
-  ChapterContentIr? get currentChapterIr => _chapterContent.currentChapterIr;
+  ReaderChapterIr? get currentChapterIr => _chapterContent.currentChapterIr;
 
   @override
   String? get currentChapterFilePath => _chapterContent.currentChapterFilePath;

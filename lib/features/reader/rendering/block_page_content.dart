@@ -15,7 +15,6 @@ import 'package:zephyr_reader/features/reader/rendering/paginated_page_viewport.
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/features/reader/flutter_pagination/packed_page.dart';
 
-
 /// 块分页页 Widget（Text + Image 块列表）。
 Widget buildBlockPageContent({
   required BuildContext context,
@@ -66,22 +65,22 @@ Widget buildBlockPageContent({
             if (!block.isImage) {
               if (block.text.isEmpty) continue;
               final irStyle = block.style!;
-              final blockFontSize = IrTextBlockStyle.effectiveFontSize(
+              final blockFontSize = IrReaderIrBlock.effectiveFontSize(
                 irStyle,
                 config,
               );
               final blockStrutStyle = config.buildStrutStyle(
                 fontSizeMultiplier: blockFontSize / config.fontSize,
-                lineHeight: IrTextBlockStyle.effectiveLineHeight(
+                lineHeight: IrReaderIrBlock.effectiveLineHeight(
                   irStyle,
                   config,
                 ),
               );
-              final textAlign = IrTextBlockStyle.resolveTextAlign(
+              final textAlign = IrReaderIrBlock.resolveTextAlign(
                 irStyle.textAlign,
                 config.textAlign,
               );
-              final paintedSpan = IrTextBlockStyle.buildHighlightedSpan(
+              final paintedSpan = IrReaderIrBlock.buildHighlightedSpan(
                 text: block.text,
                 spans: block.spans,
                 irStyle: irStyle,
@@ -92,7 +91,7 @@ Widget buildBlockPageContent({
                 onHighlightTap: onHighlightTap,
               );
               final blockPadding = block.isBlockStart
-                  ? IrTextBlockStyle.resolveBlockPadding(irStyle, config)
+                  ? IrReaderIrBlock.resolveBlockPadding(irStyle, config)
                   : EdgeInsets.zero;
               final textWidget = Padding(
                 padding: blockPadding,
@@ -136,7 +135,8 @@ Widget buildBlockPageContent({
               }
               runningOffset += block.text.runes.length;
             } else {
-              final isFullPage = block.imageLayout == ImageBlockLayout.fullPage;
+              final isFullPage =
+                  block.imageLayout == ReaderIrBlockLayout.fullPage;
               final inlineMaxH = isFullPage
                   ? null
                   : _inlineImageDisplayHeightDp(
@@ -147,7 +147,7 @@ Widget buildBlockPageContent({
                 EpubBlockImage(
                   filePath: epubFilePath,
                   assetId: block.assetId ?? '',
-                  alt: block.alt,
+                  alt: block.imageAlt,
                   maxWidthPx: imageMaxWidth.round().clamp(1, 4096),
                   maxHeightPx: isFullPage
                       ? bodyHeight.round().clamp(1, 4096)
@@ -190,8 +190,8 @@ double _inlineImageDisplayHeightDp({
   final img = ActiveChapterIr.findImage(assetId);
   return imageDisplayHeightDp(
     contentWidthDp: contentWidthDp,
-    intrinsicWidth: img?.intrinsicWidth,
-    intrinsicHeight: img?.intrinsicHeight,
+    intrinsicWidth: img?.imageIntrinsicWidth,
+    intrinsicHeight: img?.imageIntrinsicHeight,
   );
 }
 

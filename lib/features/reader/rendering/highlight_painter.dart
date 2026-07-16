@@ -238,7 +238,7 @@ class HighlightPainter {
     void Function(Note)? onHighlightTap,
     Set<String> vocabularyWords = const {},
   }) {
-    final styleHash = span.style.hashCode;
+    final styleHash = span.hashCode;
     if (_paintVersion == _lastRichVersion &&
         _lastRichStyleHash == styleHash &&
         _lastRichSpan == span &&

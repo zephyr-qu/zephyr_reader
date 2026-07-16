@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 
-/// 与 [IrTextBlockStyle.buildHighlightedSpan] 同构的高度测量（WidgetSpan 首行缩进）。
+/// 与 [IrReaderIrBlock.buildHighlightedSpan] 同构的高度测量（WidgetSpan 首行缩进）。
 ///
 /// 禁止再用「首行收窄宽度 + 分段累加」——那会系统性偏高，页底留白。
 double measureRenderedSliceHeight({

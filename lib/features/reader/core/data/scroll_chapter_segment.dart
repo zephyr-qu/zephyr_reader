@@ -1,6 +1,6 @@
 import 'package:zephyr_reader/features/reader/core/data/scroll_layout_params.dart';
 import 'package:zephyr_reader/features/reader/core/data/scroll_list_metrics.dart';
-import 'package:zephyr_reader/src/rust/pipeline/types.dart';
+import 'package:zephyr_reader/features/reader/data/ir_types.dart';
 
 /// 滚动模式下单章分段数据。
 ///
@@ -11,7 +11,7 @@ class ScrollChapterSegment {
   final int chapterIndex;
   final List<String> paragraphs;
   final List<int> paragraphCharOffsets;
-  final List<ContentBlock>? irBlocks;
+  final List<ReaderIrBlock>? irBlocks;
   final String? chapterFilePath;
   final ScrollListMetrics listMetrics;
 
@@ -35,8 +35,7 @@ class ScrollChapterSegment {
 
   /// 检查 IR 块列表中是否包含图片块。
   bool get hasImages =>
-      irBlocks?.any((b) => b.when(text: (_) => false, image: (_) => true)) ??
-      false;
+      irBlocks?.any((b) => b.kind == ReaderIrBlockKind.image) ?? false;
 
   /// ListView 项数（与渲染扁平化一致；含图片时可能 > [paragraphs].length）。
   int get paragraphCount => listMetrics.itemCount;
@@ -45,10 +44,7 @@ class ScrollChapterSegment {
     if (isIr) {
       var end = 0;
       for (final block in irBlocks!) {
-        final range = block.when(
-          text: (tb) => tb.plain.plainStart + tb.plain.plainLen,
-          image: (ib) => ib.plain.plainStart + ib.plain.plainLen,
-        );
+        final range = block.plainStart + block.plainLen;
         if (range > end) end = range;
       }
       return end;

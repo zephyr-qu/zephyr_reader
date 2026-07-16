@@ -76,7 +76,6 @@ void main() {
       expect(session.sessionChapterIndex, isNull);
       expect(session.sessionIsPartial, isFalse);
       expect(session.sessionFilePath, isNull);
-      expect(session.sessionMode, ChapterPaginationMode.contentBlocks);
       expect(session.pageBlocks(0), isNull);
       expect(session.pageContent(0), isNull);
       expect(session.resolvePageIndexForCharOffset(0), isNull);

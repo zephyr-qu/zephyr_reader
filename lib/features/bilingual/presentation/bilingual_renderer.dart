@@ -148,7 +148,7 @@ class BilingualModeRenderer extends StatelessWidget {
     );
     // 双语中文段首行缩进：与单语 scroll 模式行为一致
     final cnIndentPx = config.firstLineIndent
-        ? IrTextBlockStyle.defaultFirstLineIndentEm * config.fontSize
+        ? IrReaderIrBlock.defaultFirstLineIndentEm * config.fontSize
         : 0.0;
 
     final cnOffsets = <int>[];
@@ -195,7 +195,7 @@ class BilingualModeRenderer extends StatelessWidget {
           vocabularyWords: config.effectiveVocabWords,
         );
 
-        // 双语中文段：与 IrTextBlockStyle 同方案的首行缩进
+        // 双语中文段：与 IrReaderIrBlock 同方案的首行缩进
         final cnIndentedSpan = cnIndentPx > 0
             ? TextSpan(
                 style: chineseStyle,

@@ -25,9 +25,6 @@ void _stubReaderDataSource(_MockDataSource dataSource) {
   when(() => dataSource.preloadGeneration).thenReturn(ValueNotifier<int>(0));
   when(() => dataSource.prevChapterStaging).thenReturn(null);
   when(() => dataSource.nextChapterStaging).thenReturn(null);
-  when(
-    () => dataSource.sessionMode,
-  ).thenReturn(ChapterPaginationMode.plainText);
   when(() => dataSource.sessionFilePath).thenReturn(null);
   when(() => dataSource.pageBlocks(any())).thenReturn(null);
 }

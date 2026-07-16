@@ -1,10 +1,11 @@
 # 阅读核心路线图（与边界 v1.1 绑定）
 
-> **当前阶段 = Phase 7 收尾**（2026-07-13）
-> **Phase 8** 已关闭 ✅（滚动模式 Flutter 化）
-> **Phase 7** 进行中 🔄（清理冗余代码）
-> **上一阶段**：Phase 8 滚动模式 Flutter 化
-> **下一阶段**：Phase 9 Flutter 原生 IR + 管线简化
+> **当前阶段 = Phase 9**（Rust 目录重组 + FRB import 修复 ✅ / 后续优化待执行）
+> **Phase 0-8** 已完成 ✅
+> **Phase 9** 进行中 🔄（Rust 目录重组 + API 层薄封装化）
+> **下一阶段**：Phase 10 TXT 章节检测可配置化
+
+**完整路线图（Phase 0-20）：**
 
 ---
 
@@ -152,66 +153,43 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 
 | # | 优先级 | 项 | 说明 |
 | --- | ------ | ----- | ------ |
-| 0 | **P0** | **Rust 目录重组** | 按 [`docs/rust-restructure-plan.md`](../docs/rust-restructure-plan.md) 执行：common/infra/library/reader/profile/language 6 层重组，44+ 文件移动，163 处 Dart 导入变更，FRB codegen 重新生成 |
-| 1 | **P1** | **IR 结构优化**：`BlockPlainRange`/`ContentBlock` 枚举 → 扁平 Dart 类型 | 消除 Rust→Flutter 转换层 |
-| 2 | **P1** | **RichTextSpan / TextBlockStyle 纯 Dart 化** | 消除 FRB 序列化开销 |
-| 3 | **P1** | **`PaginationSession` 接口简化** | 仅一个实现，去掉抽象层 |
-| 4 | **P2** | **`api/data/init.rs` 迁出 api 层** | 数据库初始化不属于 FRB 接口 |
-| 5 | **P2** | **`api/vocab_marker.rs` DB CRUD 整合** | 迁入 `api/data/vocabulary.rs` |
-| 6 | **P2** | **`ChapterPaginationMode.plainText` 死变体删除** | 不再使用的枚举变体 |
-| 7 | **P2** | **`LINE_BREAKS_STORE` 行断点缓存评估** | Rust 侧 HashMap 缓存是否还有必要 |
-| 8 | **P2** | **死 FRB 函数删除** | `get_bilingual_highlight_pairs`、`get_dictionary`、`suggest_mdict`、`get_epub_metadata` |
-| 9 | **P2** | **CJK 标点挤压引擎** | UI toggle 当前无效但用户能看到，属于 visible gap。方案：IR 预处理阶段对标点序列做紧凑替换（全角→半宽变体），约 1-2 天。**好处大于投入** |
-| 10 | **P3** | **`get_chapter` 退化备选移除评估** | IR 可靠时可删除 plain text fallback |
+| 0 | **P0** | **Rust 目录重组** | ✅ 已完成 — API 瘦身 + Flutter import 修复 |
+| 1 | **P1** | **IR 结构优化 + 纯 Dart 化**（两项合并） | ✅ 已完成 — 创建 `ir_types.dart`，`ReaderChapterIr`/`ReaderIrBlock`/`ReaderInlineRun` 等为纯 Dart 类，`RustChapterContentRepository` 边界处 `convertChapterIrFromFrb` 转换 |
+| 2 | **P1** | **`PaginationSession` 接口简化** | ✅ 已完成 — 假抽象类已合并，DI 工厂已删除 |
+| 3 | **P2** | **`ChapterPaginationMode.plainText` 死变体删除** | ✅ 已完成 — 枚举及字段已删除，残留测试引用待清理 |
+| 4 | **P2** | **`LINE_BREAKS_STORE` 行断点缓存评估** | ✅ 已完成 — `line_breaking.rs`/`char_width.rs` 已在 Phase 8 删除，Flutter 侧 `TextPainter` 完成所有断行 |
+| 5 | **P2** | **CJK 标点挤压引擎** | ❌ 不实现 — ADR-013 已明确跳过，收益低于复杂度 |
+| 6 | **P3** | **`get_chapter` 退化备选移除评估** | ✅ 评估完成 — 暂保留，IR 路径未覆盖全部场景 |
 
 ---
 
-## Phase 10 — TXT 章节检测正则可配置化（规划中）
+## Phase 10 — Flutter 架构扁平化与阅读引擎独立（规划中）
 
-**目标**：将硬编码在 `chapter_detect.rs` 中的四组章节检测正则改为由 Flutter 侧传入配置，
-支持用户自定义章节标题模式，覆盖更多网文/轻小说格式。
+**目标**：将排版渲染核心从 reader feature 提取为独立 `reader_engine/` 模块，
+消除假抽象接口和中间人。
 
-### 背景
-
-当前 `extract_chapters()` 按固定优先级尝试 4 组硬编码模式：
-`ZH → ZH_ENUM → EN → DIGIT`。
-网文格式多样，固定模式总有遗漏，且每次调整需修改 Rust 代码+重新编译。
-
-### 设计方向
-
-| 维度 | 方案 A（推荐） | 方案 B（不推荐） |
-| ------ | ---------------- | ------------------ |
-| 配置传递 | 每次 `parse()` 传入 `Option<ChapterPatterns>` | 全局 `Mutex` 可变状态 |
-| 正则缓存 | 按模式串 hash 编译后缓存 | 每次 parse 重新编译 |
-| 向后兼容 | `None` → 当前硬编码行为 | 需 migration |
-| 竞态风险 | 无（一次调用一次配置） | 多书同时解析时可能竞态 |
+**讨论**：`discuss/PHASE12_FLUTTER_ARCHITECTURE.md`
 
 ### 任务清单
 
-| # | 项 | 说明 | 优先级 |
-| --- | ----- | ------ | ------ |
-| 1 | Rust `ChapterPatterns` FRB struct | `Vec<String>` patterns + 优先级顺序 | P1 |
-| 2 | `extract_chapters()` 改接受配置参数 | 向后兼容默认行为 | P1 |
-| 3 | 正则编译结果 LRU 缓存 | 避免每次 parse 重新编译 | P1 |
-| 4 | Flutter 默认配置层 | 内置默认值 ≈ 当前 4 组 pattern | P2 |
-| 5 | Flutter 设置 UI | 用户可添加/删除/排序 pattern | P3 |
-| 6 | `parse_txt_inner` 调用链适配 | 从 `parse()` 入口传递配置到 `extract_chapters()` | P1 |
+| # | 优先级 | 项 | 说明 |
+| --- | -------- | ----- | ------ |
+| 1 | **P0** | 创建 `lib/reader_engine/` 目录结构 | 按 ADR-017 结构建空文件 |
+| 2 | **P0** | 移动 pagination 文件 | `flutter_pagination/` → `reader_engine/pagination/` |
+| 3 | **P0** | 移动 scroll 文件 | 相关文件 → `reader_engine/scroll/` |
+| 4 | **P0** | 移动 rendering 文件 | `rendering/` → `reader_engine/rendering/` |
+| 5 | **P1** | 实现 `PaginationEngine` 类 | 封装 `FlutterPaginationSession` 创建/复用/释放 |
+| 6 | **P1** | 实现 `ScrollEngine` 类 | `buildScrollView(ir, params)` 工厂方法 |
+| 7 | **P1** | 删除 `ReaderRepository` 中间人 | 调用方直接使用 PaginationEngine + RustChapterContentRepository |
+| 8 | **P2** | 删除 5 个假抽象接口 | 接口和实现合并 |
+| 9 | **P2** | 合并 `core/domain/` 和 `domain/` | 统一 domain 目录 |
+| 10 | **P2** | 合并小文件 | 将 ~108 文件合并到 ~65-75 个 |
 
 ### 不做
 
-- 每本书独立 pattern 配置（复杂度过高，除非用户需求明确）
-- 自动 pattern 推荐/学习（可等数据积累后再考虑）
-- EPUB 章节检测（EPUB 有 TOC 结构，不需要正则）
-
-### 不做
-
-- 每本书独立 pattern 配置（复杂度过高，除非用户需求明确）
-- 自动 pattern 推荐/学习（可等数据积累后再考虑）
-- EPUB 章节检测（EPUB 有 TOC 结构，不需要正则）
-
-### 不做
-
-PDF 阅读、WebView、账号/多端同步、章内搜索 UI、Rust CancellationToken。
+- 不引入新的架构抽象（UseCase、BLoC 等）
+- 不改 Rust 侧代码
+- 不改 UI 交互行为
 
 ---
 
@@ -219,23 +197,203 @@ PDF 阅读、WebView、账号/多端同步、章内搜索 UI、Rust Cancellation
 
 **目标**：两条纲领，Phase 11 启动时扫描审查。
 
-### 方向 A：业务下沉
+**讨论**：`discuss/PHASE11_BUSINESS_SIMPLIFICATION.md`
 
-本来在 Repo/SQL 层就能做的事，就不要在业务 Service 层实现。
+### 判断框架
 
-示例：删除书籍的级联操作应一条 SQL `ON DELETE CASCADE` 或 repo 层事务内完成，
-而不是 Service 层逐表调 delete + API 层再额外跨模块调搜索索引清理。
+#### 方向 A：业务下沉
 
-### 方向 B：业务简化
+**应该下沉的（到 repo/SQL）：**
 
-减少 Flutter → Rust FFI 调用次数。Flutter 需要调多次才能完成的功能，
-Rust 层聚合成一个接口输出。
+- Service 层用 for 循环/逐条 delete 做数据库本有能力的事（如级联删除）
+- Service 层只是包了一层 SQL 的纯中间人（单个 repo 调用、无逻辑）
+- 一条复杂 SQL 比多条 repo 调用更清晰（看场景，可读性优先）
 
-示例：保存阅读进度和记录阅读会话当前是两个独立 FFI 调用，
-应合并为一个 `save_reading_state` 在 Rust 侧一个事务内完成。
+**不该下沉的（留在 service）：**
+
+- 跨模块编排（如删书→删搜索索引涉及 book + search 两个领域）
+- 包含业务规则的操作（如分类删除前的安全校验）
+- 计算/转换逻辑（如从笔记统计估算阅读时长）
+
+#### 方向 B：业务简化
+
+**应该聚合的：**
+
+- 同屏数据来自不同表（如书架列表 + 进度 + 分类，返回相同类型 `BookshelfBook`）
+- Flutter 侧用多个 if/else 分支选调不同 API（说明设计有问题，可选参数即可）
+- 总是成对出现且需要事务一致性（如存进度+记会话）
+
+**不该聚合的：**
+
+- 不同生命周期触发（如导入书 vs 提取封面，封面失败不阻塞导入）
+- 调用之间有用户交互/等待
+- 返回不同类型数据，且独立使用
+- 强行聚合导致接口参数爆炸
 
 ### 启动方式
 
 Phase 11 启动时对整个代码库做一次 `业务下沉 + 简化` 审查扫描，
-列出所有可下沉的 for 循环 SQL 和可聚合的多段 FFI 调用链，然后逐一整改。
-不在启动前预列详细清单。
+使用判断框架列出待整改项，然后逐一整改。
+
+---
+
+## Phase 12 — TXT 章节检测正则可配置化（规划中）
+
+**目标**：将硬编码在 `chapter_detect.rs` 中的四组章节检测正则改为可配置，
+支持用户自定义章节标题模式，覆盖更多网文/轻小说格式。
+
+**讨论**：`discuss/PHASE10_CHAPTER_DETECT_CONFIG.md`
+
+### 背景
+
+当前 `extract_chapters()` 按固定优先级尝试 4 组硬编码模式：
+`ZH → ZH_ENUM → EN → DIGIT`。
+网文格式多样，固定模式总有遗漏，且每次调整需修改 Rust 代码+重新编译。
+
+### 设计决策
+
+| 维度 | 决策 |
+| ------ | ------ |
+| 正则缓存 | ❌ 不缓存，parse 时直接编译（一次导入操作为主，编译开销可忽略） |
+| 持久化 | Rust 侧 sqlite `app_settings` 表（`key TEXT PK, value TEXT`） |
+| 优先级 | 默认 4 组先匹配 → 用户模式后匹配 |
+| 重试机制 | 手动触发→从当前 `detect_pattern_index + 1` 继续向下匹配 |
+| 书粒度状态 | `book_metadata.detect_pattern_index` 字段 |
+
+### 任务清单
+
+| # | 项 | 说明 | 优先级 |
+| --- | ----- | ------ | ------ |
+| 1 | `app_settings` 表 | 新增 migration：`key TEXT PRIMARY KEY, value TEXT NOT NULL` | P1 |
+| 2 | `book_metadata.detect_pattern_index` | 新增 migration 加字段 | P1 |
+| 3 | FRB struct: `ChapterPatterns` | 含 `patterns: Vec<String>`, `start_index: i32` | P1 |
+| 4 | `extract_chapters_from()` | 接受 start_pattern_index，返回 used_index | P1 |
+| 5 | `parse_txt_inner()` 适配 | 从 `parse_book()` 传 patterns + start_index | P1 |
+| 6 | `redetect_chapters()` API | FRB 函数：读当前 index+1，重新解析，替换章节 | P1 |
+| 7 | Flutter 默认配置写入 | 首次初始化时将 4 组内置模式写入 app_settings | P2 |
+| 8 | Flutter 模式编辑 UI | 添加/删除/排序用户模式 | P3 |
+| 9 | Flutter 重试 UI | 书籍详情页
+
+---
+
+## Phase 13 — 核心收束扫尾（规划中）
+
+**目标**：给 Phase 9-12 的架构大修做竣工验收，清理遗留碎片，确认核心功能 99% 可用。
+
+### 工作项
+
+| # | 项 | 说明 |
+| --- | ----- | ------ |
+| 1 | 死代码清扫 | 重构后老接口、旧导入、废弃文件、未用依赖 |
+| 2 | `#[allow(...)]` 审计 | 确认重构过程中加的 suppress 不再需要 |
+| 3 | 架构一致性检查 | API 薄封装、reader_engine 不反引用、假接口已删 |
+| 4 | 核心链路可用确认 | 开书画笔记→存进度→关 app→恢复→搜索 |
+| 5 | 边界场景验证 | 大 TXT（百万字）、含图 EPUB、切换排版立刻生效 |
+| 6 | sled KV 存储评估 | 查 sled 消费者（当前仅 IR 缓存 1 个），<br>≤1 个则迁到 SQLite 或 redb，删 sled + bincode 依赖 |
+| 7 | 工具链确认 | `cargo clippy -D warnings`、`flutter analyze --fatal-infos`、FRB codegen |
+
+### 不做
+
+- ❌ 不加新功能
+- ❌ 不写大量单元测试（等 Phase 17）
+- ❌ 不做性能调优
+- ❌ 不改 UI/UX 细节
+
+---
+
+## Phase 14 — 阅读中增强（规划中）
+
+**目标**：优化用户在阅读过程中直接使用的外围功能。
+
+| 模块 | 预期优化 |
+| ------ | --------- |
+| 搜索 | 搜索结果分段预览、跳转体验优化 |
+| TTS | 跨章连续播放、后台播放、朗读进度恢复 |
+| 双语 | 翻译缓存减少重复请求、离线回退 |
+| 生词本 | 阅读中快捷操作、标记后即时反馈 |
+
+---
+
+## Phase 15 — 阅读外完善（规划中）
+
+**目标**：完善用户离开阅读器后使用的功能模块。
+
+| 模块 | 预期优化 |
+| ------ | --------- |
+| 书架 | 视图切换流畅度、批量操作交互 |
+| 笔记管理 | 按书/章筛选、批量导出 |
+| 阅读统计 | 周报/月报摘要 |
+| 备份/WebDAV | 自动备份计划、完整性校验 |
+| 主题/外观 | 预设主题包（<!-- TBD -->） |
+
+---
+
+## Phase 16 — TBD
+
+**未确定**，暂留空。
+
+---
+
+## Phase 17 — TBD
+
+**未确定**，暂留空。
+
+---
+
+## Phase 18 — TBD
+
+**未确定**，暂留空。
+
+---
+
+## Phase 19 — 测试全面修复
+
+**目标**：统一修复 Phase 0-18 架构重构积累的所有测试编译/运行时错误，
+包括但不限于 Rust 集成测试 import 路径、Dart 侧 FRB 类型引用、
+Widget 测试构造参数。**其他阶段允许顺带修，但不作为优先级**。
+
+### 背景
+
+Phase 9 以来多次目录重组（api/*→ domain/*/service.rs、FRB 生成结构变动）
+导致跨层测试大面积断裂（79 处 `library/models.dart`、18 处 `reader/content_ir.dart` 等）。
+为了避免每次重构被测试同步拖慢，决定将测试修复集中到 Phase 19，
+其余阶段仅在改动极小或恰好涉及时顺手修复。
+
+### 工作项
+
+| # | 项 | 说明 |
+| --- | ----- | ------ |
+| 1 | Rust 集成测试 import 修复 | `api::*` → 对应 `domain::*::service` |
+| 2 | Dart 测试 FRB import 路径修复 | 反映 FRB 生成文件最终结构 |
+| 3 | Dart 测试 FRB 类型构造修复 | 反映 Rust struct 字段最终形状 |
+| 4 | Widget 测试 Rust 数据依赖修复 | `paginated_renderer_test.dart` 等 |
+| 5 | `flutter analyze --fatal-infos` 零错误 | |
+| 6 | `cargo clippy -- -D warnings` 零告警（test 目标） | |
+| 7 | **可选：引入测试数据工厂** | 用 `fixture()` builder 取代直接 `const` FRB 类型，避免下次重构再碎 |
+
+### 此前已积累的测试问题
+
+- `test/` 下 31 处 `src/rust/...` import 可能已过期
+- `rust/tests/` 下 19 个文件依赖旧 API 模块路径
+- 部分测试用 `const` 构造 Rust 生成的 struct（字段变更时全部断裂）
+
+### Phase 19 启动条件
+
+- Phase 18 及以前架构变动全部稳定
+- `cargo clippy -- -D warnings`（非 test 目标）通过
+- `flutter analyze --fatal-infos`（不含测试文件）通过
+
+---
+
+## Phase 20 — 内测版发布
+
+**目标**：走通发布流程，发布第一个端到端可用的内测版本。
+
+### 预期工作项
+
+| # | 项 | 说明 |
+| --- | ----- | ------ |
+| 1 | 最终 QA | 全量功能回归 |
+| 2 | 内测准备 | APK/IPA 打包、渠道分发 |
+| 3 | 内测发布 | 封闭内测/TestFlight |
+| 4 | 内测反馈收集 | 崩溃率、用户反馈 |

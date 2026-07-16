@@ -5,14 +5,13 @@ import 'package:zephyr_reader/features/reader/rendering/ir_text_block_style.dart
 import 'package:zephyr_reader/features/reader/rendering/block_page_content.dart';
 import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/domain/note/models.dart';
-import 'package:zephyr_reader/src/rust/pipeline/types.dart';
+import 'package:zephyr_reader/features/reader/data/ir_types.dart';
 
-
-/// scroll 模式按 [ContentBlock] 流渲染（与 pagination 块分页同源 IR）。
+/// scroll 模式按 [ReaderIrBlock] 流渲染（与 pagination 块分页同源 IR）。
 Widget buildScrollIrBlockList({
   required BuildContext context,
   required ScrollController scrollController,
-  required List<ContentBlock> blocks,
+  required List<ReaderIrBlock> blocks,
   required String? epubFilePath,
   required int chapterIndex,
   required ReaderRenderConfig config,
@@ -109,7 +108,7 @@ Widget buildScrollIrMultiSegmentList({
 
 Widget buildScrollIrBlockItem({
   required BuildContext context,
-  required ContentBlock block,
+  required ReaderIrBlock block,
   required String? epubFilePath,
   required ReaderRenderConfig config,
   required List<Note> highlights,
@@ -120,40 +119,39 @@ Widget buildScrollIrBlockItem({
   void Function(Offset?)? onSelectionGlobalPosition,
   bool addBottomSpacing = false,
 }) {
-  final child = block.when(
-    text: (tb) {
-      if (tb.text.isEmpty) return const SizedBox.shrink();
-      final offset = tb.plain.plainStart;
-      final blockFontSize = IrTextBlockStyle.effectiveFontSize(
-        tb.style,
-        config,
-      );
+  Widget child;
+  if (block.kind == ReaderIrBlockKind.text) {
+    if (block.text.isEmpty) {
+      child = const SizedBox.shrink();
+    } else {
+      final offset = block.plainStart;
+      final blockFontSize = IrReaderIrBlock.effectiveFontSize(block, config);
       final blockStrutStyle = config.buildStrutStyle(
         fontSizeMultiplier: blockFontSize / config.fontSize,
-        lineHeight: IrTextBlockStyle.effectiveLineHeight(tb.style, config),
+        lineHeight: IrReaderIrBlock.effectiveLineHeight(block, config),
       );
-      final textAlign = IrTextBlockStyle.resolveTextAlign(
-        tb.style.textAlign,
+      final textAlign = IrReaderIrBlock.resolveTextAlign(
+        block.textAlign,
         config.textAlign,
       );
-      final painted = IrTextBlockStyle.buildHighlightedSpan(
-        text: tb.text,
-        spans: tb.spans,
-        irStyle: tb.style,
+      final painted = IrReaderIrBlock.buildHighlightedSpan(
+        text: block.text,
+        spans: block.runs,
+        irStyle: block,
         config: config,
         highlights: highlights,
         contentStart: offset,
         applyFirstLineIndent: true,
         onHighlightTap: onHighlightTap,
       );
-      return SelectableText.rich(
+      child = SelectableText.rich(
         painted,
         strutStyle: blockStrutStyle,
         textAlign: textAlign,
         textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
         onSelectionChanged: (sel, cause) => _handleSelection(
           sel,
-          tb.text,
+          block.text,
           offset,
           context,
           onSelectionChanged,
@@ -161,28 +159,27 @@ Widget buildScrollIrBlockItem({
         ),
         contextMenuBuilder: (_, _) => const SizedBox.shrink(),
       );
-    },
-    image: (ib) {
-      final path = epubFilePath;
-      if (path == null || path.isEmpty) {
-        return const SizedBox.shrink();
-      }
-      return EpubBlockImage(
+    }
+  } else {
+    // Image block
+    final path = epubFilePath;
+    if (path == null || path.isEmpty) {
+      child = const SizedBox.shrink();
+    } else {
+      child = EpubBlockImage(
         filePath: path,
-        assetId: ib.assetId,
-        alt: ib.alt,
+        assetId: block.imageAssetId ?? '',
+        alt: block.imageAlt?.isNotEmpty == true ? block.imageAlt : null,
         maxWidthPx: imageMaxWidth.round(),
         maxHeightPx: imageMaxHeight,
       );
-    },
-  );
-
-  final textBlockStyle = block.when(text: (tb) => tb.style, image: (_) => null);
+    }
+  }
 
   Widget wrapped = child;
-  if (textBlockStyle != null) {
+  if (block.kind == ReaderIrBlockKind.text) {
     wrapped = Padding(
-      padding: IrTextBlockStyle.resolveBlockPadding(textBlockStyle, config),
+      padding: IrReaderIrBlock.resolveBlockPadding(block, config),
       child: child,
     );
   }
@@ -190,8 +187,8 @@ Widget buildScrollIrBlockItem({
   if (!addBottomSpacing) {
     return wrapped;
   }
-  final bottomSpacing = textBlockStyle != null
-      ? IrTextBlockStyle.resolveBottomSpacing(textBlockStyle, config)
+  final bottomSpacing = block.kind == ReaderIrBlockKind.text
+      ? IrReaderIrBlock.resolveBottomSpacing(block, config)
       : (config.paragraphSpacing / 2).clamp(4, 16);
   if (bottomSpacing <= 0) {
     return wrapped;
@@ -211,7 +208,7 @@ class _IrSegmentItem {
   });
 
   final int chapterIndex;
-  final ContentBlock block;
+  final ReaderIrBlock block;
   final String? filePath;
   final bool addBottomSpacing;
 }

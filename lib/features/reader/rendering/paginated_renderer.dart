@@ -205,34 +205,27 @@ class PaginatedModeRenderer extends StatelessWidget {
     NextChapterStaging staging,
     int startOffset,
   ) {
-    if (staging.paginationMode == ChapterPaginationMode.contentBlocks) {
-      final blocks = staging.anchorPageBlocks;
-      final bookId = staging.bookId;
-      if (blocks == null || bookId == null || bookId.isEmpty) {
-        // ADR-012: incomplete staging → hold frame, not spinner
-        return _buildHoldFrame(context, isFirstPage: true);
-      }
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          return buildBlockPageContent(
-            context: context,
-            blocks: blocks,
-            startOffset: startOffset,
-            epubFilePath: dataSource.sessionFilePath ?? '',
-            config: config,
-            highlights: highlights,
-            onHighlightTap: onHighlightTap,
-            onSelectionChanged: onSelectionChanged,
-            onSelectionGlobalPosition: onSelectionGlobalPosition,
-            maxContentWidth: constraints.maxWidth,
-          );
-        },
-      );
+    final blocks = staging.anchorPageBlocks;
+    final bookId = staging.bookId;
+    if (blocks == null || bookId == null || bookId.isEmpty) {
+      // ADR-012: incomplete staging → hold frame, not spinner
+      return _buildHoldFrame(context, isFirstPage: true);
     }
-    return _buildStagingPlainPageContent(
-      context,
-      staging.firstPageContent,
-      startOffset,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return buildBlockPageContent(
+          context: context,
+          blocks: blocks,
+          startOffset: startOffset,
+          epubFilePath: dataSource.sessionFilePath ?? '',
+          config: config,
+          highlights: highlights,
+          onHighlightTap: onHighlightTap,
+          onSelectionChanged: onSelectionChanged,
+          onSelectionGlobalPosition: onSelectionGlobalPosition,
+          maxContentWidth: constraints.maxWidth,
+        );
+      },
     );
   }
 
@@ -488,99 +481,34 @@ Widget buildSinglePageContent({
   required void Function(String text, int start, int end)? onSelectionChanged,
   required void Function(Offset?)? onSelectionGlobalPosition,
 }) {
-  if (dataSource.sessionMode == ChapterPaginationMode.contentBlocks) {
-    final blocks = dataSource.pageBlocks(pageIndex);
-    if (blocks == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Logging.info(
-          '[Renderer] buildBlockPageContent MISS page=$pageIndex → skeleton + ensureWindow',
-        );
-        dataSource.ensureWindow(pageIndex);
-      });
-      return _buildPageSkeleton();
-    }
-    final filePath = dataSource.sessionFilePath;
-    if (filePath == null || filePath.isEmpty) {
-      return _buildPageSkeleton();
-    }
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return buildBlockPageContent(
-          context: context,
-          blocks: blocks,
-          startOffset: startOffset,
-          epubFilePath: filePath,
-          config: config,
-          highlights: highlights,
-          onHighlightTap: onHighlightTap,
-          onSelectionChanged: onSelectionChanged,
-          onSelectionGlobalPosition: onSelectionGlobalPosition,
-          maxContentWidth: constraints.maxWidth,
-        );
-      },
-    );
-  }
-
-  // Plain 路径：Flutter 分页 plain text 文本流。
-  final pageContent = dataSource.pageContent(pageIndex);
-  if (pageContent == null) {
+  final blocks = dataSource.pageBlocks(pageIndex);
+  if (blocks == null) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Logging.info(
-        '[Renderer] buildSinglePageContent MISS page=$pageIndex → skeleton + ensureWindow',
+        '[Renderer] buildBlockPageContent MISS page=$pageIndex → skeleton + ensureWindow',
       );
       dataSource.ensureWindow(pageIndex);
     });
     return _buildPageSkeleton();
   }
-  final textStyle = config.buildTextStyle();
-  final strutStyle = config.buildStrutStyle();
-  final paintedSpan = HighlightPainter.paintPlain(
-    pageContent,
-    textStyle,
-    highlights,
-    onHighlightTap: onHighlightTap,
-    vocabularyWords: config.effectiveVocabWords,
-    contentStart: startOffset,
-  );
-
-  return RepaintBoundary(
-    child: LayoutBuilder(
-      builder: (context, constraints) {
-        final vPad = ReaderRenderConfig.pageContentVerticalPadding;
-        final bodyHeight = (constraints.maxHeight - 2 * vPad).clamp(
-          0.0,
-          constraints.maxHeight,
-        );
-        Logging.info(
-          '[PageRender] singlePage maxH_dp=${constraints.maxHeight.toStringAsFixed(1)}'
-          ' vPad=$vPad bodyHeight_dp=${bodyHeight.toStringAsFixed(1)}',
-        );
-        return Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: config.pageMargin,
-            vertical: vPad,
-          ),
-          child: PaginatedPageViewport(
-            maxHeight: bodyHeight,
-            maxWidth: constraints.maxWidth,
-            child: SelectableText.rich(
-              paintedSpan,
-              strutStyle: strutStyle,
-              textAlign: config.textAlign,
-              textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
-              onSelectionChanged: (sel, cause) => _handlePageContentSelection(
-                sel,
-                pageContent,
-                startOffset,
-                context,
-                onSelectionChanged,
-                onSelectionGlobalPosition,
-              ),
-              contextMenuBuilder: (_, _) => const SizedBox.shrink(),
-            ),
-          ),
-        );
-      },
-    ),
+  final filePath = dataSource.sessionFilePath;
+  if (filePath == null || filePath.isEmpty) {
+    return _buildPageSkeleton();
+  }
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      return buildBlockPageContent(
+        context: context,
+        blocks: blocks,
+        startOffset: startOffset,
+        epubFilePath: filePath,
+        config: config,
+        highlights: highlights,
+        onHighlightTap: onHighlightTap,
+        onSelectionChanged: onSelectionChanged,
+        onSelectionGlobalPosition: onSelectionGlobalPosition,
+        maxContentWidth: constraints.maxWidth,
+      );
+    },
   );
 }
