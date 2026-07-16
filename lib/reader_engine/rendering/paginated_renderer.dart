@@ -5,6 +5,7 @@ import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
 import 'package:zephyr_reader/reader_engine/shared/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/reader_engine/shared/next_chapter_staging.dart';
 import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
+import 'package:zephyr_reader/reader_engine/pagination/engine.dart';
 import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
 import 'package:zephyr_reader/reader_engine/rendering/block_page_content.dart';
 import 'package:zephyr_reader/reader_engine/rendering/highlight_painter.dart';
@@ -25,7 +26,7 @@ class PaginatedModeRenderer extends StatelessWidget {
   final ReaderRenderConfig config;
   final PageController pageController;
   final ChapterContentRepository contentRepo;
-  final PaginationSession session;
+  final PaginationEngine engine;
   final String bookId;
   final int chapterId;
   final int pageIndex;
@@ -48,7 +49,7 @@ class PaginatedModeRenderer extends StatelessWidget {
     required this.config,
     required this.pageController,
     required this.contentRepo,
-    required this.session,
+    required this.engine,
     required this.bookId,
     required this.chapterId,
     required this.pageIndex,
@@ -96,7 +97,7 @@ class PaginatedModeRenderer extends StatelessWidget {
   }
 
   Widget _buildPageTurnShell(BuildContext context) {
-    final descriptors = session.descriptors;
+    final descriptors = engine.session.descriptors;
     if (descriptors == null || descriptors.isEmpty) {
       Logging.warning(
         '[Renderer] _buildPageTurnShell: descriptors null/empty → fallback',
@@ -171,7 +172,7 @@ class PaginatedModeRenderer extends StatelessWidget {
       context: context,
       pageIndex: pageIndex,
       startOffset: startOffset,
-      session: session,
+      session: engine.session,
       config: config,
       highlights: highlights,
       onHighlightTap: onHighlightTap,
@@ -220,7 +221,7 @@ class PaginatedModeRenderer extends StatelessWidget {
           context: context,
           blocks: blocks,
           startOffset: startOffset,
-          epubFilePath: session.sessionFilePath ?? '',
+          epubFilePath: engine.session.sessionFilePath ?? '',
           config: config,
           highlights: highlights,
           onHighlightTap: onHighlightTap,
@@ -266,7 +267,7 @@ class PaginatedModeRenderer extends StatelessWidget {
 
   /// ADR-012: staging miss 时显示当前章首/末页 hold 帧，替代 spinner。
   Widget _buildHoldFrame(BuildContext context, {required bool isFirstPage}) {
-    final descriptors = session.descriptors;
+    final descriptors = engine.session.descriptors;
     if (descriptors == null || descriptors.isEmpty) {
       return _buildPageSkeleton();
     }
@@ -317,14 +318,13 @@ class PaginatedModeRenderer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Logging.info(
-      '[Render] build chapter=$chapterId page=$pageIndex mode=${readingMode.name}'
-      ' descCount=${session.descriptors?.length ?? 0}',
+      ' descCount=${engine.session.descriptors?.length ?? 0}'
     );
 
     if (usesPageCurlSkin(mode: readingMode, skin: paginationSkin)) {
       return _buildPageTurnShell(context);
     }
-    final descriptors = session.descriptors;
+    final descriptors = engine.session.descriptors;
     if (descriptors != null && descriptors.isNotEmpty) {
       // 打印每页内容量（从 descriptors 反推）
       for (var i = 0; i < descriptors.length && i < 8; i++) {

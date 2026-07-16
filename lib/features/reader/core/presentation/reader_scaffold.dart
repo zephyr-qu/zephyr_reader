@@ -14,7 +14,7 @@ import 'package:zephyr_reader/features/reader/core/presentation/reader_content_a
 import 'package:zephyr_reader/features/reader/core/presentation/reader_interaction_layer.dart';
 import 'package:zephyr_reader/features/reader/core/presentation/reader_ui_state.dart';
 import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
-import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
+import 'package:zephyr_reader/reader_engine/pagination/engine.dart';
 import 'package:zephyr_reader/features/reader/navigation/reader_navigation_drawer.dart';
 import 'package:zephyr_reader/features/reader/annotations/presentation/reader_note_sidebar.dart';
 import 'package:zephyr_reader/features/reader/settings/reader_panel_type.dart';
@@ -38,7 +38,7 @@ class ReaderScaffold extends HookWidget {
 
   final ReaderViewModel vm;
   ChapterContentRepository get _content => vm.contentRepo;
-  PaginationSession get _session => vm.session;
+  PaginationEngine get _engine => vm.engine;
   final FontRepository fontRepo;
   final ReaderConfig config;
   final TtsService ttsService;
@@ -137,7 +137,7 @@ class ReaderScaffold extends HookWidget {
                       ReaderContentArea(
                         vm: vm,
                         contentRepo: _content,
-                        session: _session,
+                        engine: _engine,
                         fontRepo: fontRepo,
                         vocabWords: uiState.vocabWords,
                         selectionGlobalPos: uiState.selectionGlobalPos,

@@ -16,6 +16,8 @@ import 'package:zephyr_reader/features/bilingual/application/bilingual_view_mode
 import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
 import 'package:zephyr_reader/features/reader/domain/progress_repository.dart';
 import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
+import 'package:zephyr_reader/reader_engine/pagination/engine.dart';
+
 import 'chapter_view_model.dart';
 import 'reading_session_manager.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
@@ -30,7 +32,7 @@ import 'package:zephyr_reader/di/service_locator.dart';
 /// 双语 → BilingualViewModel（可选）。
 class ReaderViewModel {
   final ChapterContentRepository _contentRepo;
-  final PaginationSession _session;
+  final PaginationEngine _engine;
   final ProgressRepository _progressRepo;
   final ReaderConfig _config;
 
@@ -38,7 +40,11 @@ class ReaderViewModel {
   ChapterContentRepository get contentRepo => _contentRepo;
 
   /// 当前分页会话。
-  PaginationSession get session => _session;
+  /// 分页引擎。
+  PaginationEngine get engine => _engine;
+
+  /// 当前分页会话。
+  PaginationSession get session => _engine.session;
 
   /// 阅读配置
   ReaderConfig get config => _config;
@@ -64,7 +70,7 @@ class ReaderViewModel {
 
   ReaderViewModel({
     required this._contentRepo,
-    required this._session,
+    required this._engine,
     required this._progressRepo,
 
     ReaderConfig? config,
@@ -72,10 +78,11 @@ class ReaderViewModel {
   }) : _config = config ?? getIt<ReaderConfig>() {
     chapterManager = ChapterViewModel(
       _contentRepo,
-      _session,
+      _engine,
       _progressRepo,
       _config,
     );
+
     sessionManager = getIt<ReadingSessionManager>(param1: chapterManager);
     bookmarks = getIt<BookmarkViewModel>(param1: chapterManager);
     annotations = getIt<AnnotationViewModel>(param1: chapterManager);
@@ -282,7 +289,7 @@ class ReaderViewModel {
     // 切换到 scroll/bilingual 前，释放分页会话，
     // 避免 PaginationSession 和 LRU engine 悬空占用内存。
     if (mode != ReadingMode.pagination) {
-      _session.dispose();
+      _engine.disposeSession();
     }
     if (mode == ReadingMode.scroll) {
       final content = chapterManager.chapterContent.value.value;

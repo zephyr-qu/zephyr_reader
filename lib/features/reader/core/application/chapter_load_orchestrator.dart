@@ -15,7 +15,7 @@ import 'package:zephyr_reader/features/reader/core/application/chapter_load_requ
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
 import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
-import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
+import 'package:zephyr_reader/reader_engine/pagination/engine.dart';
 import 'package:zephyr_reader/reader_engine/shared/config/reader_notice.dart';
 import 'package:zephyr_reader/reader_engine/pagination/engine_utils.dart';
 import 'package:signals_flutter/signals_flutter.dart';
@@ -29,7 +29,7 @@ class ChapterLoadOrchestrator {
 
   ChapterLoadOrchestrator({
     required ChapterContentRepository contentRepo,
-    required PaginationSession session,
+    required PaginationEngine engine,
     required ChapterViewModel chapterVM,
     required PaginationCoordinator pagination,
     required AsyncSignal<List<Chapter>> chapters,
@@ -39,7 +39,7 @@ class ChapterLoadOrchestrator {
     required Signal<String?> error,
     required Signal<ChapterLoadPhase> loadPhase,
   }) : _contentRepo = contentRepo,
-       _session = session,
+       _engine = engine,
        _chapterVM = chapterVM,
        _pagination = pagination,
        _chapters = chapters,
@@ -50,7 +50,7 @@ class ChapterLoadOrchestrator {
        _loadPhase = loadPhase;
 
   final ChapterContentRepository _contentRepo;
-  final PaginationSession _session;
+  final PaginationEngine _engine;
   final ChapterViewModel _chapterVM;
   final PaginationCoordinator _pagination;
   final AsyncSignal<List<Chapter>> _chapters;
@@ -93,7 +93,7 @@ class ChapterLoadOrchestrator {
         chapterIndex: request.chapterIndex,
         navigationKind: request.navigationKind,
         contentRepo: _contentRepo,
-        session: _session,
+        engine: _engine,
         pagination: _pagination,
       );
       final effectivePreserveContent =
@@ -207,7 +207,7 @@ class ChapterLoadOrchestrator {
       return;
     }
 
-    final descriptors = _session.descriptors;
+    final descriptors = _engine.session.descriptors;
     final pageIndex = isForward
         ? 0
         : ((descriptors?.length ?? 1) - 1).clamp(0, 0x7FFFFFFF);
@@ -226,7 +226,7 @@ class ChapterLoadOrchestrator {
       _isLoading.value = false;
     });
     if (pageIndex >= 0) {
-      _session.ensureWindow(pageIndex);
+      _engine.session.ensureWindow(pageIndex);
     }
 
     _contentRepo.clearAdjacentStaging();
@@ -524,7 +524,7 @@ class ChapterLoadOrchestrator {
     );
     if (_isStale(gen)) return;
 
-    final descriptors = _session.descriptors;
+    final descriptors = _engine.session.descriptors;
     final maxOffset = PaginationUtils.chapterCharOffsetMax(
       descriptors: descriptors,
       phase1PlainContent: content,

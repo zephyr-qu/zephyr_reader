@@ -13,7 +13,7 @@ import 'package:zephyr_reader/reader_engine/scroll/scroll_layout_params.dart';
 import 'package:zephyr_reader/features/reader/core/application/search_index_lifecycle.dart';
 import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
 import 'package:zephyr_reader/features/reader/domain/progress_repository.dart';
-import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
+import 'package:zephyr_reader/reader_engine/pagination/engine.dart';
 
 import 'package:zephyr_reader/reader_engine/shared/ir_types.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_request.dart';
@@ -50,7 +50,7 @@ class ChapterViewModel {
   final readerNotice = signal<ReaderNotice?>(null);
 
   final ChapterContentRepository _contentRepo;
-  final PaginationSession _session;
+  final PaginationEngine _engine;
   final ProgressRepository _progressRepo;
   final ReaderConfig _config;
 
@@ -61,7 +61,7 @@ class ChapterViewModel {
   late final ChapterNavigator _navigator;
   late final AutoScrollController _autoScroll;
 
-  ChapterViewModel(this._contentRepo, this._session, this._progressRepo, this._config) {
+  ChapterViewModel(this._contentRepo, this._engine, this._progressRepo, this._config) {
     _scrollBoundary = ScrollBoundaryCoordinator(
       contentRepo: _contentRepo,
       onPositionChanged: (chapterIdx, offset) {
@@ -78,13 +78,13 @@ class ChapterViewModel {
         readerNotice.value = notice;
       },
     );
-    _pagination = PaginationCoordinator(_contentRepo, _session, _config, this);
-    _loader = ChapterLoader(_contentRepo, _progressRepo, _session, this, _pagination);
+    _pagination = PaginationCoordinator(_contentRepo, _engine, _config, this);
+    _loader = ChapterLoader(_contentRepo, _progressRepo, _engine, this, _pagination);
     _searchIndex = SearchIndexLifecycle(this, _loader.chapters);
     _loader.scheduleSearchIndex = _searchIndex.scheduleIndex;
     _navigator = ChapterNavigator(
       _contentRepo,
-      _session,
+      _engine,
       _config,
       this,
       _loader,

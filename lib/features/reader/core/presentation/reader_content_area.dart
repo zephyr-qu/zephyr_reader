@@ -1,4 +1,4 @@
-import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
+import 'package:zephyr_reader/reader_engine/pagination/engine.dart';
 import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
 import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
 import 'package:zephyr_reader/src/rust/domain/note/models.dart';
@@ -29,7 +29,7 @@ class ReaderContentArea extends HookWidget {
     super.key,
     required this.vm,
     required this.contentRepo,
-    required this.session,
+    required this.engine,
     required this.fontRepo,
     required this.vocabWords,
     required this.selectionGlobalPos,
@@ -38,7 +38,7 @@ class ReaderContentArea extends HookWidget {
 
   final ReaderViewModel vm;
   final ChapterContentRepository contentRepo;
-  final PaginationSession session;
+  final PaginationEngine engine;
   final FontRepository fontRepo;
   final Signal<Set<String>> vocabWords;
   final Signal<Offset?> selectionGlobalPos;
@@ -209,7 +209,7 @@ class ReaderContentArea extends HookWidget {
                   config: renderConfig,
                   pageController: pc,
                   contentRepo: contentRepo,
-                  session: session,
+                  engine: engine,
                   bookId: bCurrentbookid,
                   chapterId: bChapterindex,
                   pageIndex: bPageindex,
