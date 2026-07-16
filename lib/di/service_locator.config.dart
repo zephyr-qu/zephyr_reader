@@ -66,8 +66,7 @@ import 'package:zephyr_reader/features/search/application/search_view_model.dart
     as _i1;
 import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart'
     as _i897;
-import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart'
-    as _i20;
+import 'package:zephyr_reader/reader_engine/pagination/engine.dart' as _i573;
 import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart'
     as _i334;
 
@@ -169,7 +168,7 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i642.ChapterViewModel>(
       () => _i642.ChapterViewModel(
         gh<_i897.ChapterContentRepository>(),
-        gh<_i20.PaginationSession>(),
+        gh<_i573.PaginationEngine>(),
         gh<_i199.ProgressRepository>(),
         gh<_i334.ReaderConfig>(),
       ),
