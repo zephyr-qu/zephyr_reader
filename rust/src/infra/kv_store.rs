@@ -33,7 +33,8 @@ pub struct KvStore {
 }
 
 /// Scroll IR 缓存格式版本。
-pub const SCROLL_IR_CACHE_VERSION: u8 = 1;
+/// Version 2 freezes every IR offset as a UTF-16 code-unit offset.
+pub const SCROLL_IR_CACHE_VERSION: u8 = 2;
 
 /// Scroll 路径章 IR 缓存（无 config_hash 依赖；跨 session 复用 HTML 解析）。
 #[derive(Debug, Clone, PartialEq, bincode::Encode, bincode::Decode)]
@@ -54,6 +55,31 @@ impl ScrollIrCache {
 
     pub fn is_valid(&self) -> bool {
         self.version == SCROLL_IR_CACHE_VERSION
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn current_ir_cache_version_is_valid() {
+        let cache = ScrollIrCache::new(crate::pipeline::ReaderChapterIr::new(
+            Vec::new(),
+            String::new(),
+        ));
+        assert_eq!(cache.version, SCROLL_IR_CACHE_VERSION);
+        assert!(cache.is_valid());
+    }
+
+    #[test]
+    fn scalar_offset_cache_version_is_stale() {
+        let cache = ScrollIrCache {
+            version: 1,
+            ir: crate::pipeline::ReaderChapterIr::new(Vec::new(), String::new()),
+            created_at: 0,
+        };
+        assert!(!cache.is_valid());
     }
 }
 

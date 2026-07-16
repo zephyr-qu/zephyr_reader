@@ -8,35 +8,21 @@ use crate::common::AppError;
 use crate::common::security::validate_file_path;
 use crate::domain::book::{Book, BookFormat, BookStatus, BookshelfBook};
 use crate::domain::book::book_repo::BookRepository;
-use crate::domain::category::Category;
 use crate::domain::category::category_repo::CategoryRepository;
-use crate::domain::chapter::Chapter;
 use crate::domain::chapter::chapter_repo::ChapterRepository;
-use crate::domain::note::NoteStats;
 use crate::domain::note::note_repo::NoteRepository;
-use crate::domain::progress::models::ReadingProgress;
 use crate::domain::progress::progress_repo::ProgressRepository;
 use crate::domain::sessions::session_repo::SessionRepository;
 use crate::domain::vocab::vocab_repo::VocabRepository;
 use crate::infra::manager::storage_pool;
 use crate::parser::registry::parser_for_file;
 use crate::pipeline::chapter_ir::IrCacheRepository;
+use crate::api::book::BookDetail;
 
-/// 获取书籍详情（聚合查询，返回各组件供 API 层组装 BookDetail）
+/// 获取书籍详情（聚合查询）
 pub async fn get_book_detail(
     book_id: &str,
-) -> Result<
-    (
-        Book,
-        Option<ReadingProgress>,
-        NoteStats,
-        Vec<Chapter>,
-        Vec<Category>,
-        i32,
-        i32,
-    ),
-    AppError,
-> {
+) -> Result<BookDetail, AppError> {
     let pool = storage_pool()?;
 
     let book = BookRepository::find_by_id(&pool, book_id)
@@ -49,7 +35,7 @@ pub async fn get_book_detail(
     let session_count = SessionRepository::count_by_book(&pool, book_id).await?;
     let vocab_count = VocabRepository::count_by_book(&pool, book_id).await?;
 
-    Ok((book, progress, note_stats, chapters, categories, session_count, vocab_count))
+    Ok(BookDetail { book, progress, note_stats, chapters, categories, session_count, vocab_count })
 }
 
 /// 列出书架书籍（含进度），支持按分类/状态筛选/排序。

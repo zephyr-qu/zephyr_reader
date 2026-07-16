@@ -77,6 +77,7 @@
 | [012](./adr/012-staging-prefetch-guarantee.md) | Staging 零 loading |
 | [013](./adr/013-flutter-metrics-calibration.md) | Metrics 回传校准 |
 | [014](./adr/014-api-path-unification.md) | 分页 API 路径统一 |
+| [017](./adr/017-reading-offset-utf16-contract.md) | 阅读坐标统一为 UTF-16 code unit |
 
 ---
 

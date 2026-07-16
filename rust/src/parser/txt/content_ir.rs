@@ -8,19 +8,21 @@ use crate::common::AppError;
 use crate::pipeline::PlainProjectionStyle;
 #[cfg(test)]
 use crate::pipeline::ReaderIrBlockKind;
-use crate::pipeline::{slice_by_char_range, BlockStyle, ReaderChapterIr, ReaderIrBlock};
+use crate::pipeline::{
+    BlockStyle, ReaderChapterIr, ReaderIrBlock, slice_by_utf16_range, utf16_len,
+};
 
 use super::provider::TxtContentProvider;
 use crate::parser::provider::ChapterContentProvider;
 
-/// 空行分隔的段落 char 范围 `(plain_start, plain_len)`（Unicode 标量索引）。
+/// 空行分隔的段落范围 `(plain_start, plain_len)`（UTF-16 code unit）。
 fn paragraph_char_ranges(text: &str) -> Vec<(u32, u32)> {
     let mut ranges = Vec::new();
     let mut para_start: Option<u32> = None;
     let mut char_idx = 0u32;
 
     for line in text.split_inclusive('\n') {
-        let line_len = line.chars().count() as u32;
+        let line_len = utf16_len(line);
         let trimmed = line.trim_end_matches(['\r', '\n']);
 
         if trimmed.is_empty() {
@@ -45,11 +47,18 @@ pub fn txt_to_chapter_ir(chapter_text: &str) -> ReaderChapterIr {
     let mut blocks = Vec::new();
 
     for (start, len) in paragraph_char_ranges(chapter_text) {
-        let text = slice_by_char_range(chapter_text, start, len);
+        let text = slice_by_utf16_range(chapter_text, start, len)
+            .expect("paragraph ranges are derived from UTF-16 scalar boundaries")
+            .to_string();
         if text.trim().is_empty() {
             continue;
         }
-        blocks.push(ReaderIrBlock::text(start, text, Vec::new(), BlockStyle::empty()));
+        blocks.push(ReaderIrBlock::text(
+            start,
+            text,
+            Vec::new(),
+            BlockStyle::empty(),
+        ));
     }
 
     ReaderChapterIr::new(blocks, chapter_text.to_string())
@@ -154,6 +163,17 @@ mod tests {
         let raw = "第一段内容。\n\n第二段内容。";
         let ir = txt_to_chapter_ir(raw);
         // assert_eq!(ir.block_count(), 2);
+        assert_ir_invariants(&ir);
+    }
+
+    #[test]
+    fn emoji_paragraph_offsets_use_utf16_code_units() {
+        let raw = "A😀\n\nB";
+        let ir = txt_to_chapter_ir(raw);
+
+        assert_eq!(ir.blocks[0].plain_len, 4);
+        assert_eq!(ir.blocks[1].plain_start, 5);
+        assert_eq!(ir.plain_slice(0, 4).as_deref(), Some("A😀\n"));
         assert_ir_invariants(&ir);
     }
 

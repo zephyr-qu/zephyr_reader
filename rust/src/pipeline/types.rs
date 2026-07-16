@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 // ==================== 常量 ====================
 
-/// 每个 Image block 在章级 plain 中占 1 个 OBJECT REPLACEMENT 字符。
+/// 每个 Image block 在章级 plain 中占 1 个 UTF-16 code unit 的 OBJECT REPLACEMENT 字符。
 pub const IMAGE_PLAIN_PLACEHOLDER: char = '\u{FFFC}';
 
 /// 图片块在 plain 中的字符长度（恒为 1）。
@@ -124,7 +124,7 @@ impl ReaderIrBlock {
         runs: Vec<ReaderInlineRun>,
         style: BlockStyle,
     ) -> Self {
-        let plain_len = text.chars().count() as u32;
+        let plain_len = text.encode_utf16().count() as u32;
         Self {
             kind: ReaderIrBlockKind::Text,
             plain_start,
@@ -171,17 +171,12 @@ impl ReaderIrBlock {
 pub struct ReaderChapterIr {
     pub blocks: Vec<ReaderIrBlock>,
     pub plain_text: String,
-
 }
 
 impl ReaderChapterIr {
     #[frb(ignore)]
     pub fn new(blocks: Vec<ReaderIrBlock>, plain_text: String) -> Self {
-        Self {
-            blocks,
-            plain_text,
-
-        }
+        Self { blocks, plain_text }
     }
 
     /// 图片块数量

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/painting.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/line_break_extractor.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/ir_text_block_style.dart';
@@ -18,6 +19,22 @@ const kLineBreakChunkChars = 4000;
 
 /// 页底安全余量：Strut 累加与 SelectableText 实测常有 1–2dp 差，避免 RenderFlex overflow。
 const kPagePackBottomSlackDp = 2.0;
+
+@visibleForTesting
+int utf16SafeChunkEnd(String text, int proposedEnd) {
+  var end = proposedEnd.clamp(0, text.length);
+  if (end > 0 && end < text.length) {
+    final previous = text.codeUnitAt(end - 1);
+    final current = text.codeUnitAt(end);
+    final splitsSurrogatePair =
+        previous >= 0xD800 &&
+        previous <= 0xDBFF &&
+        current >= 0xDC00 &&
+        current <= 0xDFFF;
+    if (splitsSurrogatePair) end--;
+  }
+  return end;
+}
 
 /// 装箱被 generation 取消。
 final class PaginationCancelledException implements Exception {
@@ -344,9 +361,9 @@ class _PagePacker {
       // 首屏：越过 stopAfter 后仍要装满当前页，再截断。
       if (stoppedEarly) break;
 
-      var chunkTo = (chunkFrom + kLineBreakChunkChars).clamp(
-        0,
-        block.text.length,
+      var chunkTo = utf16SafeChunkEnd(
+        block.text,
+        chunkFrom + kLineBreakChunkChars,
       );
       if (chunkTo < block.text.length) {
         final nl = block.text.lastIndexOf('\n', chunkTo);
@@ -395,9 +412,9 @@ class _PagePacker {
     while (chunkFrom < block.text.length) {
       if (stoppedEarly) break;
 
-      var chunkTo = (chunkFrom + kLineBreakChunkChars).clamp(
-        0,
-        block.text.length,
+      var chunkTo = utf16SafeChunkEnd(
+        block.text,
+        chunkFrom + kLineBreakChunkChars,
       );
       if (chunkTo < block.text.length) {
         final nl = block.text.lastIndexOf('\n', chunkTo);

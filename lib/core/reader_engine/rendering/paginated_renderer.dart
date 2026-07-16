@@ -12,9 +12,8 @@ import 'package:zephyr_reader/core/reader_engine/rendering/highlight_painter.dar
 
 import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart';
 
-import 'package:zephyr_reader/core/reader_engine/rendering/paginated_page_viewport.dart';
+import 'package:zephyr_reader/core/utils/find_render_box.dart';
 import 'reader_render_config.dart';
-import 'find_render_box.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/viewport_index.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/page_turn_shell.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';

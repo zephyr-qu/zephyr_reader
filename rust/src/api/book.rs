@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 
 use flutter_rust_bridge::frb;
+use serde::{Deserialize, Serialize};
 
 use crate::common::AppError;
 use crate::domain::book::service;
@@ -11,15 +12,11 @@ use crate::domain::book::book_repo::BookRepository;
 use crate::domain::category::Category;
 use crate::domain::chapter::Chapter;
 use crate::domain::note::NoteStats;
-use crate::infra::manager::storage_pool;
-
 use crate::domain::progress::models::ReadingProgress;
+use crate::infra::manager::storage_pool;
 use crate::parser::epub::EpubMetadata;
-// ============================================================
-// API 响应 DTO
-// ============================================================
-
 /// 书籍详情聚合
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[frb(dart_metadata = ("freezed"))]
 pub struct BookDetail {
     pub book: Book,
@@ -30,7 +27,6 @@ pub struct BookDetail {
     pub session_count: i32,
     pub vocab_count: i32,
 }
-
 // ============================================================
 // 书籍 CRUD — 薄 FFI 封装
 // ============================================================
@@ -39,17 +35,7 @@ pub struct BookDetail {
 #[frb]
 pub async fn get_book_detail(book_id: String) -> Result<BookDetail, AppError> {
     tracing::debug!("[book] get_book_detail: book_id={}", book_id);
-    let (book, progress, note_stats, chapters, categories, session_count, vocab_count) =
-        service::get_book_detail(&book_id).await?;
-    Ok(BookDetail {
-        book,
-        progress,
-        note_stats,
-        chapters,
-        categories,
-        session_count,
-        vocab_count,
-    })
+    Ok(service::get_book_detail(&book_id).await?)
 }
 
 /// 获取所有书籍列表

@@ -11,7 +11,6 @@ import 'package:zephyr_reader/core/reader_engine/pagination/flutter_block_pagina
 import 'package:zephyr_reader/core/reader_engine/pagination/active_chapter_ir.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/pagination_viewport_metrics.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/ir_text_block_style.dart';
-import 'package:zephyr_reader/core/reader_engine/rendering/paginated_page_viewport.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart';
 
@@ -166,14 +165,10 @@ Widget buildBlockPageContent({
           return PaginatedPageViewport(
             maxHeight: bodyHeight,
             maxWidth: constraints.maxWidth,
-            child: _ContentMeasurer(
-              label:
-                  'blocks=${blocks.length} vp=${bodyHeight.toStringAsFixed(1)}dp',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: children,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: children,
             ),
           );
         },
@@ -332,37 +327,31 @@ class _EpubBlockImageState extends State<EpubBlockImage> {
   }
 }
 
-/// 测量 child 的实际渲染高度，用于诊断分页估算偏差。
-class _ContentMeasurer extends StatefulWidget {
+/// 分页单页视口：固定高度，由 Flutter 分页保证不溢出。
+class PaginatedPageViewport extends StatelessWidget {
+  const PaginatedPageViewport({
+    super.key,
+    required this.maxHeight,
+    required this.maxWidth,
+    required this.child,
+  });
+
+  final double maxHeight;
+  final double maxWidth;
   final Widget child;
-  final String label;
-  const _ContentMeasurer({required this.child, required this.label});
-
-  @override
-  State<_ContentMeasurer> createState() => _ContentMeasurerState();
-}
-
-class _ContentMeasurerState extends State<_ContentMeasurer> {
-  bool _measured = false;
 
   @override
   Widget build(BuildContext context) {
-    if (!_measured) {
-      _measured = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        final box = context.findRenderObject() as RenderBox?;
-        if (box != null && box.hasSize) {
-          final h = box.size.height;
-          final w = box.size.width;
-          Logging.info(
-            '[ContentHeight] ${widget.label} actualH=${h.toStringAsFixed(1)}dp'
-            ' actualW=${w.toStringAsFixed(1)}dp'
-            ' (constrained; see [LineBreak] overflow for intrinsic)',
-          );
-        }
-      });
-    }
-    return widget.child;
+    Logging.info(
+      '[PageViewport] maxH_dp=\${maxHeight.toStringAsFixed(1)}'
+      ' maxW_dp=\${maxWidth.toStringAsFixed(1)}',
+    );
+    return SizedBox(
+      height: maxHeight,
+      width: maxWidth,
+      child: ClipRect(
+        child: Align(alignment: Alignment.topCenter, child: child),
+      ),
+    );
   }
 }

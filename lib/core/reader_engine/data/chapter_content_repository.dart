@@ -6,7 +6,7 @@ import 'package:zephyr_reader/core/reader_engine/shared/config/reader_config.dar
 import 'package:zephyr_reader/core/reader_engine/shared/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/flutter_staging_preloader.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/pagination_staging_store.dart';
-import 'package:zephyr_reader/core/reader_engine/scroll/scroll_chapter_payload.dart';
+import 'package:zephyr_reader/core/reader_engine/scroll/scroll_segment_factory.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/pagination_params.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/ir_types.dart';
 import 'package:zephyr_reader/src/rust/api/book.dart' as book_api;
@@ -22,7 +22,6 @@ class ChapterContentRepository {
 
   final ReaderConfig _config;
   PaginationParams? _layoutParams;
-
 
   ReaderChapterIr? _currentChapterIr;
   String? _currentChapterFilePath;
@@ -87,6 +86,21 @@ class ChapterContentRepository {
     _currentChapterFilePath = path;
   }
 
+  void _logIrFallback({
+    required String stage,
+    required String bookId,
+    required int chapterIndex,
+    required ReadingMode? readingMode,
+    required Object reason,
+    required bool fallbackSucceeded,
+  }) {
+    Logging.warning(
+      '[ReaderIrFallback] stage=$stage bookId=$bookId '
+      'chapter=$chapterIndex mode=${readingMode?.name ?? "unknown"} '
+      'fallbackSucceeded=$fallbackSucceeded reason=$reason',
+    );
+  }
+
   /// 尝试加载 scroll IR（EPUB/TXT）。
   Future<ScrollChapterPayload?> _tryLoadScrollIr({
     required String bookId,
@@ -103,14 +117,31 @@ class ChapterContentRepository {
         bookId: bookId,
         chapterIndex: chapterId,
       );
-      if (ir.blocks.isEmpty || ir.plainText.isEmpty) return null;
+      if (ir.blocks.isEmpty || ir.plainText.isEmpty) {
+        _logIrFallback(
+          stage: 'validate',
+          bookId: bookId,
+          chapterIndex: chapterId,
+          readingMode: readingMode,
+          reason:
+              'empty_ir blocks=${ir.blocks.length} plain=${ir.plainText.length}',
+          fallbackSucceeded: false,
+        );
+        return null;
+      }
       Logging.info(
         '[Timing] loadChapterIr: ${sw.elapsedMilliseconds}ms blocks=${ir.blocks.length}',
       );
       return scrollIrPayload(chapterIr: ir, chapterFilePath: filePath);
-
     } catch (e) {
-      Logging.warning('loadChapterPayload IR failed, fallback rich/plain: $e');
+      _logIrFallback(
+        stage: 'fetch',
+        bookId: bookId,
+        chapterIndex: chapterId,
+        readingMode: readingMode,
+        reason: e,
+        fallbackSucceeded: false,
+      );
       return null;
     }
   }
@@ -223,15 +254,20 @@ class ChapterContentRepository {
       '[Timing] loadScrollPayload plain fallback: ${sw.elapsedMilliseconds}ms',
     );
     final plainPayload = scrollPlainPayload(content, chapterFilePath: filePath);
+    _logIrFallback(
+      stage: 'plain',
+      bookId: bookId,
+      chapterIndex: chapterId,
+      readingMode: ReadingMode.scroll,
+      reason: 'ir_unavailable',
+      fallbackSucceeded: true,
+    );
     _applyCurrentIr(plainPayload);
     _setChapterFilePath(filePath);
     return plainPayload;
   }
 
-  Future<String> _fetchPlainChapterContent(
-    String bookId,
-    int chapterId,
-) async {
+  Future<String> _fetchPlainChapterContent(String bookId, int chapterId) async {
     final content = await reader_api.getChapterPlain(
       bookId: bookId,
       chapterIndex: chapterId,
@@ -252,26 +288,28 @@ class ChapterContentRepository {
   }) async {
     final isEpub = filePath.toLowerCase().endsWith('.epub');
 
-    Future<dynamic> contentIrFuture;
+    Future<ReaderChapterIr?> contentIrFuture;
     if (isEpub && readingMode == ReadingMode.bilingual) {
-      contentIrFuture = reader_api.getChapterContentIr(
-        bookId: bookId,
-        chapterIndex: chapterId,
-      );
+      contentIrFuture = reader_api
+          .getChapterContentIr(bookId: bookId, chapterIndex: chapterId)
+          .then<ReaderChapterIr?>((value) => value);
     } else {
-      contentIrFuture = Future.error('no IR requested');
+      contentIrFuture = Future<ReaderChapterIr?>.value();
     }
 
     final results = await Future.wait([
       reader_api.getChapterPlain(bookId: bookId, chapterIndex: chapterId),
-      contentIrFuture
-          .then<ReaderChapterIr?>((v) => v as ReaderChapterIr)
-          .catchError((_) {
-            Logging.warning(
-              'getChapterContentIr failed, falling back to plain text',
-            );
-            return null;
-          }),
+      contentIrFuture.catchError((Object error) {
+        _logIrFallback(
+          stage: 'fetch',
+          bookId: bookId,
+          chapterIndex: chapterId,
+          readingMode: readingMode,
+          reason: error,
+          fallbackSucceeded: false,
+        );
+        return null;
+      }),
     ]);
     final content = results[0] as String;
     final ir = results[1] as ReaderChapterIr?;
@@ -286,6 +324,17 @@ class ChapterContentRepository {
 
     if (content.isEmpty) {
       throw Exception('Chapter content is empty');
+    }
+
+    if (ir == null && isEpub && readingMode == ReadingMode.bilingual) {
+      _logIrFallback(
+        stage: 'plain',
+        bookId: bookId,
+        chapterIndex: chapterId,
+        readingMode: readingMode,
+        reason: 'ir_unavailable',
+        fallbackSucceeded: true,
+      );
     }
 
     Logging.info(

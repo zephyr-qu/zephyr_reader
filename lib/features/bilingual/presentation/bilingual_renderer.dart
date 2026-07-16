@@ -6,7 +6,7 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/utils/adaptive_scroll_physics.dart';
 
-import 'package:zephyr_reader/core/reader_engine/rendering/find_render_box.dart';
+import 'package:zephyr_reader/core/utils/find_render_box.dart';
 import 'package:zephyr_reader/src/rust/domain/bilingual/models.dart';
 import 'package:zephyr_reader/src/rust/domain/note/models.dart';
 
