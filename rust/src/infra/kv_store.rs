@@ -1,16 +1,17 @@
 // ============================================================
-// 文件作用：KV 存储（sled），用于排版缓存等高频读写临时数据
+// 文件作用：KV 存储（redb），用于排版缓存等高频读写临时数据
 //
 // 公有类型/函数：
-//   - KvStore — sled 封装
+//   - KvStore — redb 封装
 //   - new() / flush() — 生命周期
 //   - save_ir_cache() / get_ir_cache() — IR 缓存
+//   - delete_ir_cache_by_prefix() — 按 key 前缀批量删除
 //
 // 私有函数：
 //   - enforce_scroll_ir_capacity() — 容量淘汰
 // ============================================================
 
-//! KV 存储（sled）
+//! KV 存储（redb）
 //!
 //! 用于排版缓存等高频读写、可重建的临时数据。
 
@@ -18,23 +19,21 @@ use std::path::Path;
 
 use crate::common::AppError;
 use flutter_rust_bridge::frb;
+use redb::{Database, ReadableTable, TableDefinition};
 
-const SCROLL_IR_TREE_NAME: &str = "scroll_ir_cache";
+const SCROLL_IR_TABLE: TableDefinition<&str, &[u8]> =
+    TableDefinition::new("scroll_ir_cache");
 
-/// sled 磁盘缓存条目上限。超过时按版本/key 顺序淘汰。
+/// redb 磁盘缓存条目上限。超过时按 key 顺序淘汰最旧。
 const SCROLL_IR_MAX_ENTRIES: usize = 256;
 
 /// KV 存储封装
 #[frb(opaque)]
 pub struct KvStore {
-    /// sled 数据库句柄 — 不会被直接读取，仅用于保活。
-    /// 一旦 db 被 drop，tree 会成为悬空指针。
-    #[allow(dead_code)]
-    db: sled::Db,
-    scroll_ir_cache: sled::Tree,
+    db: Database,
 }
 
-/// Scroll IR sled 缓存格式版本。
+/// Scroll IR 缓存格式版本。
 pub const SCROLL_IR_CACHE_VERSION: u8 = 1;
 
 /// Scroll 路径章 IR 缓存（无 config_hash 依赖；跨 session 复用 HTML 解析）。
@@ -62,25 +61,27 @@ impl ScrollIrCache {
 impl KvStore {
     /// 打开或创建 KV 存储
     pub fn new(path: impl AsRef<Path>) -> Result<Self, AppError> {
-        let db = sled::open(path).map_err(|e| AppError::DatabaseError {
-            reason: format!("Failed to open sled database: {e}"),
+        let db = Database::create(path).map_err(|e| AppError::DatabaseError {
+            reason: format!("Failed to open redb database: {e}"),
         })?;
-        let scroll_ir_cache =
-            db.open_tree(SCROLL_IR_TREE_NAME)
-                .map_err(|e| AppError::DatabaseError {
-                    reason: format!("Failed to open ir tree: {e}"),
-                })?;
-        Ok(Self {
-            db,
-            scroll_ir_cache,
-        })
+        // 确保表存在
+        let write_tx = db.begin_write().map_err(|e| AppError::DatabaseError {
+            reason: format!("Failed to begin write tx: {e}"),
+        })?;
+        write_tx.open_table(SCROLL_IR_TABLE).map_err(|e| {
+            AppError::DatabaseError {
+                reason: format!("Failed to open ir table: {e}"),
+            }
+        })?;
+        write_tx.commit().map_err(|e| AppError::DatabaseError {
+            reason: format!("Failed to commit table creation: {e}"),
+        })?;
+        Ok(Self { db })
     }
 
-    /// 刷盘
+    /// 刷盘（redb 自动 WAL，此方法为兼容旧接口保留）
     pub fn flush(&self) -> Result<(), AppError> {
-        self.db.flush().map_err(|e| AppError::DatabaseError {
-            reason: format!("Failed to flush sled database: {e}"),
-        })?;
+        // redb 在 commit 时会自动刷盘
         Ok(())
     }
 
@@ -92,15 +93,34 @@ impl KvStore {
         value: &ScrollIrCache,
     ) -> Result<(), AppError> {
         let key = format!("{}#{}", file_path, chapter_index);
-        let bytes = bincode::encode_to_vec(value, bincode::config::standard()).map_err(|e| {
-            AppError::DatabaseError {
-                reason: format!("Failed to serialize ir: {e}"),
-            }
-        })?;
-        self.scroll_ir_cache
-            .insert(key, bytes)
+        let bytes =
+            bincode::encode_to_vec(value, bincode::config::standard()).map_err(|e| {
+                AppError::DatabaseError {
+                    reason: format!("Failed to serialize ir: {e}"),
+                }
+            })?;
+        let write_tx = self
+            .db
+            .begin_write()
             .map_err(|e| AppError::DatabaseError {
-                reason: format!("Failed to insert ir cache: {e}"),
+                reason: format!("Failed to begin write tx: {e}"),
+            })?;
+        {
+            let mut table = write_tx
+                .open_table(SCROLL_IR_TABLE)
+                .map_err(|e| AppError::DatabaseError {
+                    reason: format!("Failed to open ir table: {e}"),
+                })?;
+            table
+                .insert(&*key, bytes.as_slice())
+                .map_err(|e| AppError::DatabaseError {
+                    reason: format!("Failed to insert ir cache: {e}"),
+                })?;
+        }
+        write_tx
+            .commit()
+            .map_err(|e| AppError::DatabaseError {
+                reason: format!("Failed to commit ir cache: {e}"),
             })?;
         self.enforce_scroll_ir_capacity()?;
         Ok(())
@@ -113,76 +133,159 @@ impl KvStore {
         chapter_index: i32,
     ) -> Result<Option<ScrollIrCache>, AppError> {
         let key = format!("{}#{}", file_path, chapter_index);
-        match self
-            .scroll_ir_cache
-            .get(&key)
+        let read_tx = self
+            .db
+            .begin_read()
+            .map_err(|e| AppError::DatabaseError {
+                reason: format!("Failed to begin read tx: {e}"),
+            })?;
+        let table = read_tx
+            .open_table(SCROLL_IR_TABLE)
+            .map_err(|e| AppError::DatabaseError {
+                reason: format!("Failed to open ir table: {e}"),
+            })?;
+        match table
+            .get(key.as_str())
             .map_err(|e| AppError::DatabaseError {
                 reason: format!("Failed to read ir cache: {e}"),
             })? {
-            Some(bytes) => match bincode::decode_from_slice::<ScrollIrCache, _>(
-                &bytes,
-                bincode::config::standard(),
-            ) {
-                Ok((cache, _)) if cache.is_valid() => Ok(Some(cache)),
-                Ok(_) => Ok(None),
-                Err(e) => {
-                    tracing::warn!("ScrollIrCache deserialize failed (corrupted?): {}", e);
-                    Ok(None)
+            Some(bytes) => {
+                match bincode::decode_from_slice::<ScrollIrCache, _>(
+                    bytes.value(),
+                    bincode::config::standard(),
+                ) {
+                    Ok((cache, _)) if cache.is_valid() => Ok(Some(cache)),
+                    Ok(_) => Ok(None),
+                    Err(e) => {
+                        tracing::warn!(
+                            "ScrollIrCache deserialize failed (corrupted?): {}",
+                            e
+                        );
+                        Ok(None)
+                    }
                 }
-            },
+            }
             None => Ok(None),
         }
     }
 
-    /// 容量淘汰：当 scroll_ir_cache 条目超过上限时，按版本号淘汰无效条目，再按 key 顺序淘汰最旧。
-    fn enforce_scroll_ir_capacity(&self) -> Result<(), AppError> {
-        let len = self.scroll_ir_cache.len();
-        if len <= SCROLL_IR_MAX_ENTRIES {
-            return Ok(());
-        }
-        let mut valid_keys: Vec<sled::IVec> = Vec::new();
-        let mut stale_keys: Vec<sled::IVec> = Vec::new();
-        for item in self.scroll_ir_cache.iter() {
-            let (key, value) = item.map_err(|e| AppError::DatabaseError {
-                reason: format!("Failed to read from sled: {e}"),
+    /// 按 key 前缀删除所有 IR 缓存条目（用于删书时清缓存）。
+    pub fn delete_ir_cache_by_prefix(&self, prefix: &str) -> Result<(), AppError> {
+        let write_tx = self
+            .db
+            .begin_write()
+            .map_err(|e| AppError::DatabaseError {
+                reason: format!("Failed to begin write tx: {e}"),
             })?;
-            if let Ok((cache, _)) =
-                bincode::decode_from_slice::<ScrollIrCache, _>(&value, bincode::config::standard())
-            {
-                if cache.is_valid() {
-                    valid_keys.push(key);
-                } else {
-                    stale_keys.push(key);
-                }
-            }
-        }
-        for key in &stale_keys {
-            self.scroll_ir_cache
-                .remove(key)
+        {
+            let mut table = write_tx
+                .open_table(SCROLL_IR_TABLE)
                 .map_err(|e| AppError::DatabaseError {
-                    reason: format!("Failed to evict stale ir: {e}"),
+                    reason: format!("Failed to open ir table: {e}"),
                 })?;
-        }
-        let remaining = self.scroll_ir_cache.len();
-        if remaining > SCROLL_IR_MAX_ENTRIES {
-            let to_evict = remaining - SCROLL_IR_MAX_ENTRIES;
-            for key in valid_keys.iter().take(to_evict) {
-                self.scroll_ir_cache
-                    .remove(key)
+            // redb range is [start, end); use prefix as start and a high bound
+            let keys_to_remove: Vec<String> = table
+                .range(prefix..)
+                .map_err(|e| AppError::DatabaseError {
+                    reason: format!("Failed to scan ir cache: {e}"),
+                })?
+                .take_while(|r| {
+                    r.as_ref().is_ok_and(|(k, _)| k.value().starts_with(prefix))
+                })
+                .filter_map(|r| r.ok())
+                .map(|(k, _)| k.value().to_string())
+                .collect();
+            for key in &keys_to_remove {
+                table
+                    .remove(key.as_str())
                     .map_err(|e| AppError::DatabaseError {
-                        reason: format!("Failed to evict ir: {e}"),
+                        reason: format!("Failed to remove ir cache key: {e}"),
                     })?;
             }
-            tracing::info!(
-                "Evicted {to_evict} scroll_ir_cache entries (stale: {stale_count}, was {len}, max {SCROLL_IR_MAX_ENTRIES})",
-                stale_count = stale_keys.len()
-            );
-        } else if !stale_keys.is_empty() {
-            tracing::info!(
-                "Evicted {stale_count} stale scroll_ir_cache entries (was {len}, now {remaining})",
-                stale_count = stale_keys.len()
-            );
         }
+        write_tx
+            .commit()
+            .map_err(|e| AppError::DatabaseError {
+                reason: format!("Failed to commit cache deletion: {e}"),
+            })?;
+        Ok(())
+    }
+
+    /// 容量淘汰：当 scroll_ir_cache 条目超过上限时，按版本号淘汰无效条目，再按 key 顺序淘汰最旧。
+    fn enforce_scroll_ir_capacity(&self) -> Result<(), AppError> {
+        let write_tx = self
+            .db
+            .begin_write()
+            .map_err(|e| AppError::DatabaseError {
+                reason: format!("Failed to begin eviction write tx: {e}"),
+            })?;
+        {
+            let mut table = write_tx
+                .open_table(SCROLL_IR_TABLE)
+                .map_err(|e| AppError::DatabaseError {
+                    reason: format!("Failed to open ir table: {e}"),
+                })?;
+            let mut total = 0usize;
+            let mut valid_keys: Vec<String> = Vec::new();
+            let mut stale_keys: Vec<String> = Vec::new();
+            for item in table.iter().map_err(|e| AppError::DatabaseError {
+                reason: format!("Failed to iterate ir table: {e}"),
+            })? {
+                total += 1;
+                let (key_bytes, value_bytes) =
+                    item.map_err(|e| AppError::DatabaseError {
+                        reason: format!("Failed to read from redb: {e}"),
+                    })?;
+                if let Ok((cache, _)) =
+                    bincode::decode_from_slice::<ScrollIrCache, _>(
+                        value_bytes.value(),
+                        bincode::config::standard(),
+                    )
+                {
+                    if cache.is_valid() {
+                        valid_keys.push(key_bytes.value().to_string());
+                    } else {
+                        stale_keys.push(key_bytes.value().to_string());
+                    }
+                }
+            }
+            if total <= SCROLL_IR_MAX_ENTRIES {
+                // Drop write_tx without commit to avoid unnecessary WAL write
+                return Ok(());
+            }
+            for key in &stale_keys {
+                table
+                    .remove(key.as_str())
+                    .map_err(|e| AppError::DatabaseError {
+                        reason: format!("Failed to evict stale ir: {e}"),
+                    })?;
+            }
+            let remaining = total - stale_keys.len();
+            if remaining > SCROLL_IR_MAX_ENTRIES {
+                let to_evict = remaining - SCROLL_IR_MAX_ENTRIES;
+                for key in valid_keys.iter().take(to_evict) {
+                    table
+                        .remove(key.as_str())
+                        .map_err(|e| AppError::DatabaseError {
+                            reason: format!("Failed to evict ir: {e}"),
+                        })?;
+                }
+                tracing::info!(
+                    "Evicted {to_evict} scroll_ir_cache entries (stale: {stale_count}, was {total}, max {SCROLL_IR_MAX_ENTRIES})",
+                    stale_count = stale_keys.len()
+                );
+            } else if !stale_keys.is_empty() {
+                tracing::info!(
+                    "Evicted {stale_count} stale scroll_ir_cache entries (was {total}, now {remaining})",
+                    stale_count = stale_keys.len()
+                );
+            }
+        }
+        write_tx
+            .commit()
+            .map_err(|e| AppError::DatabaseError {
+                reason: format!("Failed to commit eviction: {e}"),
+            })?;
         Ok(())
     }
 }

@@ -63,11 +63,10 @@ impl IrCacheRepository {
         self.kv.get_ir_cache(file_path, chapter_index)
     }
 
-    /// 使指定书籍的所有 IR 缓存失效
-    /// scroll IR 按 file_path+chapter_index 键存储，
-    /// 不会被 book 删除影响（孤立条目无害）。
-    pub fn invalidate_book_cache(&self, _book_id: &str) -> Result<(), AppError> {
-        Ok(())
+    /// 使指定 file_path 的所有 IR 缓存失效
+    /// 按 file_path 前缀删除所有缓存条目。
+    pub fn invalidate_book_cache(&self, file_path: &str) -> Result<(), AppError> {
+        self.kv.delete_ir_cache_by_prefix(file_path)
     }
 }
 
