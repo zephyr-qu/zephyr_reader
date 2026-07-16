@@ -1,9 +1,9 @@
 import 'package:zephyr_reader/features/reader/core/application/chapter_load_orchestrator.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
-import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
-import 'package:zephyr_reader/reader_engine/pagination/engine.dart';
-import 'package:zephyr_reader/reader_engine/pagination/engine_utils.dart';
-import 'package:zephyr_reader/reader_engine/pagination/packed_page.dart';
+import 'package:zephyr_reader/core/reader_engine/data/chapter_content_repository.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/engine.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/engine_utils.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart';
 
 /// 章节分页意图。取代 `restartSession` 布尔，使 orchestrator 能显式选择路径。
 ///

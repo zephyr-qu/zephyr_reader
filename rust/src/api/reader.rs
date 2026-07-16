@@ -21,6 +21,13 @@ pub async fn get_chapter(file_path: String, chapter_index: i32) -> Result<String
     chapter_ir::get_chapter(file_path, chapter_index).await
 }
 
+/// 获取指定章节的原始文本内容（通过 book_id）
+#[frb]
+pub async fn get_chapter_plain(book_id: String, chapter_index: i32) -> Result<String, AppError> {
+    let file_path = resolve_book_path(&book_id).await?;
+    chapter_ir::get_chapter(file_path, chapter_index).await
+}
+
 /// 加载整章 ReaderIrBlock IR
 #[frb]
 pub async fn get_chapter_content_ir(

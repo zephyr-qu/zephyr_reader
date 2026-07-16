@@ -1,11 +1,11 @@
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
-import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
-import 'package:zephyr_reader/reader_engine/pagination/engine.dart';
-import 'package:zephyr_reader/reader_engine/pagination/engine_utils.dart';
-import 'package:zephyr_reader/reader_engine/shared/pagination_params.dart';
-import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
-import 'package:zephyr_reader/reader_engine/pagination/packed_page.dart';
+import 'package:zephyr_reader/core/reader_engine/data/chapter_content_repository.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/engine.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/engine_utils.dart';
+import 'package:zephyr_reader/core/reader_engine/shared/pagination_params.dart';
+import 'package:zephyr_reader/core/reader_engine/shared/config/reader_config.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart';
 
 class PaginationCoordinator {
   final ChapterContentRepository _contentRepo;

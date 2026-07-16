@@ -69,24 +69,13 @@ class BookshelfViewModel {
       List<BookshelfBook> data;
       final category = _categoryVM.selectedCategory.value;
       final status = selectedStatus.value;
-      if (category != null && status != null) {
-        data = await category_api.listBookshelfBooksByCategoryAndStatus(
-          categoryId: category.id,
-          status: status,
-        );
-      } else if (category != null) {
-        data = await category_api.listBookshelfBooksByCategory(
-          categoryId: category.id,
-        );
-      } else if (status != null) {
-        data = await book_api.listBookshelfBooksByStatus(status: status);
-      } else {
-        final sort = defaultSortType.value;
-        data = await book_api.listBookshelfBooks(
-          sortBy: sort.key,
-          sortOrder: sort.asc ? 'asc' : 'desc',
-        );
-      }
+      final sort = defaultSortType.value;
+      data = await book_api.listBookshelfBooks(
+        categoryId: category?.id,
+        status: status,
+        sortBy: sort.key,
+        sortOrder: sort.asc ? 'asc' : 'desc',
+      );
       if (gen != _reloadGeneration) return;
       books.value = AsyncState.data(data);
       Logging.debug(

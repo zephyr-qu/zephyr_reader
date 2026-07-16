@@ -1,5 +1,5 @@
-import 'package:zephyr_reader/reader_engine/pagination/engine.dart';
-import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/engine.dart';
+import 'package:zephyr_reader/core/reader_engine/data/chapter_content_repository.dart';
 import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
 import 'package:zephyr_reader/src/rust/domain/note/models.dart';
 
@@ -9,16 +9,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/features/reader/domain/service/custom_font_service.dart';
-import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
-import 'package:zephyr_reader/reader_engine/shared/config/reading_mode_utils.dart';
+import 'package:zephyr_reader/core/reader_engine/shared/config/reader_config.dart';
+import 'package:zephyr_reader/core/reader_engine/shared/config/reading_mode_utils.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_view_model.dart';
 
 import 'package:zephyr_reader/features/reader/annotations/presentation/reader_annotation_dialog.dart';
 import 'package:zephyr_reader/features/reader/annotations/presentation/reader_highlight_sheet.dart';
-import 'package:zephyr_reader/reader_engine/rendering/paginated_renderer.dart';
-import 'package:zephyr_reader/reader_engine/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/reader_engine/scroll/scroll_mode_renderer.dart';
-import 'package:zephyr_reader/reader_engine/scroll/scroll_chapter_segment.dart';
+import 'package:zephyr_reader/core/reader_engine/rendering/paginated_renderer.dart';
+import 'package:zephyr_reader/core/reader_engine/rendering/reader_render_config.dart';
+import 'package:zephyr_reader/core/reader_engine/scroll/scroll_mode_renderer.dart';
+import 'package:zephyr_reader/core/reader_engine/scroll/scroll_chapter_segment.dart';
 import 'package:zephyr_reader/features/reader/page/ui/battery_indicator.dart';
 import 'package:zephyr_reader/features/reader/page/ui/brightness_mask.dart';
 import 'package:zephyr_reader/features/reader/page/widgets/reader_content.dart';

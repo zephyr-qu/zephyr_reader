@@ -5,7 +5,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:zephyr_reader/features/bilingual/application/bilingual_view_model.dart';
 import 'package:zephyr_reader/features/reader/page/widgets/reader_translation_dialog.dart';
 import 'package:zephyr_reader/features/bilingual/presentation/bilingual_renderer.dart';
-import 'package:zephyr_reader/reader_engine/rendering/reader_render_config.dart';
+import 'package:zephyr_reader/core/reader_engine/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/domain/bilingual/models.dart';
 import 'package:zephyr_reader/src/rust/domain/note/models.dart';
 

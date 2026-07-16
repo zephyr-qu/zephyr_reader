@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/features/reader/domain/service/custom_font_service.dart';
-import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
+import 'package:zephyr_reader/core/reader_engine/shared/config/reader_config.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart';
 import 'package:zephyr_reader/features/reader/settings/assist_panel.dart';

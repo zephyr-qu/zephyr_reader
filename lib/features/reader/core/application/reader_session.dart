@@ -1,10 +1,10 @@
 import 'package:zephyr_reader/features/bilingual/application/bilingual_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
-import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
+import 'package:zephyr_reader/core/reader_engine/shared/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_view_model.dart';
-import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
+import 'package:zephyr_reader/core/reader_engine/data/chapter_content_repository.dart';
 import 'package:zephyr_reader/features/reader/domain/progress_repository.dart';
-import 'package:zephyr_reader/reader_engine/pagination/engine.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/engine.dart';
 
 /// Per-book reading session — owns a dedicated [ReaderViewModel] instance.
 class ReaderSession {
