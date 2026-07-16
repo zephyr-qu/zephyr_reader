@@ -4,8 +4,7 @@
 
 mod common;
 
-use rust_lib_zephyr_reader::api::chapter::{
-    clear_chapters_by_book, get_chapter_by_index, list_chapters_by_book, upsert_chapters,
+use rust_lib_zephyr_reader::api::chapter::{get_chapter_by_index, list_chapters_by_book, upsert_chapters,
 };
 use rust_lib_zephyr_reader::infra::manager::ensure_storage;
 use rust_lib_zephyr_reader::domain::book::{Book, BookFormat};

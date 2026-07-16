@@ -54,7 +54,7 @@ fn test_supports_format_unknown() {
 // ==================== 文件解析测试 ====================
 
 #[tokio::test]
-async fn test_parse_book_txt() {
+async fn test_import_book_txt() {
     common::init_logger();
 
     // 创建临时目录用于存储数据库
@@ -73,7 +73,7 @@ async fn test_parse_book_txt() {
     );
 
     // 测试解析 TXT 文件
-    let result = rust_lib_zephyr_reader::api::book::parse_book(file_path.clone()).await;
+    let result = rust_lib_zephyr_reader::api::book::import_book(file_path.clone()).await;
 
     // 验证解析结果
     assert!(result.is_ok(), "TXT 文件解析应该成功: {:?}", result);
@@ -86,11 +86,11 @@ async fn test_parse_book_txt() {
 }
 
 #[tokio::test]
-async fn test_parse_book_invalid_file() {
+async fn test_import_book_invalid_file() {
     common::init_logger();
 
     // 测试不存在的文件
-    let result = rust_lib_zephyr_reader::api::book::parse_book("/nonexistent/path/book.txt".to_string()).await;
+    let result = rust_lib_zephyr_reader::api::book::import_book("/nonexistent/path/book.txt".to_string()).await;
 
     // 应该返回错误
     assert!(result.is_err(), "不存在的文件应该返回错误");
@@ -99,7 +99,7 @@ async fn test_parse_book_invalid_file() {
 }
 
 #[tokio::test]
-async fn test_parse_book_empty_content() {
+async fn test_import_book_empty_content() {
     common::init_logger();
 
     // 初始化临时存储
@@ -112,7 +112,7 @@ async fn test_parse_book_empty_content() {
     // 创建空文件
     let (_temp_dir, file_path) = common::create_temp_file("empty.txt", "");
 
-    let book_id = rust_lib_zephyr_reader::api::book::parse_book(file_path).await;
+    let book_id = rust_lib_zephyr_reader::api::book::import_book(file_path).await;
     let parse_result = book_id.unwrap();
     let result = chapter::list_chapters_by_book(parse_result).await;
 
@@ -223,7 +223,7 @@ async fn test_api_error_handling_null_path() {
     common::init_logger();
 
     // 测试空路径的错误处理
-    let result = rust_lib_zephyr_reader::api::book::parse_book("".to_string()).await;
+    let result = rust_lib_zephyr_reader::api::book::import_book("".to_string()).await;
     assert!(result.is_err(), "空路径应该返回错误");
 
     println!("空路径错误处理正确: {:?}", result);

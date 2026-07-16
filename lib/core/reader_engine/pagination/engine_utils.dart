@@ -39,4 +39,15 @@ class PaginationUtils {
     getStart: (d) => d.startOffset,
     getEnd: (d) => d.endOffset,
   );
+
+  /// 计算段落内最大字符偏移，用于 clamp 上限。
+  static int chapterCharOffsetMax({
+    required List<PackedPage>? descriptors,
+    required String phase1PlainContent,
+  }) {
+    if (descriptors != null && descriptors.isNotEmpty) {
+      return descriptors.last.endOffset;
+    }
+    return phase1PlainContent.length;
+  }
 }

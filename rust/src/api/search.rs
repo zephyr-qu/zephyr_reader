@@ -80,10 +80,10 @@ pub async fn search_all_books(query: String, limit: i32, offset: i32) -> Result<
     Ok(results)
 }
 
-/// 清除所有搜索索引
+/// 清除所有搜索索引内容
 #[frb]
-pub async fn clear_all() -> Result<(), AppError> {
-    tracing::info!("[search] clear_all");
+pub async fn clear_search_index() -> Result<(), AppError> {
+    tracing::info!("[search] clear_search_index");
     let engine = get_search_engine()?;
     engine.clear_all().await
         .map_err(|e| AppError::SearchError { reason: e.to_string().into() })
@@ -105,4 +105,14 @@ pub async fn get_index_stats() -> Result<IndexStats, AppError> {
     let engine = get_search_engine()?;
     engine.get_index_stats().await
         .map_err(|e| AppError::SearchError { reason: e.to_string().into() })
+}
+
+/// 中文文本分词（基于 Jieba），返回分词列表
+#[frb]
+pub fn segment_chinese_text(text: String) -> Vec<String> {
+    tracing::debug!("[search] segment_chinese_text: len={}", text.len());
+    crate::domain::search::engine::tokenize_chinese_text(&text)
+        .split_whitespace()
+        .map(String::from)
+        .collect()
 }

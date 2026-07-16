@@ -13,7 +13,7 @@ use rust_lib_zephyr_reader::infra::init::init_storage;
 // Setup
 // ---------------------------------------------------------------------------
 
-/// Copy an EPUB fixture to a temporary directory, initialise storage, `parse_book`.
+/// Copy an EPUB fixture to a temporary directory, initialise storage, `import_book`.
 ///
 /// Returns `(TempDir, file_path, book_id)`.  Each test gets its own `TempDir`
 /// so SQLite state never leaks between tests.
@@ -27,16 +27,16 @@ pub async fn setup_parsed_epub(fixture_path: &Path) -> (TempDir, String, String)
         }
     }
 
-    // Copy fixture to temp with a unique name so `parse_book` can write a new
+    // Copy fixture to temp with a unique name so `import_book` can write a new
     // DB row without conflicting with other copies of the same filename.
     let file_name = fixture_path.file_name().unwrap().to_str().unwrap();
     let dest = temp_dir.path().join(format!("test_{}", file_name));
     std::fs::copy(fixture_path, &dest).expect("failed to copy fixture");
     let file_path = dest.to_string_lossy().to_string();
 
-    let book_id = rust_lib_zephyr_reader::api::book::parse_book(file_path.clone())
+    let book_id = rust_lib_zephyr_reader::api::book::import_book(file_path.clone())
         .await
-        .expect("parse_book should succeed");
+        .expect("import_book should succeed");
 
     (temp_dir, file_path, book_id)
 }
@@ -118,9 +118,9 @@ pub async fn setup_parsed_image_epub() -> Option<(TempDir, String)> {
         }
     }
 
-    rust_lib_zephyr_reader::api::book::parse_book(file_path.clone())
+    rust_lib_zephyr_reader::api::book::import_book(file_path.clone())
         .await
-        .expect("parse_book should succeed");
+        .expect("import_book should succeed");
 
     Some((temp_dir, file_path))
 }

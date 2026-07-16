@@ -121,9 +121,9 @@ pub async fn delete_note(note_id: String) -> Result<(), AppError> {
 
 /// 清除书籍的所有笔记
 #[frb]
-pub async fn clear_notes_by_book(book_id: String) -> Result<(), AppError> {
-    tracing::info!("[note] clear_notes_by_book: book_id={}", book_id);
-    service::clear_notes_by_book(&book_id).await
+pub async fn delete_notes_by_book(book_id: String) -> Result<(), AppError> {
+    tracing::info!("[note] delete_notes_by_book: book_id={}", book_id);
+    service::delete_notes_by_book(&book_id).await
 }
 
 /// 获取笔记统计信息

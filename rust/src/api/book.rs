@@ -281,11 +281,11 @@ pub fn get_processed_epub_image(
     )
 }
 
-/// 解析书籍文件
+/// 导入书籍文件（校验→解析→入库）
 #[frb]
-pub async fn parse_book(file_path: String) -> Result<String, AppError> {
-    tracing::info!("[book] parse_book: file_path={}", file_path);
-    service::parse_book(&file_path).await
+pub async fn import_book(file_path: String) -> Result<String, AppError> {
+    tracing::info!("[book] import_book: file_path={}", file_path);
+    service::import_book(&file_path).await
 }
 
 #[cfg(test)]

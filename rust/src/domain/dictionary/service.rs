@@ -139,11 +139,3 @@ pub async fn extract_audio(audio_key: &str) -> Result<Option<Vec<u8>>, AppError>
     })?
 }
 
-/// 中文文本分词
-pub fn segment_text(text: &str) -> Vec<String> {
-    let tokenized = crate::domain::search::engine::tokenize_chinese_text(text);
-    tokenized
-        .split_whitespace()
-        .map(String::from)
-        .collect()
-}

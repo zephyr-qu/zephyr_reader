@@ -39,7 +39,7 @@ class BookmarkManageViewModel {
   }
 
   Future<void> clearAll() async {
-    await bookmark_api.clearBookmarksByBook(bookId: bookId);
+    await bookmark_api.deleteBookmarksByBook(bookId: bookId);
     await loadBookmarks();
   }
 }

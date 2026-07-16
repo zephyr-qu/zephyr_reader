@@ -86,9 +86,3 @@ pub async fn extract_audio(audio_key: String) -> Result<Option<Vec<u8>>, AppErro
     service::extract_audio(&audio_key).await
 }
 
-/// 中文文本分词
-#[frb]
-pub async fn segment_text(text: String) -> Result<Vec<String>, AppError> {
-    tracing::debug!("[dictionary] segment_text: len={}", text.len());
-    Ok(service::segment_text(&text))
-}

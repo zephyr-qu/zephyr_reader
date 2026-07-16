@@ -121,9 +121,6 @@ class ChapterContentRepository {
     _layoutParams = params;
   }
 
-
-  }
-
   PaginationParams _resolveStagingParams({
     double fontSize = ReaderTypographyDefaults.fontSize,
     double lineHeight = ReaderTypographyDefaults.lineHeight,

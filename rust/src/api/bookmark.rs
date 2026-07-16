@@ -62,8 +62,8 @@ pub async fn get_bookmark(bookmark_id: String) -> Result<Option<Bookmark>, AppEr
 
 /// 清除书籍的所有书签
 #[frb]
-pub async fn clear_bookmarks_by_book(book_id: String) -> Result<(), AppError> {
-    tracing::debug!("[bookmark] clear_bookmarks_by_book: book_id={}", book_id);
+pub async fn delete_bookmarks_by_book(book_id: String) -> Result<(), AppError> {
+    tracing::debug!("[bookmark] delete_bookmarks_by_book: book_id={}", book_id);
     let pool = storage_pool()?;
     BookmarkRepository::delete_by_book(&pool, &book_id).await
 }

@@ -25,7 +25,7 @@ pub async fn upsert_chapters(book_id: String, chapters: Vec<Chapter>) -> Result<
 
 /// 清除书籍的所有章节
 #[frb]
-pub async fn clear_chapters_by_book(book_id: String) -> Result<(), AppError> {
+pub async fn delete_chapters_by_book(book_id: String) -> Result<(), AppError> {
     let pool = storage_pool()?;
     ChapterRepository::delete_by_book(&pool, &book_id).await
 }

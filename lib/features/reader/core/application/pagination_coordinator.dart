@@ -122,11 +122,15 @@ class PaginationCoordinator {
   }
 
   /// 全量 Flutter 分页（升级现有会话）。
-  Future<int> expandToFullChapter(int chapterIndex) async {
+  Future<int> expandToFullChapter(
+    int chapterIndex, {
+    void Function(int totalPages, bool isPartial)? onProgress,
+  }) async {
     final r = await _engine.session.expandToFullChapter(
       bookId: _chapterVM.bookId.value,
       chapterIndex: chapterIndex,
       params: buildPaginationParams(),
+      onProgress: onProgress,
     );
     return r.totalPages;
   }

@@ -338,7 +338,7 @@ async fn test_clear_all_index() {
     }
 
     // 清除所有索引
-    let result = api::search::clear_all().await;
+    let result = api::search::clear_search_index().await;
     assert!(result.is_ok(), "清除索引应该成功");
 
     // 验证所有索引被清除

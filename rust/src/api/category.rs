@@ -91,7 +91,7 @@ pub async fn assign_category_to_book(book_id: String, category_id: String) -> Re
 
 /// 移除书籍的分类关联
 #[frb]
-pub async fn clear_category_from_book(book_id: String, category_id: String) -> Result<(), AppError> {
+pub async fn remove_category_from_book(book_id: String, category_id: String) -> Result<(), AppError> {
     let pool = storage_pool()?;
     CategoryRepository::remove_by_book(&pool, &book_id, &category_id).await
 }
@@ -109,7 +109,7 @@ pub async fn set_categories_for_book(
 
 /// 清除书籍的所有分类
 #[frb]
-pub async fn clear_categories_by_book(book_id: String) -> Result<(), AppError> {
+pub async fn remove_all_categories_from_book(book_id: String) -> Result<(), AppError> {
     let pool = storage_pool()?;
     CategoryRepository::clear_by_book(&pool, &book_id).await
 }
