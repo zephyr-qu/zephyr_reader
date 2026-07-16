@@ -1,7 +1,7 @@
 /// 行内 ReaderInlineRun → Flutter TextSpan 转换器。
 ///
 /// 分页和 scroll 共用此转换器处理 `ReaderInlineRun[]` → `TextSpan` 树。
-/// RichParagraph 管线已随 Phase 8 移除，scroll 模式走 IR 路径。
+/// RichParagraph 管线已移除，scroll 模式走 IR 路径。
 library;
 
 import 'package:flutter/material.dart';

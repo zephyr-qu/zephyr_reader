@@ -1,8 +1,8 @@
 // ============================================================
-// 文件作用：存储管理器 — SQLite + sled KV 统一管理
+// 文件作用：存储管理器 — SQLite + redb KV 统一管理
 //
 // 公有类型/函数：
-//   - StorageManager — SQLite + sled 统一存储管理器
+//   - StorageManager — SQLite + redb 统一存储管理器
 //   - new() — 初始化连接池并运行迁移
 //   - pool() / kv() / data_dir() / close() — 生命周期管理
 //   - export_db() / restore_from_backup() / hot_swap_db() — 备份/还原
@@ -50,7 +50,7 @@ pub fn storage_pool() -> Result<SqlitePool, AppError> {
 // ==================== StorageManager ====================
 
 /// 存储管理器
-/// 统一管理 SQLite (sqlx) 和 KV (sled) 存储
+/// 统一管理 SQLite (sqlx) 和 KV (redb) 存储
 pub struct StorageManager {
     /// SQLx 连接池（Mutex 支持还原时热替换）
     pool: Mutex<Option<SqlitePool>>,
@@ -63,7 +63,7 @@ pub struct StorageManager {
 impl StorageManager {
     /// 创建新的存储管理器
     ///
-    /// 初始化 SQLite 连接池并运行迁移，同时初始化 KV 存储（sled）。
+    /// 初始化 SQLite 连接池并运行迁移，同时初始化 KV 存储（redb）。
     /// # 参数
     /// `data_dir` - 数据库文件和 KV 缓存的存放目录
     pub async fn new(data_dir: impl AsRef<Path>) -> Result<Self, AppError> {

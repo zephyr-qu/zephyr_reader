@@ -7,13 +7,14 @@ use flutter_rust_bridge::frb;
 use crate::common::AppError;
 use crate::domain::book::service;
 use crate::domain::book::{Book, BookStatus, BookshelfBook};
+use crate::domain::book::book_repo::BookRepository;
 use crate::domain::category::Category;
 use crate::domain::chapter::Chapter;
 use crate::domain::note::NoteStats;
+use crate::infra::manager::storage_pool;
 
 use crate::domain::progress::models::ReadingProgress;
 use crate::parser::epub::EpubMetadata;
-
 // ============================================================
 // API 响应 DTO
 // ============================================================
@@ -54,7 +55,8 @@ pub async fn get_book_detail(book_id: String) -> Result<BookDetail, AppError> {
 /// 获取所有书籍列表
 #[frb]
 pub async fn list_books() -> Result<Vec<Book>, AppError> {
-    service::list_books().await
+    let pool = storage_pool()?;
+    BookRepository::list(&pool).await
 }
 
 /// 获取书架展示用的书籍列表（含阅读进度），支持分类/状态筛选。
@@ -78,14 +80,17 @@ pub async fn list_bookshelf_books(
 #[frb]
 pub async fn list_book_titles() -> Result<HashMap<String, String>, AppError> {
     tracing::debug!("[book] list_book_titles");
-    service::list_book_titles().await
+    let pool = storage_pool()?;
+    let titles = BookRepository::list_titles(&pool).await?;
+    Ok(titles.into_iter().map(|t| (t.book_id, t.title)).collect())
 }
 
 /// 新增或更新书籍
 #[frb]
 pub async fn upsert_book(book: Book) -> Result<(), AppError> {
     tracing::info!("[book] upsert_book: book_id={}, title={}", book.book_id, book.title);
-    service::upsert_book(&book).await
+    let pool = storage_pool()?;
+    BookRepository::save(&pool, &book).await
 }
 
 /// 删除书籍及其缓存、搜索索引和封面文件
@@ -104,106 +109,75 @@ pub async fn delete_book(book_id: String, covers_dir: String) -> Result<(), AppE
 #[frb]
 pub async fn search_books(keyword: String) -> Result<Vec<Book>, AppError> {
     tracing::debug!("[book] search_books: keyword={}", keyword);
-    service::search_books(&keyword).await
+    let pool = storage_pool()?;
+    BookRepository::search(&pool, &keyword).await
 }
 
 /// 书架搜索（含阅读进度）
 #[frb]
 pub async fn search_bookshelf_books(keyword: String) -> Result<Vec<BookshelfBook>, AppError> {
     tracing::debug!("[book] search_bookshelf_books: keyword={}", keyword);
-    service::search_bookshelf_books(&keyword).await
+    let pool = storage_pool()?;
+    BookRepository::search_bookshelf(&pool, &keyword).await
 }
 
 /// 根据 ID 获取书籍
 #[frb]
 pub async fn get_book(book_id: String) -> Result<Option<Book>, AppError> {
     tracing::debug!("[book] get_book: book_id={}", book_id);
-    service::get_book(&book_id).await
+    let pool = storage_pool()?;
+    BookRepository::find_by_id(&pool, &book_id).await
 }
 
 /// 根据状态获取书籍列表
 #[frb]
-pub async fn list_books_by_status(status: BookStatus) -> Result<Vec<Book>, AppError> {
-    tracing::debug!("[book] list_books_by_status: status={:?}", status);
-    service::list_books_by_status(status).await
-}
-
-
 
 /// 根据书籍路径获取
 #[frb]
 pub async fn get_book_by_file_path(validated_path: String) -> Result<Option<Book>, AppError> {
     tracing::debug!("[book] get_book_by_file_path: path={}", validated_path);
-    service::get_book_by_file_path(&validated_path).await
+    let pool = storage_pool()?;
+    BookRepository::find_by_file_path(&pool, &validated_path).await
 }
 
 /// 获取置顶书籍列表
 #[frb]
-pub async fn list_pinned_books() -> Result<Vec<Book>, AppError> {
-    tracing::debug!("[book] list_pinned_books");
-    service::list_pinned_books().await
-}
 
 /// 获取最近阅读的书籍
 #[frb]
 pub async fn list_recently_opened_books(limit: i32) -> Result<Vec<Book>, AppError> {
     tracing::debug!("[book] list_recently_opened_books: limit={}", limit);
-    service::list_recently_opened_books(limit as i64).await
+    let pool = storage_pool()?;
+    BookRepository::list_recent(&pool, limit as i64).await
 }
 
 /// 分页获取书籍列表
 #[frb]
-pub async fn list_books_paginated(
-    limit: i32,
-    offset: i32,
-    sort_by: Option<String>,
-    sort_order: Option<String>,
-) -> Result<Vec<Book>, AppError> {
-    tracing::debug!("[book] list_books_paginated");
-    let sort_by = sort_by.unwrap_or_else(|| "added_at".to_string());
-    let sort_order = sort_order.unwrap_or_else(|| "desc".to_string());
-    service::list_books_paginated(limit as i64, offset as i64, &sort_by, &sort_order).await
-}
 
 /// 获取书籍总数
 #[frb]
-pub async fn count_books() -> Result<i64, AppError> {
-    tracing::debug!("[book] count_books");
-    service::count_books().await
-}
 
 /// 更新书籍状态
 #[frb]
 pub async fn update_book_status(book_id: String, status: BookStatus) -> Result<(), AppError> {
     tracing::info!("[book] update_book_status: book_id={}", book_id);
-    service::update_book_status(&book_id, status).await
+    let pool = storage_pool()?;
+    BookRepository::update_status(&pool, &book_id, status).await
 }
 
 /// 更新书籍置顶状态
 #[frb]
 pub async fn update_book_pin(book_id: String, is_pinned: bool) -> Result<(), AppError> {
     tracing::info!("[book] update_book_pin: book_id={}", book_id);
-    service::update_book_pin(&book_id, is_pinned).await
+    let pool = storage_pool()?;
+    BookRepository::update_pin(&pool, &book_id, is_pinned).await
 }
 
 /// 更新书籍标题
 #[frb]
-pub async fn update_book_title(book_id: String, title: String) -> Result<(), AppError> {
-    tracing::info!("[book] update_book_title: book_id={}", book_id);
-    service::update_book_title(&book_id, &title).await
-}
 
 /// 批量更新书籍元数据
 #[frb]
-pub async fn update_book_metadata(
-    book_id: String,
-    title: Option<String>,
-    author: Option<String>,
-    description: Option<String>,
-) -> Result<(), AppError> {
-    tracing::info!("[book] update_book_metadata: book_id={}", book_id);
-    service::update_book_metadata(&book_id, title.as_deref(), author.as_deref(), description.as_deref()).await
-}
 
 /// 创建外部导入的书籍
 #[frb]
@@ -243,6 +217,7 @@ pub async fn batch_set_categories_for_books(
     service::batch_set_categories_for_books(&book_ids, &category_ids).await
 }
 
+
 // ============================================================
 // EPUB 特定 API
 // ============================================================
@@ -251,7 +226,7 @@ pub async fn batch_set_categories_for_books(
 #[frb]
 pub async fn get_epub_metadata(file_path: String) -> Result<EpubMetadata, AppError> {
     let validated = crate::common::security::validate_file_path(&file_path)?;
-    let metadata = crate::parser::epub::unzip::get_epub_metadata(&validated)?;
+    let metadata = crate::parser::epub::entry_extractor::get_epub_metadata(&validated)?;
     Ok(metadata)
 }
 

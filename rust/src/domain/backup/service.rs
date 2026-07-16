@@ -278,8 +278,8 @@ mod tests {
                 reading_sessions: 20, reading_progress: 10, vocabulary_words: 50, categories: 3,
             },
         };
-        let s = serde_json::to_string(&m).unwrap();
-        let m2: BackupManifest = serde_json::from_str(&s).unwrap();
+        let s = serde_json::to_string(&m).expect("serialize BackupManifest");
+        let m2: BackupManifest = serde_json::from_str(&s).expect("deserialize BackupManifest");
         assert_eq!(m2.app_version, m.app_version);
         assert_eq!(m2.stats.books, 10);
     }

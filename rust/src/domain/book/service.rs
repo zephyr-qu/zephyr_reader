@@ -1,9 +1,8 @@
 //! 书籍管理业务逻辑
 //!
 //! 提供书籍的聚合查询、级联删除、创建和解析等业务操作。
-//! 数据访问委托给 book_repo 及其他关联 repo。
+//! 纯 CRUD 透传已内联到 api/ 层，此处只保留有实际业务逻辑的操作。
 
-use std::collections::HashMap;
 
 use crate::common::AppError;
 use crate::common::security::validate_file_path;
@@ -53,12 +52,6 @@ pub async fn get_book_detail(
     Ok((book, progress, note_stats, chapters, categories, session_count, vocab_count))
 }
 
-/// 列出所有书籍
-pub async fn list_books() -> Result<Vec<Book>, AppError> {
-    let pool = storage_pool()?;
-    BookRepository::list(&pool).await
-}
-
 /// 列出书架书籍（含进度），支持按分类/状态筛选/排序。
 pub async fn list_bookshelf_books(
     category_id: Option<&str>,
@@ -85,19 +78,6 @@ pub async fn list_bookshelf_books(
             BookRepository::list_bookshelf(&pool, sort_by, sort_order).await
         }
     }
-}
-
-/// 获取书名映射
-pub async fn list_book_titles() -> Result<HashMap<String, String>, AppError> {
-    let pool = storage_pool()?;
-    let titles = BookRepository::list_titles(&pool).await?;
-    Ok(titles.into_iter().map(|t| (t.book_id, t.title)).collect())
-}
-
-/// 保存书籍
-pub async fn upsert_book(book: &Book) -> Result<(), AppError> {
-    let pool = storage_pool()?;
-    BookRepository::save(&pool, book).await
 }
 
 /// 级联删除书籍（含封面文件删除、缓存失效）
@@ -138,96 +118,6 @@ pub async fn delete_book(book_id: &str, covers_dir: &str) -> Result<(), AppError
     }
 
     Ok(())
-}
-
-/// 搜索书籍
-pub async fn search_books(keyword: &str) -> Result<Vec<Book>, AppError> {
-    let pool = storage_pool()?;
-    BookRepository::search(&pool, keyword).await
-}
-
-/// 书架搜索（含进度）
-pub async fn search_bookshelf_books(keyword: &str) -> Result<Vec<BookshelfBook>, AppError> {
-    let pool = storage_pool()?;
-    BookRepository::search_bookshelf(&pool, keyword).await
-}
-
-/// 根据 ID 获取书籍
-pub async fn get_book(book_id: &str) -> Result<Option<Book>, AppError> {
-    let pool = storage_pool()?;
-    BookRepository::find_by_id(&pool, book_id).await
-}
-
-/// 按状态列出书籍
-pub async fn list_books_by_status(status: BookStatus) -> Result<Vec<Book>, AppError> {
-    let pool = storage_pool()?;
-    BookRepository::list_by_status(&pool, status).await
-}
-
-
-
-/// 根据文件路径获取书籍
-pub async fn get_book_by_file_path(validated_path: &str) -> Result<Option<Book>, AppError> {
-    let pool = storage_pool()?;
-    BookRepository::find_by_file_path(&pool, validated_path).await
-}
-
-/// 获取置顶书籍
-pub async fn list_pinned_books() -> Result<Vec<Book>, AppError> {
-    let pool = storage_pool()?;
-    BookRepository::list_pinned(&pool).await
-}
-
-/// 获取最近阅读书籍
-pub async fn list_recently_opened_books(limit: i64) -> Result<Vec<Book>, AppError> {
-    let pool = storage_pool()?;
-    BookRepository::list_recent(&pool, limit).await
-}
-
-/// 分页查询书籍
-pub async fn list_books_paginated(
-    limit: i64,
-    offset: i64,
-    sort_by: &str,
-    sort_order: &str,
-) -> Result<Vec<Book>, AppError> {
-    let pool = storage_pool()?;
-    BookRepository::list_paginated(&pool, limit, offset, sort_by, sort_order).await
-}
-
-/// 统计书籍总数
-pub async fn count_books() -> Result<i64, AppError> {
-    let pool = storage_pool()?;
-    BookRepository::count(&pool).await
-}
-
-/// 更新书籍状态
-pub async fn update_book_status(book_id: &str, status: BookStatus) -> Result<(), AppError> {
-    let pool = storage_pool()?;
-    BookRepository::update_status(&pool, book_id, status).await
-}
-
-/// 更新书籍置顶
-pub async fn update_book_pin(book_id: &str, is_pinned: bool) -> Result<(), AppError> {
-    let pool = storage_pool()?;
-    BookRepository::update_pin(&pool, book_id, is_pinned).await
-}
-
-/// 更新书籍标题
-pub async fn update_book_title(book_id: &str, title: &str) -> Result<(), AppError> {
-    let pool = storage_pool()?;
-    BookRepository::update_title(&pool, book_id, title).await
-}
-
-/// 批量更新书籍元数据
-pub async fn update_book_metadata(
-    book_id: &str,
-    title: Option<&str>,
-    author: Option<&str>,
-    description: Option<&str>,
-) -> Result<(), AppError> {
-    let pool = storage_pool()?;
-    BookRepository::update_metadata(&pool, book_id, title, author, description).await
 }
 
 /// 创建外部导入的书籍（如来自网页搜索）

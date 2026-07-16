@@ -4,7 +4,9 @@ use flutter_rust_bridge::frb;
 
 use crate::common::AppError;
 use crate::domain::dictionary::{DictSearchResult, models::Dictionary};
+use crate::domain::dictionary::dictionary_repo::DictionaryRepository;
 use crate::domain::dictionary::service;
+use crate::infra::manager::storage_pool;
 
 // ==================== 词典数据 CRUD ====================
 
@@ -20,32 +22,38 @@ pub async fn create_dictionary(
     word_count: i64,
 ) -> Result<Dictionary, AppError> {
     tracing::info!("[dictionary] create_dictionary: name={}", name);
-    service::create_dictionary(&name, &file_path, &dict_type, lang_from, lang_to, is_enabled, word_count).await
+    let dict = Dictionary::new(&name, &file_path, &dict_type, lang_from, lang_to, is_enabled, word_count);
+    let pool = storage_pool()?;
+    DictionaryRepository::save(&pool, &dict).await
 }
 
 /// 新增或更新词典
 #[frb]
 pub async fn upsert_dictionary(dict: Dictionary) -> Result<(), AppError> {
-    service::upsert_dictionary(&dict).await
+    let pool = storage_pool()?;
+    DictionaryRepository::save(&pool, &dict).await.map(|_| ())
 }
 
 /// 获取所有词典列表
 #[frb]
 pub async fn list_dictionaries() -> Result<Vec<Dictionary>, AppError> {
-    service::list_dictionaries().await
+    let pool = storage_pool()?;
+    DictionaryRepository::find_all(&pool).await
 }
 
 /// 根据 ID 获取词典
 #[frb]
 pub async fn get_dictionary(id: String) -> Result<Option<Dictionary>, AppError> {
-    service::get_dictionary(&id).await
+    let pool = storage_pool()?;
+    DictionaryRepository::find_by_id(&pool, &id).await
 }
 
 /// 删除词典
 #[frb]
 pub async fn delete_dictionary(id: String) -> Result<bool, AppError> {
     tracing::info!("[dictionary] delete_dictionary: id={}", id);
-    service::delete_dictionary(&id).await
+    let pool = storage_pool()?;
+    DictionaryRepository::delete(&pool, &id).await
 }
 
 // ==================== 词典引擎管理 ====================
@@ -85,4 +93,3 @@ pub async fn extract_audio(audio_key: String) -> Result<Option<Vec<u8>>, AppErro
     tracing::debug!("[dictionary] extract_audio: audio_key={}", audio_key);
     service::extract_audio(&audio_key).await
 }
-

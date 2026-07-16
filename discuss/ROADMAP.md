@@ -1,9 +1,9 @@
 # 阅读核心路线图（与边界 v1.1 绑定）
 
-> **当前阶段 = Phase 10**（Flutter 架构扁平化与阅读引擎独立）
-> **Phase 0-9** 已完成 ✅
-> **Phase 10** 已完成 ✅（P0+P1 全部完成）
-> **下一阶段**：Phase 10 TXT 章节检测可配置化
+> **当前阶段 = Phase 12**（TXT 章节检测正则可配置化）
+> **Phase 0-10** 已完成 ✅
+> **Phase 11** 已完成 ✅
+> **Phase 12** ⏳ 进行中
 
 **完整路线图（Phase 0-20）：**
 
@@ -163,7 +163,7 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 
 ---
 
-## Phase 10 — Flutter 架构扁平化与阅读引擎独立（规划中）
+## Phase 10 — Flutter 架构扁平化与阅读引擎独立 ✅ 已完成
 
 **目标**：将排版渲染核心从 reader feature 提取为独立 `reader_engine/` 模块，
 消除假抽象接口和中间人。
@@ -175,15 +175,15 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 | # | 优先级 | 项 | 说明 |
 | --- | -------- | ----- | ------ |
 | 1 | **P0** | 创建 `lib/reader_engine/` 目录结构 | ✅ 已完成 |
-| 2 | **P0** | 移动 pagination 文件 | ✅ 已完成 — `flutter_pagination/*` → `reader_engine/pagination/` |
-| 3 | **P0** | 移动 scroll 文件 | ✅ 已完成 — 分散文件汇总到 `reader_engine/scroll/` |
-| 4 | **P0** | 移动 rendering 文件 | ✅ 已完成 — `rendering/*` → `reader_engine/rendering/` |
-| 5 | **P1** | 实现 `PaginationEngine` 类 | ✅ 已完成 — `reader_engine/pagination/engine.dart` |
-| 6 | **P1** | 实现 `ScrollEngine` 类 | ✅ 已完成 — `reader_engine/scroll/engine.dart` |
-| 7 | **P1** | 删除 `ReaderRepository` 中间人 | ✅ 已完成 — 提交 `2ff0862` 删除 `reader_repository_interface.dart`(163 行) 和 `rust_reader_repository.dart`(240 行) |
-| 8 | **P2** | 删除 4 个假抽象接口 | ✅ 已完成 — 合并到具体类：`ProgressRepository`/`ReaderRenderDataSource`/`ChapterContentRepository`/`BilingualReaderDelegate` |
+| 2 | **P0** | 移动 pagination 文件 | ✅ 已完成 |
+| 3 | **P0** | 移动 scroll 文件 | ✅ 已完成 |
+| 4 | **P0** | 移动 rendering 文件 | ✅ 已完成 |
+| 5 | **P1** | 实现 `PaginationEngine` 类 | ✅ 已完成 |
+| 6 | **P1** | 实现 `ScrollEngine` 类 | ✅ 已完成 |
+| 7 | **P1** | 删除 `ReaderRepository` 中间人 | ✅ 已完成 |
+| 8 | **P2** | 删除 4 个假抽象接口 | ✅ 已完成 |
 | 9 | **P2** | 合并 `core/domain/` 和 `domain/` | ✅ 已完成 |
-| 10 | **P2** | 合并小文件 | ✅ 已完成 — `features/reader/` 从 ~108 降至 69，39 个引擎文件迁至 `reader_engine/`；3 个独立小文件（`chapter_load_phase`/`chapter_load_request`/`chapter_pagination_intent`）合并入消费者，-60 行 -3 文件 |
+| 10 | **P2** | 合并小文件 | ✅ 已完成 |
 
 ### 不做
 
@@ -253,12 +253,13 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 
 ---
 
-## Phase 12 — TXT 章节检测正则可配置化（规划中）
+## Phase 12 — TXT 章节检测可配置化 + Flutter 排版管线优化 ⏳ 进行中
 
-**目标**：将硬编码在 `chapter_detect.rs` 中的四组章节检测正则改为可配置，
-支持用户自定义章节标题模式，覆盖更多网文/轻小说格式。
+**目标**：两件事顺手一起做。① 将硬编码在 `chapter_detect.rs` 中的四组章节检测正则改为可配置，
+支持用户自定义章节标题模式，覆盖更多网文/轻小说格式。② 顺手做 3 项低成本 Flutter 排版优化。
 
-**讨论**：`discuss/PHASE10_CHAPTER_DETECT_CONFIG.md`
+**讨论**：`discuss/archived/PHASE10_CHAPTER_DETECT_CONFIG.md`、`discuss/reader-text-engine-roadmap.md`
+**讨论**：`discuss/archived/PHASE10_CHAPTER_DETECT_CONFIG.md`
 
 ### 背景
 
@@ -289,29 +290,108 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 | 7 | Flutter 默认配置写入 | 首次初始化时将 4 组内置模式写入 app_settings | P2 |
 | 8 | Flutter 模式编辑 UI | 添加/删除/排序用户模式 | P3 |
 | 9 | Flutter 重试 UI | 书籍详情页
+| 9 | Flutter 重试 UI | 书籍详情页 | P3 |
+| 10 | 图片解码移到后台 isolate | 图片密集 EPUB 翻页 UI jank，把 decode 推到后台 isolate | P2 |
+| 11 | `sliceRichSpans` 预索引 | 二分查找替代每次 flushSlice 的线性扫描，EPUB 分页提速 5-15% | P2 |
+| 12 | 大 TXT 切窗边界优化 | 加中文句号 `。` / 英文句号 `.` 作为备选切窗边界，减少句子中间截断 | P2 |
+---
+
+## Phase 13 — 基础质量攻坚（已分节点）
+
+**目标**：彻底解决项目基础质量问题 — 代码冗余、架构精简、核心链路健壮性、边界验证、依赖清理，最终达到 `cargo clippy -D warnings` + `flutter analyze --fatal-infos` 双零。
+
+**执行顺序**：N0 → N2 → N3 → N4 → N1 → N5（清理最后做，避免前置变更产生的新死代码反复清理）
 
 ---
 
-## Phase 13 — 核心收束扫尾（规划中）
+### N0 — 预清理（N2 前置）
 
-**目标**：竣工验收，确认核心功能 99% 可用。
-
-### 工作项
+**目标**：快速扫除明显死代码，净化架构审查视野。
 
 | # | 项 | 说明 |
 | --- | ----- | ------ |
-| 1 | 死代码清扫 | 重构后老接口、旧导入、废弃文件、未用依赖 |
-| 2 | `#[allow(...)]` 审计 | 确认重构过程中加的 suppress 不再需要 |
-| 3 | 核心链路可用确认 | 开书画笔记→存进度→关 app→恢复→搜索 |
-| 4 | 边界场景验证 | 大 TXT（百万字）、含图 EPUB、切换排版立刻生效 |
-| 5 | sled KV 存储评估 | 查 sled 消费者（当前仅 IR 缓存 1 个），<br>≤1 个则迁到 SQLite 或 redb，删 sled + bincode 依赖 |
-| 6 | 工具链确认 | `cargo clippy -D warnings`、`flutter analyze --fatal-infos`、FRB codegen |
+| 1 | `dart analyze` 扫描 | 找出 unused import/field/class 并删除 |
+| 2 | `cargo clippy` 扫描 | 找出 Rust 侧 unused / dead_code 并删除 |
+| 3 | 明显废弃文件 | 确认无引用后直接删除 |
+
+---
+
+### N2 — 架构审查与精简
+
+**目标**：删除架空接口、合并可合并模块、评估 api/ 薄封装层去留。
+
+| # | 项 | 说明 |
+| --- | ----- | ------ |
+| 1 | Flutter `reader_engine/` 模块关系审查 | 检查循环依赖、残余抽象层 |
+| 2 | `api/` 薄封装层去留判断 | 纯透传→删除；有类型转换→改名 `adapter/` 或 `mapper/` |
+| 3 | Rust 跨层接口精简 | 检查 FRB 暴露函数是否有多余参数/返回值 |
+| 4 | IR 结构扁平化 | 检查是否过于嵌套，简化 Flutter 侧解析 |
+| 5 | 未使用 `pub struct` / `pub fn` | 确认无外部依赖后删除 |
+| 6 | Flutter Widget 重复审查 | 提取共享组件，减少重复渲染树 |
+
+---
+
+### N3 — 核心链路健壮性
+
+**目标**：全链路端到端验证 + FFI 错误路径审计 + Panic 边界检查。
+
+| # | 项 | 说明 |
+| --- | ----- | ------ |
+| 1 | 全链路手动测试 | 开书→画笔记→存进度→杀进程→恢复→检查一致性 |
+| 2 | FFI 错误审计 | 所有 FRB 函数返回 `Result<T, AppError>`？ |
+| 3 | Panic 边界检查 | 禁用非测试代码 `unwrap()`，`catch_unwind` 覆盖 |
+| 4 | Flutter 异步错误处理 | 所有 FFI 调用是否 `try-catch` / `.onError` |
+| 5 | 异常路径验证 | 断网、空书、异常退出场景 |
+
+---
+
+### N4 — 边界场景验证
+
+**目标**：大文件、含图 EPUB、快速交互等边界压力测试。
+
+| # | 项 | 说明 |
+| --- | ----- | ------ |
+| 1 | 大 TXT 打开与翻页 | 百万字级别文件 |
+| 2 | 含图 EPUB 章节切换 | 高清图片密集章节流畅度 |
+| 3 | 切换排版即时生效 | 字号/行距/主题切换后无延迟 |
+| 4 | 快速连续翻页 | 5+ 页/秒，状态不混乱 |
+| 5 | 打断操作 | 翻页动画中点击目录等打断操作不崩溃 |
+| 6 | 反复换章 | 多章来回切换稳定性 |
+
+---
+
+### N1 — 深度清理与依赖评估
+
+**目标**：清理 N0-N4 遗留的死代码 + 依赖审计（sled 评估）。
+
+| # | 项 | 说明 |
+| --- | ----- | ------ |
+| 1 | 死代码清扫 | N2-N4 变更后遗留的老接口、未用 import |
+| 2 | `#[allow(...)]` 审计 | 移除不再需要的 suppress |
+| 3 | sled KV 存储评估 | 查 sled 消费者，做基准测试辅助决策：迁移到 SQLite/redb 或保留 |
+| 4 | 废弃 Cargo/Flutter 依赖 | 检查 `Cargo.toml`、`pubspec.yaml` 未用依赖 |
+
+---
+
+### N5 — 质量门禁归零
+
+**目标**：最终收口，达到零告警稳定基线。
+
+| # | 项 | 说明 |
+| --- | ----- | ------ |
+| 1 | `cargo clippy -- -D warnings` | 零告警 |
+| 2 | `flutter analyze --fatal-infos` | 零告警 |
+| 3 | FRB codegen 验证 | 确认生成代码已同步，接口稳定 |
+| 4 | CI 流水线 | 全部通过 |
+| 5 | 文档同步 | 更新架构图，记录 N3 关键 Bug 与修复 |
+
+---
 
 ### 不做
 
 - ❌ 不加新功能
-- ❌ 不写大量单元测试（等 Phase 17）
-- ❌ 不做性能调优
+- ❌ 不写大量单元测试（等 Phase 19）
+- ❌ 不盲目做性能调优（除非边界测试暴露必须修的瓶颈）
 - ❌ 不改 UI/UX 细节
 
 ---

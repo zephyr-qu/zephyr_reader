@@ -157,18 +157,21 @@ extension GetItInjectableX on _i174.GetIt {
     gh.singleton<_i917.BilingualConfig>(
       () => _i917.BilingualConfig(gh<_i985.PreferencesService>()),
     );
+    gh.lazySingleton<_i884.BilingualService>(
+      () => bilingualModule.bilingualService(
+        gh<_i917.BilingualConfig>(),
+        gh<_i361.Dio>(),
+      ),
+    );
+    gh.factory<_i715.ChapterContentRepository>(
+      () => _i715.ChapterContentRepository(gh<_i267.ReaderConfig>()),
+    );
     gh.factory<_i642.ChapterViewModel>(
       () => _i642.ChapterViewModel(
         gh<_i715.ChapterContentRepository>(),
         gh<_i690.PaginationEngine>(),
         gh<_i199.ProgressRepository>(),
         gh<_i267.ReaderConfig>(),
-      ),
-    );
-    gh.lazySingleton<_i884.BilingualService>(
-      () => bilingualModule.bilingualService(
-        gh<_i917.BilingualConfig>(),
-        gh<_i361.Dio>(),
       ),
     );
     return this;

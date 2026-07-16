@@ -1,4 +1,4 @@
-import 'package:zephyr_reader/core/reader_engine/shared/ir_types.dart';
+import 'package:zephyr_reader/src/rust/pipeline/types.dart';
 
 /// Flutter 装箱页内块切片。
 class PackedBlockSlice {
@@ -33,7 +33,7 @@ class PackedBlockSlice {
   final String? imageAlt;
   final bool isBlockStart;
   final bool isBlockEnd;
-  final ReaderIrBlock? style;
+  final BlockStyle? style;
   final List<ReaderInlineRun> spans;
 
   /// 仅 Image 切片有效。

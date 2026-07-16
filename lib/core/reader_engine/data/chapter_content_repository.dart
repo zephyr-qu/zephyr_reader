@@ -107,10 +107,8 @@ class ChapterContentRepository {
       Logging.info(
         '[Timing] loadChapterIr: ${sw.elapsedMilliseconds}ms blocks=${ir.blocks.length}',
       );
-      return scrollIrPayload(
-        chapterIr: convertChapterIrFromFrb(ir),
-        chapterFilePath: filePath,
-      );
+      return scrollIrPayload(chapterIr: ir, chapterFilePath: filePath);
+
     } catch (e) {
       Logging.warning('loadChapterPayload IR failed, fallback rich/plain: $e');
       return null;
@@ -267,7 +265,7 @@ class ChapterContentRepository {
     final results = await Future.wait([
       reader_api.getChapterPlain(bookId: bookId, chapterIndex: chapterId),
       contentIrFuture
-          .then<ReaderChapterIr?>((v) => convertChapterIrFromFrb(v))
+          .then<ReaderChapterIr?>((v) => v as ReaderChapterIr)
           .catchError((_) {
             Logging.warning(
               'getChapterContentIr failed, falling back to plain text',

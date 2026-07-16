@@ -54,12 +54,42 @@ pub enum ReaderIrBlockKind {
     Image,
 }
 
+// ==================== 块级样式 ====================
+
+/// 块级样式字段（从 ReaderIrBlock 抽出，减少 FRB 构造参数）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
+#[frb(non_opaque)]
+pub struct BlockStyle {
+    pub is_heading: bool,
+    pub heading_level: u8,
+    pub text_indent_em: Option<f32>,
+    pub margin_top_em: Option<f32>,
+    pub margin_bottom_em: Option<f32>,
+    pub text_align: Option<String>,
+    pub font_size: Option<f32>,
+}
+
+impl BlockStyle {
+    /// 空样式（适用于 Image 块）。
+    pub fn empty() -> Self {
+        Self {
+            is_heading: false,
+            heading_level: 0,
+            text_indent_em: None,
+            margin_top_em: None,
+            margin_bottom_em: None,
+            text_align: None,
+            font_size: None,
+        }
+    }
+}
+
 // ==================== IR 块 ====================
 
 /// 扁平的 IR 块（替代旧 ContentBlock / TextBlock / ImageBlock）。
 ///
 /// - Text 块：`kind = Text`，runs 含内联样式，image_* 字段为空。
-/// - Image 块：`kind = Image`，`plain_len == 1`，plain 中对应一个 `\uFFFC`。
+/// - Image 块：`kind = Image`，`plain_len == 1`，plain 中对应一个 `\u{FFFC}`。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 #[frb(non_opaque)]
 pub struct ReaderIrBlock {
@@ -75,14 +105,8 @@ pub struct ReaderIrBlock {
     /// 行内运行列表。
     pub runs: Vec<ReaderInlineRun>,
 
-    // ===== 样式字段（Text 块使用） =====
-    pub is_heading: bool,
-    pub heading_level: u8,
-    pub text_indent_em: Option<f32>,
-    pub margin_top_em: Option<f32>,
-    pub margin_bottom_em: Option<f32>,
-    pub text_align: Option<String>,
-    pub font_size: Option<f32>,
+    // ===== 样式字段 ======
+    pub style: BlockStyle,
 
     // ===== 图片字段（Image 块使用） =====
     pub image_asset_id: Option<String>,
@@ -90,7 +114,6 @@ pub struct ReaderIrBlock {
     pub image_intrinsic_width: Option<u32>,
     pub image_intrinsic_height: Option<u32>,
 }
-
 impl ReaderIrBlock {
     /// 构造文本块
     #[allow(clippy::too_many_arguments)]
@@ -99,13 +122,7 @@ impl ReaderIrBlock {
         plain_start: u32,
         text: String,
         runs: Vec<ReaderInlineRun>,
-        is_heading: bool,
-        heading_level: u8,
-        text_indent_em: Option<f32>,
-        margin_top_em: Option<f32>,
-        margin_bottom_em: Option<f32>,
-        text_align: Option<String>,
-        font_size: Option<f32>,
+        style: BlockStyle,
     ) -> Self {
         let plain_len = text.chars().count() as u32;
         Self {
@@ -114,13 +131,7 @@ impl ReaderIrBlock {
             plain_len,
             text,
             runs,
-            is_heading,
-            heading_level,
-            text_indent_em,
-            margin_top_em,
-            margin_bottom_em,
-            text_align,
-            font_size,
+            style,
             image_asset_id: None,
             image_alt: None,
             image_intrinsic_width: None,
@@ -143,13 +154,7 @@ impl ReaderIrBlock {
             plain_len: IMAGE_PLAIN_CHAR_LEN,
             text: String::new(),
             runs: Vec::new(),
-            is_heading: false,
-            heading_level: 0,
-            text_indent_em: None,
-            margin_top_em: None,
-            margin_bottom_em: None,
-            text_align: None,
-            font_size: None,
+            style: BlockStyle::empty(),
             image_asset_id: Some(asset_id),
             image_alt: alt,
             image_intrinsic_width: intrinsic_width,

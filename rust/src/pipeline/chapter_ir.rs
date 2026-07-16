@@ -1,9 +1,9 @@
 // ============================================================
 // 文件作用：章节 IR 加载（EPUB spine / TXT 字节界）+ 内容提供，
-//           含 sled IR 缓存、章节边界查询、Provider 缓存。
+//           含 redb IR 缓存、章节边界查询、Provider 缓存。
 //
 // 公有类型/函数：
-//   - IrCacheRepository — IR 缓存仓储（sled 封装）
+//   - IrCacheRepository — IR 缓存仓储（redb 封装）
 //   - format_from_file_path() — 从文件路径推断格式
 //   - get_chapter_bounds() — 从 DB 获取章节边界信息
 //   - get_chapter() (pub(crate)) — 获取指定章节的原始文本内容
@@ -11,7 +11,7 @@
 // ============================================================
 
 //! 章节访问与 IR 加载。
-//! 章节边界（DB）、章节文本读取、IR 加载（先 sled 缓存 → miss 时解析）
+//! 章节边界（DB）、章节文本读取、IR 加载（先 redb 缓存 → miss 时解析）
 //! 一次缓存，分页 + scroll 共享。
 
 use std::num::NonZeroUsize;
@@ -247,19 +247,19 @@ pub(crate) async fn get_chapter(
     }
 }
 
-// ==================== IR 加载（含 sled 缓存） ====================
+// ==================== IR 加载（含 redb 缓存） ====================
 
-/// 加载整章 IR（Phase 8 后分页 + scroll 共享此入口）。
+/// 加载整章 IR（分页 + scroll 共享此入口）。
 ///
 /// 分页：FlutterBlockPaginator.paginateAsync(ir) → PackedPage[]
 /// Scroll：buildScrollIrBlockList(ir.blocks) → 连续滚动
 ///
-/// 优先命中 sled `ir_cache`，miss 时解析并异步写回缓存。
+/// 优先命中 redb `ir_cache`，miss 时解析并异步写回缓存。
 pub async fn load_chapter_content_ir(
     validated_path: &str,
     chapter_index: i32,
 ) -> Result<ReaderChapterIr, AppError> {
-    // 1. Try sled cache
+    // 1. Try redb cache
     if let Some(cached) = try_get_ir_cached(validated_path, chapter_index).await
     {
         return Ok(cached);
@@ -299,7 +299,7 @@ pub async fn load_chapter_content_ir(
     Ok(ir)
 }
 
-/// 尝试从 sled 加载 IR 缓存（分页+scroll 共享）。
+/// 尝试从 redb 加载 IR 缓存（分页+scroll 共享）。
 async fn try_get_ir_cached(
     validated_path: &str,
     chapter_index: i32,
@@ -323,7 +323,7 @@ async fn try_get_ir_cached(
     }
 }
 
-/// 保存 IR 到 sled（写入失败不影响阅读）。
+/// 保存 IR 到 redb（写入失败不影响阅读）。
 async fn try_save_ir_cached(
     validated_path: &str,
     chapter_index: i32,

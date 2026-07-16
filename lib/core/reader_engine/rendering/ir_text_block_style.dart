@@ -4,18 +4,14 @@ import 'package:zephyr_reader/core/reader_engine/rendering/rich_text_converter.d
 import 'package:zephyr_reader/core/reader_engine/rendering/highlight_painter.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/domain/note/models.dart';
-import 'package:zephyr_reader/core/reader_engine/shared/ir_types.dart';
-
+import 'package:zephyr_reader/src/rust/pipeline/types.dart';
 
 /// ADR-010：IR 块样式 → Flutter 排版（scroll + pagination 共用）。
 abstract final class IrReaderIrBlock {
   static const double defaultFirstLineIndentEm = 2.0;
   static const _converter = RichTextConverter();
 
-  static double effectiveFontSize(
-    ReaderIrBlock style,
-    ReaderRenderConfig config,
-  ) {
+  static double effectiveFontSize(BlockStyle style, ReaderRenderConfig config) {
     final explicit = style.fontSize;
     if (explicit != null && explicit > 0) return explicit;
     if (style.isHeading && style.headingLevel > 0) {
@@ -32,7 +28,7 @@ abstract final class IrReaderIrBlock {
   }
 
   static double effectiveLineHeight(
-    ReaderIrBlock style,
+    BlockStyle style,
     ReaderRenderConfig config,
   ) {
     // ADR-015: EPUB line-height 已丢弃，统一使用用户设置
@@ -55,7 +51,7 @@ abstract final class IrReaderIrBlock {
   }
 
   static double resolveFirstLineIndentPx(
-    ReaderIrBlock style,
+    BlockStyle style,
     ReaderRenderConfig config, {
     double defaultIndentEm = defaultFirstLineIndentEm,
   }) {
@@ -71,7 +67,7 @@ abstract final class IrReaderIrBlock {
   }
 
   static EdgeInsets resolveBlockPadding(
-    ReaderIrBlock style,
+    BlockStyle style,
     ReaderRenderConfig config,
   ) {
     final fs = effectiveFontSize(style, config);
@@ -82,7 +78,7 @@ abstract final class IrReaderIrBlock {
   }
 
   static double resolveBottomSpacing(
-    ReaderIrBlock style,
+    BlockStyle style,
     ReaderRenderConfig config,
   ) {
     if (style.marginBottomEm != null) {
@@ -91,10 +87,7 @@ abstract final class IrReaderIrBlock {
     return config.paragraphSpacing;
   }
 
-  static TextStyle mapToTextStyle(
-    ReaderIrBlock style,
-    ReaderRenderConfig config,
-  ) {
+  static TextStyle mapToTextStyle(BlockStyle style, ReaderRenderConfig config) {
     var textStyle = config.buildTextStyle();
     textStyle = textStyle.copyWith(height: effectiveLineHeight(style, config));
     if (style.isHeading && style.headingLevel > 0) {
@@ -107,7 +100,7 @@ abstract final class IrReaderIrBlock {
   static TextSpan buildHighlightedSpan({
     required String text,
     required List<ReaderInlineRun> spans,
-    required ReaderIrBlock irStyle,
+    required BlockStyle irStyle,
     required ReaderRenderConfig config,
     required List<Note> highlights,
     required int contentStart,

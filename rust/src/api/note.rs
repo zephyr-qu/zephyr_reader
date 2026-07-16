@@ -3,8 +3,10 @@
 use flutter_rust_bridge::frb;
 
 use crate::common::AppError;
-use crate::domain::note::{Note, NoteStats, NoteType, NoteWithBook};
+use crate::domain::note::{Note, NoteType, NoteWithBook};
+use crate::domain::note::note_repo::NoteRepository;
 use crate::domain::note::service;
+use crate::infra::manager::storage_pool;
 
 // ============================================================
 // 笔记 CRUD — 薄 FFI 封装
@@ -51,7 +53,16 @@ pub async fn create_annotation(
 /// 新增或更新笔记
 #[frb]
 pub async fn upsert_note(note: Note) -> Result<Note, AppError> {
-    service::upsert_note(&note).await
+    let pool = storage_pool()?;
+    NoteRepository::save(&pool, &note).await
+}
+
+/// 搜索笔记
+#[frb]
+pub async fn search_notes(query: String) -> Result<Vec<Note>, AppError> {
+    tracing::debug!("[note] search_notes: query={}", query);
+    let pool = storage_pool()?;
+    NoteRepository::search(&pool, &query).await
 }
 
 /// 获取书籍的所有笔记列表
@@ -61,30 +72,15 @@ pub async fn list_notes_by_book(
     note_type: Option<NoteType>,
 ) -> Result<Vec<Note>, AppError> {
     tracing::debug!("[note] list_notes_by_book: book_id={}", book_id);
-    service::list_notes_by_book(&book_id, note_type).await
+    let pool = storage_pool()?;
+    match note_type {
+        Some(nt) => NoteRepository::find_by_type(&pool, &book_id, nt).await,
+        None => NoteRepository::list_by_book(&pool, &book_id).await,
+    }
 }
 
-/// 批量获取多本书籍的笔记
-#[frb]
-pub async fn list_notes_by_books(
-    book_ids: Vec<String>,
-) -> Result<Vec<(String, Vec<Note>)>, AppError> {
-    service::list_notes_by_books(&book_ids).await
-}
 
-/// 搜索笔记
-#[frb]
-pub async fn search_notes(query: String) -> Result<Vec<Note>, AppError> {
-    tracing::debug!("[note] search_notes: query={}", query);
-    service::search_notes(&query).await
-}
 
-/// 跨书分页获取所有笔记
-#[frb]
-pub async fn list_all_notes(limit: i32, offset: i32) -> Result<Vec<Note>, AppError> {
-    tracing::debug!("[note] list_all_notes: limit={}, offset={}", limit, offset);
-    service::list_all_notes(limit as i64, offset as i64).await
-}
 
 /// 分页查询笔记列表（带书名）
 #[frb]
@@ -92,13 +88,15 @@ pub async fn list_notes_with_titles(
     limit: i32,
     offset: i32,
 ) -> Result<Vec<NoteWithBook>, AppError> {
-    service::list_notes_with_titles(limit as i64, offset as i64).await
+    let pool = storage_pool()?;
+    NoteRepository::list_with_titles(&pool, limit as i64, offset as i64).await
 }
 
 /// 获取笔记总数
 #[frb]
 pub async fn count_notes(book_id: Option<String>) -> Result<i32, AppError> {
-    service::count_notes(book_id.as_deref()).await
+    let pool = storage_pool()?;
+    NoteRepository::count_filtered(&pool, book_id.as_deref()).await
 }
 
 /// 获取章节内的笔记列表
@@ -116,22 +114,11 @@ pub async fn list_notes_in_chapter(
 #[frb]
 pub async fn delete_note(note_id: String) -> Result<(), AppError> {
     tracing::info!("[note] delete_note: note_id={}", note_id);
-    service::delete_note(&note_id).await
+    let pool = storage_pool()?;
+    NoteRepository::delete_by_id(&pool, &note_id).await
 }
 
-/// 清除书籍的所有笔记
-#[frb]
-pub async fn delete_notes_by_book(book_id: String) -> Result<(), AppError> {
-    tracing::info!("[note] delete_notes_by_book: book_id={}", book_id);
-    service::delete_notes_by_book(&book_id).await
-}
 
-/// 获取笔记统计信息
-#[frb]
-pub async fn get_note_stats(book_id: String) -> Result<NoteStats, AppError> {
-    tracing::debug!("[note] get_note_stats: book_id={}", book_id);
-    service::get_note_stats(&book_id).await
-}
 
 /// 渲染笔记列表为指定格式的字符串
 #[frb(sync)]

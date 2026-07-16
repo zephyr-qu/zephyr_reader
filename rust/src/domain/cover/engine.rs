@@ -66,7 +66,7 @@ impl CoverExtractor for EpubCoverExtractor {
     }
 
     fn extract_cover(&self, file_path: &str, output_dir: &str) -> Result<String, AppError> {
-        let mut epub_file = crate::parser::epub::unzip::EpubFile::open(file_path)?;
+        let mut epub_file = crate::parser::epub::archive_reader::EpubFile::open(file_path)?;
         let cover_data = epub_file
             .read_cover()
             .ok_or_else(|| AppError::Other("EPUB cover not found".into()))?;

@@ -134,14 +134,13 @@ List<int> computeChapterLineBreakIndicesFromBlocks({
     }
     if (block.text.isEmpty) continue;
 
-    final blockFontSize = IrReaderIrBlock.effectiveFontSize(block, config);
-    final blockLineHeight = IrReaderIrBlock.effectiveLineHeight(block, config);
+    final blockFontSize = IrReaderIrBlock.effectiveFontSize(block.style, config);
+    final blockLineHeight = IrReaderIrBlock.effectiveLineHeight(block.style, config);
     final textStyle = config
         .buildTextStyle(fontSizeMultiplier: blockFontSize / config.fontSize)
         .copyWith(height: blockLineHeight);
-    final indentPx =
-        IrReaderIrBlock.resolveFirstLineIndentPx(block, config);
-    final blockPadding = IrReaderIrBlock.resolveBlockPadding(block, config);
+    final indentPx = IrReaderIrBlock.resolveFirstLineIndentPx(block.style, config);
+    final blockPadding = IrReaderIrBlock.resolveBlockPadding(block.style, config);
     final layoutMaxWidth = (maxWidth - blockPadding.horizontal).clamp(
       1.0,
       maxWidth,

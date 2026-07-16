@@ -1,4 +1,4 @@
-/// 语言类型（Phase 8 替代原 FRB 枚举）。
+/// 语言类型（替代原 FRB 枚举）。
 enum LanguageType {
   auto,
   chinese,

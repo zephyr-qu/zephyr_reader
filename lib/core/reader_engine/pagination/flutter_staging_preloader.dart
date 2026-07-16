@@ -1,6 +1,5 @@
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/image_cache.dart';
-import 'package:zephyr_reader/core/reader_engine/shared/ir_types.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/next_chapter_staging.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/line_break_extractor.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/pagination_params.dart';
@@ -30,7 +29,7 @@ abstract final class FlutterStagingPreloader {
         bookId: bookId,
         chapterIndex: chapterIndex,
       );
-      final ir = convertChapterIrFromFrb(frbIr);
+      final ir = frbIr;
       if (!PaginationStagingStore.isCurrent(gen)) return null;
 
       final contentWidth =
