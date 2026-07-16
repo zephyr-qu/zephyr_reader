@@ -166,7 +166,7 @@ impl ReaderIrBlock {
 pub struct ReaderChapterIr {
     pub blocks: Vec<ReaderIrBlock>,
     pub plain_text: String,
-    pub line_break_indices: Option<Vec<u32>>,
+
 }
 
 impl ReaderChapterIr {
@@ -175,7 +175,7 @@ impl ReaderChapterIr {
         Self {
             blocks,
             plain_text,
-            line_break_indices: None,
+
         }
     }
 

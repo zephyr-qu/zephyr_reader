@@ -11,9 +11,9 @@ import 'package:zephyr_reader/core/presentation/widgets/settings/settings_slider
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle_tile.dart';
 import 'package:zephyr_reader/features/reader/domain/service/custom_font_service.dart';
 import 'package:zephyr_reader/features/reader/domain/model/font_info.dart';
-import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
-import 'package:zephyr_reader/reader_engine/shared/config/reader_typography_defaults.dart';
-import 'package:zephyr_reader/reader_engine/shared/config/language_type.dart';
+import 'package:zephyr_reader/core/reader_engine/shared/config/reader_config.dart';
+import 'package:zephyr_reader/core/reader_engine/shared/config/reader_typography_defaults.dart';
+import 'package:zephyr_reader/core/reader_engine/shared/config/language_type.dart';
 import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/profile/page/typography/font_tile.dart';

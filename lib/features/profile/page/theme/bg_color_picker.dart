@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
-import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
+import 'package:zephyr_reader/core/reader_engine/shared/config/reader_config.dart';
 import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 
 /// 阅读背景色选择器。

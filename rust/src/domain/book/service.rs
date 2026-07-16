@@ -59,10 +59,32 @@ pub async fn list_books() -> Result<Vec<Book>, AppError> {
     BookRepository::list(&pool).await
 }
 
-/// 列出书架书籍（含进度）
-pub async fn list_bookshelf_books(sort_by: &str, sort_order: &str) -> Result<Vec<BookshelfBook>, AppError> {
+/// 列出书架书籍（含进度），支持按分类/状态筛选/排序。
+pub async fn list_bookshelf_books(
+    category_id: Option<&str>,
+    status: Option<BookStatus>,
+    sort_by: Option<&str>,
+    sort_order: Option<&str>,
+) -> Result<Vec<BookshelfBook>, AppError> {
     let pool = storage_pool()?;
-    BookRepository::list_bookshelf(&pool, sort_by, sort_order).await
+    match (category_id, status) {
+        (Some(cat_id), Some(st)) => {
+            CategoryRepository::list_bookshelf_by_category_and_status(
+                &pool, cat_id, st,
+            ).await
+        }
+        (Some(cat_id), None) => {
+            CategoryRepository::list_bookshelf_by_category(&pool, cat_id).await
+        }
+        (None, Some(st)) => {
+            BookRepository::list_bookshelf_by_status(&pool, st).await
+        }
+        (None, None) => {
+            let sort_by = sort_by.unwrap_or("last_opened_at");
+            let sort_order = sort_order.unwrap_or("desc");
+            BookRepository::list_bookshelf(&pool, sort_by, sort_order).await
+        }
+    }
 }
 
 /// 获取书名映射
@@ -132,11 +154,7 @@ pub async fn list_books_by_status(status: BookStatus) -> Result<Vec<Book>, AppEr
     BookRepository::list_by_status(&pool, status).await
 }
 
-/// 按状态列出书架书籍
-pub async fn list_bookshelf_books_by_status(status: BookStatus) -> Result<Vec<BookshelfBook>, AppError> {
-    let pool = storage_pool()?;
-    BookRepository::list_bookshelf_by_status(&pool, status).await
-}
+
 
 /// 根据文件路径获取书籍
 pub async fn get_book_by_file_path(validated_path: &str) -> Result<Option<Book>, AppError> {
@@ -225,9 +243,15 @@ pub async fn create_web_book(
 /// 批量更新书籍阅读状态
 pub async fn batch_update_book_status(book_ids: &[String], status: BookStatus) -> Result<(), AppError> {
     let pool = storage_pool()?;
+    let mut tx = pool.begin().await?;
     for book_id in book_ids {
-        BookRepository::update_status(&pool, book_id, status).await?;
+        sqlx::query("UPDATE books SET status = ? WHERE id = ?")
+            .bind(status.as_ref())
+            .bind(book_id)
+            .execute(&mut *tx)
+            .await?;
     }
+    tx.commit().await?;
     Ok(())
 }
 
@@ -237,9 +261,24 @@ pub async fn batch_set_categories_for_books(
     category_ids: &[String],
 ) -> Result<(), AppError> {
     let pool = storage_pool()?;
+    let mut tx = pool.begin().await?;
     for book_id in book_ids {
-        CategoryRepository::set_by_book(&pool, book_id, category_ids).await?;
+        sqlx::query("DELETE FROM book_categories WHERE book_id = ?")
+            .bind(book_id)
+            .execute(&mut *tx)
+            .await?;
+        for cat_id in category_ids {
+            sqlx::query(
+                "INSERT INTO book_categories (book_id, category_id) VALUES (?, ?) \
+                 ON CONFLICT(book_id, category_id) DO NOTHING",
+            )
+            .bind(book_id)
+            .bind(cat_id)
+            .execute(&mut *tx)
+            .await?;
+        }
     }
+    tx.commit().await?;
     Ok(())
 }
 

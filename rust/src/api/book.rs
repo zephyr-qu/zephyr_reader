@@ -57,16 +57,21 @@ pub async fn list_books() -> Result<Vec<Book>, AppError> {
     service::list_books().await
 }
 
-/// 获取书架展示用的书籍列表（含阅读进度）
+/// 获取书架展示用的书籍列表（含阅读进度），支持分类/状态筛选。
 #[frb]
 pub async fn list_bookshelf_books(
+    category_id: Option<String>,
+    status: Option<BookStatus>,
     sort_by: Option<String>,
     sort_order: Option<String>,
 ) -> Result<Vec<BookshelfBook>, AppError> {
-    tracing::debug!("[book] list_bookshelf_books: sort_by={:?}, sort_order={:?}", sort_by, sort_order);
-    let sort_by = sort_by.unwrap_or_else(|| "last_opened_at".to_string());
-    let sort_order = sort_order.unwrap_or_else(|| "desc".to_string());
-    service::list_bookshelf_books(&sort_by, &sort_order).await
+    tracing::debug!("[book] list_bookshelf_books: category={:?} status={:?} sort={:?}/{:?}", category_id, status, sort_by, sort_order);
+    service::list_bookshelf_books(
+        category_id.as_deref(),
+        status,
+        sort_by.as_deref(),
+        sort_order.as_deref(),
+    ).await
 }
 
 /// 获取书名映射
@@ -123,12 +128,7 @@ pub async fn list_books_by_status(status: BookStatus) -> Result<Vec<Book>, AppEr
     service::list_books_by_status(status).await
 }
 
-/// 按阅读状态筛选书籍（书架版，含进度）
-#[frb]
-pub async fn list_bookshelf_books_by_status(status: BookStatus) -> Result<Vec<BookshelfBook>, AppError> {
-    tracing::debug!("[book] list_bookshelf_books_by_status: status={:?}", status);
-    service::list_bookshelf_books_by_status(status).await
-}
+
 
 /// 根据书籍路径获取
 #[frb]

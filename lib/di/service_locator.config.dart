@@ -16,6 +16,12 @@ import 'package:zephyr_reader/core/local/file_storage.dart' as _i772;
 import 'package:zephyr_reader/core/local/preferences_service.dart' as _i985;
 import 'package:zephyr_reader/core/network/network_module.dart' as _i510;
 import 'package:zephyr_reader/core/network/wifi_transfer_service.dart' as _i82;
+import 'package:zephyr_reader/core/reader_engine/data/chapter_content_repository.dart'
+    as _i715;
+import 'package:zephyr_reader/core/reader_engine/pagination/engine.dart'
+    as _i690;
+import 'package:zephyr_reader/core/reader_engine/shared/config/reader_config.dart'
+    as _i267;
 import 'package:zephyr_reader/core/theme/theme_manager.dart' as _i182;
 import 'package:zephyr_reader/di/app_module.dart' as _i431;
 import 'package:zephyr_reader/features/bilingual/application/bilingual_config.dart'
@@ -64,11 +70,6 @@ import 'package:zephyr_reader/features/reader/domain/service/tts_service.dart'
     as _i1020;
 import 'package:zephyr_reader/features/search/application/search_view_model.dart'
     as _i1;
-import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart'
-    as _i897;
-import 'package:zephyr_reader/reader_engine/pagination/engine.dart' as _i573;
-import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart'
-    as _i334;
 
 extension GetItInjectableX on _i174.GetIt {
   // initializes the registration of main-scope dependencies inside of GetIt
@@ -89,7 +90,7 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i965.DataManagementViewModel(),
     );
     gh.factory<_i199.ProgressRepository>(() => _i199.ProgressRepository());
-    gh.singleton<_i334.ReaderBgColors>(() => _i334.ReaderBgColors());
+    gh.singleton<_i267.ReaderBgColors>(() => _i267.ReaderBgColors());
     gh.lazySingletonAsync<_i772.FileStorage>(() {
       final i = _i772.FileStorage();
       return i.init().then((_) => i);
@@ -147,14 +148,14 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factoryParam<_i474.BookmarkViewModel, _i642.ChapterViewModel, dynamic>(
       (_chapterVM, _) => _i474.BookmarkViewModel(_chapterVM),
     );
+    gh.singleton<_i267.ReaderConfig>(
+      () => _i267.ReaderConfig(gh<_i985.PreferencesService>()),
+    );
     gh.singleton<_i182.ThemeManager>(
       () => _i182.ThemeManager(gh<_i985.PreferencesService>()),
     );
     gh.singleton<_i917.BilingualConfig>(
       () => _i917.BilingualConfig(gh<_i985.PreferencesService>()),
-    );
-    gh.singleton<_i334.ReaderConfig>(
-      () => _i334.ReaderConfig(gh<_i985.PreferencesService>()),
     );
     gh.lazySingleton<_i884.BilingualService>(
       () => bilingualModule.bilingualService(
@@ -162,15 +163,15 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i361.Dio>(),
       ),
     );
-    gh.factory<_i897.ChapterContentRepository>(
-      () => _i897.ChapterContentRepository(gh<_i334.ReaderConfig>()),
+    gh.factory<_i715.ChapterContentRepository>(
+      () => _i715.ChapterContentRepository(gh<_i267.ReaderConfig>()),
     );
     gh.factory<_i642.ChapterViewModel>(
       () => _i642.ChapterViewModel(
-        gh<_i897.ChapterContentRepository>(),
-        gh<_i573.PaginationEngine>(),
+        gh<_i715.ChapterContentRepository>(),
+        gh<_i690.PaginationEngine>(),
         gh<_i199.ProgressRepository>(),
-        gh<_i334.ReaderConfig>(),
+        gh<_i267.ReaderConfig>(),
       ),
     );
     return this;

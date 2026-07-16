@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
+import 'package:zephyr_reader/core/reader_engine/shared/config/reader_config.dart';
 
 /// 亮度遮罩层。
 ///

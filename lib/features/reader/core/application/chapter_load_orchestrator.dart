@@ -5,20 +5,20 @@ import 'package:zephyr_reader/src/rust/domain/chapter/models.dart';
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
-import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
+import 'package:zephyr_reader/core/reader_engine/shared/config/reader_config.dart';
 import 'package:zephyr_reader/core/utils/app_error_mapper.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_pagination_intent_resolver.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/features/reader/core/application/pagination_coordinator.dart';
-import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
-import 'package:zephyr_reader/reader_engine/pagination/engine.dart';
-import 'package:zephyr_reader/reader_engine/shared/config/reader_notice.dart';
-import 'package:zephyr_reader/reader_engine/pagination/engine_utils.dart';
+import 'package:zephyr_reader/core/reader_engine/data/chapter_content_repository.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/engine.dart';
+import 'package:zephyr_reader/core/reader_engine/shared/config/reader_notice.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/engine_utils.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/reader_engine/shared/config/reading_mode_utils.dart';
-import 'package:zephyr_reader/reader_engine/pagination/pagination_progress_hook.dart';
-import 'package:zephyr_reader/reader_engine/pagination/pagination_viewport_metrics.dart';
+import 'package:zephyr_reader/core/reader_engine/shared/config/reading_mode_utils.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/pagination_progress_hook.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/pagination_viewport_metrics.dart';
 
 /// 章节加载状态机的显式阶段。
 enum ChapterLoadPhase {

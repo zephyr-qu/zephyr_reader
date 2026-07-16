@@ -1,19 +1,19 @@
 import 'package:zephyr_reader/src/rust/domain/note/models.dart';
-import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
+import 'package:zephyr_reader/core/reader_engine/data/chapter_content_repository.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
-import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
-import 'package:zephyr_reader/reader_engine/shared/config/reading_mode_utils.dart';
-import 'package:zephyr_reader/reader_engine/pagination/viewport_index.dart';
-import 'package:zephyr_reader/reader_engine/rendering/reader_render_config.dart';
+import 'package:zephyr_reader/core/reader_engine/shared/config/reader_config.dart';
+import 'package:zephyr_reader/core/reader_engine/shared/config/reading_mode_utils.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/viewport_index.dart';
+import 'package:zephyr_reader/core/reader_engine/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 import 'package:zephyr_reader/core/theme/anim_tokens.dart';
-import 'package:zephyr_reader/reader_engine/scroll/scroll_chapter_segment.dart';
-import 'package:zephyr_reader/reader_engine/scroll/scroll_layout_params.dart';
-import 'package:zephyr_reader/reader_engine/scroll/scroll_position_mapper.dart';
+import 'package:zephyr_reader/core/reader_engine/scroll/scroll_chapter_segment.dart';
+import 'package:zephyr_reader/core/reader_engine/scroll/scroll_layout_params.dart';
+import 'package:zephyr_reader/core/reader_engine/scroll/scroll_position_mapper.dart';
 
 /// 阅读内容容器组件。
 ///
@@ -99,7 +99,7 @@ class ReaderContent extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    
+
     final renderConfig = this.renderConfig;
     // 永不重建 PageController — 跨章时手动 jumpToPage(0)
     final pageController = useMemoized(

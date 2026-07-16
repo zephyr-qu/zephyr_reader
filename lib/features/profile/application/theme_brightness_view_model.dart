@@ -1,7 +1,7 @@
 import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:injectable/injectable.dart';
 
-import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
+import 'package:zephyr_reader/core/reader_engine/shared/config/reader_config.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:zephyr_reader/core/theme/theme_manager.dart';
