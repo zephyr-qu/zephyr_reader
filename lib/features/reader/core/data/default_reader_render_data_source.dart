@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart' show ValueNotifier;
 import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
 import 'package:zephyr_reader/features/reader/core/data/reader_render_data_source.dart';
-import 'package:zephyr_reader/features/reader/core/domain/chapter_content_repository.dart';
+import 'package:zephyr_reader/features/reader/domain/chapter_content_repository.dart';
 import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
 import 'package:zephyr_reader/reader_engine/pagination/packed_page.dart';
 import 'package:zephyr_reader/reader_engine/shared/ir_types.dart';
