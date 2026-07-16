@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:zephyr_reader/features/reader/core/domain/bilingual_reader_delegate.dart';
+import 'package:zephyr_reader/features/reader/domain/bilingual_reader_delegate.dart';
 import 'package:zephyr_reader/features/reader/page/widgets/reader_translation_dialog.dart';
 import 'package:zephyr_reader/features/bilingual/presentation/bilingual_renderer.dart';
-import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
+import 'package:zephyr_reader/reader_engine/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/domain/bilingual/models.dart';
 import 'package:zephyr_reader/src/rust/domain/note/models.dart';
 

@@ -8,8 +8,8 @@ import 'package:dio/dio.dart';
 import 'package:zephyr_reader/core/utils/async_utils.dart';
 import 'package:zephyr_reader/src/rust/api/bilingual.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
-import 'package:zephyr_reader/features/reader/core/domain/bilingual_reader_delegate.dart';
-import 'package:zephyr_reader/features/reader/rendering/reader_render_config.dart';
+import 'package:zephyr_reader/features/reader/domain/bilingual_reader_delegate.dart';
+import 'package:zephyr_reader/reader_engine/rendering/reader_render_config.dart';
 
 import 'package:zephyr_reader/features/bilingual/application/bilingual_config.dart';
 import 'package:zephyr_reader/features/bilingual/data/bilingual_cache.dart';
