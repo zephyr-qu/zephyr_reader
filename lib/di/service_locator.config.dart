@@ -56,10 +56,6 @@ import 'package:zephyr_reader/features/reader/core/application/reading_session_m
     as _i306;
 import 'package:zephyr_reader/features/reader/data/vocabulary_marker_service.dart'
     as _i880;
-import 'package:zephyr_reader/features/reader/domain/chapter_content_repository.dart'
-    as _i166;
-import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart'
-    as _i402;
 import 'package:zephyr_reader/features/reader/domain/progress_repository.dart'
     as _i199;
 import 'package:zephyr_reader/features/reader/domain/service/custom_font_service.dart'
@@ -68,8 +64,12 @@ import 'package:zephyr_reader/features/reader/domain/service/tts_service.dart'
     as _i1020;
 import 'package:zephyr_reader/features/search/application/search_view_model.dart'
     as _i1;
+import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart'
+    as _i897;
 import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart'
     as _i20;
+import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart'
+    as _i334;
 
 extension GetItInjectableX on _i174.GetIt {
   // initializes the registration of main-scope dependencies inside of GetIt
@@ -90,7 +90,7 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i965.DataManagementViewModel(),
     );
     gh.factory<_i199.ProgressRepository>(() => _i199.ProgressRepository());
-    gh.singleton<_i402.ReaderBgColors>(() => _i402.ReaderBgColors());
+    gh.singleton<_i334.ReaderBgColors>(() => _i334.ReaderBgColors());
     gh.lazySingletonAsync<_i772.FileStorage>(() {
       final i = _i772.FileStorage();
       return i.init().then((_) => i);
@@ -154,8 +154,8 @@ extension GetItInjectableX on _i174.GetIt {
     gh.singleton<_i917.BilingualConfig>(
       () => _i917.BilingualConfig(gh<_i985.PreferencesService>()),
     );
-    gh.singleton<_i402.ReaderConfig>(
-      () => _i402.ReaderConfig(gh<_i985.PreferencesService>()),
+    gh.singleton<_i334.ReaderConfig>(
+      () => _i334.ReaderConfig(gh<_i985.PreferencesService>()),
     );
     gh.lazySingleton<_i884.BilingualService>(
       () => bilingualModule.bilingualService(
@@ -163,15 +163,15 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i361.Dio>(),
       ),
     );
-    gh.factory<_i166.ChapterContentRepository>(
-      () => _i166.ChapterContentRepository(gh<_i402.ReaderConfig>()),
+    gh.factory<_i897.ChapterContentRepository>(
+      () => _i897.ChapterContentRepository(gh<_i334.ReaderConfig>()),
     );
     gh.factory<_i642.ChapterViewModel>(
       () => _i642.ChapterViewModel(
-        gh<_i166.ChapterContentRepository>(),
+        gh<_i897.ChapterContentRepository>(),
         gh<_i20.PaginationSession>(),
         gh<_i199.ProgressRepository>(),
-        gh<_i402.ReaderConfig>(),
+        gh<_i334.ReaderConfig>(),
       ),
     );
     return this;

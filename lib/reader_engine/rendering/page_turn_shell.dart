@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/features/reader/data/pagination_viewport_index.dart';
+import 'package:zephyr_reader/reader_engine/pagination/viewport_index.dart';
 import 'package:zephyr_reader/reader_engine/rendering/page_curl_widget.dart';
 import 'package:zephyr_reader/reader_engine/pagination/packed_page.dart';
 

@@ -1,10 +1,10 @@
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
-import 'package:zephyr_reader/features/reader/domain/chapter_content_repository.dart';
+import 'package:zephyr_reader/reader_engine/data/chapter_content_repository.dart';
 import 'package:zephyr_reader/reader_engine/pagination/flutter_pagination_session.dart';
-import 'package:zephyr_reader/features/reader/data/pagination_engine.dart';
+import 'package:zephyr_reader/reader_engine/pagination/engine_utils.dart';
 import 'package:zephyr_reader/reader_engine/shared/pagination_params.dart';
-import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
 import 'package:zephyr_reader/reader_engine/pagination/packed_page.dart';
 
 class PaginationCoordinator {
@@ -90,13 +90,13 @@ class PaginationCoordinator {
   ) {
     Logging.info(
       '[FirstLoad] paginateFirstScreen chapter=$chapterIndex'
-      ' maxChars=${PaginationEngine.firstScreenMaxChars}',
+      ' maxChars=${PaginationUtils.firstScreenMaxChars}',
     );
     return _session.beginPaginate(
       bookId: _chapterVM.bookId.value,
       chapterIndex: chapterIndex,
       params: buildPaginationParams(),
-      maxChars: PaginationEngine.firstScreenMaxChars,
+      maxChars: PaginationUtils.firstScreenMaxChars,
     );
   }
 
@@ -120,7 +120,7 @@ class PaginationCoordinator {
       bookId: _chapterVM.bookId.value,
       chapterIndex: chapterIndex,
       params: buildPaginationParams(),
-      maxChars: PaginationEngine.firstScreenMaxChars,
+      maxChars: PaginationUtils.firstScreenMaxChars,
     );
   }
 
@@ -143,7 +143,7 @@ class PaginationCoordinator {
       bookId: _chapterVM.bookId.value,
       chapterIndex: _chapterVM.chapterIndex.value,
       params: buildPaginationParams(),
-      maxChars: maxChars ?? PaginationEngine.firstScreenMaxChars,
+      maxChars: maxChars ?? PaginationUtils.firstScreenMaxChars,
     );
   }
 
@@ -154,7 +154,7 @@ class PaginationCoordinator {
     required String content,
   }) {
     final descriptors = _session.descriptors!;
-    final maxOffset = PaginationEngine.chapterCharOffsetMax(
+    final maxOffset = PaginationUtils.chapterCharOffsetMax(
       descriptors: descriptors,
       phase1PlainContent: content,
     );
@@ -176,7 +176,7 @@ class PaginationCoordinator {
     if (sessionPage != null) {
       return sessionPage.clamp(0, descriptors.length - 1);
     }
-    return PaginationEngine.resolvePageIndexForOffset(descriptors, charOffset);
+    return PaginationUtils.resolvePageIndexForOffset(descriptors, charOffset);
   }
 
   /// 释放分页会话并清空本地缓存。

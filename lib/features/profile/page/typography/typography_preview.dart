@@ -5,7 +5,7 @@ import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/domain/service/custom_font_service.dart';
 import 'package:zephyr_reader/features/reader/domain/model/font_info.dart';
-import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
 import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 

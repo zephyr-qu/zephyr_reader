@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart' show ValueNotifier;
 import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/features/reader/core/data/next_chapter_staging.dart';
-import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
-import 'package:zephyr_reader/features/reader/domain/config/reader_typography_defaults.dart';
+import 'package:zephyr_reader/reader_engine/shared/next_chapter_staging.dart';
+import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
+import 'package:zephyr_reader/reader_engine/shared/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/reader_engine/pagination/flutter_staging_preloader.dart';
 import 'package:zephyr_reader/reader_engine/pagination/pagination_staging_store.dart';
 import 'package:zephyr_reader/reader_engine/scroll/scroll_chapter_payload.dart';

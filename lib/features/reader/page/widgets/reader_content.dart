@@ -3,9 +3,9 @@ import 'package:zephyr_reader/src/rust/domain/note/models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
-import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
-import 'package:zephyr_reader/features/reader/domain/config/reading_mode_utils.dart';
-import 'package:zephyr_reader/features/reader/data/pagination_viewport_index.dart';
+import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
+import 'package:zephyr_reader/reader_engine/shared/config/reading_mode_utils.dart';
+import 'package:zephyr_reader/reader_engine/pagination/viewport_index.dart';
 import 'package:zephyr_reader/reader_engine/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 

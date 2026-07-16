@@ -1,4 +1,4 @@
-import 'package:zephyr_reader/features/reader/domain/config/reader_config.dart';
+import 'package:zephyr_reader/reader_engine/shared/config/reader_config.dart';
 
 /// pagination 模式的翻页动画皮肤（ADR-002：非独立 ReadingMode）。
 enum PaginationSkin {
