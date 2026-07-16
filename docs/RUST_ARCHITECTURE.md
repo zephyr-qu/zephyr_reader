@@ -1,6 +1,6 @@
 # Zephyr Reader Rust 引擎架构
 
-> 版本：5.0 | 最后更新：2026-07-13
+> 版本：3.1 | 最后更新：2026-07-07
 
 ---
 
@@ -48,198 +48,390 @@ Rust 只做：
 ### 1.1 模块架构
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│                           Rust 核心引擎                               │
-│                                                                      │
-│  api/  — FFI API 层（10 模块，薄适配层）                             │
-│    ├─ reader.rs ..... 3 个 FRB 函数（get_chapter / store_line_breaks │
-│    │                                  / get_chapter_content_ir）     │
-│    ├─ import.rs ..... parse_book（路径验证 → 解析 → DB 写入）        │
-│    ├─ bilingual .... 双语对齐（对齐、高亮对）                         │
-│    ├─ cover ........ 封面提取                                        │
-│    ├─ dictionary ... 词典查询（lookup_mdict / suggest_mdict）        │
-│    ├─ epub ......... EPUB 图片/格式信息                               │
-│    ├─ search ....... 全文搜索 FFI                                    │
-│    ├─ vocab_marker . 词汇正则扫描                                    │
-│    ├─ backup ....... 数据备份/恢复                                   │
-│    └─ data/ ........ 10 个数据层 API（book/bookmark/category/...）   │
-│                                                                      │
-│  90 个 .rs 源文件 + 21 个测试文件，分层如下：                        │
-└──────────────────────────────────────────────────────────────────────┘
-
-┌───────────┐  ┌───────────┐  ┌───────────┐  ┌──────────────┐
-│  parser/  │  │ reading/  │  │ storage/  │  │ dictionary/  │
-│ TXT/EPUB  │  │ 编排层    │  │ SQLite +  │  │ mdict 引擎   │
-│ Registry  │  │ 全局单例  │  │ sled KV   │  │ 模糊匹配     │
-│ Provider  │  │ 缓存      │  │ 13 Repo   │  │ 音频提取     │
-└───────────┘  │ 章节读取  │  └───────────┘  └──────────────┘
-               │ IR 加载   │
-               └───────────┘
-
-┌────────────┐  ┌────────────┐  ┌──────────────┐  ┌──────────────┐
-│  text/     │  │  domain/   │  │  search/     │  │ vocab_marker │
-│ 双语对齐   │  │ 类型定义   │  │ FTS5+jieba  │  │ 词汇标记    │
-│ 章节检测   │  │ AppError   │  │ BM25         │  │ 正则扫描    │
-│ CSS 解析   │  │ 验证       │  └──────────────┘  └──────────────┘
-│ 富文本     │  └────────────┘
-│ (分页引擎  │
-│  已删除)   │
-└────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                    Flutter 排版层（Typesetting）                   │
+│  TextPainter 真实排版  │  measureLayoutFingerprint()              │
+│  → 字宽 + 行高 + 行宽比  = CalibrationData（ground truth）        │
+│  LayoutCalibrationStore (SharedPreferences cache)               │
+│  resolveLayoutCalibration() — 强制测完再分页                     │
+└────────────────────────────┬─────────────────────────────────────┘
+                             │ FRB (TypesetCalibration)
+                             ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                    Rust 分页层（Pagination）                       │
+│  数学估算器：用 Flutter 实测字宽/行高/行宽比                       │
+│  计算每页能装多少字、页边界在哪。不渲染文字，不调字体引擎。            │
+│                                                                  │
+│  full_line_width = page_w × ratio        (ratio 来自 Flutter)    │
+│  line_height = measured_h × (block_font / base_font)             │
+│  → PageDescriptor { startOffset, endOffset }                     │
+│                                                                  │
+│  + parser + storage + search + dictionary (完整 Rust 引擎)         │
+└────────────────────────────┬─────────────────────────────────────┘
+                             │ FRB (PageDescriptors)
+                             ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                    Flutter 渲染层（Rendering）                     │
+│  按 PageDescriptor 范围取文本 → SelectableText.rich 渲染到屏幕       │
+│  PaginatedPageViewport (SizedBox + ClipRect) — 约束视口            │
+│  [LineBreak] overflow_dp ≤ 0.5 — CI 门禁                          │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ### 1.2 核心设计原则
 
 | # | 原则 | 实现 |
 |---|------|------|
-| 1 | **Rust 只做内容服务** | 不再做任何分页/装箱计算；分页全在 Flutter 侧 |
-| 2 | **sled + SQLite 双存储** | SQLite（结构化数据）+ sled（KV 缓存：scroll_ir_cache） |
-| 3 | **所有 panic 禁止跨越 FFI** | 所有导出函数返回 `Result<T, AppError>` |
-| 4 | **零拷贝优先** | `Uint8List`/`String` 映射，避免 struct 序列化冗余 |
-| 5 | **统一 IR 路径** | TXT/EPUB → `ChapterContentIr` → Flutter 消费，无双引擎 |
-| 6 | **阅读编排集中化** | `reading/` 模块封装全局单例、缓存、章节读取逻辑 |
-| 7 | **持有帧替代 spinner** | 跨章翻页无 spinner，用 hold frame 兜底 |
+| 1 | **Flutter 是 ground truth** | 所有排版参数由 Flutter TextPainter 实测，Rust 不猜任何魔数 |
+| 2 | **测完再分页** | `resolveLayoutCalibration()` 先于 `paginate_chapter()`，首屏就对 |
+| 3 | **配置变更自动重测** | `config_hash` 变化 → cache miss → 重测 → 重分页 |
+| 4 | **块级字号按比例** | `effective_line_height = measured_base × (block_font / base_font)` |
+| 5 | **标量校准优先** | 断行位置差异通过 overflow 指标验收；行边界传递为长期可选项 |
+| 6 | **所有 panic 禁止跨越 FFI** | 所有导出函数返回 `Result<T, AppError>` |
+| 7 | **零拷贝优先** | `Uint8List`/`String` 映射，避免 struct 序列化冗余 |
+| 8 | **双引擎存储** | SQLite（结构化数据）+ sled（KV 缓存） |
+| 9 | **统一 IR 路径** | TXT/EPUB → `ChapterContentIr` → `BlockPaginator`，无双引擎 |
 
 ### 1.3 排版参数来源对照
 
-> 分页已迁移至 Flutter，Rust 不再消费排版参数。以下仅作历史参考。
-
-| 参数 | 来源 | 状态 |
-|------|------|------|
-| 6 组字宽 (cjk/ascii/...) | Flutter `TextPainter` | Flutter 侧消费 |
-| `effectiveLineWidthRatio` | Flutter 排版 | Flutter 侧消费 |
-| `measuredLineHeightPx` | Flutter `TextPainter` 实测 | Flutter 侧消费 |
-| `pageWidth` / `pageHeight` | `buildTypesetConfig` | Flutter 侧消费 |
-| `letterSpacing` / `lineSpacing` | 用户设置 | Flutter 侧消费 |
-| `line_break_indices` | Flutter `TextPainter._breakText` | Flutter 侧消费 |
+| 参数 | 来源 | 传递方式 |
+|------|------|----------|
+| 6 组字宽 (cjk/ascii/...) | Flutter `TextPainter` 测量 | `TypesetCalibration` (FRB) |
+| `effectiveLineWidthRatio` | Flutter 排版 200 个"中"反推 | 同上 |
+| `measuredLineHeightPx` | Flutter `TextPainter` + `StrutStyle` 实测 | 同上 |
+| `pageWidth` / `pageHeight` | `buildTypesetConfig` (已扣 vPad + 水平 padding) | `TypesetConfig` (FRB) |
+| `letterSpacing` | 用户设置 | 同上 |
+| `lineSpacing` / `paragraphSpacing` | 用户设置 | 同上 |
+| 首行缩进 / 标点挤压 / 中西文间距 | 用户设置 | 同上 |
 
 ---
 
-## 2. Rust 引擎子系统
+## 2. Flutter 排版层 — 详细解析
 
-> Rust 侧不再承担分页计算。分页引擎（`block_paginator.rs` ~1620 行）已在 Phase 7 彻底删除。
-> 以下为当前 Rust 引擎的全部模块。
+> 输入：`TypesetMeasureParams`（页面尺寸 + 排版设置）
+> 输出：`CalibrationData` → `TypesetCalibration`（FRB 传给 Rust）
+> 关键文件：`typeset_calibrator.dart` (~790 行)
 
-### 2.1 `api/` — FFI API 层（10 模块）
+### 2.1 测量流程
 
-| 模块 | 文件 | 说明 |
-|------|------|------|
-| `reader.rs` | 3 函数 | 当前仅 `get_chapter`、`store_line_breaks`、`get_chapter_content_ir` |
-| `import.rs` | 1 函数 | `parse_book` — 路径验证 → 解析 → DB 写入 |
-| `cover.rs` | 封面提取 FFI | |
-| `bilingual.rs` | 双语对齐 FFI | `align_bilingual_content`、高亮对 CRUD |
-| `search.rs` | 全文搜索 FFI | |
-| `epub.rs` | EPUB 图片/格式信息 | |
-| `dictionary.rs` | 词典查询 FFI | `lookup_mdict`、`suggest_mdict`、`segment_text`、`extract_audio` |
-| `vocab_marker.rs` | 词汇标记 FFI | |
-| `backup.rs` | 数据备份/恢复 | |
-| `data/` | 10 文件 | 数据层 API: book / bookmark / category / chapter / init / note / progress / session / stats / vocabulary |
+```
+TypesetMeasureParams {
+  width, height, pagePadding, contentVerticalPadding,
+  fontSize, lineHeight, letterSpacing,
+  fontFamily, devicePixelRatio,
+  baselineAlign, firstLineIndentChars
+}
+      │
+      ▼
+_measureStyles()  ──── 用 ReaderRenderConfig 的同一套栈
+  ├─ buildTextStyle()   → TextStyle(fontSize, fontFamily, letterSpacing, height)
+  └─ buildStrutStyle()  → StrutStyle(forceStrutHeight, leading: 0)
+      │
+      ▼
+measureLayoutFingerprint()  ──── 4 个测量子步骤
+  │
+  ├─ _measureAvgCharWidth() × 6
+  │   测量 6 组 Unicode: cjk / ascii / digit / punct / latinExt / other
+  │   每组 3-5 个代表字符，TextPainter.layout(maxWidth: infinity)
+  │   返回: tp.width / text.length  ← 平均单字宽度 (dp)
+  │
+  ├─ measureEffectiveLineWidthRatio()
+  │   排版 200 个"中"在 availableWidthDp 宽度下
+  │   读第一行 lineMetrics.width，除以单字宽得 charsPerLine
+  │   返回: (charsPerLine × singleWidth) / availableWidthDp
+  │   例: 320 / 328 = 0.976
+  │
+  ├─ measureLineHeightDp()
+  │   TextPainter.layout("中", maxWidth: infinity)
+  │   读 lineMetrics[0].height
+  │   forceStrutHeight 保证与渲染行高一致
+  │
+  └─ → CalibrationData {
+       cjkWidth, asciiWidth, digitWidth,
+       punctWidth, latinExtWidth, otherWidth,
+       effectiveLineWidthRatio,  // ← 消灭 0.97 魔数
+       lineHeightDp, dpr         // ← 消灭 fontSize×lineHeight 理论值
+     }
+```
 
-**关键变化**（vs v4.0）：
-- `api/core.rs` → `api/reader.rs`，删除 70+ 旧分页相关 FFI 函数
-- 新增 `api/import.rs`（core_api→import_api 迁移）
-- `FirstSpineResult`、`compute_config_hash` 已从 FRB 及代码中删除
-- `TypesetConfig` 类型保留、但不再被任何 Rust 生产代码消费
+### 2.2 数据转换：`CalibrationData` → `TypesetCalibration`
 
-### 2.2 `reading/` — 阅读编排层（6 模块，~900 行）
+```dart
+calibrationToRust(data) → TypesetCalibration {
+  dpr:                    data.dpr,
+  cjk_width:              data.cjkWidth * dpr,       // dp → px
+  ascii_width:            data.asciiWidth * dpr,
+  digit_width:            data.digitWidth * dpr,
+  punct_width:            data.punctWidth * dpr,
+  latin_ext_width:        data.latinExtWidth * dpr,
+  other_width:            data.otherWidth * dpr,
+  effective_line_width_ratio:  data.effectiveLineWidthRatio,  // 直传，无量纲
+  measured_line_height_px:     data.lineHeightDp * dpr,        // dp → px
+}
+```
 
-Phase 5+6 的核心重构产出，Phase 7 清理后进一步精简。
+### 2.3 缓存策略
 
-| 文件 | 行数 | 职责 |
-|------|------|------|
-| `orchestrator.rs` | ~110 | `ReadingOrchestrator` 全局单例；提供 `get_chapter`、`get_chapter_content_ir`、`store_line_breaks` |
-| `chapter_access.rs` | ~130 | 章节边界 + 格式识别 + `get_chapter()` 原始文本读取 |
-| `chapter_ir.rs` | ~50 | `load_chapter_content_ir()` — IR 加载，sled 缓存优先 |
-| `layout_cache.rs` | ~60 | sled `scroll_ir_cache` 读写（分页缓存已不存在） |
-| `provider_cache.rs` | ~90 | `PROVIDER_CACHE` LRU（章节 provider 跨请求复用） |
-| `mod.rs` | ~40 | 模块声明 + BOOK_ID_CACHE |
+```
+LayoutCalibrationStore (SharedPreferences)
+  键 = "layout_calib_v1_{Object.hash(10个测量参数)}"
 
-**已删除**（Phase 7）：`pagination_store.rs`(~389 行)、`block_state.rs`(~482 行)、`pagination.rs`(~470 行)、`types.rs`(~14 行)
+  触发重测 = 任意参数变化 → hash 变 → cache miss
+  参数包括: width, height, pagePadding, contentVerticalPadding,
+           fontSize, lineHeight, letterSpacing, fontFamily,
+           devicePixelRatio, baselineAlign, firstLineIndentChars
 
-### 2.3 `text/` — 文本处理模块（7 模块，~2100 行）
+  resolveLayoutCalibration(params, prefs)
+    ├─ [LayoutCalib] cache hit  → return cached  (0ms)
+    └─ miss → measureLayoutFingerprint → save → return
+```
 
-| 文件 | 行数 | 职责 | 状态 |
-|------|------|------|------|
-| `bilingual.rs` | ~482 | 双语对齐引擎：`BilingualAligner` — 中英文分词、相似度计算、段落级对齐 | 生产 |
-| `chapter_detect.rs` | ~127 | 章节检测：`extract_chapters()` / `extract_chapters_with_pattern()` | 生产 |
-| `css.rs` | ~303 | CSS 解析器：`parse_css()` / `resolve_font_size()` / `resolve_color()` | 生产 |
-| `rich_text.rs` | ~899 | HTML→富文本解析：`parse_html_to_rich_text()` — html5ever DOM → `RichParagraph[]` | 生产 |
-| `char_width.rs` | ~131 | `CharWidthTable` 字宽表（6 组 Unicode 分类）；仅 `#[cfg(test)]` 消费 | 🟡 死代码 |
-| `constants.rs` | ~99 | 字符常量：`is_cjk_char()` / 标点判断；仅 `chapter_detect.rs` 生产消费 + `line_breaking.rs` 测试 | 生产 |
-| `line_breaking.rs` | ~155 | 贪心断行算法；全文件 `#[cfg(test)]`（`block_paginator.rs` 已删） | 🟡 死代码 |
-| `mod.rs` | 14 | 模块声明 + 公开 re-export | — |
+**同设备、同设置第二次打开 = 0ms 跳过测量。**
 
-**已删除**（Phase 7）：`block_paginator.rs`(~1620 行) —— Rust 分页引擎，全量 Flutter 迁移后删除。
+### 2.4 配置构建：`buildTypesetConfig()`
 
-### 2.4 `parser/` — 解析器层
+```dart
+buildTypesetConfig(width, height, fontSize, lineHeight, calibration, ...)
+  │
+  ├─ contentHeight = height - 2×contentVerticalPadding - pageHeightLineBuffer
+  │   例: 840 - 40 - 0 = 800dp  ← 扣除正文上下内边距
+  │
+  ├─ pageHeightPx = (contentHeight × dpr).round()
+  │   例: 800 × 2.6 = 2100px
+  │
+  ├─ pageWidthPx = ((width - 2×padding) × dpr).round()
+  │   例: (390 - 32) × 2.6 = 975px
+  │
+  └─ → TypesetConfig {
+       pageWidth: 975, pageHeight: 2100,
+       fontSize: 48, lineSpacing: 1.8,
+       calibration: TypesetCalibration { ... }
+     }
+```
+
+### 2.5 时序保证
+
+```
+chapter_load_orchestrator.dart:
+  resolveLayoutCalibration(params, prefs)  ← 必须先完成
+       ↓
+  buildTypesetConfig(calibration)           ← 注入实测指纹
+       ↓
+  paginate_chapter(config)                  ← Rust 只消费，不猜测
+```
+
+**首屏渲染必须等测量完成。** 先 paginate 再测量的 Bug B 已修复。
+
+---
+
+## 3. Rust 分页层 — 详细解析
+
+> 输入：`TypesetConfig`（含 `TypesetCalibration`） + `ChapterContentIr`
+> 输出：`PageDescriptor[]`（每页的字符范围）
+> 关键文件：`block_paginator.rs` (~1300 行), `line_breaking.rs` (~260 行), `char_width.rs` (~120 行)
+
+### 3.1 数据流概览
+
+```
+TypesetConfig ──→ BlockLayoutMetrics::from_config()
+  │                ├─ full_line_width_px = page_width × effective_line_width_ratio
+  │                ├─ line_height_px      = measured || (font_size × line_spacing)
+  │                └─ width_table         = CharWidthTable::from_calibration()
+  │
+  ▼
+ChapterContentIr ──→ BlockPaginator::new(metrics)
+  │                   remaining_height = page_height_px
+  │
+  ▼
+for block in ir.blocks:
+  ├─ ContentBlock::Text → paginate_text_block()
+  │    ├─ _break_paragraph()    → compute_line_breaks_variable_width()
+  │    │   逐字累加 char_width (CharWidthTable) + letter_spacing_px
+  │    │   标点挤压 ×0.65  |  中西文间距 +auto_space_px
+  │    │   避尾标点（开括号推下一行） |  避头标点（闭标点回拉）
+  │    │
+  │    ├─ ensure_vertical_space(effective_line_height)
+  │    │   remaining_height < required → flush_page() → new page
+  │    │
+  │    └─ remaining_height -= effective_line_height
+  │
+  └─ ContentBlock::Image → paginate_image_block()
+       ├─ 小图 (height ≤ remaining) → InlineContain
+       └─ 大图 → flush → FullPage (独占页)
+```
+
+### 3.2 核心算法：逐行消费
+
+```rust
+// block_paginator.rs — paginate_text_block 核心循环
+for visual_line in visual_segments {
+    let required_height = effective_line_height + bottom_spacing;
+    ensure_vertical_space(required_height); // 不够就换页
+    self.remaining_height -= effective_line_height;
+}
+```
+
+```rust
+// 块级字号行高缩放（每条块独立）
+let effective_font_size = block.style.font_size.unwrap_or(metrics.font_size_px);
+let effective_line_height = block.style.line_height
+    .map(|lh| lh * effective_font_size)          // 块有显式 line_height
+    .unwrap_or_else(|| {
+        let ratio = effective_font_size / metrics.font_size_px.max(1.0);
+        metrics.line_height_px * ratio           // 按比例从基准缩放
+    });
+```
+
+### 3.3 断行算法：Rust vs Flutter
+
+| 维度 | Rust `compute_line_breaks_variable_width` | Flutter `TextPainter` |
+|------|------------------------------------------|----------------------|
+| 算法 | 贪心逐字累加宽度 | ICU 断行引擎 |
+| 字宽来源 | `CharWidthTable`（Flutter 实测校准） | 字体引擎 raster |
+| 标点挤压 | 连续 CJK 标点后一个 ×0.65 | 字体 metrics 决定 |
+| 中西文间距 | 固定 `auto_space_px` | 排版引擎动态 |
+| 换行决策 | 超宽即断 | 语言规则 + 宽度 |
+| 行尾规则 | 避尾开括号 / 避头闭标点 | ICU LineBreaker |
+
+**差异控制**：通过 `[LineBreak] overflow_dp ≤ 0.5` CI 门禁验收。当前实测 `overflow = 0.0` 在所有场景稳定。
+
+### 3.4 分页结果产出
+
+```rust
+BlockPaginator::finish() → BlockPaginateResult {
+    descriptors: [
+        PageDescriptor { startOffset: 0,    endOffset: 436 },
+        PageDescriptor { startOffset: 436,  endOffset: 909 },
+        PageDescriptor { startOffset: 909,  endOffset: 1370 },
+        ...
+    ],
+    config_hash: 0xABCD1234,  // 排版指纹，配置变则 miss
+    is_partial: false,        // 是否仅首屏 2000 字
+}
+```
+
+### 3.5 大章分片（>200 blocks）
+
+```
+if blocks.len() > CHUNK_BLOCK_COUNT (200):
+  按 200-block 切片
+  ├─ 每个切片独立 paginate_chapter_ir()
+  ├─ chunk 边界保护：切割点前 5 block 内有图片 → 扩展切片
+  └─ merge: 调整 page_index 连续
+```
+
+---
+
+## 4. Rust 引擎子系统
+
+> 分页层是 Rust 侧的核心，此外还有解析、存储、搜索等子系统。
+
+### 4.1 模块分层
+
+```
+┌───────────────────────────────────────────────────────────┐
+│                    api/  FFI API 层 (77 函数)             │
+│  core │ cover │ bilingual │ search │ epub │ phase2_ir │
+└────────────────────┬──────────────────────────────────────┘
+         ┌───────────┼─────────────────┐
+         ▼           ▼                 ▼
+  ┌──────────┐ ┌──────────┐ ┌───────────┐
+  │ parser/  │ │ reading/ │ │ storage/  │
+  │ TXT/EPUB │ │ session  │ │ SQLite +  │
+  │ Registry │ │ 缓存 LRU │ │ sled KV   │
+  │ Provider │ │ staging  │ │ 13 Repo   │
+  └──────────┘ └────┬─────┘ └───────────┘
+                     │
+                     ▼
+              ┌──────────┐  ┌───────────┐  ┌──────────┐
+              │  text/   │  │  domain/  │  │ search/  │
+              │ 分页引擎  │  │ 类型定义  │  │ FTS5+jb  │
+              └──────────┘  └───────────┘  └──────────┘
+```
+
+### 4.2 解析器层
 
 | 格式 | 解析器 | Provider | IR 转换 |
 |------|--------|----------|---------|
 | TXT | `TxtParser` | `TxtContentProvider` (mmap) | `txt_to_chapter_ir()` 按空行分段 |
 | EPUB | `EpubParser` | `EpubContentProvider` (惰性) | `get_chapter_content_ir()` HTML→块 |
 
-EPUB 子模块（8 文件）：`parse.rs` / `provider.rs` / `content_ir.rs` / `toc.rs` / `unzip.rs` / `asset_registry.rs` / `processed_image.rs` / `mod.rs`
+`BookParser` trait：`parse()` / `extract_metadata()` / `extract_chapter()`。
+`ChapterContentProvider` trait：`read_text_range()` / `content_length()` / `format()`。
 
-TXT 子模块（5 文件）：`parse.rs` / `provider.rs` / `content_ir.rs` / `decode.rs` / `mod.rs`
+### 4.3 领域类型
 
-### 2.5 `domain/` — 领域类型层
+| 类型 | 位置 | 说明 |
+|------|------|------|
+| `TypesetCalibration` | `typeset.rs` | 9 字段 `f32`，`#[frb(non_opaque)]`，`Copy` |
+| `TypesetConfig` | `typeset.rs` | 14 字段，手动 `Hash`（含 calibration 全部子字段） |
+| `BlockPageDescriptor` | `block_pagination.rs` | block 范围 + plain 范围 + image_layouts |
+| `ChapterContentIr` | `content_ir.rs` | `blocks: Vec<ContentBlock>` + `plain_text: String` |
+| `ContentBlock` | `content_ir.rs` | Text / Image 两变体 |
+| `AppError` | `error.rs` | 18 变体，每个有稳定 `code()` |
 
-| 类型/文件 | 行数 | 说明 |
-|-----------|------|------|
-| `types/typeset.rs` | — | 已删除（Phase 7：分页全迁 Flutter，类型冗余） |
-| `types/content_ir.rs` | ~258 | `ChapterContentIr`、`ContentBlock`（Text / Image）、`TextBlockStyle` |
-| `types/pagination.rs` | ~64 | `SearchResult`、`IndexStats`（搜索引擎用） |
-| `types/plain_projection.rs` | ~294 | `BlockJoinedPlainBuilder`、`slice_by_char_range()` |
-| `types/rich_text.rs` | ~185 | `RichParagraph`、`RichTextSpan`、`SpanStyle` |
-| `types/metadata.rs` | ~52 | 元数据结构体 |
-| `error.rs` | ~107 | `AppError`（18 变体，`#[frb]` + `thiserror`） |
-
-### 2.6 `storage/` — 存储层
+### 4.4 存储层
 
 ```
 SQLite (sqlx, WAL, 4 连接)           sled KV
-├── 13 个 Repository                 ├── scroll_ir_cache tree
-│   ├── book_repo.rs                     ├── v2:{book}:{ch}:{hash}
-│   ├── chapter_repo.rs                  └── v2:scroll_ir:{book}:{ch}
-│   ├── bookmark_repo.rs
-│   ├── note_repo.rs              BookIdCache（LRU，容量 16）
-│   ├── category_repo.rs          路径 → book_id 映射
-│   ├── progress_repo.rs
-│   ├── session_repo.rs
-│   ├── stats_repo.rs
-│   ├── vocab_repo.rs
-│   ├── dictionary_repo.rs
-│   ├── layout_cache_repo.rs
-│   └── ... (db.rs / models.rs / kv_store.rs)
+├── books / chapters / bookmarks      └── layout_cache tree
+├── notes / reading_progress              ├── v2:{book}:{ch}:{hash}
+├── reading_sessions / stats              ├── v2:chunk:{book}:{ch}:{idx}:{hash}
+├── categories / dictionaries             └── v2:scroll_ir:{book}:{ch}
 └── search_index (FTS5 虚拟表)
 ```
 
-### 2.7 `dictionary/` — 词典子系统
+**PaginationStore**（LRU，容量 16）：内存级分页引擎缓存，键 `(book_id, chapter_index, config_hash)`。
 
-| 文件 | 行数 | 职责 |
-|------|------|------|
-| `mdict_engine.rs` | — | `MdictEngine`：MDX/MDD 解析，精确查找 + 编辑距离 2 模糊建议，音频提取 |
-| `models.rs` | — | `DictEntry` / `DictSearchResult` 数据结构 |
-| `mod.rs` | — | 模块声明 |
+### 4.5 搜索与词典
 
-### 2.8 `search/` — 全文搜索
-
-- **引擎**：SQLite FTS5 + jieba-rs 中文分词
-- **查询**：`MATCH` BM25 排序，500 字符窗口索引
-- **范围**：章节级搜索（`search_engine.rs`）
-
-### 2.9 `vocab_marker/` — 词汇标记
-
-- `scan_for_vocabulary(text)`：正则扫描文本中的词汇表匹配
-
-### 2.10 `utils/` — 工具模块
-
-- `validate_file_path()`：路径穿越防护
+- **搜索**：SQLite FTS5 + jieba-rs 分词。`MATCH` 查询，BM25 排序，500 字符窗口索引。
+- **词典**：`rust_mdict` 解析 MDX/MDD，精确匹配 + 编辑距离 2 模糊建议，音频 MDD 提取。
 
 ---
 
-## 3. Flutter 分页 & 渲染层
+## 5. Flutter 渲染层 — 详细解析
 
-> 分页引擎全部迁移至 Flutter 侧，本节只做概要说明，详见 Flutter 架构文档（`FLUTTER_ARCHITECTURE.md` v2+）。
+> 输入：`PageDescriptor[]` + 章节文本
+> 输出：屏幕像素
+> 关键文件：`paginated_renderer.dart` (~580 行), `block_page_content.dart` (~520 行)
+
+### 5.1 页面组装
+
+```
+PageDescriptor { startOffset: 436, endOffset: 909 }
+      │
+      ▼
+buildSinglePageContent(pageIndex, startOffset, dataSource, config, highlights)
+  │
+  ├─ plain text 模式:
+  │   dataSource.pageContent(pageIndex) → 范围文本
+  │   HighlightPainter.paintPlain() → TextSpan (高亮渲染)
+  │   → SelectableText.rich(paintedSpan, strutStyle, textAlign)
+  │
+  └─ contentBlocks 模式:
+      dataSource.pageBlocks(pageIndex) → [PageBlockSlice]
+      for block in blocks:
+        ├─ TextBlockSlice → IrTextBlockStyle + SelectableText.rich
+        └─ ImageBlockSlice → EpubBlockImage (Inline/FullPage)
+      → Column(children, mainAxisSize: MainAxisSize.min)
+```
+
+### 5.2 视口约束
+
+```dart
+Padding(symmetric(horizontal: pageMargin, vertical: vPad))
+  child: PaginatedPageViewport(maxHeight: bodyHeight)
+    child: SizedBox(height: bodyHeight)
+      child: ClipRect                // 裁剪溢出
+        child: Align(topCenter)      // 顶部对齐
+          child: content              // SelectableText / Column
+
+bodyHeight = constraints.maxHeight - 2 × pageContentVerticalPadding(20dp)
+           = 800dp (与 Rust pageHeightPx / dpr 一致)
+```
+
+**`SizedBox` 不裁剪**，`ClipRect` 才是裁剪层。双重保障：SizedBox 约束子 Widget 高度 + ClipRect 裁掉超出部分。
 
 ### 3.1 Flutter 分页（替代 Rust `block_paginator.rs`）
 
@@ -254,11 +446,15 @@ ChapterContentIr ──→ FlutterPaginationSession
   └─ line_breaks_store（Rust 侧 HashMap）— 行断点索引缓存
 ```
 
-### 3.2 渲染层变化
+### 5.5 自动化测试
 
-- `PaginatedPageViewport`：`ClipRect` + `Align`，内容溢出即截断
-- `pageHeight` 传递时已扣除 2×vPad，保证 Flutter 显示与 Rust 估算一致
-- 诊断：`_ContentMeasurer`（PostFrameCallback）记录内容高度
+| Layer | 文件 | 数量 | 验证内容 |
+|-------|------|------|---------|
+| A | `layout_calibration_store_test.dart` | 5 | 缓存 roundtrip / key / corrupt / defaults |
+| A | `typeset_calibrator_test.dart` 扩展 | 4 | cache hit / line_height / ratio / drift |
+| B | `block_paginator.rs` mod tests | 4 | Rust ratio / line_height / page_count / fallback |
+| C | `layout_fingerprint_alignment_test.dart` | 4 | CI 核心：TextPainter vs Rust ≤1 行 |
+| D | `block_page_overflow_test.dart` | 2 | Widget 视口几何不溢出 |
 
 ---
 
@@ -268,28 +464,14 @@ ChapterContentIr ──→ FlutterPaginationSession
 
 | # | 内容 | 状态 |
 |---|------|------|
-| 1 | `block_paginator.rs`（~1620 行） | ✅ 已删除（ce1eb15） |
-| 2 | `api/core.rs` → `api/reader.rs` | ✅ 已重命名，删除 70+ 分页 FFI |
-| 3 | `FirstSpineResult` FRB 类型 | ✅ 已删除 |
-| 4 | `compute_config_hash` FRB 函数 | ✅ 已删除 |
-| 5 | `reading/pagination_store.rs` (~389 行) | ✅ 已删除 |
-| 6 | `reading/block_state.rs` (~482 行) | ✅ 已删除 |
-| 7 | `reading/types.rs` (~14 行) | ✅ 已删除 |
-| 8 | `reading/pagination.rs` (~470 行) | ✅ 已删除 |
-| 9 | `api/import.rs` core_api→import_api 迁移 | ✅ 已完成 |
-| 10 | `SpikeSession` → `FlutterPaginationSession` 命名清理 | ✅ 已完成 |
-| 11 | ADR/Phase 注释清理（lib/features/reader/） | ✅ 已完成 |
-| 12 | `#[allow(dead_code)]` 清理（Rust） | ✅ 仅 `storage/kv_store.rs:20` 保留（sled db 保活） |
-| 13 | `PackedPage` ↔ `PageDescriptor` 合并 | ✅ Flutter 统一使用纯 Dart 类型 |
-
-### 4.2 保留的死代码待清理
-
-| # | 文件 | 说明 | 状态 |
-|---|------|------|------|
-| 1 | `text/char_width.rs` | 仅 `#[cfg(test)]` 消费，生产零引用 | 🟡 待清理 |
-| 2 | `text/line_breaking.rs` | 全文件 `#[cfg(test)]`，消费者 `block_paginator.rs` 已删 | 🟡 待清理 |
-| 3 | ~~`domain/types/pagination.rs` — `PageContent`、`ChapterPaginationMode`~~ | ✅ 已删除（保留 `SearchResult`、`IndexStats`） |
-| 4 | ~~`domain/types/block_pagination.rs`~~ | ✅ 已删除（`BlockPageDescriptor` 等无生产者） |
+| 1 | `calibrateSafely()` 死代码 | ✅ 已删除 |
+| 2 | `kRustLineWidthSafetyRatio` 别名 | ✅ 已统一到 `kDefaultEffectiveLineWidthRatio` |
+| 3 | `kRustCharWidthScale` (恒为 1.0) | ✅ 已内联 |
+| 4 | Rust `layout_slice_text_segments` (仅测试) | ✅ `#[cfg(test)]` |
+| 5 | Rust `compute_line_breaks_from_indices` (仅测试) | ✅ `#[cfg(test)]` |
+| 6 | `estimateRustLinesForText` 诊断偏差 2-4 行 | 🟡 待收敛 |
+| 7 | `DEFAULT_IMAGE_HEIGHT_RATIO = 0.55` | 🟡 待评估 |
+| 8 | Rust 贪心 → Flutter TextPainter 行边界传递 | 🟢 长期路线 |
 
 ---
 
@@ -297,10 +479,17 @@ ChapterContentIr ──→ FlutterPaginationSession
 
 | 常量 | 值 | 位置 |
 |------|-----|------|
-| `BOOK_ID_CACHE_CAPACITY` | 16 | `reading/mod.rs` |
-| `MAX_FILE_SIZE` | 500 MB | `api/import.rs` |
-| `Rust 源文件数` | 90 | `find rust/src -name '*.rs'`（不含 `frb_generated.rs`） |
-| `Rust 测试文件数` | 21 | `rust/tests/*.rs` |
+| `DEFAULT_EFFECTIVE_LINE_WIDTH_RATIO` | 0.97 | `block_paginator.rs` (仅 fallback) |
+| `FLUTTER_BREAK_CHAR_WIDTH_SCALE` | 1.0 | `block_paginator.rs` |
+| `GREEDY_LINE_WIDTH_RATIO` | 1.0 | `block_paginator.rs` |
+| `DEFAULT_IMAGE_HEIGHT_RATIO` | 0.55 | `block_paginator.rs` |
+| `CHUNK_BLOCK_COUNT` | 200 | `block_paginator.rs` |
+| `PAGINATION_ENGINE_CACHE_CAPACITY` | 16 | `pagination_store.rs` |
+| `pageContentVerticalPadding` | 20.0 dp | `reader_render_config.dart` |
+| `kDefaultEffectiveLineWidthRatio` | 0.97 | `typeset_calibrator.dart` |
+| `LAYOUT_ALGORITHM_VERSION` | 7 | `typeset.rs` |
+
+**已删除的魔数**：`SAFETY_MARGIN_PX`、`LINE_WIDTH_SAFETY_RATIO`（替换为校准值）。
 
 ---
 
@@ -310,6 +499,4 @@ ChapterContentIr ──→ FlutterPaginationSession
 |------|------|------|
 | 1.0 | 2026-05-25 | 初始文档 |
 | 2.0 | 2026-07-06 | PageStreamer 删除；新增 reading/ 等模块 |
-| 3.0 | 2026-07-07 | 四层架构重写；排版校准层 + 渲染诊断层；魔数清零 |
-| 4.0 | 2026-07-08 | 全面更新：reading/10 模块编排层；Phase 6 混合式行断点管线；bilingual/css/rich_text 子模块；97 源文件 + 25 测试文件 |
-| **5.0** | **2026-07-13** | **Rust 分页引擎全删除（`block_paginator.rs`）；`api/core.rs`→`reader.rs`；reading/ 精简至 6 模块；遗留类型标注；文件数 90 源 + 21 测试** |
+| **3.0** | **2026-07-07** | **四层架构重写；排版校准层 + 渲染诊断层；魔数清零；技术债清单** |
