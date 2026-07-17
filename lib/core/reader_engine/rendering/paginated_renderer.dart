@@ -97,7 +97,10 @@ class PaginatedModeRenderer extends StatelessWidget {
 
   Widget _buildPageTurnShell(BuildContext context) {
     final descriptors = engine.session.descriptors;
-    if (descriptors == null || descriptors.isEmpty) {
+    if (descriptors == null) {
+      return _buildPageSkeleton();
+    }
+    if (descriptors.isEmpty) {
       Logging.warning(
         '[Renderer] _buildPageTurnShell: descriptors null/empty → fallback',
       );
@@ -341,6 +344,9 @@ class PaginatedModeRenderer extends StatelessWidget {
           );
         },
       );
+    }
+    if (descriptors == null) {
+      return _buildPageSkeleton();
     }
     Logging.warning('[Renderer] build: descriptors null/empty → fallback');
     return _buildFallbackPagination(context);

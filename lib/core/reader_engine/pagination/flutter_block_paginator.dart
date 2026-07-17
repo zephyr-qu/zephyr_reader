@@ -17,8 +17,8 @@ const kInlineImageVerticalPaddingDp = 8.0;
 /// 单次 TextPainter 断行上限：大单块 TXT 必须切窗。
 const kLineBreakChunkChars = 4000;
 
-/// 页底安全余量：Strut 累加与 SelectableText 实测常有 1–2dp 差，避免 RenderFlex overflow。
-const kPagePackBottomSlackDp = 2.0;
+/// 页底安全余量：Strut 累加与 SelectableText 实测差距约 8dp，避免 RenderFlex overflow。
+const kPagePackBottomSlackDp = 8.0;
 
 @visibleForTesting
 int utf16SafeChunkEnd(String text, int proposedEnd) {
