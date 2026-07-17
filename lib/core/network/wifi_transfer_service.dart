@@ -19,11 +19,11 @@ const _kPortKey = SettingsKeys.wifiTransferPort;
 /// 支持文件上传、目录选择和多文件批量上传。
 class WifiTransferService {
   final PreferencesService _prefs;
-  String _htmlContent = '';
+  final String _htmlContent = '';
   HttpServer? _server;
   bool _running = false;
-  int _port = 0;
-  String _localIp = '';
+  final int _port = 0;
+  final String _localIp = '';
   final _logController = StreamController<TransferLogEntry>.broadcast();
   final _statusController = StreamController<bool>.broadcast();
   final _supportedExtensions = {'txt', 'epub'};

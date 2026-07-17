@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/painting.dart';
-import 'package:zephyr_reader/core/reader_engine/rendering/line_break_extractor.dart';
+import 'package:zephyr_reader/core/reader_engine/layout/layout_spec.dart';
+import 'package:zephyr_reader/core/reader_engine/layout/paragraph_layouter.dart';
+import 'package:zephyr_reader/core/reader_engine/layout/span_factory.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/ir_text_block_style.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/slice_rich_spans.dart';
@@ -252,13 +254,18 @@ class _PagePacker {
     required this.maxHeight,
     required this.config,
     this.stopAfterPlainOffset,
-  }) : packBudget = (maxHeight - kPagePackBottomSlackDp).clamp(1.0, maxHeight);
-
+  }) : packBudget = (maxHeight - kPagePackBottomSlackDp).clamp(1.0, maxHeight),
+       layoutSpec = LayoutSpec.fromRenderConfig(
+         config,
+         viewportWidth: 0, // unused; real width passed per-block as maxWidth
+         viewportHeight: maxHeight + 2 * ReaderRenderConfig.pageContentVerticalPadding,
+       );
   final double maxHeight;
 
   /// 实际可装高度（扣底边 slack）。
   final double packBudget;
   final ReaderRenderConfig config;
+  final LayoutSpec layoutSpec;
   final int? stopAfterPlainOffset;
 
   final List<PackedPage> _pages = [];
@@ -271,7 +278,6 @@ class _PagePacker {
   /// 上一结束块是否允许补 paragraphSpacing（isBlockEnd 且无显式 bottom margin）。
   bool _prevBlockAllowsParagraphSpacing = false;
   bool stoppedEarly = false;
-  double _sliceHeight = 0;
 
   /// 已越过 stopAfter，但仍先把当前页装满再停（避免半页留白）。
   bool _pastStop = false;
@@ -512,7 +518,6 @@ class _PagePacker {
     _used = 0;
     _pageHasContent = false;
     _prevBlockAllowsParagraphSpacing = false;
-    _sliceHeight = 0;
   }
 
   List<PackedPage> finish({bool forcePartial = false}) {
@@ -543,20 +548,19 @@ class _PagePacker {
 }
 
 /// 单个 ReaderIrBlock 的断行+装箱状态机。
+///
+/// Phase 2：使用 [ParagraphLayouter] 消费真实 line height，替代 _sliceHeightForLines 估算。
 class _TextPackContext {
   _TextPackContext({
     required this.packer,
     required this.blockIndex,
     required this.block,
-    required this.textStyle,
-    required this.strutStyle,
-    required this.indentPx,
-    required this.blockPadding,
-    required this.layoutMaxWidth,
-    required this.blockLineHeight,
-    required this.blockFontSize,
     required this.irStyle,
-  });
+    required this.layouter,
+    required double maxWidth,
+  })  : indentPx = IrReaderIrBlock.resolveFirstLineIndentPx(irStyle, packer.config),
+       blockPadding = IrReaderIrBlock.resolveBlockPadding(irStyle, packer.config),
+       layoutMaxWidth = (maxWidth - IrReaderIrBlock.resolveBlockPadding(irStyle, packer.config).horizontal).clamp(1.0, maxWidth);
 
   factory _TextPackContext.create({
     required _PagePacker packer,
@@ -565,51 +569,27 @@ class _TextPackContext {
     required double maxWidth,
   }) {
     final irStyle = block.style;
-    final config = packer.config;
-    final blockFontSize = IrReaderIrBlock.effectiveFontSize(irStyle, config);
-    final blockLineHeight = IrReaderIrBlock.effectiveLineHeight(
-      irStyle,
-      config,
-    );
-    final textStyle = config
-        .buildTextStyle(fontSizeMultiplier: blockFontSize / config.fontSize)
-        .copyWith(height: blockLineHeight);
-    final strutStyle = config.buildStrutStyle(
-      fontSizeMultiplier: blockFontSize / config.fontSize,
-      lineHeight: blockLineHeight,
-    );
-    final indentPx = IrReaderIrBlock.resolveFirstLineIndentPx(irStyle, config);
-    final blockPadding = IrReaderIrBlock.resolveBlockPadding(irStyle, config);
-    final layoutMaxWidth = (maxWidth - blockPadding.horizontal).clamp(
-      1.0,
-      maxWidth,
-    );
+    final spec = packer.layoutSpec;
+    final spanFactory = SpanFactory(spec);
+    final layouter = ParagraphLayouter(spanFactory, spec);
     return _TextPackContext(
       packer: packer,
       blockIndex: blockIndex,
       block: block,
-      textStyle: textStyle,
-      strutStyle: strutStyle,
-      indentPx: indentPx,
-      blockPadding: blockPadding,
-      layoutMaxWidth: layoutMaxWidth,
-      blockLineHeight: blockLineHeight,
-      blockFontSize: blockFontSize,
       irStyle: irStyle,
+      layouter: layouter,
+      maxWidth: maxWidth,
     );
   }
 
   final _PagePacker packer;
   final int blockIndex;
   final ReaderIrBlock block;
-  final TextStyle textStyle;
-  final StrutStyle strutStyle;
   final double indentPx;
   final EdgeInsets blockPadding;
   final double layoutMaxWidth;
-  final double blockLineHeight;
-  final double blockFontSize;
   final BlockStyle irStyle;
+  final ParagraphLayouter layouter;
 
   var localStart = 0;
   var isBlockStart = true;
@@ -617,8 +597,6 @@ class _TextPackContext {
   var sliceLocalStart = 0;
   var sliceIsBlockStart = true;
 
-  double get _strutLineH =>
-      packer.config.textScaler.scale(blockFontSize) * blockLineHeight;
 
   double _blockOverhead() {
     var oh = blockPadding.vertical;
@@ -628,15 +606,6 @@ class _TextPackContext {
     }
     return oh;
   }
-
-  /// forceStrutHeight 下每行高度即 fontSize×lineHeight；不用 TextPainter 估高（会偏高→底空）。
-  double _sliceHeightForLines(int lineCount, {required bool withBlockStart}) {
-    if (lineCount <= 0) return 0;
-    final oh = withBlockStart ? _blockOverhead() : 0.0;
-    return oh + lineCount * _strutLineH;
-  }
-
-  var _sliceLineCount = 0;
 
   void flushSlice({required bool isBlockEnd}) {
     if (lineBuf.isEmpty) return;
@@ -663,11 +632,11 @@ class _TextPackContext {
     packer._prevBlockAllowsParagraphSpacing =
         isBlockEnd && irStyle.marginBottomEm == null;
     lineBuf.clear();
-    packer._sliceHeight = 0;
-    _sliceLineCount = 0;
   }
 
   /// 处理 [chunkFrom, chunkTo) 子串。返回是否应停止后续块。
+  ///
+  /// Phase 2: 使用 [ParagraphLayouter] 获取真实 line height。
   bool packChunk(int chunkFrom, int chunkTo) {
     final chunk = block.text.substring(chunkFrom, chunkTo);
     final chunkRuns = sliceRichSpans(
@@ -675,29 +644,24 @@ class _TextPackContext {
       start: chunkFrom,
       len: chunk.length,
     );
-    final breaks = computeLineBreakIndices(
+    final layout = layouter.layoutTextBlock(
+      blockIndex: blockIndex,
       text: chunk,
-      style: textStyle,
+      spans: chunkRuns,
+      style: irStyle,
       maxWidth: layoutMaxWidth,
-      strutStyle: strutStyle,
       firstLineIndentPx: isBlockStart ? indentPx : 0.0,
-      textScaler: packer.config.textScaler,
-      textSpan: IrReaderIrBlock.buildLayoutSpan(
-        text: chunk,
-        spans: chunkRuns,
-        irStyle: irStyle,
-        config: packer.config,
-      ),
     );
-    if (breaks.isEmpty) return false;
+    if (layout.lines.isEmpty) return false;
 
-    for (final relEnd in breaks) {
-      final localEnd = chunkFrom + relEnd;
+    for (final line in layout.lines) {
+      final localEnd = chunkFrom + line.endUtf16;
       if (localEnd <= localStart) continue;
       final lineText = block.text.substring(localStart, localEnd);
+      final lineH = line.height;
 
       if (lineBuf.isEmpty) {
-        var need = _sliceHeightForLines(1, withBlockStart: isBlockStart);
+        var need = lineH + (isBlockStart ? _blockOverhead() : 0.0);
         // 仅在本页已有内容时才因装不下而翻页；允许贴满 maxHeight。
         if (packer._pageHasContent && packer._used + need > packer.packBudget) {
           flushSlice(isBlockEnd: false);
@@ -707,39 +671,27 @@ class _TextPackContext {
             return true;
           }
           // 上一块留在前页，页首不应继续携带它产生的 paragraphSpacing。
-          need = _sliceHeightForLines(1, withBlockStart: isBlockStart);
+          need = lineH + (isBlockStart ? _blockOverhead() : 0.0);
         }
         sliceLocalStart = localStart;
         sliceIsBlockStart = isBlockStart;
-        _sliceLineCount = 1;
-        packer._sliceHeight = need;
         packer._used += need;
         lineBuf.write(lineText);
       } else {
-        final newLines = _sliceLineCount + 1;
-        final newSliceH = _sliceHeightForLines(
-          newLines,
-          withBlockStart: sliceIsBlockStart,
-        );
-        final delta = newSliceH - packer._sliceHeight;
-        if (packer._used + delta > packer.packBudget) {
+        if (packer._used + lineH > packer.packBudget) {
           flushSlice(isBlockEnd: false);
           packer._flushPage();
           if (packer._pastStop) {
             packer.stoppedEarly = true;
             return true;
           }
-          final need = _sliceHeightForLines(1, withBlockStart: isBlockStart);
+          final need = lineH + (isBlockStart ? _blockOverhead() : 0.0);
           sliceLocalStart = localStart;
           sliceIsBlockStart = isBlockStart;
-          _sliceLineCount = 1;
-          packer._sliceHeight = need;
           packer._used += need;
           lineBuf.write(lineText);
         } else {
-          packer._used += delta;
-          packer._sliceHeight = newSliceH;
-          _sliceLineCount = newLines;
+          packer._used += lineH;
           lineBuf.write(lineText);
         }
       }
