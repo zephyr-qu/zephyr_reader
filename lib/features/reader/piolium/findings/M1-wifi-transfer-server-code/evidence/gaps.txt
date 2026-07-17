@@ -1,0 +1,40 @@
+=== Security Control Gaps ===
+
+1. Authentication: NONE
+   - All three routes (GET /, POST /upload, GET /api/status)
+     are accessible without any token, cookie, or session check.
+   - Any local process can call these endpoints.
+
+2. CSRF Protection: NONE
+   - No Origin/Referer header validation
+   - No CSRF token required
+   - Any website loaded in the same browser could submit uploads
+
+3. File Size Limit: NONE
+   - _handleUpload reads the ENTIRE request body into memory:
+     final bytes = await request.fold<List<int>>(<int>[], (prev, chunk) => prev..addAll(chunk));
+   - A large upload (e.g. 1GB) would cause OOM crash
+
+4. Content Validation: Extension-Only
+   - Only checked: if (ext is not in {txt, epub}) reject
+   - No MIME type verification (Content-Type header is ignored)
+   - No magic byte inspection
+
+5. Input Sanitization: NONE
+   - Raw filename from Content-Disposition used in log output
+   - Potential log injection via crafted filename
+
+6. Rate Limiting: NONE
+   - An attacker can flood upload requests to exhaust resources
+
+7. HTTPS: NONE
+   - All traffic in plaintext over loopback
+
+=== Activation Point ===
+The server is currently disabled by an empty start() method.
+Any future developer who removes the ponytail comment and
+uncomments/reimplements the server binding will activate
+this unauthenticated upload server.
+
+All handler methods are fully implemented and compiled
+into the app binary regardless of whether start() is called.

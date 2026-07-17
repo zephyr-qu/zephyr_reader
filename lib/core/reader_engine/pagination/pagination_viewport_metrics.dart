@@ -6,7 +6,7 @@ abstract final class PaginationViewportMetrics {
   static double? contentHeightDp;
 
   /// 与上次相差超过此值视为视口变化。
-  static const double changeThresholdDp = 4;
+  static const double changeThresholdDp = 0.5;
 
   static void note({required double width, required double height}) {
     final w = width.clamp(1.0, 4096.0);

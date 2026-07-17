@@ -13,6 +13,7 @@ class PaginationChapterReady {
     required this.pages,
     required this.contentWidthDp,
     required this.contentHeightDp,
+    required this.configHash,
   });
 
   final String bookId;
@@ -22,6 +23,7 @@ class PaginationChapterReady {
   final List<PackedPage> pages;
   final double contentWidthDp;
   final double contentHeightDp;
+  final BigInt configHash;
 }
 
 /// 进程内 next/prev staging（flag 开时使用）。
@@ -46,17 +48,28 @@ abstract final class PaginationStagingStore {
     prev = null;
   }
 
-  static PaginationChapterReady? takeForChapter(int chapterIndex, {required bool forward}) {
+  static PaginationChapterReady? takeForChapter(
+    int chapterIndex, {
+    required bool forward,
+    required String bookId,
+    required BigInt configHash,
+  }) {
     if (forward) {
       final n = next;
-      if (n != null && n.chapterIndex == chapterIndex) {
+      if (n != null &&
+          n.bookId == bookId &&
+          n.chapterIndex == chapterIndex &&
+          n.configHash == configHash) {
         next = null;
         return n;
       }
       return null;
     }
     final p = prev;
-    if (p != null && p.chapterIndex == chapterIndex) {
+    if (p != null &&
+        p.bookId == bookId &&
+        p.chapterIndex == chapterIndex &&
+        p.configHash == configHash) {
       prev = null;
       return p;
     }

@@ -23,7 +23,6 @@ class PaginationSession {
 
   final void Function()? _onCacheUpdated;
 
-
   List<PackedPage>? _descriptors;
   final Map<int, String> _pageCache = {};
   final Map<int, List<PackedBlockSlice>> _blockCache = {};
@@ -76,6 +75,8 @@ class PaginationSession {
       final ready = PaginationStagingStore.takeForChapter(
         chapterIndex,
         forward: forward,
+        bookId: bookId,
+        configHash: params.layoutHash,
       );
       if (ready != null) {
         return installFromReady(ready);
@@ -289,7 +290,8 @@ class PaginationSession {
       paragraphSpacing: params.paragraphSpacing,
       pageMargin: params.padding,
       firstLineIndent: params.firstLineIndent,
-      baselineAlign: true,
+      baselineAlign: params.baselineAlign,
+      textScaler: params.textScaler,
     );
 
     late final FlutterPaginateOutcome outcome;
@@ -304,6 +306,11 @@ class PaginationSession {
         onProgress: maxChars == null
             ? (pages, partial) {
                 if (gen != _paginateGen) return;
+                _chapterIndex = chapterIndex;
+                _ir = ir;
+                ActiveChapterIr.set(ir);
+                _configHash = params.layoutHash;
+                if (filePath != null) _sessionFilePath = filePath;
                 _sessionIsPartial = partial;
                 _applyPages(pages);
                 ensureWindow(0);
@@ -330,7 +337,7 @@ class PaginationSession {
     _chapterIndex = chapterIndex;
     _ir = ir;
     ActiveChapterIr.set(ir);
-    _configHash = BigInt.zero;
+    _configHash = params.layoutHash;
     if (filePath != null) _sessionFilePath = filePath;
     _sessionIsPartial = outcome.isPartial;
     _applyPages(outcome.pages);
@@ -367,7 +374,7 @@ class PaginationSession {
     _ir = ready.ir;
     ActiveChapterIr.set(ready.ir);
     _sessionFilePath = ready.filePath;
-    _configHash = BigInt.zero;
+    _configHash = ready.configHash;
     _sessionIsPartial = false;
     _imageMaxWidthPx = ready.contentWidthDp.round().clamp(1, 4096);
     _applyPages(ready.pages);

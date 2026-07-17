@@ -1,0 +1,34 @@
+CONCRETE ATTACKER GAIN
+
+On Android:
+  adb logcat | grep -E '(ReaderIrFallback|FlutterPagination|FlutterStaging|Timing)'
+  ¡ú Shows messages like:
+     [ReaderIrFallback] stage=fetch bookId=abc chapter=0 mode=scroll fallbackSucceeded=false reason=...
+  Combined with any crash/error that includes Exception text, the user's
+  storage layout (/storage/emulated/0/Books/...) and book titles are exposed.
+
+On desktop (Linux/macOS/Windows):
+  The application's stderr stream contains the same structured log messages.
+  Any crash reporter (Breakpad, Crashpad, Sentry) that captures stderr will
+  exfiltrate the file paths to the telemetry backend.
+
+Attack chain:
+  1. User opens any book in the reader engine.
+  2. _loadChapterPayload fetches book from Rust DB ¡ú Book.filePath contains
+     the absolute file system path (e.g. /storage/emulated/0/Books/harry_potter.epub).
+  3. The same code path triggers Logging.info / Logging.warning calls
+     (timing data, pagination metrics, fallback reasons).
+  4. If an error occurs (e.g., Rust FFI failure), Logging.error captures
+     the exception error message, which MAY embed the file path.
+  5. Log output reaches the platform's logging facility:
+     - Android: adb logcat
+     - iOS: NSLog stream / device console
+     - Desktop: stderr ¡ú console output
+  6. If the app uses a crash reporter or diagnostic-sharing UI, paths are
+     exfiltrated off-device.
+
+Key observation: even though no current Logging call explicitly includes
+$filePath in its message string, the filePath flows into error contexts
+(e.g., Exception("Failed to load chapter content: $e") at line 228) that
+ARE logged via Logging.error().  If the Rust FFI throws with a path-bearing
+message, the path reaches the log.

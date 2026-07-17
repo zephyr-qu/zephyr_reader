@@ -1,0 +1,69 @@
+=== CODE PATH TRACE ===
+
+1. SharedPreferences (XML on disk):
+   File: /data/data/com.zephyr.reader/shared_prefs/FlutterSharedPreferences.xml
+   Key:  'dict_mdx_path'
+   Value: attacker-controlled path (e.g. /sdcard/Download/evil_dict.mdx)
+
+2. Dart load (reader_dictionary_panel.dart:256):
+   final savedMdx = prefs.getString(_kPrefMdxPath);
+   // _kPrefMdxPath = SettingsKeys.dictMdxPath = 'dict_mdx_path'
+
+3. Validation (reader_dictionary_panel.dart:257):
+   if (savedMdx != null && File(savedMdx).existsSync()) {
+   // ONLY checks file existence -- no path validation
+
+4. Rust FFI call (reader_dictionary_panel.dart:262-265):
+   await dict_api.initDictionary(
+     mdxPath: savedMdx,         # <-- attacker-controlled
+     mddPath: savedMdd ?? null,
+   );
+
+5. Dart bridge (lib/src/rust/api/dictionary.dart:40):
+   Future<void> initDictionary({required String mdxPath, String? mddPath})
+     => RustLib.instance.api.crateApiDictionaryInitDictionary(
+          mdxPath: mdxPath,      # <-- passed through verbatim
+          mddPath: mddPath,
+        );
+
+6. Rust API (rust/src/api/dictionary.rs:54-55):
+   pub async fn init_dictionary(mdx_path: String, mdd_path: Option<String>)
+     => service::init_dictionary(&mdx_path, mdd_path).await
+
+7. Rust service (rust/src/domain/dictionary/service.rs:32):
+   let engine = Engine::open(mdx_path, mdd_path.as_deref())
+     .map_err(|e| AppError::InternalError {
+         reason: format!("Failed to open MDict: {e}"),
+     })?;
+
+8. Rust engine (rust/src/domain/dictionary/engine.rs:40):
+   pub fn open(mdx_path: &str, mdd_path: Option<&str>)
+     -> Result<Self, rust_mdict::MdictError> {
+     let mdx = Mdx::new(mdx_path)?;  // <-- attacker path reaches here
+     // Mdx::new() opens the file via memory-mapped I/O
+     // If the .mdx is maliciously crafted, parsing bugs are exploitable
+   }
+
+=== ATTACK VECTORS ===
+
+A) SharedPreferences tampering (root):
+   On rooted devices, any app with root can modify:
+   /data/data/com.zephyr.reader/shared_prefs/*.xml
+   Change 'dict_mdx_path' to point to attacker's .mdx file
+
+B) Backup restore attack:
+   AndroidManifest.xml has NO android:allowBackup=false
+   (default = true on most Android versions)
+   Steps:
+   1. adb backup -f backup.ab com.zephyr.reader
+   2. Convert/decrypt backup.ab ¡ú backup.tar
+   3. Extract and modify shared_prefs XML
+   4. Repack and restore with adb restore backup.ab
+   5. Next launch: App reads tampered path, loads attacker MDX
+
+C) Symlink / reparse-point attacks:
+   If attacker can create a symlink:
+   /data/data/com.zephyr.reader/app_flutter/dictionary.mdx
+   ¡ú /sdcard/Download/evil_dict.mdx
+   the existence check passes for the sandboxed path but the
+   actual read goes to the attacker's file.

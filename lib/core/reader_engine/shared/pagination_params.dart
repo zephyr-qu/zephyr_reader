@@ -1,3 +1,4 @@
+import 'package:flutter/painting.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/config/language_type.dart';
 
@@ -19,6 +20,8 @@ class PaginationParams {
   final bool firstLineIndent;
   final LanguageType language;
   final double autoSpaceRatio;
+  final bool baselineAlign;
+  final TextScaler textScaler;
 
   const PaginationParams({
     required this.fontSize,
@@ -34,5 +37,27 @@ class PaginationParams {
     this.firstLineIndent = true,
     this.language = LanguageType.auto,
     this.autoSpaceRatio = 0.25,
+    this.baselineAlign = true,
+    this.textScaler = TextScaler.noScaling,
   });
+
+  BigInt get layoutHash => BigInt.from(
+    Object.hash(
+      width,
+      height,
+      fontSize,
+      lineHeight,
+      padding,
+      devicePixelRatio,
+      fontFamily,
+      letterSpacing,
+      paragraphSpacing,
+      punctuationSqueeze,
+      firstLineIndent,
+      language,
+      autoSpaceRatio,
+      baselineAlign,
+      textScaler,
+    ),
+  );
 }

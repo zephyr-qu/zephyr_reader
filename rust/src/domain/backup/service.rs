@@ -1,6 +1,7 @@
 //! 数据库备份与还原业务逻辑
 
 use std::fs::File;
+use std::path::Path;
 use std::path::PathBuf;
 
 use crate::common::AppError;
@@ -143,7 +144,15 @@ pub async fn get_backup_stats() -> Result<BackupStats, AppError> {
 
 /// 导出数据库到指定路径
 pub async fn export_database(dest_path: String) -> Result<BackupManifest, AppError> {
-    let validated = validate_file_path(&dest_path)?;
+    let dest = Path::new(&dest_path);
+    let parent = dest.parent().ok_or_else(|| AppError::InvalidInput {
+        reason: "export path has no parent directory".into(),
+    })?;
+    if !parent.exists() {
+        return Err(AppError::FileNotFound {
+            path: dest_path.clone(),
+        });
+    }
     let storage = ensure_storage()?;
     let pool = storage.pool()?;
     let stats = count_stats(&pool).await?;
@@ -162,15 +171,15 @@ pub async fn export_database(dest_path: String) -> Result<BackupManifest, AppErr
         .map_err(|e| AppError::DatabaseError { reason: format!("wal_checkpoint: {e}") })?;
 
     let db_path = storage.data_dir().join("reader.db");
-    let dest = PathBuf::from(&validated);
+    let dest = PathBuf::from(&dest_path);
     std::fs::copy(&db_path, &dest)
-        .map_err(|e| AppError::FileWriteError { path: validated.clone(), details: format!("copy db: {e}") })?;
+        .map_err(|e| AppError::FileWriteError { path: dest_path.clone(), details: format!("copy db: {e}") })?;
     File::open(&dest)
         .and_then(|f| f.sync_all())
-        .map_err(|e| AppError::FileWriteError { path: validated.clone(), details: format!("sync dest: {e}") })?;
+        .map_err(|e| AppError::FileWriteError { path: dest_path.clone(), details: format!("sync dest: {e}") })?;
 
     let db_size = std::fs::metadata(&dest)
-        .map_err(|e| AppError::FileReadError { path: validated.clone(), details: format!("stat dest: {e}") })?
+        .map_err(|e| AppError::FileReadError { path: dest_path.clone(), details: format!("stat dest: {e}") })?
         .len() as i64;
     manifest.db_size = db_size;
     write_manifest_to_pool(&pool, &manifest).await?;

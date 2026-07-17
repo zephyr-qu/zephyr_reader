@@ -1,0 +1,1 @@
+{ "l3_artifacts_written": true, "findings_count": 20, "source_sink_flows": "piolium/attack-surface/source-sink-flows-all-severities.md", "kb_updated": true, "tooling": "fallback-grep+read", "agentic_actions_auditor": "no AI agent integrations in ci.yml", "note": "CodeQL and Semgrep not on PATH. See knowledge-base-report.md for full enrichment." }

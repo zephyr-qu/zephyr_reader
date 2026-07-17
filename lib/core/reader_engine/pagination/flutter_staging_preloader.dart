@@ -49,7 +49,8 @@ abstract final class FlutterStagingPreloader {
         paragraphSpacing: params.paragraphSpacing,
         pageMargin: params.padding,
         firstLineIndent: params.firstLineIndent,
-        baselineAlign: true,
+        baselineAlign: params.baselineAlign,
+        textScaler: params.textScaler,
       );
 
       late final List<PackedPage> pages;
@@ -87,6 +88,7 @@ abstract final class FlutterStagingPreloader {
         pages: pages,
         contentWidthDp: contentWidth,
         contentHeightDp: contentHeight,
+        configHash: params.layoutHash,
       );
       if (forNext) {
         PaginationStagingStore.next = ready;
@@ -120,7 +122,7 @@ abstract final class FlutterStagingPreloader {
     final start = anchor.startOffset.clamp(0, end);
     return NextChapterStaging(
       chapterIndex: ready.chapterIndex,
-      configHash: BigInt.zero,
+      configHash: ready.configHash,
       descriptors: pages,
       firstPageContent: plain.substring(start, end),
       isPartial: false,

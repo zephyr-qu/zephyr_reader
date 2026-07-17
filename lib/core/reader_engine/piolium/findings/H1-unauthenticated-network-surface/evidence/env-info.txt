@@ -1,0 +1,11 @@
+Environment Information
+=======================
+Date: 2026-07-17 10:12
+Host: Windows (bash on Windows)
+Python: Python 3.x
+Dart SDK: 3.12.1 (stable)
+Project: F:/App/zephyr_reader
+Target: lib/core/network/wifi_transfer_service.dart
+Commit analyzed: HEAD (includes fix ab4bec4 — loopbackIPv4)
+Original vulnerable commit: 6d59858 (anyIPv4)
+PoC type: Simulated vulnerable server (0.0.0.0:18999) + exploit client

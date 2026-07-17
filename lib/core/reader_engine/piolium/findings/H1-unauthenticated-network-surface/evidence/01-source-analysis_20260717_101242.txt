@@ -1,0 +1,9 @@
+Source code vulnerability analysis:
+{
+  "binds_loopback": true,
+  "has_upload_handler": true,
+  "has_csrf": false,
+  "has_rate_limit": false,
+  "has_magic_validation": false,
+  "has_auth_check": false
+}

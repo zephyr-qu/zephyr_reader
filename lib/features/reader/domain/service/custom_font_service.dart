@@ -249,24 +249,6 @@ class FontRepository {
     return destPath;
   }
 
-  /// 删除自定义字体
-  Future<bool> deleteCustomFont(String fontId) async {
-    await _ready.future;
-    if (!fontId.startsWith('custom_')) return false;
-
-    final filePath = fontId.substring('custom_'.length);
-    final file = File(filePath);
-    if (!await file.exists()) return false;
-
-    await file.delete();
-    if (currentFont.value?.id == fontId) await setCurrentFont('system');
-
-    availableFonts.value = availableFonts.value
-        .where((f) => f.id != fontId)
-        .toList();
-
-    return true;
-  }
 
   /// 获取字体文件路径
   String? getFontPath(String fontId) {

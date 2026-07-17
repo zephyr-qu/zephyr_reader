@@ -97,6 +97,18 @@ abstract final class IrReaderIrBlock {
     return textStyle;
   }
 
+  static TextSpan buildLayoutSpan({
+    required String text,
+    required List<ReaderInlineRun> spans,
+    required BlockStyle irStyle,
+    required ReaderRenderConfig config,
+  }) {
+    final blockStyle = mapToTextStyle(irStyle, config);
+    return spans.isEmpty
+        ? TextSpan(text: text, style: blockStyle)
+        : _converter.irSpansToTextSpan(spans, blockStyle: blockStyle);
+  }
+
   static TextSpan buildHighlightedSpan({
     required String text,
     required List<ReaderInlineRun> spans,

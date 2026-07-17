@@ -1,0 +1,21 @@
+=== SIMULATED EXTRACTION: SharedPreferences XML ===
+
+File: /data/data/com.zephyr.reader/shared_prefs/FlutterSharedPreferences.xml
+Extraction method: adb backup / rooted device file read
+
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<map>
+    <string name="flutter.reading_font_size">18</string>
+    <string name="translation.api_url">https://api.openai.com</string>
+    <string name="translation.api_key">[REDACTED:openai-token]</string>
+    <string name="translation.model">gpt-4o-mini</string>
+    <string name="translation.provider">openai</string>
+    <string name="translation.target_lang">zh</string>
+    <string name="translation.source_lang">auto</string>
+    <string name="flutter.dark_mode">true</string>
+</map>
+
+=== CONTRAST: WebDAV password ===
+The WebDAV password is stored via FlutterSecureStorage, which encrypts it
+using Android Keystore-backed AES-256. The SharedPreferences XML does NOT
+contain the password key at all.

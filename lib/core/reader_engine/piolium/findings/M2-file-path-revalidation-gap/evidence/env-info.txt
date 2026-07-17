@@ -1,0 +1,28 @@
+Environment Information
+=======================
+Target: rust_lib_zephyr_reader v0.1.0
+Language: Rust (with Flutter/Dart FRB bridge)
+Platform: Windows (msvc)
+Rust version: 1.95.0 (59807616e 2026-04-14)
+Cargo version: 1.95.0 (f2d3ce0bd 2026-03-21)
+
+Vulnerable Functions:
+- rust/src/domain/book/service.rs: create_web_book (~line 178-193)
+  - Accepts file_path without calling validate_file_path
+- rust/src/pipeline/chapter_ir.rs: load_chapter_content_ir (~line 188-219)
+  - Reads file without calling validate_file_path first
+- rust/src/api/reader.rs: get_chapter_content_ir (~line 36-43)
+  - Passes path from DB directly to load_chapter_content_ir without validation
+
+Contrast (Validated Paths):
+- rust/src/api/reader.rs: get_chapter_plain → calls validate_file_path ✓
+- rust/src/api/book.rs: get_processed_epub_image_bytes → calls validate_file_path ✓
+- rust/src/api/book.rs: get_processed_epub_image → calls validate_file_path ✓
+- rust/src/api/book.rs: get_epub_metadata → calls validate_file_path ✓
+- rust/src/common/security.rs: validate_file_path (the validator function) ✓
+
+Dart Call Chain (Vulnerable):
+  _paginateFromIr → book_api.getBook → book.filePath →
+  reader_api.getChapterContentIr(bookId) →
+    get_book_file_path(book_id) →
+    load_chapter_content_ir(&file_path, chapter_index) ← NO VALIDATION

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/painting.dart';
 import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
@@ -121,6 +122,12 @@ class ChapterViewModel {
   double get devicePixelRatio => _pagination.devicePixelRatio;
   set devicePixelRatio(double value) {
     _pagination.devicePixelRatio = value;
+    _pagination.syncChapterTypesetLayoutToRepo();
+  }
+
+  TextScaler get textScaler => _pagination.textScaler;
+  set textScaler(TextScaler value) {
+    _pagination.textScaler = value;
     _pagination.syncChapterTypesetLayoutToRepo();
   }
 

@@ -1,0 +1,74 @@
+{
+	"audits": [
+		{
+			"audit_id": "2026-07-17T01:25:50.891Z",
+			"mode": "lite",
+			"started_at": "2026-07-17T01:25:50.891Z",
+			"completed_at": "2026-07-17T01:40:57.746Z",
+			"status": "failed",
+			"phases": {
+				"Q0": {
+					"status": "complete",
+					"attempt": 1,
+					"max_attempts": 6,
+					"started_at": "2026-07-17T01:25:50.895Z",
+					"completed_at": "2026-07-17T01:25:50.922Z"
+				},
+				"Q1": {
+					"status": "complete",
+					"attempt": 1,
+					"max_attempts": 6,
+					"started_at": "2026-07-17T01:25:50.964Z",
+					"completed_at": "2026-07-17T01:25:51.366Z"
+				},
+				"Q2": {
+					"status": "complete",
+					"attempt": 1,
+					"max_attempts": 6,
+					"started_at": "2026-07-17T01:25:51.000Z",
+					"completed_at": "2026-07-17T01:30:02.005Z"
+				},
+				"Q3": {
+					"status": "failed",
+					"started_at": "2026-07-17T01:30:02.008Z",
+					"error": "Q3 PoC construction had failures.",
+					"artifacts": [
+						"piolium/attack-surface/lite-consolidation-manifest.json"
+					],
+					"completed_at": "2026-07-17T01:40:57.744Z"
+				},
+				"Q4": {
+					"status": "pending"
+				},
+				"Q3:M1": {
+					"status": "failed",
+					"attempt": 6,
+					"max_attempts": 6,
+					"started_at": "2026-07-17T01:30:02.024Z",
+					"heartbeat_at": "2026-07-17T01:40:57.725Z",
+					"last_event_at": "2026-07-17T01:40:57.725Z",
+					"run_id": "q3:m1-2026-07-17T01-25-50-891Z-a6-b86451f1",
+					"error": "Failed after 5 retries: ENOENT: no such file or directory, mkdir 'F:\\App\\zephyr_reader\\rust\\src\\api\\piolium\\tmp\\piolium\\runs\\q3:m1-2026-07-17T01-25-50-891Z-a6-b86451f1'",
+					"last_error": "ENOENT: no such file or directory, mkdir 'F:\\App\\zephyr_reader\\rust\\src\\api\\piolium\\tmp\\piolium\\runs\\q3:m1-2026-07-17T01-25-50-891Z-a6-b86451f1'",
+					"completed_at": "2026-07-17T01:40:57.732Z"
+				},
+				"Q3:M2": {
+					"status": "failed",
+					"attempt": 6,
+					"max_attempts": 6,
+					"started_at": "2026-07-17T01:30:02.039Z",
+					"heartbeat_at": "2026-07-17T01:40:57.729Z",
+					"last_event_at": "2026-07-17T01:40:57.729Z",
+					"run_id": "q3:m2-2026-07-17T01-25-50-891Z-a6-94656cba",
+					"error": "Failed after 5 retries: ENOENT: no such file or directory, mkdir 'F:\\App\\zephyr_reader\\rust\\src\\api\\piolium\\tmp\\piolium\\runs\\q3:m2-2026-07-17T01-25-50-891Z-a6-94656cba'",
+					"last_error": "ENOENT: no such file or directory, mkdir 'F:\\App\\zephyr_reader\\rust\\src\\api\\piolium\\tmp\\piolium\\runs\\q3:m2-2026-07-17T01-25-50-891Z-a6-94656cba'",
+					"completed_at": "2026-07-17T01:40:57.737Z"
+				}
+			},
+			"agent_sdk": "pi",
+			"commit": null,
+			"branch": "nogit",
+			"history_available": false
+		}
+	]
+}

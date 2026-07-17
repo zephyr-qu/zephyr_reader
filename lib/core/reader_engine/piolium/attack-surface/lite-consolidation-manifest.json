@@ -1,0 +1,44 @@
+{
+	"generated_at": "2026-07-17T02:08:39.484Z",
+	"source_prefixes": [
+		"q1-",
+		"q2-"
+	],
+	"promoted": [
+		{
+			"id": "H1",
+			"slug": "unauthenticated-network-surface",
+			"severity": "high",
+			"original_id": "q2-004",
+			"phase": "Q2",
+			"source_path": "F:\\App\\zephyr_reader\\lib\\core\\reader_engine\\piolium\\findings-draft\\q2-004-unauthenticated-network-surface.md",
+			"finding_dir": "F:\\App\\zephyr_reader\\lib\\core\\reader_engine\\piolium\\findings\\H1-unauthenticated-network-surface"
+		},
+		{
+			"id": "M1",
+			"slug": "sensitive-file-path-logging",
+			"severity": "medium",
+			"original_id": "q2-001",
+			"phase": "Q2",
+			"source_path": "F:\\App\\zephyr_reader\\lib\\core\\reader_engine\\piolium\\findings-draft\\q2-001-sensitive-file-path-logging.md",
+			"finding_dir": "F:\\App\\zephyr_reader\\lib\\core\\reader_engine\\piolium\\findings\\M1-sensitive-file-path-logging"
+		},
+		{
+			"id": "M2",
+			"slug": "file-path-revalidation-gap",
+			"severity": "medium",
+			"original_id": "q2-002",
+			"phase": "Q2",
+			"source_path": "F:\\App\\zephyr_reader\\lib\\core\\reader_engine\\piolium\\findings-draft\\q2-002-file-path-revalidation-gap.md",
+			"finding_dir": "F:\\App\\zephyr_reader\\lib\\core\\reader_engine\\piolium\\findings\\M2-file-path-revalidation-gap"
+		}
+	],
+	"dropped": [
+		{
+			"original_id": "q2-003",
+			"severity": "low",
+			"source_path": "F:\\App\\zephyr_reader\\lib\\core\\reader_engine\\piolium\\findings-draft\\q2-003-image-load-no-size-limits.md",
+			"reason": "below severity threshold (low/info)"
+		}
+	]
+}

@@ -1,0 +1,65 @@
+{
+	"generated_at": "2026-07-17T01:38:22.606Z",
+	"source_prefixes": [
+		"q1-",
+		"q2-"
+	],
+	"promoted": [
+		{
+			"id": "M1",
+			"slug": "cover-extraction-output-dir-path-traversal",
+			"severity": "medium",
+			"original_id": "q2-001",
+			"phase": "Q2",
+			"source_path": "F:\\App\\zephyr_reader\\rust\\src\\api\\piolium\\findings-draft\\q2-001-cover-extraction-path-traversal.md",
+			"finding_dir": "F:\\App\\zephyr_reader\\rust\\src\\api\\piolium\\findings\\M1-cover-extraction-output-dir-path-traversal"
+		},
+		{
+			"id": "M2",
+			"slug": "delete-book-cover-path-traversal",
+			"severity": "medium",
+			"original_id": "q2-002",
+			"phase": "Q2",
+			"source_path": "F:\\App\\zephyr_reader\\rust\\src\\api\\piolium\\findings-draft\\q2-002-delete-book-cover-path-traversal.md",
+			"finding_dir": "F:\\App\\zephyr_reader\\rust\\src\\api\\piolium\\findings\\M2-delete-book-cover-path-traversal"
+		}
+	],
+	"dropped": [
+		{
+			"original_id": "q2-003",
+			"severity": "low",
+			"source_path": "F:\\App\\zephyr_reader\\rust\\src\\api\\piolium\\findings-draft\\q2-003-note-search-like-wildcard-injection.md",
+			"reason": "below severity threshold (low/info)"
+		},
+		{
+			"original_id": "q2-004",
+			"severity": "low",
+			"source_path": "F:\\App\\zephyr_reader\\rust\\src\\api\\piolium\\findings-draft\\q2-004-dictionary-init-unvalidated-path.md",
+			"reason": "below severity threshold (low/info)"
+		},
+		{
+			"original_id": "q2-005",
+			"severity": "low",
+			"source_path": "F:\\App\\zephyr_reader\\rust\\src\\api\\piolium\\findings-draft\\q2-005-export-destination-path-validation.md",
+			"reason": "below severity threshold (low/info)"
+		},
+		{
+			"original_id": "q2-006",
+			"severity": "low",
+			"source_path": "F:\\App\\zephyr_reader\\rust\\src\\api\\piolium\\findings-draft\\q2-006-validate-file-path-lacks-symlink-check.md",
+			"reason": "below severity threshold (low/info)"
+		},
+		{
+			"original_id": "q2-007",
+			"severity": "low",
+			"source_path": "F:\\App\\zephyr_reader\\rust\\src\\api\\piolium\\findings-draft\\q2-007-create-web-book-cover-path-unvalidated.md",
+			"reason": "below severity threshold (low/info)"
+		},
+		{
+			"original_id": "q2-008",
+			"severity": "low",
+			"source_path": "F:\\App\\zephyr_reader\\rust\\src\\api\\piolium\\findings-draft\\q2-008-no-authz-in-frb-api-layer.md",
+			"reason": "below severity threshold (low/info)"
+		}
+	]
+}
