@@ -20,8 +20,6 @@ import 'package:zephyr_reader/features/reader/annotations/presentation/reader_no
 import 'package:zephyr_reader/features/reader/settings/reader_panel_type.dart';
 import 'package:zephyr_reader/features/reader/page/toolbar/animated_toolbar_panel.dart';
 import 'package:zephyr_reader/features/reader/page/toolbar/reader_bottom_toolbar.dart';
-// ignore: deprecated_member_use — ReaderProgressBar 已废弃，import 保留备查
-// import 'package:zephyr_reader/features/reader/page/ui/reader_progress_bar.dart';
 
 class ReaderScaffold extends HookWidget {
   const ReaderScaffold({
@@ -162,13 +160,6 @@ class ReaderScaffold extends HookWidget {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              // ReaderProgressBar — 已废弃，底部进度条移除此处
-                              // ReaderProgressBar(
-                              //   pageIndex: pageIndex,
-                              //   totalPages: totalPages,
-                              //   onPageChanged: (targetPage) =>
-                              //       vm.chapterManager.loadPage(targetPage),
-                              // ),
                               ReaderBottomToolbar(
                                 onShowCatalog: () =>
                                     scaffoldKey.currentState?.openDrawer(),
