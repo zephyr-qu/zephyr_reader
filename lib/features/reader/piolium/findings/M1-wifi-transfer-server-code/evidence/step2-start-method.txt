@@ -1,0 +1,3 @@
+50:  Future<void> start() async {
+51-    // ponytail: wifi 传书暂屏蔽，保留空 start/stop 接口供 UI 调用
+52-  }

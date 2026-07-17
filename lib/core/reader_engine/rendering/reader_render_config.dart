@@ -28,6 +28,7 @@ class ReaderRenderConfig {
   final bool baselineAlign;
   final Set<String> vocabularyWords;
   final TextAlign textAlign;
+  final TextScaler textScaler;
 
   const ReaderRenderConfig({
     required this.textColor,
@@ -43,6 +44,7 @@ class ReaderRenderConfig {
     this.firstLineIndent = true,
     this.textAlign = TextAlign.justify,
     this.baselineAlign = true,
+    this.textScaler = TextScaler.noScaling,
   });
 
   Set<String> get effectiveVocabWords =>

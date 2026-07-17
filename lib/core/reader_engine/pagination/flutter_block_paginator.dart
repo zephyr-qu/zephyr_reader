@@ -17,7 +17,8 @@ const kInlineImageVerticalPaddingDp = 8.0;
 /// 单次 TextPainter 断行上限：大单块 TXT 必须切窗。
 const kLineBreakChunkChars = 4000;
 
-/// 页底安全余量：Strut 累加与 SelectableText 实测差距约 8dp，避免 RenderFlex overflow。
+/// 页底保守余量：仅吸收残余子像素差异 + 图片 inline padding 舍入，非 heading 补偿。
+/// heading 高度误差已由 _strutLineH 的 blockFontSize 修复消除。
 const kPagePackBottomSlackDp = 8.0;
 
 @visibleForTesting
@@ -34,6 +35,20 @@ int utf16SafeChunkEnd(String text, int proposedEnd) {
     if (splitsSurrogatePair) end--;
   }
   return end;
+}
+
+@visibleForTesting
+int textBlockChunkEnd(String text, int start) {
+  final proposed = utf16SafeChunkEnd(text, start + kLineBreakChunkChars);
+  if (proposed >= text.length) return text.length;
+
+  final previousNewline = text.lastIndexOf('\n', proposed);
+  if (previousNewline > start) return previousNewline + 1;
+
+  // TextPainter 把每个输入末尾视作真实行尾；不能在段落中间硬切，
+  // 否则下一 chunk 会凭空多出一行。没有前向换行时延长到下一个换行。
+  final nextNewline = text.indexOf('\n', proposed);
+  return nextNewline < 0 ? text.length : nextNewline + 1;
 }
 
 /// 装箱被 generation 取消。
@@ -252,7 +267,9 @@ class _PagePacker {
   int _pageEnd = 0;
   double _used = 0;
   bool _pageHasContent = false;
-  bool _prevEndedBlockOnPage = false;
+
+  /// 上一结束块是否允许补 paragraphSpacing（isBlockEnd 且无显式 bottom margin）。
+  bool _prevBlockAllowsParagraphSpacing = false;
   bool stoppedEarly = false;
   double _sliceHeight = 0;
 
@@ -361,16 +378,7 @@ class _PagePacker {
       // 首屏：越过 stopAfter 后仍要装满当前页，再截断。
       if (stoppedEarly) break;
 
-      var chunkTo = utf16SafeChunkEnd(
-        block.text,
-        chunkFrom + kLineBreakChunkChars,
-      );
-      if (chunkTo < block.text.length) {
-        final nl = block.text.lastIndexOf('\n', chunkTo);
-        if (nl > chunkFrom + kLineBreakChunkChars ~/ 2) {
-          chunkTo = nl + 1;
-        }
-      }
+      final chunkTo = textBlockChunkEnd(block.text, chunkFrom);
 
       final stop = ctx.packChunk(chunkFrom, chunkTo);
       if (stop) {
@@ -412,16 +420,7 @@ class _PagePacker {
     while (chunkFrom < block.text.length) {
       if (stoppedEarly) break;
 
-      var chunkTo = utf16SafeChunkEnd(
-        block.text,
-        chunkFrom + kLineBreakChunkChars,
-      );
-      if (chunkTo < block.text.length) {
-        final nl = block.text.lastIndexOf('\n', chunkTo);
-        if (nl > chunkFrom + kLineBreakChunkChars ~/ 2) {
-          chunkTo = nl + 1;
-        }
-      }
+      final chunkTo = textBlockChunkEnd(block.text, chunkFrom);
 
       final stop = ctx.packChunk(chunkFrom, chunkTo);
       if (stop) {
@@ -450,11 +449,15 @@ class _PagePacker {
     );
     // 内联路径渲染有 ±4dp padding；装箱必须计入，否则页底易溢出。
     final inlinePackedH = imgH + kInlineImageVerticalPaddingDp;
+    final precedingSpacing = _prevBlockAllowsParagraphSpacing
+        ? config.paragraphSpacing
+        : 0.0;
+    final inlinePackedHWithSpacing = precedingSpacing + inlinePackedH;
     final remaining = packBudget - _used;
     final start = block.plainStart;
     final end = start + block.plainLen;
 
-    if (inlinePackedH <= remaining) {
+    if (inlinePackedHWithSpacing <= remaining) {
       _pageStart ??= start;
       _pageEnd = end;
       _slices.add(
@@ -462,12 +465,14 @@ class _PagePacker {
           blockIndex: blockIndex,
           assetId: block.imageAssetId ?? '',
           imageAlt: block.imageAlt,
+          imageIntrinsicWidth: block.imageIntrinsicWidth,
+          imageIntrinsicHeight: block.imageIntrinsicHeight,
           imageLayout: ReaderIrBlockLayout.inlineContain,
         ),
       );
-      _used += inlinePackedH;
+      _used += inlinePackedHWithSpacing;
       _pageHasContent = true;
-      _prevEndedBlockOnPage = true;
+      _prevBlockAllowsParagraphSpacing = false;
       return false;
     }
 
@@ -480,11 +485,13 @@ class _PagePacker {
         blockIndex: blockIndex,
         assetId: block.imageAssetId ?? '',
         imageAlt: block.imageAlt,
+        imageIntrinsicWidth: block.imageIntrinsicWidth,
+        imageIntrinsicHeight: block.imageIntrinsicHeight,
         imageLayout: ReaderIrBlockLayout.fullPage,
       ),
     );
     _pageHasContent = true;
-    _prevEndedBlockOnPage = true;
+    _prevBlockAllowsParagraphSpacing = false;
     _flushPage();
     return false;
   }
@@ -504,7 +511,7 @@ class _PagePacker {
     _pageStart = null;
     _used = 0;
     _pageHasContent = false;
-    _prevEndedBlockOnPage = false;
+    _prevBlockAllowsParagraphSpacing = false;
     _sliceHeight = 0;
   }
 
@@ -547,6 +554,7 @@ class _TextPackContext {
     required this.blockPadding,
     required this.layoutMaxWidth,
     required this.blockLineHeight,
+    required this.blockFontSize,
     required this.irStyle,
   });
 
@@ -586,6 +594,7 @@ class _TextPackContext {
       blockPadding: blockPadding,
       layoutMaxWidth: layoutMaxWidth,
       blockLineHeight: blockLineHeight,
+      blockFontSize: blockFontSize,
       irStyle: irStyle,
     );
   }
@@ -599,6 +608,7 @@ class _TextPackContext {
   final EdgeInsets blockPadding;
   final double layoutMaxWidth;
   final double blockLineHeight;
+  final double blockFontSize;
   final BlockStyle irStyle;
 
   var localStart = 0;
@@ -607,12 +617,12 @@ class _TextPackContext {
   var sliceLocalStart = 0;
   var sliceIsBlockStart = true;
 
-  double get _strutLineH => packer.config.fontSize * blockLineHeight;
+  double get _strutLineH =>
+      packer.config.textScaler.scale(blockFontSize) * blockLineHeight;
 
   double _blockOverhead() {
     var oh = blockPadding.vertical;
-    if (packer._prevEndedBlockOnPage &&
-        irStyle.marginBottomEm == null &&
+    if (packer._prevBlockAllowsParagraphSpacing &&
         packer.config.paragraphSpacing > 0) {
       oh += packer.config.paragraphSpacing;
     }
@@ -650,7 +660,8 @@ class _TextPackContext {
       ),
     );
     packer._pageHasContent = true;
-    packer._prevEndedBlockOnPage = isBlockEnd;
+    packer._prevBlockAllowsParagraphSpacing =
+        isBlockEnd && irStyle.marginBottomEm == null;
     lineBuf.clear();
     packer._sliceHeight = 0;
     _sliceLineCount = 0;
@@ -659,12 +670,24 @@ class _TextPackContext {
   /// 处理 [chunkFrom, chunkTo) 子串。返回是否应停止后续块。
   bool packChunk(int chunkFrom, int chunkTo) {
     final chunk = block.text.substring(chunkFrom, chunkTo);
+    final chunkRuns = sliceRichSpans(
+      block.runs,
+      start: chunkFrom,
+      len: chunk.length,
+    );
     final breaks = computeLineBreakIndices(
       text: chunk,
       style: textStyle,
       maxWidth: layoutMaxWidth,
       strutStyle: strutStyle,
       firstLineIndentPx: isBlockStart ? indentPx : 0.0,
+      textScaler: packer.config.textScaler,
+      textSpan: IrReaderIrBlock.buildLayoutSpan(
+        text: chunk,
+        spans: chunkRuns,
+        irStyle: irStyle,
+        config: packer.config,
+      ),
     );
     if (breaks.isEmpty) return false;
 
@@ -674,7 +697,7 @@ class _TextPackContext {
       final lineText = block.text.substring(localStart, localEnd);
 
       if (lineBuf.isEmpty) {
-        final need = _sliceHeightForLines(1, withBlockStart: isBlockStart);
+        var need = _sliceHeightForLines(1, withBlockStart: isBlockStart);
         // 仅在本页已有内容时才因装不下而翻页；允许贴满 maxHeight。
         if (packer._pageHasContent && packer._used + need > packer.packBudget) {
           flushSlice(isBlockEnd: false);
@@ -683,6 +706,8 @@ class _TextPackContext {
             packer.stoppedEarly = true;
             return true;
           }
+          // 上一块留在前页，页首不应继续携带它产生的 paragraphSpacing。
+          need = _sliceHeightForLines(1, withBlockStart: isBlockStart);
         }
         sliceLocalStart = localStart;
         sliceIsBlockStart = isBlockStart;

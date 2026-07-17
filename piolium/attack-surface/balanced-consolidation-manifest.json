@@ -1,0 +1,57 @@
+{
+	"generated_at": "2026-07-17T07:07:42.075Z",
+	"source_prefixes": [
+		"p8-"
+	],
+	"promoted": [],
+	"dropped": [
+		{
+			"original_id": "p8",
+			"severity": "info",
+			"source_path": "F:\\App\\zephyr_reader\\piolium\\findings-draft\\p8-001-ssrf-translation-api-url.md",
+			"reason": "below severity threshold (low/info)"
+		},
+		{
+			"original_id": "p8",
+			"severity": "info",
+			"source_path": "F:\\App\\zephyr_reader\\piolium\\findings-draft\\p8-002-validate-file-path-no-confinement.md",
+			"reason": "below severity threshold (low/info)"
+		},
+		{
+			"original_id": "p8",
+			"severity": "info",
+			"source_path": "F:\\App\\zephyr_reader\\piolium\\findings-draft\\p8-003-wifi-upload-no-auth.md",
+			"reason": "below severity threshold (low/info)"
+		},
+		{
+			"original_id": "p8",
+			"severity": "info",
+			"source_path": "F:\\App\\zephyr_reader\\piolium\\findings-draft\\p8-004-api-key-plaintext-sharedpreferences.md",
+			"reason": "below severity threshold (low/info)"
+		},
+		{
+			"original_id": "p8",
+			"severity": "info",
+			"source_path": "F:\\App\\zephyr_reader\\piolium\\findings-draft\\p8-005-export-database-path-traversal.md",
+			"reason": "below severity threshold (low/info)"
+		},
+		{
+			"original_id": "p8",
+			"severity": "info",
+			"source_path": "F:\\App\\zephyr_reader\\piolium\\findings-draft\\p8-006-restore-database-path-traversal.md",
+			"reason": "below severity threshold (low/info)"
+		},
+		{
+			"original_id": "p8",
+			"severity": "info",
+			"source_path": "F:\\App\\zephyr_reader\\piolium\\findings-draft\\p8-007-cover-output-path-traversal.md",
+			"reason": "below severity threshold (low/info)"
+		},
+		{
+			"original_id": "p8",
+			"severity": "info",
+			"source_path": "F:\\App\\zephyr_reader\\piolium\\findings-draft\\p8-008-bincode-unmaintained-crate.md",
+			"reason": "below severity threshold (low/info)"
+		}
+	]
+}

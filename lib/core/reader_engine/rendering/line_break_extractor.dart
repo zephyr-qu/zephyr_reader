@@ -18,15 +18,6 @@ import 'package:zephyr_reader/core/reader_engine/rendering/ir_text_block_style.d
 import 'package:zephyr_reader/core/reader_engine/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/ir_types.dart';
 
-bool _isUtf16Boundary(String text, int index) {
-  if (index <= 0 || index >= text.length) return true;
-  final previous = text.codeUnitAt(index - 1);
-  final current = text.codeUnitAt(index);
-  final previousIsHighSurrogate = previous >= 0xD800 && previous <= 0xDBFF;
-  final currentIsLowSurrogate = current >= 0xDC00 && current <= 0xDFFF;
-  return !(previousIsHighSurrogate && currentIsLowSurrogate);
-}
-
 /// 使用 TextPainter 从单段文本提取行断点（相对 [text] 起点）。
 ///
 /// [firstLineIndentPx] > 0 时与 [measureSliceLayout] / 分页渲染一致：
@@ -37,62 +28,35 @@ List<int> computeLineBreakIndices({
   required double maxWidth,
   StrutStyle? strutStyle,
   double firstLineIndentPx = 0,
+  TextScaler textScaler = TextScaler.noScaling,
+  InlineSpan? textSpan,
 }) {
   if (text.isEmpty) return [];
-
-  if (firstLineIndentPx <= 0) {
-    return _lineBreakIndicesSimple(
-      text: text,
-      style: style,
-      maxWidth: maxWidth,
-      strutStyle: strutStyle,
-    );
-  }
-
-  final narrowWidth = (maxWidth - firstLineIndentPx).clamp(1.0, maxWidth);
-  var firstLineChars = text.length;
-  final probe = TextPainter(
-    textDirection: TextDirection.ltr,
-    strutStyle: strutStyle,
-    textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
-  );
-  var previousBoundary = 0;
-  for (var n = 1; n <= text.length; n++) {
-    if (!_isUtf16Boundary(text, n)) continue;
-    probe.text = TextSpan(text: text.substring(0, n), style: style);
-    probe.layout(maxWidth: narrowWidth);
-    if (probe.computeLineMetrics().length > 1) {
-      firstLineChars = previousBoundary;
-      break;
-    }
-    previousBoundary = n;
-  }
-  if (firstLineChars <= 0) {
-    firstLineChars = _isUtf16Boundary(text, 1) ? 1 : 2;
-  }
-
-  if (firstLineChars >= text.length) {
-    return _lineBreakIndicesSimple(
-      text: text,
-      style: style,
-      maxWidth: narrowWidth,
-      strutStyle: strutStyle,
-    );
-  }
-
-  final first = _lineBreakIndicesSimple(
-    text: text.substring(0, firstLineChars),
-    style: style,
-    maxWidth: narrowWidth,
-    strutStyle: strutStyle,
-  );
-  final rest = _lineBreakIndicesSimple(
-    text: text.substring(firstLineChars),
+  final contentSpan = textSpan ?? TextSpan(text: text, style: style);
+  final hasIndent = firstLineIndentPx > 0;
+  final layoutSpan = hasIndent
+      ? TextSpan(
+          style: style,
+          children: [
+            WidgetSpan(
+              alignment: PlaceholderAlignment.baseline,
+              baseline: TextBaseline.alphabetic,
+              child: SizedBox(width: firstLineIndentPx),
+            ),
+            contentSpan,
+          ],
+        )
+      : contentSpan;
+  return _lineBreakIndicesSimple(
+    text: text,
     style: style,
     maxWidth: maxWidth,
     strutStyle: strutStyle,
+    textScaler: textScaler,
+    textSpan: layoutSpan,
+    placeholderOffset: hasIndent ? 1 : 0,
+    placeholderWidth: hasIndent ? firstLineIndentPx : 0,
   );
-  return [...first, ...rest.map((i) => i + firstLineChars)];
 }
 
 List<int> _lineBreakIndicesSimple({
@@ -100,15 +64,31 @@ List<int> _lineBreakIndicesSimple({
   required TextStyle style,
   required double maxWidth,
   StrutStyle? strutStyle,
+  TextScaler textScaler = TextScaler.noScaling,
+  InlineSpan? textSpan,
+  int placeholderOffset = 0,
+  double placeholderWidth = 0,
 }) {
   if (text.isEmpty) return [];
 
   final tp = TextPainter(
-    text: TextSpan(text: text, style: style),
+    text: textSpan ?? TextSpan(text: text, style: style),
     textDirection: TextDirection.ltr,
     strutStyle: strutStyle,
+    textScaler: textScaler,
     textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
-  )..layout(maxWidth: maxWidth);
+  );
+  if (placeholderOffset > 0) {
+    tp.setPlaceholderDimensions([
+      PlaceholderDimensions(
+        size: Size(placeholderWidth, 0),
+        alignment: PlaceholderAlignment.baseline,
+        baseline: TextBaseline.alphabetic,
+        baselineOffset: 0,
+      ),
+    ]);
+  }
+  tp.layout(maxWidth: maxWidth);
 
   final metrics = tp.computeLineMetrics();
   final indices = <int>[];
@@ -118,7 +98,10 @@ List<int> _lineBreakIndicesSimple({
     final centerX = line.left + line.width / 2;
     final pos = tp.getPositionForOffset(Offset(centerX, centerY));
     final boundary = tp.getLineBoundary(pos);
-    indices.add(boundary.end);
+    final end = (boundary.end - placeholderOffset).clamp(0, text.length);
+    if (end > 0 && (indices.isEmpty || indices.last != end)) {
+      indices.add(end);
+    }
   }
 
   return indices;
@@ -179,6 +162,13 @@ List<int> computeChapterLineBreakIndicesFromBlocks({
       maxWidth: layoutMaxWidth,
       strutStyle: strutStyle,
       firstLineIndentPx: indentPx,
+      textScaler: config.textScaler,
+      textSpan: IrReaderIrBlock.buildLayoutSpan(
+        text: block.text,
+        spans: block.runs,
+        irStyle: block.style,
+        config: config,
+      ),
     );
     for (final end in local) {
       indices.add(block.plainStart + end);
@@ -225,6 +215,7 @@ ReaderRenderConfig lineBreakMeasureRenderConfig({
   required double pageMargin,
   required bool firstLineIndent,
   required bool baselineAlign,
+  TextScaler textScaler = TextScaler.noScaling,
 }) {
   return ReaderRenderConfig(
     textColor: const Color(0xFF000000),
@@ -239,5 +230,6 @@ ReaderRenderConfig lineBreakMeasureRenderConfig({
     vocabularyWords: const {},
     firstLineIndent: firstLineIndent,
     baselineAlign: baselineAlign,
+    textScaler: textScaler,
   );
 }

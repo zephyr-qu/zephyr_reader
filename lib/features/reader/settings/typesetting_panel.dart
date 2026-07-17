@@ -107,7 +107,7 @@ class TypesettingPanel extends StatelessWidget {
     VoidCallback onTap,
   ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
       child: GestureDetector(
         onTap: onTap,
         child: Row(
@@ -196,7 +196,7 @@ class TypesettingPanel extends StatelessWidget {
     VoidCallback onTap,
   ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
       child: GestureDetector(
         onTap: onTap,
         child: Row(

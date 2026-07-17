@@ -1,3 +1,4 @@
+import 'package:flutter/painting.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart';
 import 'package:zephyr_reader/core/reader_engine/data/chapter_content_repository.dart';
@@ -31,6 +32,7 @@ class PaginationCoordinator {
 
   /// 当前字体系列名
   String fontFamily = 'Noto Sans SC';
+  TextScaler textScaler = TextScaler.noScaling;
 
   PaginationParams buildPaginationParams() {
     return PaginationParams(
@@ -47,6 +49,8 @@ class PaginationCoordinator {
       firstLineIndent: _config.firstLineIndent.value,
       language: _config.language.value,
       autoSpaceRatio: _config.autoSpaceRatio.value,
+      baselineAlign: _config.baselineAlign.value,
+      textScaler: textScaler,
     );
   }
 
@@ -65,23 +69,7 @@ class PaginationCoordinator {
   /// Dart 侧直接计算（分页已迁 Flutter）。
   BigInt computeConfigHash() {
     final p = buildPaginationParams();
-    return BigInt.from(
-      Object.hash(
-        p.width,
-        p.height,
-        p.fontSize,
-        p.lineHeight,
-        p.padding,
-        p.devicePixelRatio,
-        p.fontFamily,
-        p.letterSpacing,
-        p.paragraphSpacing,
-        p.punctuationSqueeze,
-        p.firstLineIndent,
-        p.language,
-        p.autoSpaceRatio,
-      ),
-    );
+    return p.layoutHash;
   }
 
   /// 首屏分页（统一入口，maxChars=2000）。
@@ -101,7 +89,9 @@ class PaginationCoordinator {
   }
 
   /// 全章分页（字号变更后重装箱；复用 session 内 IR，不触发二次 FFI）。
-  Future<({int totalPages, bool isPartial})> paginateFullChapter(int chapterIndex) {
+  Future<({int totalPages, bool isPartial})> paginateFullChapter(
+    int chapterIndex,
+  ) {
     return _engine.session.expandToFullChapter(
       bookId: _chapterVM.bookId.value,
       chapterIndex: chapterIndex,
@@ -173,7 +163,9 @@ class PaginationCoordinator {
 
   /// charOffset → pageIndex：优先 session，回退 descriptor 二分。
   int resolvePageForCharOffset(int charOffset, List<PackedPage> descriptors) {
-    final sessionPage = _engine.session.resolvePageIndexForCharOffset(charOffset);
+    final sessionPage = _engine.session.resolvePageIndexForCharOffset(
+      charOffset,
+    );
     if (sessionPage != null) {
       return sessionPage.clamp(0, descriptors.length - 1);
     }

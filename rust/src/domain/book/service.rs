@@ -3,7 +3,7 @@
 //! 提供书籍的聚合查询、级联删除、创建和解析等业务操作。
 //! 纯 CRUD 透传已内联到 api/ 层，此处只保留有实际业务逻辑的操作。
 
-
+use std::path::Path;
 use crate::common::AppError;
 use crate::common::security::validate_file_path;
 use crate::domain::book::{Book, BookFormat, BookStatus, BookshelfBook};
@@ -116,9 +116,12 @@ pub async fn create_web_book(
     cover_path: Option<&str>,
     description: Option<&str>,
 ) -> Result<Book, AppError> {
+    let cover = cover_path
+        .and_then(|s| Path::new(s).file_name())
+        .map(|f| f.to_string_lossy().into_owned());
     let book = Book::new(
         file_path.to_string(), 0, title.to_string(), BookFormat::Txt, chapter_count, total_characters,
-        None, None, Some(author.to_string()), cover_path.map(|s| s.to_string()), description.map(|s| s.to_string()), None, None, None,
+        None, None, Some(author.to_string()), cover, description.map(|s| s.to_string()), None, None, None,
     );
     let pool = storage_pool()?;
     BookRepository::save(&pool, &book).await?;

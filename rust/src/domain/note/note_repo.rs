@@ -232,13 +232,21 @@ impl NoteRepository {
 
     /// 搜索笔记（内容/选中文本模糊匹配）
     pub async fn search(pool: &SqlitePool,
-    query: &str,) -> Result<Vec<Note>, AppError> { let pattern = format!("%{}%", query);
-    Ok(sqlx::query_as::<_, Note>(
-        "SELECT * FROM notes WHERE content LIKE ?1 OR selected_text LIKE ?1 ORDER BY created_at DESC",
-    )
-    .bind(&pattern)
-    .fetch_all(pool)
-    .await?) }
+    query: &str,) -> Result<Vec<Note>, AppError> {
+        if query.trim().is_empty() {
+            return Ok(Vec::new());
+        }
+        // 转义 LIKE 通配符，防止用户输入干扰查询语义
+        let escaped = query.replace('%', r"\%").replace('_', r"\_");
+        let pattern = format!("%{}%", escaped);
+
+        Ok(sqlx::query_as::<_, Note>(
+            "SELECT * FROM notes WHERE content LIKE ?1 ESCAPE '\\' OR selected_text LIKE ?1 ESCAPE '\\' ORDER BY created_at DESC",
+        )
+        .bind(&pattern)
+        .fetch_all(pool)
+        .await?)
+    }
 
     /// 跨书分页获取所有笔记，按创建时间倒序
     pub async fn list_all_paginated(pool: &SqlitePool,

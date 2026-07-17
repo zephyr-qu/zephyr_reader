@@ -112,6 +112,7 @@ class ReaderContentArea extends HookWidget {
     final textScaler = vm.config.followSystemFontScale.value
         ? MediaQuery.textScalerOf(context)
         : TextScaler.noScaling;
+    vm.chapterManager.textScaler = textScaler;
 
     return Stack(
       clipBehavior: Clip.hardEdge,
@@ -137,6 +138,7 @@ class ReaderContentArea extends HookWidget {
                 baselineAlign: bBaselinealign,
                 textAlign: bTextalign,
                 firstLineIndent: bFirstlineindent,
+                textScaler: textScaler,
               );
               Future<void> onHighlightTap(Note note) =>
                   showModalBottomSheet<void>(

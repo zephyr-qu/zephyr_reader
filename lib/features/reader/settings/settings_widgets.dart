@@ -305,12 +305,6 @@ Widget textAlignSelector({
       PhosphorIconsRegular.textAlignCenter,
     ),
     (TextAlign.start, l10n.textAlignStart, PhosphorIconsRegular.textAlignLeft),
-    (
-      TextAlign.center,
-      l10n.textAlignCenter,
-      PhosphorIconsRegular.textAlignCenter,
-    ),
-    (TextAlign.end, l10n.textAlignEnd, PhosphorIconsRegular.textAlignRight),
   ];
 
   return Padding(

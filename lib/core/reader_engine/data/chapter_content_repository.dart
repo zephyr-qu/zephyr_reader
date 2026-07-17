@@ -175,6 +175,8 @@ class ChapterContentRepository {
         firstLineIndent: p.firstLineIndent,
         language: p.language,
         autoSpaceRatio: p.autoSpaceRatio,
+        baselineAlign: p.baselineAlign,
+        textScaler: p.textScaler,
       );
     }
     return PaginationParams(

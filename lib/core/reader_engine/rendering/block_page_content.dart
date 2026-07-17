@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/image_cache.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/flutter_block_paginator.dart';
-import 'package:zephyr_reader/core/reader_engine/pagination/active_chapter_ir.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/pagination_viewport_metrics.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/ir_text_block_style.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/reader_render_config.dart';
@@ -132,15 +131,16 @@ Widget buildBlockPageContent({
               } else {
                 children.add(textWidget);
               }
-              runningOffset += block.text.runes.length;
+              runningOffset += block.text.length;
             } else {
               final isFullPage =
                   block.imageLayout == ReaderIrBlockLayout.fullPage;
               final inlineMaxH = isFullPage
                   ? null
                   : _inlineImageDisplayHeightDp(
-                      assetId: block.assetId ?? '',
                       contentWidthDp: imageMaxWidth,
+                      intrinsicWidth: block.imageIntrinsicWidth,
+                      intrinsicHeight: block.imageIntrinsicHeight,
                     );
               children.add(
                 EpubBlockImage(
@@ -179,14 +179,14 @@ Widget buildBlockPageContent({
 
 /// 内联图显示高度（不含 padding），与装箱 [imageDisplayHeightDp] 同源。
 double _inlineImageDisplayHeightDp({
-  required String assetId,
   required double contentWidthDp,
+  int? intrinsicWidth,
+  int? intrinsicHeight,
 }) {
-  final img = ActiveChapterIr.findImage(assetId);
   return imageDisplayHeightDp(
     contentWidthDp: contentWidthDp,
-    intrinsicWidth: img?.imageIntrinsicWidth,
-    intrinsicHeight: img?.imageIntrinsicHeight,
+    intrinsicWidth: intrinsicWidth,
+    intrinsicHeight: intrinsicHeight,
   );
 }
 
@@ -240,6 +240,7 @@ class EpubBlockImage extends StatefulWidget {
 class _EpubBlockImageState extends State<EpubBlockImage> {
   Uint8List? _imageBytes;
   Object? _error;
+  int _loadGeneration = 0;
 
   @override
   void initState() {
@@ -260,19 +261,20 @@ class _EpubBlockImageState extends State<EpubBlockImage> {
   }
 
   Future<void> _load() async {
+    final generation = ++_loadGeneration;
     try {
       final bytes = await epubBlockImageCache.load(
         filePath: widget.filePath,
         assetId: widget.assetId,
         maxWidthPx: widget.maxWidthPx,
       );
-      if (!mounted) return;
+      if (!mounted || generation != _loadGeneration) return;
       setState(() => _imageBytes = bytes);
     } catch (e) {
       Logging.warning(
         '[EpubBlockImage] load failed asset=${widget.assetId}: $e',
       );
-      if (!mounted) return;
+      if (!mounted || generation != _loadGeneration) return;
       setState(() => _error = e);
     }
   }

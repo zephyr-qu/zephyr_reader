@@ -1,0 +1,16 @@
+The `rs-mdict` crate (v0.1.1) implements MDX/MDD file format parsing.
+When an attacker supplies a path to an attacker-controlled .mdx file, the
+memory-mapped parser (`Mdx::new()`) will process the file contents.
+
+Known risks with memory-mapped MDX parsing:
+  1. Buffer over-reads: malformed key-size or block-size fields can cause
+     the parser to read beyond the mapped region, leaking adjacent memory.
+  2. Integer overflows: crafted header values can trigger arithmetic
+     overflows during offset calculation.
+  3. ZIP bombs / decompression loops: MDX format uses deflate compression
+     internally; crafted compressed streams can cause denial of service.
+  4. Path traversal via MDD resources: if the .mdd file contains filesystem
+     path references, a vulnerability in resource extraction could write
+     files to attacker-controlled locations.
+  5. Format confusion: renaming any binary file to .mdx means the parser
+     will attempt to parse it; obscure parser code paths are exercised.

@@ -8,6 +8,7 @@ use std::sync::LazyLock;
 use parking_lot::Mutex;
 
 use crate::common::AppError;
+use crate::common::security::validate_file_path;
 use crate::domain::dictionary::DictSearchResult;
 use crate::domain::dictionary::engine::Engine;
 
@@ -19,7 +20,8 @@ static MDICT: LazyLock<Mutex<Option<Engine>>> = LazyLock::new(|| Mutex::new(None
 
 /// 初始化 MDict 词典引擎
 pub async fn init_dictionary(mdx_path: &str, mdd_path: Option<String>) -> Result<(), AppError> {
-    let engine = Engine::open(mdx_path, mdd_path.as_deref())
+    let validated_mdx = validate_file_path(mdx_path)?;
+    let engine = Engine::open(&validated_mdx, mdd_path.as_deref())
         .map_err(|e| AppError::InternalError {
             reason: format!("Failed to open MDict: {e}"),
         })?;

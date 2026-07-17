@@ -12,6 +12,8 @@ class PackedBlockSlice {
   }) : isImage = false,
        assetId = null,
        imageAlt = null,
+       imageIntrinsicWidth = null,
+       imageIntrinsicHeight = null,
        imageLayout = null;
 
   const PackedBlockSlice.image({
@@ -19,6 +21,8 @@ class PackedBlockSlice {
     required this.assetId,
     required this.imageLayout,
     this.imageAlt,
+    this.imageIntrinsicWidth,
+    this.imageIntrinsicHeight,
   }) : isImage = true,
        text = '',
        isBlockStart = true,
@@ -31,6 +35,8 @@ class PackedBlockSlice {
   final String text;
   final String? assetId;
   final String? imageAlt;
+  final int? imageIntrinsicWidth;
+  final int? imageIntrinsicHeight;
   final bool isBlockStart;
   final bool isBlockEnd;
   final BlockStyle? style;

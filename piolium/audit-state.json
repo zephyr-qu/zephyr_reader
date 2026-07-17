@@ -1,0 +1,200 @@
+{
+	"audits": [
+		{
+			"audit_id": "2026-07-16T15:56:36.316Z",
+			"mode": "lite",
+			"started_at": "2026-07-16T15:56:36.316Z",
+			"completed_at": "2026-07-16T16:12:18.533Z",
+			"status": "failed",
+			"phases": {
+				"Q0": {
+					"status": "complete",
+					"attempt": 1,
+					"max_attempts": 6,
+					"started_at": "2026-07-16T15:56:36.321Z",
+					"completed_at": "2026-07-16T15:56:36.895Z"
+				},
+				"Q1": {
+					"status": "complete",
+					"attempt": 1,
+					"max_attempts": 6,
+					"started_at": "2026-07-16T15:56:36.946Z",
+					"completed_at": "2026-07-16T15:56:37.336Z"
+				},
+				"Q2": {
+					"status": "complete",
+					"attempt": 1,
+					"max_attempts": 6,
+					"started_at": "2026-07-16T15:56:36.984Z",
+					"completed_at": "2026-07-16T16:01:21.410Z"
+				},
+				"Q3": {
+					"status": "failed",
+					"started_at": "2026-07-16T16:01:21.414Z",
+					"error": "Q3 PoC construction had failures.",
+					"artifacts": [
+						"piolium/attack-surface/lite-consolidation-manifest.json"
+					],
+					"completed_at": "2026-07-16T16:12:18.532Z"
+				},
+				"Q4": {
+					"status": "pending"
+				},
+				"Q3:M1": {
+					"status": "failed",
+					"attempt": 6,
+					"max_attempts": 6,
+					"started_at": "2026-07-16T16:01:21.434Z",
+					"heartbeat_at": "2026-07-16T16:12:18.513Z",
+					"last_event_at": "2026-07-16T16:12:18.513Z",
+					"run_id": "q3:m1-2026-07-16T15-56-36-316Z-a6-2608a30e",
+					"error": "Failed after 5 retries: ENOENT: no such file or directory, mkdir 'F:\\App\\zephyr_reader\\piolium\\tmp\\piolium\\runs\\q3:m1-2026-07-16T15-56-36-316Z-a6-2608a30e'",
+					"last_error": "ENOENT: no such file or directory, mkdir 'F:\\App\\zephyr_reader\\piolium\\tmp\\piolium\\runs\\q3:m1-2026-07-16T15-56-36-316Z-a6-2608a30e'",
+					"completed_at": "2026-07-16T16:12:18.522Z"
+				},
+				"Q3:M2": {
+					"status": "failed",
+					"attempt": 6,
+					"max_attempts": 6,
+					"started_at": "2026-07-16T16:01:21.439Z",
+					"heartbeat_at": "2026-07-16T16:12:18.517Z",
+					"last_event_at": "2026-07-16T16:12:18.517Z",
+					"run_id": "q3:m2-2026-07-16T15-56-36-316Z-a6-4ccbea14",
+					"error": "Failed after 5 retries: ENOENT: no such file or directory, mkdir 'F:\\App\\zephyr_reader\\piolium\\tmp\\piolium\\runs\\q3:m2-2026-07-16T15-56-36-316Z-a6-4ccbea14'",
+					"last_error": "ENOENT: no such file or directory, mkdir 'F:\\App\\zephyr_reader\\piolium\\tmp\\piolium\\runs\\q3:m2-2026-07-16T15-56-36-316Z-a6-4ccbea14'",
+					"completed_at": "2026-07-16T16:12:18.525Z"
+				},
+				"Q3:M3": {
+					"status": "failed",
+					"attempt": 6,
+					"max_attempts": 6,
+					"started_at": "2026-07-16T16:01:21.443Z",
+					"heartbeat_at": "2026-07-16T16:12:18.519Z",
+					"last_event_at": "2026-07-16T16:12:18.519Z",
+					"run_id": "q3:m3-2026-07-16T15-56-36-316Z-a6-bd04f163",
+					"error": "Failed after 5 retries: ENOENT: no such file or directory, mkdir 'F:\\App\\zephyr_reader\\piolium\\tmp\\piolium\\runs\\q3:m3-2026-07-16T15-56-36-316Z-a6-bd04f163'",
+					"last_error": "ENOENT: no such file or directory, mkdir 'F:\\App\\zephyr_reader\\piolium\\tmp\\piolium\\runs\\q3:m3-2026-07-16T15-56-36-316Z-a6-bd04f163'",
+					"completed_at": "2026-07-16T16:12:18.527Z"
+				}
+			},
+			"agent_sdk": "pi",
+			"commit": "87f5a233476c0a72691f363130e7d8a6fc7ca43d",
+			"branch": "phase/13",
+			"repository": "2084035767/zephyr_reader",
+			"history_available": true
+		},
+		{
+			"audit_id": "2026-07-17T03:02:30.215Z",
+			"mode": "balanced",
+			"started_at": "2026-07-17T03:02:30.215Z",
+			"completed_at": "2026-07-17T07:18:01.625Z",
+			"status": "complete",
+			"phases": {
+				"L1": {
+					"status": "complete",
+					"attempt": 1,
+					"max_attempts": 6,
+					"started_at": "2026-07-17T03:02:30.261Z",
+					"completed_at": "2026-07-17T03:11:47.053Z"
+				},
+				"L2": {
+					"status": "complete",
+					"attempt": 1,
+					"max_attempts": 6,
+					"started_at": "2026-07-17T03:11:47.057Z",
+					"completed_at": "2026-07-17T03:17:26.673Z"
+				},
+				"L3": {
+					"status": "complete",
+					"attempt": 1,
+					"max_attempts": 6,
+					"started_at": "2026-07-17T03:17:26.678Z",
+					"completed_at": "2026-07-17T07:03:36.972Z"
+				},
+				"L4": {
+					"status": "complete",
+					"attempt": 1,
+					"max_attempts": 6,
+					"started_at": "2026-07-17T03:17:27.020Z",
+					"completed_at": "2026-07-17T03:22:22.831Z"
+				},
+				"L5": {
+					"status": "complete",
+					"attempt": 1,
+					"max_attempts": 6,
+					"started_at": "2026-07-17T07:03:36.975Z",
+					"completed_at": "2026-07-17T07:07:42.060Z"
+				},
+				"L6": {
+					"status": "complete",
+					"started_at": "2026-07-17T07:07:42.086Z",
+					"completed_at": "2026-07-17T07:13:58.850Z"
+				},
+				"L6b": {
+					"status": "complete",
+					"started_at": "2026-07-17T07:13:58.852Z",
+					"completed_at": "2026-07-17T07:15:41.062Z"
+				},
+				"L6c": {
+					"status": "complete",
+					"attempt": 1,
+					"max_attempts": 6,
+					"started_at": "2026-07-17T07:15:41.077Z",
+					"completed_at": "2026-07-17T07:18:01.538Z"
+				},
+				"L7": {
+					"status": "complete",
+					"started_at": "2026-07-17T07:18:01.551Z",
+					"completed_at": "2026-07-17T07:18:01.623Z"
+				},
+				"L6:M1": {
+					"status": "complete",
+					"attempt": 1,
+					"max_attempts": 6,
+					"started_at": "2026-07-17T07:07:42.099Z",
+					"completed_at": "2026-07-17T07:09:24.499Z"
+				},
+				"L6:M2": {
+					"status": "complete",
+					"attempt": 1,
+					"max_attempts": 6,
+					"started_at": "2026-07-17T07:07:42.427Z",
+					"completed_at": "2026-07-17T07:13:14.166Z"
+				},
+				"L6:M3": {
+					"status": "complete",
+					"attempt": 1,
+					"max_attempts": 6,
+					"started_at": "2026-07-17T07:07:42.758Z",
+					"completed_at": "2026-07-17T07:13:58.847Z"
+				},
+				"L6b:M1": {
+					"status": "complete",
+					"attempt": 1,
+					"max_attempts": 6,
+					"started_at": "2026-07-17T07:13:58.869Z",
+					"completed_at": "2026-07-17T07:15:41.059Z"
+				},
+				"L6b:M2": {
+					"status": "complete",
+					"attempt": 1,
+					"max_attempts": 6,
+					"started_at": "2026-07-17T07:13:59.309Z",
+					"completed_at": "2026-07-17T07:15:20.707Z"
+				},
+				"L6b:M3": {
+					"status": "complete",
+					"attempt": 1,
+					"max_attempts": 6,
+					"started_at": "2026-07-17T07:13:59.761Z",
+					"completed_at": "2026-07-17T07:15:19.824Z"
+				}
+			},
+			"agent_sdk": "pi",
+			"commit": "23e2192cd8c9f64996dc344a8c2b7bb3067cddb6",
+			"branch": "phase/13",
+			"repository": "2084035767/zephyr_reader",
+			"history_available": true
+		}
+	]
+}

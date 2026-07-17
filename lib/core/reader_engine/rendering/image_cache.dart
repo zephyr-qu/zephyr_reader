@@ -168,14 +168,14 @@ class EpubBlockImageCache {
             maxWidthPx: maxWidthPx,
           ) !=
           null) {
-        return;
+        continue;
       }
       final key = loadKey(
         filePath: filePath,
         assetId: block.assetId!,
         maxWidthPx: maxWidthPx,
       );
-      if (_inflight.containsKey(key)) return;
+      if (_inflight.containsKey(key)) continue;
       unawaited(
         load(
           filePath: filePath,
