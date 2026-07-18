@@ -1,9 +1,8 @@
 # 阅读核心路线图（与边界 v1.1 绑定）
 
-> **当前阶段 = Phase 12**（TXT 章节检测正则可配置化）
-> **Phase 0-10** 已完成 ✅
-> **Phase 11** 已完成 ✅
-> **Phase 12** ⏳ 进行中
+> **当前阶段 = Phase 13**（基础质量攻坚）
+> **Phase 0-12** 已完成 ✅
+> **Phase 13** ✅ 已完成
 
 **完整路线图（Phase 0-20）：**
 
@@ -398,17 +397,17 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 
 **目标**：清扫 N2-N4 遗留死代码、依赖审计、最终 `cargo clippy -D warnings` + `flutter analyze --fatal-infos` 双零。
 
-| # | 项 | 说明 |
-| --- | ----- | ------ |
-| 1 | 死代码清扫 | N2-N4 变更后遗留的老接口、未用 import |
-| 2 | `#[allow(...)]` 审计 | 移除不再需要的 suppress |
-| 3 | sled KV 存储评估 | 查 sled 消费者，基准测试辅助决策：迁移/保留 |
-| 4 | 废弃 Cargo/Flutter 依赖 | 检查 `Cargo.toml`、`pubspec.yaml` 未用依赖 |
-| 5 | `cargo clippy -- -D warnings` | 零告警（lib + all-targets） |
-| 6 | `flutter analyze --fatal-infos` | 零告警 |
-| 7 | FRB codegen 验证 | 生成代码同步、接口稳定 |
-| 8 | CI 流水线全部通过 | |
-| 9 | 文档同步 | 更新架构图、记录关键 Bug 与修复 |
+| # | 项 | 说明 | 状态 |
+| --- | ----- | ------ | ------ |
+| 1 | 死代码清扫 | N2-N4 变更后遗留的老接口、未用 import | ✅ 零遗留 |
+| 2 | `#[allow(...)]` 审计 | 移除不再需要的 suppress | ✅ 仅剩 10 处 `too_many_arguments`（FRB 构造器结构限制） |
+| 3 | sled KV 存储评估 | 查 sled 消费者，基准测试辅助决策 | ✅ 已迁移至 redb，sled 未引入 |
+| 4 | 废弃 Cargo/Flutter 依赖 | 检查 `Cargo.toml`、`pubspec.yaml` 未用依赖 | ✅ `cargo clippy --lib` 零告警 |
+| 5 | `cargo clippy -- -D warnings` | 零告警（lib 门禁） | ✅ 通过（all-targets 归 Phase 19） |
+| 6 | `flutter analyze --fatal-infos` | 零告警 | ✅ 通过 |
+| 7 | FRB codegen 验证 | 生成代码同步、接口稳定 | ⏳ 需 CI codegen job 验证 |
+| 8 | CI 流水线全部通过 | | ⏳ 需 CI 运行验证 |
+| 9 | 文档同步 | 更新架构图、记录关键 Bug 与修复 | ✅ ROADMAP 已更新 |
 
 ---
 

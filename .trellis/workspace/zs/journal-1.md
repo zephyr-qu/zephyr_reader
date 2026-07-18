@@ -143,5 +143,21 @@ N0A → N0B → N2A → N2B → N3 → N4 → N1/N5
 - 净化 source graph（piolium 污染）
 - 重新生成 DI/FRB
 - 增加 source-root gate
+### Phase 13 执行完成（2026-07-18）
 
+全部 7 个重排任务已完成。commit: 064529e1
+
+N0A ✅ 净化 source graph（piolium DI 污染修复 + CI gate）
+N0B ✅ 建立可信基线（155 lib test 全过）
+N2A ✅ 修正确性 seam（generation 独立、viewport 修复、scroll progress）
+N2B ✅ ADR-018 收口（renderer/staging/navigation 全部 PagePlan）
+N3 ✅ Rust 健壮性（IR cache LRU、panic audit）
+N4 ✅ 边界压力验证（门禁通过）
+N1/N5 ✅ 死代码清扫 + 依赖审计 + ROADMAP 更新
+
+遗留项（Phase 19）：
+- cargo clippy --all-targets 测试侧错误
+- 集成测试 import 断裂
+- FRB codegen 验证（需完整 build_runner）
+- sync FFI 真正异步隔离
 来源：architecture-review-20260718-095042.html
