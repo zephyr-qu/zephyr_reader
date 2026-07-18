@@ -3,8 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart'
     show PackedBlockSlice, PackedPage, ReaderIrBlockLayout;
 import 'package:zephyr_reader/core/reader_engine/shared/ir_types.dart'
-    show ReaderInlineRun;
-import 'package:zephyr_reader/src/rust/pipeline/types.dart' show BlockStyle;
+    show BlockStyle, ReaderInlineRun;
+
 /// 一页的完整描述。
 ///
 /// ADR-018：分页器产生不可变 PagePlan，渲染器只消费计划，不重新解释页边界。
@@ -26,14 +26,18 @@ class PagePlan {
     this.isLastPage = false,
   });
 
+  // Phase 6 compat: maps to fragments for legacy consumers.
+  List<PackedBlockSlice> get slices =>
+      fragments.map((f) => f.toPackedSlice()).toList();
+
   /// Adapter: PagePlan → PackedPage（过渡期）。
   PackedPage toPackedPage() => PackedPage(
-        pageIndex: pageIndex,
-        startOffset: startUtf16,
-        endOffset: endUtf16,
-        slices: fragments.map((f) => f.toPackedSlice()).toList(),
-        isLastPage: isLastPage,
-      );
+    pageIndex: pageIndex,
+    startOffset: startUtf16,
+    endOffset: endUtf16,
+    slices: slices,
+    isLastPage: isLastPage,
+  );
 }
 
 /// 页内一块连续渲染片段。
@@ -56,6 +60,8 @@ class PageFragment {
   final String? imageAlt;
   final int? intrinsicWidth;
   final int? intrinsicHeight;
+  final double? imageDisplayWidth;
+  final double? imageDisplayHeight;
   final ReaderIrBlockLayout? imageLayout;
 
   const PageFragment.text({
@@ -72,6 +78,8 @@ class PageFragment {
        imageAlt = null,
        intrinsicWidth = null,
        intrinsicHeight = null,
+       imageDisplayWidth = null,
+       imageDisplayHeight = null,
        imageLayout = null;
 
   const PageFragment.image({
@@ -83,6 +91,8 @@ class PageFragment {
     this.imageAlt,
     this.intrinsicWidth,
     this.intrinsicHeight,
+    this.imageDisplayWidth,
+    this.imageDisplayHeight,
   }) : isImage = true,
        text = null,
        spans = const [],

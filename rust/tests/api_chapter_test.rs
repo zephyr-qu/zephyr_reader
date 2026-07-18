@@ -4,13 +4,13 @@
 
 mod common;
 
-use rust_lib_zephyr_reader::api::chapter::{get_chapter_by_index, list_chapters_by_book, upsert_chapters,
+use rust_lib_zephyr_reader::api::chapter::{
+    get_chapter_by_index, list_chapters_by_book, upsert_chapters,
 };
-use rust_lib_zephyr_reader::infra::manager::ensure_storage;
+use rust_lib_zephyr_reader::domain::book::book_repo::BookRepository;
 use rust_lib_zephyr_reader::domain::book::{Book, BookFormat};
 use rust_lib_zephyr_reader::domain::chapter::Chapter;
-use rust_lib_zephyr_reader::domain::book::book_repo::BookRepository;
-
+use rust_lib_zephyr_reader::infra::manager::ensure_storage;
 
 // 创建测试书籍用于 FK 约束
 async fn ensure_test_book(book_id: &str) {

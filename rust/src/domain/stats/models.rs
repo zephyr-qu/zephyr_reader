@@ -3,7 +3,6 @@
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
 
-
 /// 每日阅读统计
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, sqlx::FromRow)]
 #[frb(dart_metadata = ("freezed"))]

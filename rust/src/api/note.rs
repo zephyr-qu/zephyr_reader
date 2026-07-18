@@ -3,9 +3,9 @@
 use flutter_rust_bridge::frb;
 
 use crate::common::AppError;
-use crate::domain::note::{Note, NoteType, NoteWithBook};
 use crate::domain::note::note_repo::NoteRepository;
 use crate::domain::note::service;
+use crate::domain::note::{Note, NoteType, NoteWithBook};
 use crate::infra::manager::storage_pool;
 
 // ============================================================
@@ -25,11 +25,22 @@ pub async fn create_highlight(
     language: Option<String>,
     paired_note_id: Option<String>,
 ) -> Result<Note, AppError> {
-    tracing::info!("[note] create_highlight: book_id={}, chapter_index={}", book_id, chapter_index);
+    tracing::info!(
+        "[note] create_highlight: book_id={}, chapter_index={}",
+        book_id,
+        chapter_index
+    );
     service::create_highlight(
-        &book_id, chapter_index as i64, char_offset as i64, length as i64,
-        &selected_text, color as i64, language, paired_note_id,
-    ).await
+        &book_id,
+        chapter_index as i64,
+        char_offset as i64,
+        length as i64,
+        &selected_text,
+        color as i64,
+        language,
+        paired_note_id,
+    )
+    .await
 }
 
 /// 创建批注笔记
@@ -43,11 +54,21 @@ pub async fn create_annotation(
     language: Option<String>,
     paired_note_id: Option<String>,
 ) -> Result<Note, AppError> {
-    tracing::info!("[note] create_annotation: book_id={}, chapter_index={}", book_id, chapter_index);
+    tracing::info!(
+        "[note] create_annotation: book_id={}, chapter_index={}",
+        book_id,
+        chapter_index
+    );
     service::create_annotation(
-        &book_id, chapter_index as i64, char_offset as i64,
-        &content, selected_text, language, paired_note_id,
-    ).await
+        &book_id,
+        chapter_index as i64,
+        char_offset as i64,
+        &content,
+        selected_text,
+        language,
+        paired_note_id,
+    )
+    .await
 }
 
 /// 新增或更新笔记
@@ -79,9 +100,6 @@ pub async fn list_notes_by_book(
     }
 }
 
-
-
-
 /// 分页查询笔记列表（带书名）
 #[frb]
 pub async fn list_notes_with_titles(
@@ -106,7 +124,11 @@ pub async fn list_notes_in_chapter(
     chapter_index: i32,
     note_type: Option<NoteType>,
 ) -> Result<Vec<Note>, AppError> {
-    tracing::debug!("[note] list_notes_in_chapter: book_id={}, chapter_index={}", book_id, chapter_index);
+    tracing::debug!(
+        "[note] list_notes_in_chapter: book_id={}, chapter_index={}",
+        book_id,
+        chapter_index
+    );
     service::list_notes_in_chapter(&book_id, chapter_index as i64, note_type).await
 }
 
@@ -117,8 +139,6 @@ pub async fn delete_note(note_id: String) -> Result<(), AppError> {
     let pool = storage_pool()?;
     NoteRepository::delete_by_id(&pool, &note_id).await
 }
-
-
 
 /// 渲染笔记列表为指定格式的字符串
 #[frb(sync)]

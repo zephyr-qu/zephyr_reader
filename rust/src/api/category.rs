@@ -7,8 +7,6 @@ use crate::domain::category::Category;
 use crate::domain::category::category_repo::CategoryRepository;
 use crate::infra::manager::storage_pool;
 
-
-
 /// 获取所有分类列表
 #[frb]
 pub async fn list_categories() -> Result<Vec<Category>, AppError> {
@@ -16,7 +14,6 @@ pub async fn list_categories() -> Result<Vec<Category>, AppError> {
     let pool = storage_pool()?;
     CategoryRepository::list(&pool).await
 }
-
 
 /// 新增或更新分类
 #[frb]
@@ -39,7 +36,6 @@ pub async fn delete_category(category_id: String) -> Result<(), AppError> {
     CategoryRepository::delete_by_id(&pool, &category_id).await
 }
 
-
 /// 批量重排分类顺序（原子操作）
 #[frb]
 pub async fn reorder_categories(categories: Vec<Category>) -> Result<(), AppError> {
@@ -55,19 +51,17 @@ pub async fn list_categories_by_book(book_id: String) -> Result<Vec<Category>, A
     CategoryRepository::list_by_book(&pool, &book_id).await
 }
 
-
-
 /// 设置书籍的分类列表
 #[frb]
 pub async fn set_categories_for_book(
     book_id: String,
     category_ids: Vec<String>,
 ) -> Result<(), AppError> {
-    tracing::info!("[category] set_categories_for_book: book_id={}, count={}", book_id, category_ids.len());
+    tracing::info!(
+        "[category] set_categories_for_book: book_id={}, count={}",
+        book_id,
+        category_ids.len()
+    );
     let pool = storage_pool()?;
     CategoryRepository::set_by_book(&pool, &book_id, &category_ids).await
 }
-
-
-
-

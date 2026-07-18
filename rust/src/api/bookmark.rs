@@ -3,8 +3,8 @@
 use flutter_rust_bridge::frb;
 
 use crate::common::AppError;
-use crate::domain::bookmark::models::Bookmark;
 use crate::domain::bookmark::bookmark_repo::BookmarkRepository;
+use crate::domain::bookmark::models::Bookmark;
 use crate::infra::manager::storage_pool;
 /// 获取书籍的所有书签列表
 #[frb]
@@ -22,8 +22,18 @@ pub async fn create_bookmark(
     char_offset: i32,
     title: String,
 ) -> Result<Bookmark, AppError> {
-    tracing::info!("[bookmark] create_bookmark: book_id={}, title={}", book_id, title);
-    let bookmark = Bookmark::new(&book_id, chapter_index as i64, None, char_offset as i64, &title);
+    tracing::info!(
+        "[bookmark] create_bookmark: book_id={}, title={}",
+        book_id,
+        title
+    );
+    let bookmark = Bookmark::new(
+        &book_id,
+        chapter_index as i64,
+        None,
+        char_offset as i64,
+        &title,
+    );
     let pool = storage_pool()?;
     BookmarkRepository::save(&pool, &bookmark).await
 }
@@ -83,4 +93,3 @@ pub async fn count_bookmarks_by_book(book_id: String) -> Result<i32, AppError> {
     let pool = storage_pool()?;
     BookmarkRepository::count_by_book(&pool, &book_id).await
 }
-

@@ -7,7 +7,6 @@ mod common;
 use rust_lib_zephyr_reader::api::progress;
 use rust_lib_zephyr_reader::domain::progress::models::ReadingProgress;
 
-
 fn make_progress(book_id: &str, chapter_index: i64) -> ReadingProgress {
     ReadingProgress {
         book_id: book_id.to_string(),

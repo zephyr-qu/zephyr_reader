@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/reader_engine/layout/block_layout.dart';
 import 'package:zephyr_reader/core/reader_engine/layout/layout_spec.dart';
 import 'package:zephyr_reader/core/reader_engine/layout/span_factory.dart';
-import 'package:zephyr_reader/src/rust/pipeline/types.dart';
+import 'package:zephyr_reader/core/reader_engine/shared/ir_types.dart';
 
 /// 使用真实 TextPainter 生成不可变 BlockLayout。
 ///
@@ -22,6 +22,7 @@ class ParagraphLayouter {
     required BlockStyle style,
     required double maxWidth,
     double firstLineIndentPx = 0,
+    int plainStart = 0,
   }) {
     if (text.isEmpty) {
       return BlockLayout(
@@ -98,8 +99,8 @@ class ParagraphLayouter {
 
     return BlockLayout(
       blockIndex: blockIndex,
-      startUtf16: 0,
-      endUtf16: text.length,
+      startUtf16: plainStart,
+      endUtf16: plainStart + text.length,
       margins: spanFactory.blockPadding(style),
       style: style,
       lines: lines,

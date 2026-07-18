@@ -1,3 +1,0 @@
-106:      if (request.method == 'GET' && path == '/') {
-108:      } else if (request.method == 'POST' && path == '/upload') {
-110:      } else if (request.method == 'GET' && path == '/api/status') {

@@ -4,8 +4,8 @@
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
-use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
+use zip::write::SimpleFileOptions;
 
 use rust_lib_zephyr_reader::infra::init::init_storage;
 
@@ -128,4 +128,3 @@ pub async fn setup_parsed_image_epub() -> Option<(TempDir, String)> {
 // ---------------------------------------------------------------------------
 // Shared assertions  (P0 regression checks)
 // ---------------------------------------------------------------------------
-

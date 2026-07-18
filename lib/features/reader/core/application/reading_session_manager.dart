@@ -111,9 +111,12 @@ class ReadingSessionManager {
     _lastSaveTime = now;
     try {
       final cm = _chapterManager;
-      final totalPages = cm.totalPages.value;
-      final pct = totalPages > 0
-          ? ((cm.pageIndex.value + 1) / totalPages).clamp(0.0, 1.0)
+      // ponytail: always use charOffset/chapterContentLength instead of pageIndex/totalPages
+      // so scroll mode (which sets totalPages=1) doesn't report 100% progress
+      final contentLength = cm.chapterContent.value.value?.length ?? 0;
+      final pct = contentLength > 0
+          ? (cm.currentCharOffset.value.clamp(0, contentLength) / contentLength)
+              .clamp(0.0, 1.0)
           : 0.0;
       await progress_api.upsertProgress(
         progress: ReadingProgress(

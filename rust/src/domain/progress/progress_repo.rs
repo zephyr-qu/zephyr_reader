@@ -37,16 +37,23 @@ impl ProgressRepository {
         Ok(())
     }
 
-    pub async fn find_by_book(pool: &SqlitePool, book_id: &str) -> Result<Option<ReadingProgress>, AppError> {
+    pub async fn find_by_book(
+        pool: &SqlitePool,
+        book_id: &str,
+    ) -> Result<Option<ReadingProgress>, AppError> {
         Ok(
-            sqlx::query_as::<_, ReadingProgress>("SELECT * FROM reading_progress WHERE book_id = ?")
-                .bind(book_id)
-                .fetch_optional(pool)
-                .await?,
+            sqlx::query_as::<_, ReadingProgress>(
+                "SELECT * FROM reading_progress WHERE book_id = ?",
+            )
+            .bind(book_id)
+            .fetch_optional(pool)
+            .await?,
         )
     }
 
-    pub async fn list_all_with_progress(pool: &SqlitePool) -> Result<Vec<BookWithProgress>, AppError> {
+    pub async fn list_all_with_progress(
+        pool: &SqlitePool,
+    ) -> Result<Vec<BookWithProgress>, AppError> {
         use crate::domain::progress::models::BookWithProgressRow;
         let rows = sqlx::query_as::<_, BookWithProgressRow>(
             "SELECT b.*, rp.chapter_index AS progress_chapter_index, \

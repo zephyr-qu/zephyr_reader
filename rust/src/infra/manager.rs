@@ -68,18 +68,25 @@ impl StorageManager {
     /// `data_dir` - 数据库文件和 KV 缓存的存放目录
     pub async fn new(data_dir: impl AsRef<Path>) -> Result<Self, AppError> {
         let data_dir = data_dir.as_ref().to_path_buf();
-        std::fs::create_dir_all(&data_dir)
-            .map_err(|e| AppError::FileReadError { path: data_dir.display().to_string(), details: format!("create dir: {e}") })?;
+        std::fs::create_dir_all(&data_dir).map_err(|e| AppError::FileReadError {
+            path: data_dir.display().to_string(),
+            details: format!("create dir: {e}"),
+        })?;
 
         let db_path = data_dir.join("reader.db");
         let pool = Self::create_pool(&db_path).await?;
 
-        sqlx::migrate!("./migrations").run(&pool).await
-            .map_err(|e| AppError::DatabaseError { reason: format!("DB migration failed: {e}") })?;
+        sqlx::migrate!("./migrations")
+            .run(&pool)
+            .await
+            .map_err(|e| AppError::DatabaseError {
+                reason: format!("DB migration failed: {e}"),
+            })?;
 
         let kv_path = data_dir.join("cache");
-        let kv = KvStore::new(&kv_path)
-            .map_err(|e| AppError::DatabaseError { reason: format!("KV init failed: {e}") })?;
+        let kv = KvStore::new(&kv_path).map_err(|e| AppError::DatabaseError {
+            reason: format!("KV init failed: {e}"),
+        })?;
 
         Ok(Self {
             pool: Mutex::new(Some(pool)),
@@ -107,7 +114,9 @@ impl StorageManager {
                     .pragma("cache_size", "-2000"),
             )
             .await
-            .map_err(|e| AppError::DatabaseError { reason: format!("SQLite pool init failed: {e}") })
+            .map_err(|e| AppError::DatabaseError {
+                reason: format!("SQLite pool init failed: {e}"),
+            })
     }
 
     /// 获取 SQLite 连接池
@@ -131,10 +140,7 @@ impl StorageManager {
     /// 关闭当前连接池
     pub async fn close(&self) -> Result<(), AppError> {
         self.kv.flush()?;
-        let pool = self
-            .pool
-            .lock()
-            .take();
+        let pool = self.pool.lock().take();
         if let Some(pool) = pool {
             pool.close().await;
         }
@@ -148,10 +154,7 @@ impl StorageManager {
         self.kv.flush()?;
 
         // 关闭旧连接池（先提取再 await，避免 MutexGuard 跨 await）
-        let old_pool = self
-            .pool
-            .lock()
-            .take();
+        let old_pool = self.pool.lock().take();
         if let Some(old) = old_pool {
             old.close().await;
         }
@@ -159,25 +162,31 @@ impl StorageManager {
         // WAL checkpoint 后复制备份文件
         let db_path = self.data_dir.join("reader.db");
         let temp_path = self.data_dir.join("reader_restore.db");
-        std::fs::copy(backup_path, &temp_path)
-            .map_err(|e| AppError::FileReadError { path: temp_path.display().to_string(), details: format!("copy backup: {e}") })?;
+        std::fs::copy(backup_path, &temp_path).map_err(|e| AppError::FileReadError {
+            path: temp_path.display().to_string(),
+            details: format!("copy backup: {e}"),
+        })?;
 
         // 在新文件上运行迁移以兼容旧备份
         let new_pool = Self::create_pool(&temp_path).await?;
-        sqlx::migrate!("./migrations").run(&new_pool).await
-            .map_err(|e| AppError::DatabaseError { reason: format!("restore migration failed: {e}") })?;
+        sqlx::migrate!("./migrations")
+            .run(&new_pool)
+            .await
+            .map_err(|e| AppError::DatabaseError {
+                reason: format!("restore migration failed: {e}"),
+            })?;
         new_pool.close().await;
 
         // 替换数据库文件
-        std::fs::rename(&temp_path, &db_path)
-            .map_err(|e| AppError::FileReadError { path: db_path.display().to_string(), details: format!("replace db: {e}") })?;
+        std::fs::rename(&temp_path, &db_path).map_err(|e| AppError::FileReadError {
+            path: db_path.display().to_string(),
+            details: format!("replace db: {e}"),
+        })?;
 
         // 打开新连接池
         let restored_pool = Self::create_pool(&db_path).await?;
 
-        *self
-            .pool
-            .lock() = Some(restored_pool);
+        *self.pool.lock() = Some(restored_pool);
 
         tracing::info!("Database restored from {:?}", backup_path);
         Ok(())
@@ -188,18 +197,13 @@ impl StorageManager {
     /// 调用者需自行保证 db_path 已被替换为目标文件（含 migration 跑过）。
     pub async fn hot_swap_db(&self) -> Result<(), AppError> {
         self.kv.flush()?;
-        let old_pool = self
-            .pool
-            .lock()
-            .take();
+        let old_pool = self.pool.lock().take();
         if let Some(old) = old_pool {
             old.close().await;
         }
         let db_path = self.data_dir.join("reader.db");
         let new_pool = Self::create_pool(&db_path).await?;
-        *self
-            .pool
-            .lock() = Some(new_pool);
+        *self.pool.lock() = Some(new_pool);
         tracing::info!("Storage pool hot-swapped");
         Ok(())
     }
@@ -217,11 +221,15 @@ impl StorageManager {
         sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
             .execute(&pool)
             .await
-            .map_err(|e| AppError::DatabaseError { reason: format!("WAL checkpoint failed: {e}") })?;
+            .map_err(|e| AppError::DatabaseError {
+                reason: format!("WAL checkpoint failed: {e}"),
+            })?;
 
         let db_path = self.data_dir.join("reader.db");
-        std::fs::copy(&db_path, dest_path)
-            .map_err(|e| AppError::FileReadError { path: db_path.display().to_string(), details: format!("copy db: {e}") })?;
+        std::fs::copy(&db_path, dest_path).map_err(|e| AppError::FileReadError {
+            path: db_path.display().to_string(),
+            details: format!("copy db: {e}"),
+        })?;
 
         tracing::info!("Database exported to {:?}", dest_path);
         Ok(())

@@ -14,12 +14,12 @@ use std::path::Path;
 
 use uuid::Uuid;
 
-use super::toc::extract_chapters_from_epub;
 use super::archive_reader::EpubFile;
-use crate::domain::chapter::Chapter;
+use super::toc::extract_chapters_from_epub;
 use crate::domain::AppError;
-use crate::parser::types::ParseResult;
 use crate::domain::book::{Book, BookFormat};
+use crate::domain::chapter::Chapter;
+use crate::parser::types::ParseResult;
 /// EPUB 分页：每页最小行数
 /// 防止每页行数过少导致显示异常
 /// EPUB 分页：每页最小字符数
@@ -81,7 +81,9 @@ pub fn parse_epub(file_path: String) -> Result<ParseResult, AppError> {
         publisher,
         translator,
         isbn,
-        file_size: std::fs::metadata(&file_path).map(|m| m.len() as i64).unwrap_or(0),
+        file_size: std::fs::metadata(&file_path)
+            .map(|m| m.len() as i64)
+            .unwrap_or(0),
         format: BookFormat::Epub,
         added_at: chrono::Utc::now(),
         ..Default::default()
@@ -126,13 +128,16 @@ fn estimate_total_chars(epub_file: &mut EpubFile, chapters: &[Chapter]) -> i64 {
         let content: String = {
             let spine = epub_file.spine();
             let start = chapters[idx].start_index as usize;
-            let end = (chapters[idx].end_index as usize).min(spine.len()).max(start + 1);
+            let end = (chapters[idx].end_index as usize)
+                .min(spine.len())
+                .max(start + 1);
             let mut parts = Vec::new();
             for i in start..end {
                 if let Some(href) = spine.get(i)
-                    && let Ok(text) = epub_file.read_resource(href) {
-                        parts.push(text);
-                    }
+                    && let Ok(text) = epub_file.read_resource(href)
+                {
+                    parts.push(text);
+                }
             }
             parts.join("\n")
         };
@@ -150,9 +155,6 @@ fn estimate_total_chars(epub_file: &mut EpubFile, chapters: &[Chapter]) -> i64 {
         0
     }
 }
-
-
-
 
 #[cfg(test)]
 mod tests {

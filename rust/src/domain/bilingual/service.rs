@@ -4,7 +4,9 @@
 //! 数据访问委托给 NoteRepository。
 
 use crate::common::AppError;
-use crate::domain::bilingual::{BilingualAlignment, BilingualHighlightPair, BilingualHighlightParams};
+use crate::domain::bilingual::{
+    BilingualAlignment, BilingualHighlightPair, BilingualHighlightParams,
+};
 use crate::domain::note::Note;
 use crate::domain::note::note_repo::NoteRepository;
 use crate::infra::manager::storage_pool;
@@ -96,19 +98,20 @@ pub async fn get_bilingual_highlight_pairs(
     let mut i = 0;
     while i < notes.len() {
         if let Some(paired_id) = &notes[i].paired_note_id
-            && let Some(partner) = notes.iter().find(|n| &n.id == paired_id) {
-                pairs.push(BilingualHighlightPair {
-                    chinese_note_id: notes[i].id.clone(),
-                    english_note_id: partner.id.clone(),
-                    chinese_text: notes[i].selected_text.clone().unwrap_or_default(),
-                    english_text: partner.selected_text.clone().unwrap_or_default(),
-                });
+            && let Some(partner) = notes.iter().find(|n| &n.id == paired_id)
+        {
+            pairs.push(BilingualHighlightPair {
+                chinese_note_id: notes[i].id.clone(),
+                english_note_id: partner.id.clone(),
+                chinese_text: notes[i].selected_text.clone().unwrap_or_default(),
+                english_text: partner.selected_text.clone().unwrap_or_default(),
+            });
+            i += 1;
+            if i < notes.len() && notes[i].id == partner.id {
                 i += 1;
-                if i < notes.len() && notes[i].id == partner.id {
-                    i += 1;
-                }
-                continue;
             }
+            continue;
+        }
         i += 1;
     }
     Ok(pairs)

@@ -18,7 +18,11 @@ pub async fn list_chapters_by_book(book_id: String) -> Result<Vec<Chapter>, AppE
 /// 新增或更新章节列表
 #[frb]
 pub async fn upsert_chapters(book_id: String, chapters: Vec<Chapter>) -> Result<(), AppError> {
-    tracing::info!("[chapter] upsert_chapters: book_id={}, count={}", book_id, chapters.len());
+    tracing::info!(
+        "[chapter] upsert_chapters: book_id={}, count={}",
+        book_id,
+        chapters.len()
+    );
     let pool = storage_pool()?;
     ChapterRepository::save(&pool, &book_id, &chapters).await
 }
@@ -36,7 +40,11 @@ pub async fn get_chapter_by_index(
     book_id: String,
     chapter_index: i32,
 ) -> Result<Option<Chapter>, AppError> {
-    tracing::debug!("[chapter] get_chapter_by_index: book_id={}, chapter_index={}", book_id, chapter_index);
+    tracing::debug!(
+        "[chapter] get_chapter_by_index: book_id={}, chapter_index={}",
+        book_id,
+        chapter_index
+    );
     let pool = storage_pool()?;
     ChapterRepository::find_by_index(&pool, &book_id, chapter_index).await
 }

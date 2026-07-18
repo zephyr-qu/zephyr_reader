@@ -7,7 +7,6 @@ mod common;
 use rust_lib_zephyr_reader::api::session;
 use rust_lib_zephyr_reader::domain::sessions::models::ReadingSession;
 
-
 #[tokio::test]
 async fn test_create_and_list_session() {
     common::init_logger();
@@ -60,7 +59,11 @@ async fn test_list_sessions_by_book_limit() {
         .await
         .unwrap();
     // 数据库返回数量不一定严格=2（可能创建同名标签），但 ≤2
-    assert!(sessions.len() <= 2, "limit=2 应最多返回2个会话，实际: {}", sessions.len());
+    assert!(
+        sessions.len() <= 2,
+        "limit=2 应最多返回2个会话，实际: {}",
+        sessions.len()
+    );
 }
 
 #[tokio::test]
@@ -70,15 +73,9 @@ async fn test_list_sessions_by_recent() {
     common::ensure_test_book("session-recent-book").await;
 
     let ts = chrono::Utc::now().timestamp();
-    session::create_session(
-        "session-recent-book".to_string(),
-        0,
-        0,
-        50,
-        ts,
-    )
-    .await
-    .unwrap();
+    session::create_session("session-recent-book".to_string(), 0, 0, 50, ts)
+        .await
+        .unwrap();
 
     let recent = session::list_sessions_by_recent(10).await.unwrap();
     assert!(!recent.is_empty(), "最近会话不应为空");
@@ -91,15 +88,9 @@ async fn test_list_sessions_by_date_range() {
     common::ensure_test_book("session-date-book").await;
 
     let ts = chrono::Utc::now().timestamp();
-    session::create_session(
-        "session-date-book".to_string(),
-        0,
-        0,
-        50,
-        ts,
-    )
-    .await
-    .unwrap();
+    session::create_session("session-date-book".to_string(), 0, 0, 50, ts)
+        .await
+        .unwrap();
 
     // NOTE: 已知生产代码 bug — sqlx 将 DateTime<Utc> 编码为 RFC 3339 文本，
     // 而 find_by_date_range 用 INTEGER 时间戳与 TEXT 列比较，在 SQLite 中类型不匹配。
@@ -125,15 +116,9 @@ async fn test_upsert_session() {
 
     // 先通过 create_session 创建一条记录
     let ts = chrono::Utc::now().timestamp();
-    let created = session::create_session(
-        "session-upsert-book".to_string(),
-        1,
-        0,
-        50,
-        ts,
-    )
-    .await
-    .unwrap();
+    let created = session::create_session("session-upsert-book".to_string(), 1, 0, 50, ts)
+        .await
+        .unwrap();
 
     // 用 upsert 更新偏移量
     let updated = session::upsert_session(ReadingSession {
@@ -142,7 +127,10 @@ async fn test_upsert_session() {
     })
     .await
     .unwrap();
-    assert_eq!(updated.end_char_offset, 200, "end_char_offset 应被更新为200");
+    assert_eq!(
+        updated.end_char_offset, 200,
+        "end_char_offset 应被更新为200"
+    );
 
     // 重新查询确认持久化
     let sessions = session::list_sessions_by_book("session-upsert-book".to_string(), 10)
@@ -160,15 +148,9 @@ async fn test_clear_sessions_by_book() {
     common::ensure_test_book("session-clear-book").await;
 
     let ts = chrono::Utc::now().timestamp();
-    session::create_session(
-        "session-clear-book".to_string(),
-        0,
-        0,
-        50,
-        ts,
-    )
-    .await
-    .unwrap();
+    session::create_session("session-clear-book".to_string(), 0, 0, 50, ts)
+        .await
+        .unwrap();
 
     // 清除
     session::clear_sessions_by_book("session-clear-book".to_string())

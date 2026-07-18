@@ -43,12 +43,12 @@ pub async fn init_storage(data_dir: String) -> Result<(), AppError> {
     }
 
     if !dir.exists() {
-        tokio::fs::create_dir_all(&dir).await.map_err(|e| {
-            AppError::FileWriteError {
+        tokio::fs::create_dir_all(&dir)
+            .await
+            .map_err(|e| AppError::FileWriteError {
                 path: data_dir.into(),
                 details: format!("Failed to create data directory: {}", e).into(),
-            }
-        })?;
+            })?;
         tracing::info!("data_dir did not exist, created: {:?}", dir);
     } else {
         let db_path = dir.join("reader.db");

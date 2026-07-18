@@ -4,9 +4,9 @@
 //! 检测优先级：用户自定义规则（DB）→ 内置通用规则 → 整文件单章。
 
 pub mod constants;
+pub mod detector;
 pub mod models;
 pub mod repo;
-pub mod detector;
 
-pub use models::*;
 pub use detector::*;
+pub use models::*;

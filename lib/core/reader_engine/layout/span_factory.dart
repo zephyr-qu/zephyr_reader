@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/reader_engine/layout/layout_spec.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/rich_text_converter.dart';
-import 'package:zephyr_reader/src/rust/pipeline/types.dart';
+import 'package:zephyr_reader/core/reader_engine/shared/ir_types.dart';
 
 /// IR → Flutter TextSpan 的统一工厂。
 ///

@@ -5,13 +5,15 @@ use flutter_rust_bridge::frb;
 use crate::common::AppError;
 use crate::domain::book::book_repo::BookRepository;
 use crate::infra::manager::storage_pool;
-use crate::pipeline::{chapter_ir, ReaderChapterIr};
+use crate::pipeline::{ReaderChapterIr, chapter_ir};
 
 async fn get_book_file_path(book_id: &str) -> Result<String, AppError> {
     let pool = storage_pool()?;
     let book = BookRepository::find_by_id(&pool, book_id)
         .await?
-        .ok_or_else(|| AppError::NotFound { entity: format!("book {book_id}") })?;
+        .ok_or_else(|| AppError::NotFound {
+            entity: format!("book {book_id}"),
+        })?;
     Ok(book.file_path)
 }
 

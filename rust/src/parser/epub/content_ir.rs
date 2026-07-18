@@ -178,11 +178,15 @@ pub fn chapter_ir_from_rich_paragraphs(paragraphs: &[RichParagraph]) -> ReaderCh
 
     for p in paragraphs {
         if p.is_image {
-            let src = p
+            let Some(src) = p
                 .image_src
                 .as_deref()
                 .map(normalize_asset_id)
-                .unwrap_or_default();
+                .filter(|src| !src.is_empty())
+            else {
+                tracing::warn!(target: "epub.malformed", "image without src skipped");
+                continue;
+            };
             let alt = p
                 .image_alt
                 .as_ref()

@@ -6,21 +6,15 @@ mod common;
 
 use rust_lib_zephyr_reader::api::category;
 
-
 // ==================== 分类 CRUD ====================
 
 #[tokio::test]
 async fn test_create_and_list_categories() {
     common::init_test_storage().await;
 
-    let cat = category::create_category(
-        "TestCat".to_string(),
-        "#FF0000".to_string(),
-        0,
-        None,
-    )
-    .await
-    .expect("failed to create category");
+    let cat = category::create_category("TestCat".to_string(), "#FF0000".to_string(), 0, None)
+        .await
+        .expect("failed to create category");
 
     let categories = category::list_categories()
         .await
@@ -35,14 +29,9 @@ async fn test_create_and_list_categories() {
 async fn test_get_category() {
     common::init_test_storage().await;
 
-    let cat = category::create_category(
-        "GetTest".to_string(),
-        "#00FF00".to_string(),
-        0,
-        None,
-    )
-    .await
-    .expect("failed to create category");
+    let cat = category::create_category("GetTest".to_string(), "#00FF00".to_string(), 0, None)
+        .await
+        .expect("failed to create category");
 
     let found = category::get_category(cat.id.clone())
         .await
@@ -53,7 +42,10 @@ async fn test_get_category() {
     let not_found = category::get_category("nonexistent-id".to_string())
         .await
         .expect("failed to get category");
-    assert!(not_found.is_none(), "nonexistent category should return None");
+    assert!(
+        not_found.is_none(),
+        "nonexistent category should return None"
+    );
 }
 
 #[tokio::test]
@@ -88,14 +80,9 @@ async fn test_upsert_category() {
 async fn test_delete_category() {
     common::init_test_storage().await;
 
-    let cat = category::create_category(
-        "DeleteMe".to_string(),
-        "#FF0000".to_string(),
-        0,
-        None,
-    )
-    .await
-    .expect("failed to create category");
+    let cat = category::create_category("DeleteMe".to_string(), "#FF0000".to_string(), 0, None)
+        .await
+        .expect("failed to create category");
 
     category::delete_category(cat.id.clone())
         .await
@@ -126,14 +113,9 @@ async fn test_assign_and_list_by_book() {
     let book_id = "assign-list-book";
     common::ensure_test_book(book_id).await;
 
-    let cat = category::create_category(
-        "AssignTest".to_string(),
-        "#FF0000".to_string(),
-        0,
-        None,
-    )
-    .await
-    .expect("failed to create category");
+    let cat = category::create_category("AssignTest".to_string(), "#FF0000".to_string(), 0, None)
+        .await
+        .expect("failed to create category");
 
     category::assign_category_to_book(book_id.to_string(), cat.id.clone())
         .await
@@ -155,14 +137,9 @@ async fn test_clear_category_from_book() {
     let book_id = "clear-cat-book";
     common::ensure_test_book(book_id).await;
 
-    let cat = category::create_category(
-        "ClearTest".to_string(),
-        "#00FF00".to_string(),
-        0,
-        None,
-    )
-    .await
-    .expect("failed to create category");
+    let cat = category::create_category("ClearTest".to_string(), "#00FF00".to_string(), 0, None)
+        .await
+        .expect("failed to create category");
 
     category::assign_category_to_book(book_id.to_string(), cat.id.clone())
         .await
@@ -188,23 +165,13 @@ async fn test_set_categories_for_book() {
     let book_id = "set-cats-book";
     common::ensure_test_book(book_id).await;
 
-    let cat1 = category::create_category(
-        "SetTest1".to_string(),
-        "#FF0000".to_string(),
-        0,
-        None,
-    )
-    .await
-    .expect("failed to create category 1");
+    let cat1 = category::create_category("SetTest1".to_string(), "#FF0000".to_string(), 0, None)
+        .await
+        .expect("failed to create category 1");
 
-    let cat2 = category::create_category(
-        "SetTest2".to_string(),
-        "#00FF00".to_string(),
-        1,
-        None,
-    )
-    .await
-    .expect("failed to create category 2");
+    let cat2 = category::create_category("SetTest2".to_string(), "#00FF00".to_string(), 1, None)
+        .await
+        .expect("failed to create category 2");
 
     category::set_categories_for_book(book_id.to_string(), vec![cat1.id.clone(), cat2.id.clone()])
         .await
@@ -213,11 +180,7 @@ async fn test_set_categories_for_book() {
     let book_cats = category::list_categories_by_book(book_id.to_string())
         .await
         .expect("failed to list categories by book");
-    assert_eq!(
-        book_cats.len(),
-        2,
-        "book should have exactly 2 categories"
-    );
+    assert_eq!(book_cats.len(), 2, "book should have exactly 2 categories");
 }
 
 #[tokio::test]
@@ -227,14 +190,9 @@ async fn test_clear_categories_by_book() {
     let book_id = "clear-cats-book";
     common::ensure_test_book(book_id).await;
 
-    let cat = category::create_category(
-        "ClearAllTest".to_string(),
-        "#0000FF".to_string(),
-        0,
-        None,
-    )
-    .await
-    .expect("failed to create category");
+    let cat = category::create_category("ClearAllTest".to_string(), "#0000FF".to_string(), 0, None)
+        .await
+        .expect("failed to create category");
 
     category::assign_category_to_book(book_id.to_string(), cat.id.clone())
         .await
@@ -260,14 +218,10 @@ async fn test_list_books_by_category() {
     let book_id = "list-books-by-cat";
     common::ensure_test_book(book_id).await;
 
-    let cat = category::create_category(
-        "ListBooksByCat".to_string(),
-        "#FF0000".to_string(),
-        0,
-        None,
-    )
-    .await
-    .expect("failed to create category");
+    let cat =
+        category::create_category("ListBooksByCat".to_string(), "#FF0000".to_string(), 0, None)
+            .await
+            .expect("failed to create category");
 
     category::assign_category_to_book(book_id.to_string(), cat.id.clone())
         .await

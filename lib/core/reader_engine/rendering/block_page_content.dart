@@ -10,13 +10,14 @@ import 'package:zephyr_reader/core/reader_engine/layout/layout_spec.dart';
 import 'package:zephyr_reader/core/reader_engine/layout/span_factory.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/page_plan.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/image_cache.dart';
-import 'package:zephyr_reader/core/reader_engine/rendering/line_break_extractor.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/flutter_block_paginator.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/pagination_viewport_metrics.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/ir_text_block_style.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart';
-import 'package:zephyr_reader/src/rust/pipeline/types.dart' show BlockStyle;
+import 'package:zephyr_reader/core/reader_engine/shared/ir_types.dart'
+    show BlockStyle;
+
 /// 块分页页 Widget（Text + Image 块列表）。
 Widget buildBlockPageContent({
   required BuildContext context,
@@ -191,12 +192,12 @@ Widget buildPagePlanContent({
   required BuildContext context,
   required PagePlan page,
   required LayoutSpec spec,
+  required ReaderRenderConfig config,
   required String epubFilePath,
   required List<Note> highlights,
   required void Function(Note)? onHighlightTap,
   required void Function(String text, int start, int end)? onSelectionChanged,
   required void Function(Offset?)? onSelectionGlobalPosition,
-  required double maxContentWidth,
 }) {
   final vPad = ReaderRenderConfig.pageContentVerticalPadding;
   final spanFactory = SpanFactory(spec);
@@ -209,46 +210,59 @@ Widget buildPagePlanContent({
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final bodyHeight = constraints.maxHeight.clamp(0.0, constraints.maxHeight);
+          final bodyHeight = constraints.maxHeight.clamp(
+            0.0,
+            constraints.maxHeight,
+          );
+          PaginationViewportMetrics.note(
+            width: constraints.maxWidth,
+            height: bodyHeight,
+          );
           final children = <Widget>[];
 
-          for (final fragment in page.fragments) {
+          for (
+            var fragmentIndex = 0;
+            fragmentIndex < page.fragments.length;
+            fragmentIndex++
+          ) {
+            final fragment = page.fragments[fragmentIndex];
+            final hasFollowing = fragmentIndex < page.fragments.length - 1;
             if (!fragment.isImage) {
               final text = fragment.text ?? '';
               if (text.isEmpty) continue;
 
-              final irStyle = fragment.style ?? const BlockStyle(
-                isHeading: false, headingLevel: 0,
-              );
+              final irStyle =
+                  fragment.style ??
+                  const BlockStyle(isHeading: false, headingLevel: 0);
               final blockStrutStyle = spanFactory.blockStrutStyle(irStyle);
-              // Phase 4 bridge: convert LayoutSpec → ReaderRenderConfig for highlight pipeline.
-              // Phase 6 will eliminate this conversion when highlights move to SpanFactory.
-              final renderConfig = lineBreakMeasureRenderConfig(
-                fontSize: spec.fontSize,
-                lineHeight: spec.lineHeight,
-                fontFamily: spec.fontFamily,
-                letterSpacing: spec.letterSpacing,
-                paragraphSpacing: spec.paragraphSpacing,
-                pageMargin: spec.contentPadding,
-                firstLineIndent: spec.firstLineIndent,
-                baselineAlign: spec.baselineAlign,
-                textScaler: spec.textScaler,
+              final resolvedPadding = spanFactory.blockPadding(irStyle);
+              final blockPadding = EdgeInsets.only(
+                top: fragment.isBlockStart ? resolvedPadding.top : 0.0,
+                bottom: fragment.isBlockEnd ? resolvedPadding.bottom : 0.0,
               );
               final paintedSpan = IrReaderIrBlock.buildHighlightedSpan(
                 text: text,
                 spans: fragment.spans,
                 irStyle: irStyle,
-                config: renderConfig,
+                config: config,
                 highlights: highlights,
                 contentStart: fragment.startUtf16,
                 applyFirstLineIndent: fragment.isBlockStart,
                 onHighlightTap: onHighlightTap,
               );
 
-              children.add(
-                SelectableText.rich(
+              final textWidget = Padding(
+                padding: blockPadding,
+                child: SelectableText.rich(
                   paintedSpan,
                   strutStyle: blockStrutStyle,
+                  textScaler: spec.textScaler,
+                  textAlign: irStyle.textAlign == null
+                      ? spec.textAlign
+                      : IrReaderIrBlock.resolveTextAlign(
+                          irStyle.textAlign,
+                          spec.textAlign,
+                        ),
                   textHeightBehavior: ReaderRenderConfig.textHeightBehavior,
                   onSelectionChanged: (sel, cause) => _handleBlockTextSelection(
                     sel,
@@ -261,20 +275,50 @@ Widget buildPagePlanContent({
                   contextMenuBuilder: (_, _) => const SizedBox.shrink(),
                 ),
               );
+              final extraSpacing =
+                  hasFollowing &&
+                      fragment.isBlockEnd &&
+                      irStyle.marginBottomEm == null &&
+                      spec.paragraphSpacing > 0
+                  ? spec.paragraphSpacing
+                  : 0.0;
+              if (extraSpacing > 0) {
+                children.add(
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      textWidget,
+                      SizedBox(height: extraSpacing),
+                    ],
+                  ),
+                );
+              } else {
+                children.add(textWidget);
+              }
             } else {
-              final isFullPage = fragment.imageLayout == ReaderIrBlockLayout.fullPage;
-              final imageMaxWidth = maxContentWidth.clamp(1.0, maxContentWidth);
+              final isFullPage =
+                  fragment.imageLayout == ReaderIrBlockLayout.fullPage;
+              final imageMaxWidth = constraints.maxWidth.clamp(
+                1.0,
+                constraints.maxWidth,
+              );
+              final displayWidth = isFullPage
+                  ? imageMaxWidth
+                  : (fragment.imageDisplayWidth ?? imageMaxWidth).clamp(
+                      1.0,
+                      imageMaxWidth,
+                    );
+              final displayHeight = isFullPage
+                  ? bodyHeight
+                  : fragment.imageDisplayHeight;
               children.add(
                 EpubBlockImage(
                   filePath: epubFilePath,
                   assetId: fragment.assetId ?? '',
                   alt: fragment.imageAlt,
-                  maxWidthPx: (isFullPage
-                      ? (maxContentWidth).round()
-                      : imageMaxWidth.round()),
-                  maxHeightPx: isFullPage
-                      ? bodyHeight.round()
-                      : null,
+                  maxWidthPx: displayWidth.round(),
+                  maxHeightPx: displayHeight?.round(),
                   fullPage: isFullPage,
                 ),
               );
@@ -299,6 +343,7 @@ Widget buildPagePlanContent({
     ),
   );
 }
+
 /// 内联图显示高度（不含 padding），与装箱 [imageDisplayHeightDp] 同源。
 double _inlineImageDisplayHeightDp({
   required double contentWidthDp,

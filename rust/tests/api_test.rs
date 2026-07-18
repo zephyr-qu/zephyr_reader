@@ -22,7 +22,8 @@ fn test_get_supported_formats() {
 #[test]
 fn test_supports_format_epub() {
     // 测试 EPUB 格式支持
-    let supports_epub = rust_lib_zephyr_reader::parser::registry::format_from_extension("epub").is_ok();
+    let supports_epub =
+        rust_lib_zephyr_reader::parser::registry::format_from_extension("epub").is_ok();
     // 如果 EPUB 解析器已注册，应该返回 true
     println!("支持 EPUB: {}", supports_epub);
 }
@@ -30,7 +31,8 @@ fn test_supports_format_epub() {
 #[test]
 fn test_supports_format_txt() {
     // 测试 TXT 格式支持
-    let supports_txt = rust_lib_zephyr_reader::parser::registry::format_from_extension("txt").is_ok();
+    let supports_txt =
+        rust_lib_zephyr_reader::parser::registry::format_from_extension("txt").is_ok();
     println!("支持 TXT: {}", supports_txt);
 }
 
@@ -79,10 +81,7 @@ async fn test_import_book_txt() {
     assert!(result.is_ok(), "TXT 文件解析应该成功: {:?}", result);
 
     let parse_result = result.unwrap();
-    println!(
-        "解析成功: 书籍ID={}",
-        parse_result,
-    );
+    println!("解析成功: 书籍ID={}", parse_result,);
 }
 
 #[tokio::test]
@@ -90,7 +89,9 @@ async fn test_import_book_invalid_file() {
     common::init_logger();
 
     // 测试不存在的文件
-    let result = rust_lib_zephyr_reader::api::book::import_book("/nonexistent/path/book.txt".to_string()).await;
+    let result =
+        rust_lib_zephyr_reader::api::book::import_book("/nonexistent/path/book.txt".to_string())
+            .await;
 
     // 应该返回错误
     assert!(result.is_err(), "不存在的文件应该返回错误");
@@ -161,7 +162,6 @@ async fn test_extract_metadata() {
     }
 }
 
-
 // ==================== 双语对齐测试 ====================
 
 #[tokio::test]
@@ -173,7 +173,12 @@ async fn test_bilingual_alignment_empty() {
     let english = String::new();
     let min_similarity = 0.5;
 
-    let result = rust_lib_zephyr_reader::api::bilingual::align_bilingual_content(chinese, english, min_similarity).await;
+    let result = rust_lib_zephyr_reader::api::bilingual::align_bilingual_content(
+        chinese,
+        english,
+        min_similarity,
+    )
+    .await;
 
     // 空输入应该返回空输出
     assert!(result.is_ok(), "空内容对齐应该成功");
@@ -192,7 +197,12 @@ async fn test_bilingual_alignment_simple() {
     let english = "Hello world\nThis is a test".to_string();
     let min_similarity = 0.3;
 
-    let result = rust_lib_zephyr_reader::api::bilingual::align_bilingual_content(chinese, english, min_similarity).await;
+    let result = rust_lib_zephyr_reader::api::bilingual::align_bilingual_content(
+        chinese,
+        english,
+        min_similarity,
+    )
+    .await;
 
     // 应该成功对齐
     assert!(result.is_ok(), "简单对齐应该成功: {:?}", result);
@@ -204,7 +214,6 @@ async fn test_bilingual_alignment_simple() {
         alignment.unmatched_chinese.len(),
         alignment.unmatched_english.len()
     );
-
 }
 // ==================== 错误处理测试 ====================
 
@@ -280,7 +289,10 @@ fn test_parser_for_format_epub_only() {
     for format in &[BookFormat::Txt, BookFormat::Epub] {
         let parser = rust_lib_zephyr_reader::parser::registry::parser_for_format(*format);
         let name = parser.name();
-        assert!(!name.is_empty(), "Parser name should not be empty for {format:?}");
+        assert!(
+            !name.is_empty(),
+            "Parser name should not be empty for {format:?}"
+        );
     }
 }
 
@@ -311,6 +323,9 @@ fn test_parser_name_covers_all_formats() {
     for format in &[BookFormat::Txt, BookFormat::Epub] {
         let parser = rust_lib_zephyr_reader::parser::registry::parser_for_format(*format);
         let name = parser.name();
-        assert!(!name.is_empty(), "Parser name should not be empty for {format:?}");
+        assert!(
+            !name.is_empty(),
+            "Parser name should not be empty for {format:?}"
+        );
     }
 }

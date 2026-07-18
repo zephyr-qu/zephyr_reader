@@ -17,23 +17,23 @@
 //! EPUB 解析模块
 //! 负责 EPUB 文件的解压、结构解析、文本提取、按需内容提供
 
+pub mod archive_reader;
 pub mod asset_registry;
 pub mod content_ir;
 pub mod css;
-pub mod parse;
-pub mod rich_parser;
-pub mod rich_style;
-pub mod processed_image;
-pub mod plain_text;
-pub mod provider;
-pub mod toc;
-pub mod archive_reader;
 pub mod entry_extractor;
 pub mod image_size;
+pub mod parse;
+pub mod plain_text;
+pub mod processed_image;
+pub mod provider;
 pub mod rich_paragraph;
+pub mod rich_parser;
+pub mod rich_style;
+pub mod toc;
 
 pub use asset_registry::{
-    canonicalize_chapter_image_assets, EpubAssetEntry, EpubAssetRegistry, normalize_asset_id,
+    EpubAssetEntry, EpubAssetRegistry, canonicalize_chapter_image_assets, normalize_asset_id,
     resolve_relative_href,
 };
 pub use content_ir::{get_chapter_content_ir, html_to_chapter_ir};
@@ -66,7 +66,6 @@ pub struct EpubTocItem {
     /// 层级深度（从 0 开始）
     pub level: i32,
 }
-
 
 use std::path::Path;
 
@@ -116,7 +115,9 @@ impl EpubParser {
         let fp = file_path.to_string();
         tokio::task::spawn_blocking(move || parse_epub(fp))
             .await
-            .map_err(|e| AppError::InternalError { reason: format!("EPUB parse task failed: {}", e) })?
+            .map_err(|e| AppError::InternalError {
+                reason: format!("EPUB parse task failed: {}", e),
+            })?
     }
 
     /// 提取 EPUB 文件元数据
@@ -160,9 +161,10 @@ impl EpubParser {
             })
         })
         .await
-        .map_err(|e| AppError::InternalError { reason: format!("EPUB metadata extraction failed: {}", e) })?
+        .map_err(|e| AppError::InternalError {
+            reason: format!("EPUB metadata extraction failed: {}", e),
+        })?
     }
-
 }
 
 impl Default for EpubParser {

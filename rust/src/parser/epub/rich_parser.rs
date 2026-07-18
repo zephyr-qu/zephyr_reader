@@ -146,7 +146,10 @@ fn walk_paragraph_children(
                 "br" => {
                     spans.push(ReaderInlineRun {
                         text: "\n".to_string(),
-                        style: ReaderInlineStyle::Plain,
+                        style: ReaderInlineStyle {
+                            bold: false,
+                            italic: false,
+                        },
                         url: None,
                     });
                 }
@@ -230,12 +233,24 @@ fn walk_inline_subtree(
             "br" => {
                 spans.push(ReaderInlineRun {
                     text: "\n".to_string(),
-                    style: ReaderInlineStyle::Plain,
+                    style: ReaderInlineStyle {
+                        bold: false,
+                        italic: false,
+                    },
                     url: None,
                 });
             }
-            "b" | "strong" | "i" | "em" | "u" | "s" | "strike" | "del" | "code" | "a" | "span" => {
+            "b" | "strong" | "i" | "em" | "u" | "s" | "strike" | "del" | "code" | "a" => {
                 collect_text_spans(handle, spans, parent_style, style_map);
+            }
+            "span" => {
+                // ponytail: walk children individually so <span><img/></span> doesn't lose the image
+                for child in handle.children.borrow().iter() {
+                    if try_emit_image_paragraph(child, spans, paragraphs, inherited_class.clone(), &merged_style) {
+                        continue;
+                    }
+                    walk_inline_subtree(child, spans, paragraphs, inherited_class.clone(), &merged_style, style_map);
+                }
             }
             "p" | "div" | "section" | "article" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6"
             | "ul" | "ol" | "li" | "blockquote" | "table" | "pre" => {
@@ -415,7 +430,10 @@ fn traverse_dom(
                         0,
                         ReaderInlineRun {
                             text: "• ".to_string(),
-                            style: ReaderInlineStyle::Plain,
+                            style: ReaderInlineStyle {
+                                bold: false,
+                                italic: false,
+                            },
                             url: None,
                         },
                     );
@@ -485,32 +503,20 @@ fn collect_text_spans(
             .collect();
         let el_style = parent_style.derive(name.local.as_ref(), &classes, style_map);
         let inline_style = rich_style::extract_inline_css_style(attrs);
-        let merged_style = rich_style::apply_inline_style(&el_style, &inline_style);
+        let mut merged_style = rich_style::apply_inline_style(&el_style, &inline_style);
 
         match name.local.as_ref() {
             "b" | "strong" => {
-                let mut inner_text = String::new();
-                collect_plain_text(handle, &mut inner_text);
-
-                if !inner_text.trim().is_empty() {
-                    spans.push(ReaderInlineRun {
-                        text: inner_text.trim().to_string(),
-                        style: ReaderInlineStyle::Bold,
-                        url: None,
-                    });
+                merged_style.font_weight = Some(700);
+                for child in node.children.borrow().iter() {
+                    collect_text_spans(child, spans, &merged_style, style_map);
                 }
             }
 
             "i" | "em" => {
-                let mut inner_text = String::new();
-                collect_plain_text(handle, &mut inner_text);
-
-                if !inner_text.trim().is_empty() {
-                    spans.push(ReaderInlineRun {
-                        text: inner_text.trim().to_string(),
-                        style: ReaderInlineStyle::Italic,
-                        url: None,
-                    });
+                merged_style.font_style = Some("italic".to_string());
+                for child in node.children.borrow().iter() {
+                    collect_text_spans(child, spans, &merged_style, style_map);
                 }
             }
 
@@ -522,7 +528,10 @@ fn collect_text_spans(
                 if !inner_text.trim().is_empty() {
                     spans.push(ReaderInlineRun {
                         text: inner_text.trim().to_string(),
-                        style: ReaderInlineStyle::Plain,
+                        style: ReaderInlineStyle {
+                            bold: false,
+                            italic: false,
+                        },
                         url: None,
                     });
                 }
@@ -530,22 +539,24 @@ fn collect_text_spans(
 
             "a" => {
                 let href = rich_style::get_attribute(attrs, "href").unwrap_or_default();
-                let mut inner_text = String::new();
-                collect_plain_text(handle, &mut inner_text);
-
-                if !inner_text.trim().is_empty() {
-                    spans.push(ReaderInlineRun {
-                        text: inner_text.trim().to_string(),
-                        style: ReaderInlineStyle::Plain,
-                        url: Some(href),
-                    });
+                let first_link_run = spans.len();
+                for child in node.children.borrow().iter() {
+                    collect_text_spans(child, spans, &merged_style, style_map);
+                }
+                for run in &mut spans[first_link_run..] {
+                    if run.url.is_none() {
+                        run.url = Some(href.clone());
+                    }
                 }
             }
 
             "br" => {
                 spans.push(ReaderInlineRun {
                     text: "\n".to_string(),
-                    style: ReaderInlineStyle::Plain,
+                    style: ReaderInlineStyle {
+                        bold: false,
+                        italic: false,
+                    },
                     url: None,
                 });
             }
@@ -667,13 +678,7 @@ mod tests {
         let html = r#"<p><span style="font-weight: bold">bold</span> plain</p>"#;
         let result = parse_html_to_rich_text(html).unwrap();
         assert_eq!(result.len(), 1);
-        assert!(result[0].spans.iter().any(|s| matches!(
-            s,
-            ReaderInlineRun {
-                style: ReaderInlineStyle::Bold,
-                ..
-            }
-        )));
+        assert!(result[0].spans.iter().any(|s| s.style.bold));
     }
 
     #[test]
@@ -681,13 +686,21 @@ mod tests {
         let html = r#"<p><span style="font-style: italic">em</span></p>"#;
         let result = parse_html_to_rich_text(html).unwrap();
         assert_eq!(result.len(), 1);
-        assert!(result[0].spans.iter().any(|s| matches!(
-            s,
-            ReaderInlineRun {
-                style: ReaderInlineStyle::Italic,
-                ..
-            }
-        )));
+        assert!(result[0].spans.iter().any(|s| s.style.italic));
+    }
+
+    #[test]
+    fn test_parse_html_combines_bold_italic_and_link() {
+        let html = r#"<p><a href="chapter.xhtml"><strong><em>both</em></strong></a></p>"#;
+        let result = parse_html_to_rich_text(html).unwrap();
+        let run = result[0]
+            .spans
+            .iter()
+            .find(|run| run.text == "both")
+            .expect("combined style run");
+        assert!(run.style.bold);
+        assert!(run.style.italic);
+        assert_eq!(run.url.as_deref(), Some("chapter.xhtml"));
     }
 
     #[test]

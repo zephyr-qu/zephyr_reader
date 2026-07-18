@@ -7,9 +7,9 @@ use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
 
 use crate::common::AppError;
+use crate::domain::book::book_repo::BookRepository;
 use crate::domain::book::service;
 use crate::domain::book::{Book, BookStatus, BookshelfBook};
-use crate::domain::book::book_repo::BookRepository;
 use crate::domain::category::Category;
 use crate::domain::chapter::Chapter;
 use crate::domain::note::NoteStats;
@@ -54,13 +54,20 @@ pub async fn list_bookshelf_books(
     sort_by: Option<String>,
     sort_order: Option<String>,
 ) -> Result<Vec<BookshelfBook>, AppError> {
-    tracing::debug!("[book] list_bookshelf_books: category={:?} status={:?} sort={:?}/{:?}", category_id, status, sort_by, sort_order);
+    tracing::debug!(
+        "[book] list_bookshelf_books: category={:?} status={:?} sort={:?}/{:?}",
+        category_id,
+        status,
+        sort_by,
+        sort_order
+    );
     service::list_bookshelf_books(
         category_id.as_deref(),
         status,
         sort_by.as_deref(),
         sort_order.as_deref(),
-    ).await
+    )
+    .await
 }
 
 /// 获取书名映射
@@ -75,7 +82,11 @@ pub async fn list_book_titles() -> Result<HashMap<String, String>, AppError> {
 /// 新增或更新书籍
 #[frb]
 pub async fn upsert_book(book: Book) -> Result<(), AppError> {
-    tracing::info!("[book] upsert_book: book_id={}, title={}", book.book_id, book.title);
+    tracing::info!(
+        "[book] upsert_book: book_id={}, title={}",
+        book.book_id,
+        book.title
+    );
     let pool = storage_pool()?;
     BookRepository::save(&pool, &book).await
 }
@@ -179,9 +190,15 @@ pub async fn create_web_book(
 ) -> Result<Book, AppError> {
     tracing::info!("[book] create_web_book: title={}", title);
     service::create_web_book(
-        &title, &author, &file_path, chapter_count as i64, total_characters,
-        cover_path.as_deref(), description.as_deref(),
-    ).await
+        &title,
+        &author,
+        &file_path,
+        chapter_count as i64,
+        total_characters,
+        cover_path.as_deref(),
+        description.as_deref(),
+    )
+    .await
 }
 
 /// 批量更新书籍阅读状态
@@ -200,10 +217,12 @@ pub async fn batch_set_categories_for_books(
     book_ids: Vec<String>,
     category_ids: Vec<String>,
 ) -> Result<(), AppError> {
-    tracing::info!("[book] batch_set_categories_for_books: count={}", book_ids.len());
+    tracing::info!(
+        "[book] batch_set_categories_for_books: count={}",
+        book_ids.len()
+    );
     service::batch_set_categories_for_books(&book_ids, &category_ids).await
 }
-
 
 // ============================================================
 // EPUB 特定 API
@@ -226,7 +245,9 @@ pub fn get_processed_epub_image_bytes(
 ) -> Result<Vec<u8>, AppError> {
     let validated = crate::common::security::validate_file_path(&file_path)?;
     crate::parser::epub::processed_image::get_processed_epub_image_bytes(
-        &validated, &asset_id, max_width_px.max(1) as u32,
+        &validated,
+        &asset_id,
+        max_width_px.max(1) as u32,
     )
 }
 
@@ -239,7 +260,9 @@ pub fn get_processed_epub_image(
 ) -> Result<String, AppError> {
     let validated = crate::common::security::validate_file_path(&file_path)?;
     crate::parser::epub::processed_image::get_processed_epub_image(
-        &validated, &asset_id, max_width_px.max(1) as u32,
+        &validated,
+        &asset_id,
+        max_width_px.max(1) as u32,
     )
 }
 
@@ -248,11 +271,15 @@ pub fn get_processed_epub_image(
 pub fn get_image_dimensions(bytes: Vec<u8>) -> Result<(i32, i32), AppError> {
     let reader = image::ImageReader::new(Cursor::new(bytes))
         .with_guessed_format()
-        .map_err(|e| AppError::InternalError { reason: e.to_string() })?;
+        .map_err(|e| AppError::InternalError {
+            reason: e.to_string(),
+        })?;
     reader
         .into_dimensions()
         .map(|(w, h)| (w as i32, h as i32))
-        .map_err(|e| AppError::InternalError { reason: e.to_string() })
+        .map_err(|e| AppError::InternalError {
+            reason: e.to_string(),
+        })
 }
 
 /// 导入书籍文件（校验→解析→入库）

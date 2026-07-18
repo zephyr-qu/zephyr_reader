@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:zephyr_reader/core/reader_engine/layout/block_layout.dart';
 import 'package:zephyr_reader/core/reader_engine/layout/layout_key.dart';
+import 'package:zephyr_reader/core/reader_engine/layout/layout_spec.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/page_plan.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/ir_types.dart';
+
 /// Session 对外发布的原子快照。
 ///
 /// ADR-018：UI 每帧只能看到一个内部一致的不可变计划。
@@ -11,6 +13,7 @@ import 'package:zephyr_reader/core/reader_engine/shared/ir_types.dart';
 class LayoutSnapshot {
   final int generation;
   final LayoutKey key;
+  final LayoutSpec spec;
   final ReaderChapterIr chapter;
   final List<BlockLayout> blocks;
   final List<PagePlan> pages;
@@ -19,6 +22,7 @@ class LayoutSnapshot {
   const LayoutSnapshot({
     required this.generation,
     required this.key,
+    required this.spec,
     required this.chapter,
     this.blocks = const [],
     required this.pages,

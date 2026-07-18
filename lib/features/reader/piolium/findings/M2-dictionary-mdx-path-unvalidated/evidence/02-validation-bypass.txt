@@ -1,8 +1,0 @@
-Stored path (from SharedPreferences): /sdcard/Download/evil_dict.mdx
-File.existsSync() result: True
-Validation result: PASSED (only existence checked)
-Missing checks:
-  - No sandbox restriction
-  - No path normalization/cleanup
-  - No integrity hash
-  - No signature verification

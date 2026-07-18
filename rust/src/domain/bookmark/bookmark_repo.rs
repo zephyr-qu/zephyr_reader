@@ -51,7 +51,10 @@ impl BookmarkRepository {
         Ok(())
     }
 
-    pub async fn find_by_id(pool: &SqlitePool, bookmark_id: &str) -> Result<Option<Bookmark>, AppError> {
+    pub async fn find_by_id(
+        pool: &SqlitePool,
+        bookmark_id: &str,
+    ) -> Result<Option<Bookmark>, AppError> {
         Ok(
             sqlx::query_as::<_, Bookmark>("SELECT * FROM bookmarks WHERE id = ?")
                 .bind(bookmark_id)
@@ -60,7 +63,10 @@ impl BookmarkRepository {
         )
     }
 
-    pub async fn import_bookmarks(pool: &SqlitePool, bookmarks: &[Bookmark]) -> Result<(), AppError> {
+    pub async fn import_bookmarks(
+        pool: &SqlitePool,
+        bookmarks: &[Bookmark],
+    ) -> Result<(), AppError> {
         if bookmarks.is_empty() {
             return Ok(());
         }

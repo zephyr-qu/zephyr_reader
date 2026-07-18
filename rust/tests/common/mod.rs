@@ -1,7 +1,7 @@
 #[allow(dead_code)]
-use std::sync::OnceLock;
-#[allow(dead_code)]
 use std::sync::Once;
+#[allow(dead_code)]
+use std::sync::OnceLock;
 #[allow(dead_code)]
 use tempfile::TempDir;
 

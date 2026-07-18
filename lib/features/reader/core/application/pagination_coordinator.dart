@@ -7,6 +7,7 @@ import 'package:zephyr_reader/core/reader_engine/pagination/engine_utils.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/pagination_params.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/config/reader_config.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart';
+import 'package:zephyr_reader/core/reader_engine/layout/layout_key.dart';
 
 class PaginationCoordinator {
   final ChapterContentRepository _contentRepo;
@@ -69,7 +70,7 @@ class PaginationCoordinator {
   /// Dart 侧直接计算（分页已迁 Flutter）。
   BigInt computeConfigHash() {
     final p = buildPaginationParams();
-    return p.layoutHash;
+    return layoutKeyForPaginationParams(p).hash;
   }
 
   /// 首屏分页（统一入口，maxChars=2000）。

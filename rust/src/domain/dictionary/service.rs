@@ -21,8 +21,8 @@ static MDICT: LazyLock<Mutex<Option<Engine>>> = LazyLock::new(|| Mutex::new(None
 /// 初始化 MDict 词典引擎
 pub async fn init_dictionary(mdx_path: &str, mdd_path: Option<String>) -> Result<(), AppError> {
     let validated_mdx = validate_file_path(mdx_path)?;
-    let engine = Engine::open(&validated_mdx, mdd_path.as_deref())
-        .map_err(|e| AppError::InternalError {
+    let engine =
+        Engine::open(&validated_mdx, mdd_path.as_deref()).map_err(|e| AppError::InternalError {
             reason: format!("Failed to open MDict: {e}"),
         })?;
     let mut guard = MDICT.lock();
@@ -47,10 +47,8 @@ pub async fn lookup_mdict(word: &str) -> Result<Option<DictSearchResult>, AppErr
     let word = word.to_string();
     tokio::task::spawn_blocking(move || {
         let mut guard = MDICT.lock();
-        let engine = guard.as_mut().ok_or_else(|| {
-            AppError::InternalError {
-                reason: "Dictionary not initialized. Call init_dictionary() first.".into(),
-            }
+        let engine = guard.as_mut().ok_or_else(|| AppError::InternalError {
+            reason: "Dictionary not initialized. Call init_dictionary() first.".into(),
         })?;
         Ok(engine.lookup(&word))
     })
@@ -66,10 +64,8 @@ pub async fn suggest_mdict(prefix: &str, limit: i32) -> Result<Vec<String>, AppE
     let prefix = prefix.to_string();
     tokio::task::spawn_blocking(move || {
         let mut guard = MDICT.lock();
-        let engine = guard.as_mut().ok_or_else(|| {
-            AppError::InternalError {
-                reason: "Dictionary not initialized. Call init_dictionary() first.".into(),
-            }
+        let engine = guard.as_mut().ok_or_else(|| AppError::InternalError {
+            reason: "Dictionary not initialized. Call init_dictionary() first.".into(),
         })?;
         Ok(engine.suggest(&prefix, limit.clamp(1, 50) as usize))
     })
@@ -85,10 +81,8 @@ pub async fn extract_audio(audio_key: &str) -> Result<Option<Vec<u8>>, AppError>
     let audio_key = audio_key.to_string();
     tokio::task::spawn_blocking(move || {
         let mut guard = MDICT.lock();
-        let engine = guard.as_mut().ok_or_else(|| {
-            AppError::InternalError {
-                reason: "Dictionary not initialized. Call init_dictionary() first.".into(),
-            }
+        let engine = guard.as_mut().ok_or_else(|| AppError::InternalError {
+            reason: "Dictionary not initialized. Call init_dictionary() first.".into(),
         })?;
         Ok(engine.extract_audio(&audio_key))
     })

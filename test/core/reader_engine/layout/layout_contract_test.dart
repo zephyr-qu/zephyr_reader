@@ -323,6 +323,7 @@ void main() {
       final snapshot = LayoutSnapshot(
         generation: 1,
         key: LayoutKey.fromSpec(spec),
+        spec: spec,
         // ignore: prefer_const_constructors
         chapter: ReaderChapterIr(plainText: '', blocks: []),
         pages: const [

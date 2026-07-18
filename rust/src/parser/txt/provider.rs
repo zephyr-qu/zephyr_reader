@@ -24,8 +24,8 @@ use std::fs::File;
 use encoding_rs::{Encoding, UTF_8};
 use memmap2::Mmap;
 
-use crate::domain::book::BookFormat;
 use crate::domain::AppError;
+use crate::domain::book::BookFormat;
 use crate::parser::provider::ChapterContentProvider;
 
 /// 内存映射文件最大大小（100MB）

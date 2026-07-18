@@ -48,10 +48,7 @@ pub struct EpubAssetRegistry {
 /// 规范化 img `src` / manifest href（trim、`\`→`/`、去 `#` 片段、折叠 `%` 编码 ASCII）。
 pub fn normalize_asset_id(src: &str) -> String {
     let trimmed = src.trim().replace('\\', "/");
-    let without_fragment = trimmed
-        .split('#')
-        .next()
-        .unwrap_or(trimmed.as_str());
+    let without_fragment = trimmed.split('#').next().unwrap_or(trimmed.as_str());
     decode_percent_ascii(without_fragment)
 }
 
@@ -161,9 +158,10 @@ impl EpubAssetRegistry {
                 continue;
             }
             if let Some(bytes) = epub.read_resource_bytes(&href)
-                && !bytes.is_empty() {
-                    return Some(bytes);
-                }
+                && !bytes.is_empty()
+            {
+                return Some(bytes);
+            }
         }
         None
     }
@@ -181,9 +179,10 @@ impl EpubAssetRegistry {
             return self.by_asset_id.get(id);
         }
         if let Some(name) = normalized.rsplit('/').next().filter(|s| !s.is_empty())
-            && let Some(id) = self.by_filename.get(name) {
-                return self.by_asset_id.get(id);
-            }
+            && let Some(id) = self.by_filename.get(name)
+        {
+            return self.by_asset_id.get(id);
+        }
         self.by_asset_id.values().find(|entry| {
             entry.internal_path == normalized
                 || entry.internal_path.ends_with(&format!("/{normalized}"))
@@ -223,12 +222,14 @@ fn decode_percent_ascii(input: &str) -> String {
     let mut out = Vec::with_capacity(bytes.len());
     let mut i = 0;
     while i < bytes.len() {
-        if bytes[i] == b'%' && i + 2 < bytes.len()
-            && let (Some(h1), Some(h2)) = (hex_nibble(bytes[i + 1]), hex_nibble(bytes[i + 2])) {
-                out.push((h1 << 4) | h2);
-                i += 3;
-                continue;
-            }
+        if bytes[i] == b'%'
+            && i + 2 < bytes.len()
+            && let (Some(h1), Some(h2)) = (hex_nibble(bytes[i + 1]), hex_nibble(bytes[i + 2]))
+        {
+            out.push((h1 << 4) | h2);
+            i += 3;
+            continue;
+        }
         out.push(bytes[i]);
         i += 1;
     }
@@ -305,10 +306,7 @@ mod tests {
             normalize_asset_id("../Images/cover.jpg#fragment"),
             "../Images/cover.jpg"
         );
-        assert_eq!(
-            normalize_asset_id("images/pic.png#"),
-            "images/pic.png"
-        );
+        assert_eq!(normalize_asset_id("images/pic.png#"), "images/pic.png");
     }
 
     #[test]
@@ -320,7 +318,9 @@ mod tests {
         assert_eq!(entry.asset_id, "img_main");
         assert_eq!(entry.internal_path, "OEBPS/Images/cover.jpg");
 
-        let by_name = registry.resolve("", "photo.png").expect("filename fallback");
+        let by_name = registry
+            .resolve("", "photo.png")
+            .expect("filename fallback");
         assert_eq!(by_name.asset_id, "id_inline");
     }
 
@@ -330,7 +330,9 @@ mod tests {
             vec![ReaderIrBlock::image(
                 0,
                 "../Images/cover.jpg".into(),
-                None, None, None,
+                None,
+                None,
+                None,
             )],
             "\u{FFFC}".to_string(),
         );
@@ -348,6 +350,9 @@ mod tests {
         }
         let epub = EpubFile::open(path.to_str().unwrap()).expect("open medium.epub");
         let registry = EpubAssetRegistry::from_epub(&epub);
-        assert!(registry.len() > 0, "medium.epub should have manifest resources");
+        assert!(
+            registry.len() > 0,
+            "medium.epub should have manifest resources"
+        );
     }
 }

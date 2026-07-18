@@ -1,6 +1,7 @@
 import 'package:zephyr_reader/core/reader_engine/data/chapter_content_repository.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/flutter_pagination_session.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/page_plan.dart';
 
 /// 分页引擎：PaginationSession 唯一所有者。
 ///
@@ -26,7 +27,11 @@ class PaginationEngine {
   PaginationSession get session => _session;
 
   /// 当前页描述子。
+  /// 当前页描述子（PackedPage——旧版，计划删除）。
   List<PackedPage>? get descriptors => _session.descriptors;
+
+  /// 当前页模型列表（PagePlan——新版）。
+  List<PagePlan>? get pagePlans => _session.pagePlans;
 
   /// EPUB 文件路径（图片渲染用）。
   String? get sessionFilePath => _session.sessionFilePath;

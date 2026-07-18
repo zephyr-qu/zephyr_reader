@@ -3,8 +3,8 @@
 //! 连接 parser 和 Flutter 渲染层的中间层。
 //! 依赖：common/, infra/
 
-pub mod chapter_ir;
 pub mod block_joined_builder;
+pub mod chapter_ir;
 pub mod plain_projector;
 pub mod types;
 

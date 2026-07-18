@@ -19,7 +19,9 @@ pub async fn export_database(dest_path: String) -> Result<backup::BackupManifest
 
 /// 只读读取备份 manifest
 #[frb]
-pub async fn inspect_backup(backup_path: String) -> Result<Option<backup::BackupManifest>, AppError> {
+pub async fn inspect_backup(
+    backup_path: String,
+) -> Result<Option<backup::BackupManifest>, AppError> {
     backup::inspect_backup(backup_path).await
 }
 

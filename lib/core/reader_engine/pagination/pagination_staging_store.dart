@@ -1,9 +1,9 @@
-import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/page_plan.dart';
+import 'package:zephyr_reader/core/reader_engine/layout/block_layout.dart';
+import 'package:zephyr_reader/core/reader_engine/layout/layout_spec.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/ir_types.dart';
 
 /// 相邻章精确预装箱结果（方案三 T2）。
-///
-/// 与 Rust 粗分页隔离：只存 Flutter [FlutterBlockPaginator] 产出。
 class PaginationChapterReady {
   const PaginationChapterReady({
     required this.bookId,
@@ -11,6 +11,8 @@ class PaginationChapterReady {
     required this.filePath,
     required this.ir,
     required this.pages,
+    required this.blocks,
+    required this.spec,
     required this.contentWidthDp,
     required this.contentHeightDp,
     required this.configHash,
@@ -20,7 +22,9 @@ class PaginationChapterReady {
   final int chapterIndex;
   final String filePath;
   final ReaderChapterIr ir;
-  final List<PackedPage> pages;
+  final List<PagePlan> pages;
+  final List<BlockLayout> blocks;
+  final LayoutSpec spec;
   final double contentWidthDp;
   final double contentHeightDp;
   final BigInt configHash;

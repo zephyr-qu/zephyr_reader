@@ -1,2 +1,0 @@
-29:  final _supportedExtensions = {'txt', 'epub'};
-196:      if (!_supportedExtensions.contains(ext)) {

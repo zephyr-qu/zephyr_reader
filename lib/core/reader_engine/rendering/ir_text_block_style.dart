@@ -4,7 +4,7 @@ import 'package:zephyr_reader/core/reader_engine/rendering/rich_text_converter.d
 import 'package:zephyr_reader/core/reader_engine/rendering/highlight_painter.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/reader_render_config.dart';
 import 'package:zephyr_reader/src/rust/domain/note/models.dart';
-import 'package:zephyr_reader/src/rust/pipeline/types.dart';
+import 'package:zephyr_reader/core/reader_engine/shared/ir_types.dart';
 
 /// ADR-010：IR 块样式 → Flutter 排版（scroll + pagination 共用）。
 abstract final class IrReaderIrBlock {

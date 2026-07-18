@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/viewport_index.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/page_curl_widget.dart';
-import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/page_plan.dart';
 
 /// pageTurn 皮肤：物理页索引 ↔ 逻辑页码映射 + [PageCurlWidget] 动画。
 ///
@@ -19,7 +19,7 @@ class PageTurnShell extends StatelessWidget {
     this.onReachEnd,
     this.onReachStart,
     this.onPositionChanged,
-    this.descriptors,
+    this.pagePlans,
   });
 
   final int logicalPageIndex;
@@ -31,7 +31,7 @@ class PageTurnShell extends StatelessWidget {
   final VoidCallback? onReachEnd;
   final VoidCallback? onReachStart;
   final ValueChanged<int>? onPositionChanged;
-  final List<PackedPage>? descriptors;
+  final List<PagePlan>? pagePlans;
 
   int get _virtualPrev => paginationVirtualPrevOffset(hasPreviousChapter);
 
@@ -54,9 +54,9 @@ class PageTurnShell extends StatelessWidget {
       return;
     }
     onLogicalPageChanged(logicalIdx);
-    final desc = descriptors;
-    if (desc != null && logicalIdx >= 0 && logicalIdx < desc.length) {
-      onPositionChanged?.call(desc[logicalIdx].startOffset);
+    final plans = pagePlans;
+    if (plans != null && logicalIdx >= 0 && logicalIdx < plans.length) {
+      onPositionChanged?.call(plans[logicalIdx].startUtf16);
     }
   }
 
