@@ -1,16 +1,23 @@
 {
   "id": "07-16-phase13-n0-pre-clean",
   "name": "N0 — 预清理（Phase 13 前置）",
-  "status": "pending",
+  "status": "completed",
   "source": "session:cursor_ea2ad83a-8178-4875-b3a5-14401ffb7788",
   "created": "2026-07-16",
   "owner": "zs",
   "prd": "discuss/ROADMAP.md",
-  "inherits_spec": ["backend", "frontend"],
-  "description": "快速扫除明显死代码，净化架构审查视野。N2 的前置步骤。",
+  "inherits_spec": [
+    "backend",
+    "frontend"
+  ],
+  "description": "见 ROADMAP N0A（净化 source graph）+ N0B（建立可信基线）",
   "tasks": [
-    "dart analyze 扫描 — 找出 unused import/field/class 并删除",
-    "cargo clippy 扫描 — 找出 Rust 侧 unused / dead_code 并删除",
-    "明显废弃文件 — 确认无引用后直接删除"
+    "N0A-1: 移动 piolium 资料到仓库根目录，清理 DI config 残留，删除 build cache",
+    "N0A-2: 重新生成 DI codegen/FRB codegen",
+    "N0A-3: 增加 CI gate（已添加 dart+rust 两道 piolium 门禁）",
+    "N0B-1: 区分 lib gate 与 all-targets gate（已分）",
+    "N0B-2: 修复两个现有 lib 测试失败（nested img + oversized EPUB）",
+    "N0B-3: test_driver 死代码清理",
+    "N0B-4: analysis_options.yaml exclude piolium"
   ]
 }
