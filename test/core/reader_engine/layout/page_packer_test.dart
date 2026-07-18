@@ -4,9 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zephyr_reader/core/reader_engine/layout/block_layout.dart';
 import 'package:zephyr_reader/core/reader_engine/layout/layout_spec.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/page_packer.dart';
-import 'package:zephyr_reader/core/reader_engine/pagination/page_plan.dart';
-import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart'
-    show ReaderIrBlockLayout;
+import 'package:zephyr_reader/core/reader_engine/pagination/page_plan.dart'
+    show PagePlanValidator, ReaderIrBlockLayout;
 import 'package:zephyr_reader/src/rust/pipeline/types.dart';
 
 LayoutSpec _spec({

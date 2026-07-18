@@ -13,7 +13,6 @@ rust_input: >-
   crate::domain::stats::models,
   crate::domain::vocab::models,
   crate::domain::dictionary::models,
-  crate::domain::bilingual::models,
   crate::domain::wordlist,
   crate::domain::search::models
 rust_root: rust/

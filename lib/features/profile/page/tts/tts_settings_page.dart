@@ -12,7 +12,6 @@ import 'package:zephyr_reader/features/profile/application/tts_settings_view_mod
 import 'package:zephyr_reader/features/profile/page/tts/select_item_tile.dart';
 import 'package:zephyr_reader/features/profile/page/tts/tts_preview_card.dart';
 import 'package:zephyr_reader/features/profile/page/tts/playback_section.dart';
-import 'package:zephyr_reader/features/profile/page/tts/bilingual_section.dart';
 import 'package:zephyr_reader/features/profile/page/tts/behavior_section.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
@@ -62,7 +61,6 @@ class TtsSettingsPage extends HookWidget {
           const SizedBox(height: 16),
           _buildVoiceSection(context, tts, l10n),
           const SizedBox(height: 16),
-          BilingualSection(vm: vm, l10n: l10n),
           const SizedBox(height: 16),
           BehaviorSection(vm: vm, l10n: l10n),
           PlaybackSection(vm: vm, tts: tts, l10n: l10n),

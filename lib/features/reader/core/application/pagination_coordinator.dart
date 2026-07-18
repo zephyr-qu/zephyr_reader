@@ -6,7 +6,7 @@ import 'package:zephyr_reader/core/reader_engine/pagination/engine.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/engine_utils.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/pagination_params.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/config/reader_config.dart';
-import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/page_plan.dart';
 import 'package:zephyr_reader/core/reader_engine/layout/layout_key.dart';
 
 class PaginationCoordinator {
@@ -145,32 +145,32 @@ class PaginationCoordinator {
     required int initialCharOffset,
     required String content,
   }) {
-    final descriptors = _engine.session.descriptors!;
+    final pagePlans = _engine.session.pagePlans!;
     final maxOffset = PaginationUtils.chapterCharOffsetMax(
-      descriptors: descriptors,
+      pages: pagePlans,
       phase1PlainContent: content,
     );
     final charOffset = initialCharOffset.clamp(0, maxOffset);
-    final resolvedPage = resolvePageForCharOffset(charOffset, descriptors);
+    final resolvedPage = resolvePageForCharOffset(charOffset, pagePlans);
     _engine.session.ensureWindow(resolvedPage);
 
     Logging.debug(
-      'loadChapter: pages=${descriptors.length} '
+      'loadChapter: pages=${pagePlans.length} '
       'resolvePage=$resolvedPage off=$charOffset',
     );
 
     return (totalPages: total, pageIndex: resolvedPage);
   }
 
-  /// charOffset → pageIndex：优先 session，回退 descriptor 二分。
-  int resolvePageForCharOffset(int charOffset, List<PackedPage> descriptors) {
+  /// charOffset → pageIndex：优先 session，回退 pagePlans 二分。
+  int resolvePageForCharOffset(int charOffset, List<PagePlan> pagePlans) {
     final sessionPage = _engine.session.resolvePageIndexForCharOffset(
       charOffset,
     );
     if (sessionPage != null) {
-      return sessionPage.clamp(0, descriptors.length - 1);
+      return sessionPage.clamp(0, pagePlans.length - 1);
     }
-    return PaginationUtils.resolvePageIndexForOffset(descriptors, charOffset);
+    return PaginationUtils.resolvePageIndexForPagePlan(pagePlans, charOffset);
   }
 
   /// 释放分页会话并清空本地缓存。
@@ -178,7 +178,7 @@ class PaginationCoordinator {
 
   /// 判断分页是否有效。
   bool isPaginationValid(int total) {
-    final descriptors = _engine.session.descriptors;
-    return total > 0 && descriptors != null && descriptors.isNotEmpty;
+    final pagePlans = _engine.session.pagePlans;
+    return total > 0 && pagePlans != null && pagePlans.isNotEmpty;
   }
 }

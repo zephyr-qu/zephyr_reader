@@ -32,8 +32,8 @@ class AboutPage extends HookWidget {
     ),
     (
       PhosphorIconsRegular.translate,
-      l10n.aboutFeatureBilingual,
-      l10n.aboutFeatureBilingualDesc,
+      l10n.aboutFeatureLookup,
+      l10n.aboutFeatureLookupDesc,
     ),
     (
       PhosphorIconsRegular.palette,

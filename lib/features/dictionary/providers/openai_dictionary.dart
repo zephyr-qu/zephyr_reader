@@ -1,17 +1,17 @@
 import 'package:dio/dio.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/features/bilingual/application/bilingual_config.dart';
-import 'package:zephyr_reader/features/bilingual/domain/bilingual_service.dart';
+import 'package:zephyr_reader/features/dictionary/dictionary_config.dart';
+import 'package:zephyr_reader/features/dictionary/dictionary_service.dart';
 
 /// OpenAI-compatible API 翻译适配器。
 ///
 /// 兼容 OpenAI、Azure OpenAI、以及任何 OpenAI 协议兼容的服务。
 /// 使用 Chat Completions API（POST /v1/chat/completions）。
-class OpenAIBilingualTranslator implements BilingualService {
-  final BilingualConfig _config;
+class OpenAIDictionaryTranslator implements DictionaryService {
+  final DictionaryConfig _config;
   final Dio _dio;
 
-  OpenAIBilingualTranslator(this._config, this._dio);
+  OpenAIDictionaryTranslator(this._config, this._dio);
 
   @override
   String get name => 'OpenAI';
@@ -35,7 +35,7 @@ class OpenAIBilingualTranslator implements BilingualService {
   }
 
   @override
-  Future<BilingualResult> translate({
+  Future<DictionaryResult> translate({
     required String text,
     String? sourceLang,
     required String targetLang,
@@ -74,10 +74,10 @@ class OpenAIBilingualTranslator implements BilingualService {
 
     final translated = _extractContent(response.data);
     if (translated == null || translated.isEmpty) {
-      throw const BilingualException('API 返回的翻译结果为空');
+      throw const DictionaryException('API 返回的翻译结果为空');
     }
 
-    return BilingualResult(text: translated);
+    return DictionaryResult(text: translated);
   }
 
   /// 从 Chat Completions 响应中提取文本内容。

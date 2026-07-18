@@ -273,8 +273,8 @@ void main() {
     );
 
     expect(pages, hasLength(2));
-    expect(pages.first.slices.single.isImage, isFalse);
-    expect(pages.last.slices.single.isImage, isTrue);
+    expect(pages.first.fragments.single.isImage, isFalse);
+    expect(pages.last.fragments.single.isImage, isTrue);
   });
 
   testWidgets('paragraph spacing is not carried across a page break', (
@@ -331,7 +331,7 @@ void main() {
     );
 
     expect(pages, hasLength(2));
-    expect(pages.first.slices, hasLength(1));
-    expect(pages.last.slices, hasLength(2));
+    expect(pages.first.fragments, hasLength(1));
+    expect(pages.last.fragments, hasLength(2));
   });
 }

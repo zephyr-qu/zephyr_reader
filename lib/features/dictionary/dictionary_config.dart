@@ -3,12 +3,12 @@ import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
 
-/// 双语/翻译 API 配置。
+/// 翻译/词典 API 配置。
 ///
-/// 管理所有翻译 API 相关的可持久化设置。
+/// 管理所有翻译 API 相关的可持久化设置（供应商、API key、端点等）。
 /// 使用 [PersistedSignal] 实现自动保存到 PreferencesService。
 @singleton
-class BilingualConfig {
+class DictionaryConfig {
   /// 服务提供商
   final PersistedSignal<String> provider;
 
@@ -30,7 +30,7 @@ class BilingualConfig {
   /// 请求超时秒数
   final PersistedSignal<int> timeoutSeconds;
 
-  BilingualConfig(PreferencesService prefs)
+  DictionaryConfig(PreferencesService prefs)
     : provider = persistedString(
         prefs,
         SettingsKeys.translationProvider,

@@ -157,9 +157,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get paginationMode => '分页';
 
   @override
-  String get bilingualMode => '对照';
-
-  @override
   String get fontSize => '字体大小';
 
   @override
@@ -246,9 +243,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get selectionVocabulary => '生词本';
-
-  @override
-  String get selectionBilingual => '标注两侧';
 
   @override
   String get highlightYellow => '黄色';
@@ -778,9 +772,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get updateNoteFailed => '更新笔记失败';
 
   @override
-  String get bilingualHighlightFailed => '双语高亮创建失败';
-
-  @override
   String chapterLoadFailed(Object error) {
     return '章节加载失败：$error';
   }
@@ -808,9 +799,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get currentlyReading => '正在阅读';
-
-  @override
-  String get setBilingualTranslation => '设置对照译文';
 
   @override
   String get pasteTranslationHint => '粘贴或输入当前章节的译文内容：';
@@ -923,9 +911,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aboutFeature3 => '智能排版引擎';
 
   @override
-  String get aboutFeature4 => '双语对照阅读';
-
-  @override
   String get aboutFeature5 => '生词本与学习记录';
 
   @override
@@ -982,15 +967,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get wordSegmentation => '分词：';
 
   @override
-  String get bilingualNoAlignment => '未找到双语对齐位置';
-
-  @override
-  String get bilingualNoParagraph => '未找到对应段落';
-
-  @override
-  String get bilingualHighlightCreated => '双语高亮已创建';
-
-  @override
   String get selectFile => '选择文件';
 
   @override
@@ -1017,7 +993,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aboutDescription =>
-      'Zephyr Reader 是一款纯离线的双语小说阅读器，Flutter + Rust 构建，100% 本地，无后端，无广告，无数据收集，专注于中英文双语阅读体验。';
+      'Zephyr Reader 是一款纯离线的阅读器，Flutter + Rust 构建，100% 本地，无后端，无广告，无数据收集，专注于中英文阅读体验。';
 
   @override
   String get aboutFeatureOffline => '完全离线';
@@ -1030,12 +1006,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aboutFeaturePerformanceDesc => 'Rust 引擎即时解析大文件';
-
-  @override
-  String get aboutFeatureBilingual => '双语对照';
-
-  @override
-  String get aboutFeatureBilingualDesc => '中英同权对齐';
 
   @override
   String get aboutFeatureThemes => '多主题';
@@ -1757,16 +1727,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get ttsPauseBetween => '句间停顿';
 
   @override
-  String get ttsBilingualReading => '双语朗读';
-
-  @override
   String get zephyrExclusive => 'Zephyr 专属';
-
-  @override
-  String get ttsBilingualAlternate => '双语交替朗读';
-
-  @override
-  String get ttsBilingualAlternateDesc => '先读英文原文，再读中文译文';
 
   @override
   String get ttsOriginalOnly => '仅朗读原文';
@@ -2037,4 +1998,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get textAlignEnd => '右对齐';
+
+  @override
+  String get aboutFeatureLookup => '词典与翻译';
+
+  @override
+  String get aboutFeatureLookupDesc => '离线词典 + 可配置翻译 API';
 }

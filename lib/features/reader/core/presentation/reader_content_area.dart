@@ -194,19 +194,6 @@ class ReaderContentArea extends HookWidget {
                       selectionGlobalPos.value = pos,
                   showSentenceSplit: true,
                 ),
-                bilingualBuilder: (_, sc) {
-                  final b = vm.bilingual;
-                  if (b == null) return const SizedBox.shrink();
-                  return b.buildBilingualContent(
-                    context,
-                    sc,
-                    renderConfig,
-                    bHighlights,
-                    onHighlightTap,
-                    vm.annotations.updateSelection,
-                    (pos) => selectionGlobalPos.value = pos,
-                  );
-                },
                 paginatedBuilder: (_, pc) => PaginatedModeRenderer(
                   config: renderConfig,
                   pageController: pc,

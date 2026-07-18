@@ -9,7 +9,7 @@
 /// # Rust 对接格式
 ///
 /// 返回章级绝对字符索引（每行结束偏移，半开上界语义与 TextPainter 一致）。
-/// 优先按 **IR 文本块** 分别测量（与 `buildBlockPageContent` 同构），再合并；
+/// 优先按 IR 文本块分别测量再合并；
 /// 图片块写入 `\uFFFC` 结束位置，供 Rust 按图高装箱。
 library;
 

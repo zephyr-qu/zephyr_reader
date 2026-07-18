@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:zephyr_reader/features/bilingual/application/bilingual_config.dart';
-import 'package:zephyr_reader/features/bilingual/domain/bilingual_service.dart';
+import 'package:zephyr_reader/features/dictionary/dictionary_config.dart';
+import 'package:zephyr_reader/features/dictionary/dictionary_service.dart';
 
 /// 自定义翻译 API 适配器。
 ///
@@ -8,17 +8,17 @@ import 'package:zephyr_reader/features/bilingual/domain/bilingual_service.dart';
 /// - 请求头含 {{apiKey}} 变量
 /// - 请求体含 {{text}}、{{sourceLang}}、{{targetLang}} 变量
 /// - 响应通过 JSON path 提取翻译结果
-class CustomBilingualTranslator implements BilingualService {
-  final BilingualConfig _config;
+class CustomDictionaryTranslator implements DictionaryService {
+  final DictionaryConfig _config;
   final Dio _dio;
 
-  CustomBilingualTranslator(this._config, this._dio);
+  CustomDictionaryTranslator(this._config, this._dio);
 
   @override
   String get name => 'Custom';
 
   @override
-  Future<BilingualResult> translate({
+  Future<DictionaryResult> translate({
     required String text,
     String? sourceLang,
     required String targetLang,
@@ -56,10 +56,10 @@ class CustomBilingualTranslator implements BilingualService {
     // 尝试从常见 JSON 路径提取翻译结果
     final translated = _extractTranslated(response.data);
     if (translated == null || translated.isEmpty) {
-      throw const BilingualException('无法从 API 响应中提取翻译结果，请检查 API 配置');
+      throw const DictionaryException('无法从 API 响应中提取翻译结果，请检查 API 配置');
     }
 
-    return BilingualResult(text: translated);
+    return DictionaryResult(text: translated);
   }
 
   /// 从常见的翻译 API 响应模式中提取译文。

@@ -49,7 +49,6 @@
   "scrollMode": "Scroll",
   "pageTurnMode": "Flip",
   "paginationMode": "Pages",
-  "bilingualMode": "Bilingual",
   "fontSize": "Font Size",
   "followSystemFontScale": "Follow System",
   "lineHeight": "Line Height",
@@ -78,7 +77,6 @@
   "selectionNote": "Note",
   "selectionDictionary": "Define",
   "selectionVocabulary": "Vocabulary",
-  "selectionBilingual": "Bilingual Pair",
   "highlightYellow": "Yellow",
   "highlightGreen": "Green",
   "highlightBlue": "Blue",
@@ -248,7 +246,6 @@
   "saveAnnotationFailed": "Failed to save note",
   "deleteHighlightFailed": "Failed to delete highlight",
   "updateNoteFailed": "Failed to update note",
-  "bilingualHighlightFailed": "Failed to create bilingual highlight",
   "chapterLoadFailed": "Failed to load chapter: {error}",
   "epubRichTextSkipped": "This chapter is large; showing plain text only (images and styling unavailable)",
   "contentEmpty": "No content",
@@ -258,7 +255,6 @@
   "previous": "Previous",
   "next": "Next",
   "currentlyReading": "Currently Reading",
-  "setBilingualTranslation": "Set Bilingual Translation",
   "pasteTranslationHint": "Paste or enter the translation of this chapter:",
   "pasteTranslationPlaceholder": "Paste your translation text here…",
   "addNote": "Add Note",
@@ -295,7 +291,6 @@
   "aboutFeature1": "Offline-first, no network required",
   "aboutFeature2": "Supports EPUB and TXT",
   "aboutFeature3": "Smart typesetting engine",
-  "aboutFeature4": "Bilingual reading",
   "aboutFeature5": "Vocabulary book & learning records",
   "aboutFeature6": "WebDAV multi-device sync",
   "copyrightFooter": "© 2026 Zephyr Reader",
@@ -314,9 +309,6 @@
   "pronunciation": "Pronunciation",
   "noExactMatch": "No exact match found. Did you mean:",
   "wordSegmentation": "Segmentation:",
-  "bilingualNoAlignment": "No alignment found for bilingual highlight",
-  "bilingualNoParagraph": "No matching paragraph found",
-  "bilingualHighlightCreated": "Bilingual highlight created",
   "selectFile": "Select File",
   "dictionaryConfigHint": "Select a .mdx dictionary file. If a matching .mdd resource file (audio/images) exists in the same directory, it will be loaded automatically.",
   "categoryManagement": "Category Management",
@@ -325,13 +317,11 @@
   "aboutSectionFeatures": "Features",
   "aboutSectionTechStack": "Tech Stack",
   "aboutSectionLinks": "Resources",
-  "aboutDescription": "Zephyr Reader is an offline bilingual novel reader built with Flutter + Rust.",
+  "aboutDescription": "Zephyr Reader is an offline novel reader built with Flutter + Rust, supporting EPUB and TXT formats with smart typesetting.",
   "aboutFeatureOffline": "100% Offline",
   "aboutFeatureOfflineDesc": "Core features work offline with no backend or ads",
   "aboutFeaturePerformance": "High Performance",
   "aboutFeaturePerformanceDesc": "Rust-powered engine parses large files instantly",
-  "aboutFeatureBilingual": "Bilingual Layout",
-  "aboutFeatureBilingualDesc": "Equal priority for Chinese & English",
   "aboutFeatureThemes": "Multiple Themes",
   "aboutFeatureThemesDesc": "Light, Dark & Pure Black night mode",
   "aboutFeatureAdaptive": "Adaptive Layout",
@@ -553,10 +543,7 @@
   "ttsPlaybackParams": "Playback",
   "ttsPitch": "Pitch",
   "ttsPauseBetween": "Pause Between Sentences",
-  "ttsBilingualReading": "Bilingual Reading",
   "zephyrExclusive": "Zephyr Exclusive",
-  "ttsBilingualAlternate": "Alternate Bilingual",
-  "ttsBilingualAlternateDesc": "Read English first, then Chinese",
   "ttsOriginalOnly": "Original Only",
   "ttsOriginalOnlyDesc": "Skip translations, ideal for listening practice",
   "ttsSwitchInterval": "Switch Interval",
@@ -618,14 +605,18 @@
   "@totalBookmarks": {
     "description": "Total bookmark count",
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "bookTotalBookmarks": "{count} in this book",
   "@bookTotalBookmarks": {
     "description": "Bookmark count for this book",
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "reload": "Reload",
@@ -636,7 +627,9 @@
   "@confirmDeleteBookmark": {
     "description": "Confirm single bookmark deletion",
     "placeholders": {
-      "title": { "type": "String" }
+      "title": {
+        "type": "String"
+      }
     }
   },
   "confirmDeleteBookmarkSimple": "Delete this bookmark?",
@@ -645,14 +638,18 @@
   "@confirmBatchDelete": {
     "description": "Confirm batch bookmark deletion",
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "deletedBookmarks": "Deleted {count} bookmarks",
   "@deletedBookmarks": {
     "description": "Bookmark deletion success message",
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "clearAllBookmarks": "Clear All Bookmarks",
@@ -671,5 +668,7 @@
   "textAlignJustify": "Justified",
   "textAlignStart": "Left-aligned",
   "textAlignCenter": "Centered",
-  "textAlignEnd": "Right-aligned"
+  "textAlignEnd": "Right-aligned",
+  "aboutFeatureLookup": "Dictionary & Translation",
+  "aboutFeatureLookupDesc": "Offline dictionary with configurable translation API"
 }

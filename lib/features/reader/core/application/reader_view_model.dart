@@ -12,7 +12,6 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/features/reader/annotations/application/bookmark_view_model.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/config/reader_config.dart';
 import 'package:zephyr_reader/features/reader/annotations/application/annotation_view_model.dart';
-import 'package:zephyr_reader/features/bilingual/application/bilingual_view_model.dart';
 import 'package:zephyr_reader/core/reader_engine/data/chapter_content_repository.dart';
 import 'package:zephyr_reader/features/reader/domain/progress_repository.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/flutter_pagination_session.dart';
@@ -29,7 +28,6 @@ import 'package:zephyr_reader/di/service_locator.dart';
 /// 阅读计时和进度保存 → ReadingSessionManager。
 /// 书签 → BookmarkViewModel。
 /// 划词批注 → AnnotationViewModel。
-/// 双语 → BilingualViewModel（可选）。
 class ReaderViewModel {
   final ChapterContentRepository _contentRepo;
   final PaginationEngine _engine;
@@ -55,7 +53,6 @@ class ReaderViewModel {
   late final ReadingSessionManager sessionManager;
   late final BookmarkViewModel bookmarks;
   late final AnnotationViewModel annotations;
-  BilingualViewModel? bilingual;
 
   // ==================== 跨切面信号 ====================
 
@@ -74,7 +71,6 @@ class ReaderViewModel {
     required this._progressRepo,
 
     ReaderConfig? config,
-    this.bilingual,
   }) : _config = config ?? getIt<ReaderConfig>() {
     chapterManager = ChapterViewModel(
       _contentRepo,
@@ -219,7 +215,6 @@ class ReaderViewModel {
 
   Future<void> deleteNote(String noteId, AppLocalizations l10n) async {
     try {
-      await bilingual?.deleteBilingualPair(noteId: noteId);
       await HapticFeedback.heavyImpact();
       await annotations.loadHighlights(forceRefresh: true);
     } catch (e) {
@@ -282,10 +277,7 @@ class ReaderViewModel {
   void setReadingMode(ReadingMode mode) {
     readingMode.value = mode;
     chapterManager.activeReadingMode = mode;
-    if (mode == ReadingMode.bilingual) {
-      bilingual?.onEnterBilingualMode();
-    }
-    // 切换到 scroll/bilingual 前，释放分页会话，
+    // 切换到 scroll 前，释放分页会话，
     // 避免 PaginationSession 和 LRU engine 悬空占用内存。
     // 先保存 session 的 IR，dispose 后 ActiveChapterIr.current 变 null。
     // 先保存 session 的 IR，dispose 后不可用。
@@ -322,7 +314,6 @@ class ReaderViewModel {
 
     bookmarks.reset();
     annotations.reset();
-    await bilingual?.reset();
     toastMessage.value = '';
 
     readingMode.value = ReadingMode.pagination;

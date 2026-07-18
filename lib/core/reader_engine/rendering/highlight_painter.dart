@@ -112,22 +112,7 @@ class HighlightPainter {
       regions.add(_Region.text(content, baseStyle));
     }
 
-    // 高亮竖条高度：使用 baseStyle 的 fontSize × height(lineHeight multiplier)。
-    // 修复 P1-4：double.infinity 在部分 TextSpan 上下文引发布局错误。
-    final barHeight = (baseStyle.fontSize ?? 16.0) * (baseStyle.height ?? 1.2);
-
     for (final r in regions) {
-      if (r.isHighlight) {
-        spans.add(
-          WidgetSpan(
-            child: Container(
-              width: 2,
-              height: barHeight,
-              color: r.highlightBarColor,
-            ),
-          ),
-        );
-      }
       if (r.recognizer != null) {
         spans.add(
           TextSpan(text: r.text, style: r.style, recognizer: r.recognizer),
@@ -357,22 +342,7 @@ class HighlightPainter {
       return span;
     }
 
-    // 高亮竖条高度：使用 baseStyle 的 fontSize × height(lineHeight multiplier)。
-    // 修复 P1-4：double.infinity 在部分 TextSpan 上下文引发布局错误。
-    final barHeight = (baseStyle.fontSize ?? 16.0) * (baseStyle.height ?? 1.2);
-
     for (final r in regions) {
-      if (r.isHighlight) {
-        result.add(
-          WidgetSpan(
-            child: Container(
-              width: 2,
-              height: barHeight,
-              color: r.highlightBarColor,
-            ),
-          ),
-        );
-      }
       if (r.recognizer != null) {
         result.add(
           TextSpan(text: r.text, style: r.style, recognizer: r.recognizer),

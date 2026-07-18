@@ -24,14 +24,6 @@ import 'package:zephyr_reader/core/reader_engine/shared/config/reader_config.dar
     as _i267;
 import 'package:zephyr_reader/core/theme/theme_manager.dart' as _i182;
 import 'package:zephyr_reader/di/app_module.dart' as _i431;
-import 'package:zephyr_reader/features/bilingual/application/bilingual_config.dart'
-    as _i917;
-import 'package:zephyr_reader/features/bilingual/application/bilingual_view_model.dart'
-    as _i136;
-import 'package:zephyr_reader/features/bilingual/bilingual_module.dart'
-    as _i984;
-import 'package:zephyr_reader/features/bilingual/domain/bilingual_service.dart'
-    as _i884;
 import 'package:zephyr_reader/features/bookshelf/application/book_import_service.dart'
     as _i339;
 import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart'
@@ -44,6 +36,12 @@ import 'package:zephyr_reader/features/data/application/data_management_view_mod
     as _i965;
 import 'package:zephyr_reader/features/data/application/services/webdav_sync_service.dart'
     as _i415;
+import 'package:zephyr_reader/features/dictionary/dictionary_config.dart'
+    as _i123;
+import 'package:zephyr_reader/features/dictionary/dictionary_module.dart'
+    as _i909;
+import 'package:zephyr_reader/features/dictionary/dictionary_service.dart'
+    as _i888;
 import 'package:zephyr_reader/features/profile/application/dictionary_settings_view_model.dart'
     as _i236;
 import 'package:zephyr_reader/features/profile/application/other_settings_view_model.dart'
@@ -80,7 +78,7 @@ extension GetItInjectableX on _i174.GetIt {
     final gh = _i526.GetItHelper(this, environment, environmentFilter);
     final appModule = _$AppModule();
     final networkModule = _$NetworkModule();
-    final bilingualModule = _$BilingualModule();
+    final dictionaryModule = _$DictionaryModule();
     await gh.factoryAsync<_i985.PreferencesService>(
       () => appModule.providePreferencesService(),
       preResolve: true,
@@ -103,13 +101,6 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i1020.TtsService>(() => _i1020.TtsService());
     gh.lazySingleton<_i1.SearchViewModel>(() => _i1.SearchViewModel());
-    gh.factoryParam<_i136.BilingualViewModel, _i642.ChapterViewModel, dynamic>(
-      (chapterVM, _) => _i136.BilingualViewModel(
-        chapterVM,
-        config: gh<_i917.BilingualConfig>(),
-        service: gh<_i884.BilingualService>(),
-      ),
-    );
     gh.factoryParam<
       _i306.ReadingSessionManager,
       _i642.ChapterViewModel,
@@ -154,17 +145,8 @@ extension GetItInjectableX on _i174.GetIt {
     gh.singleton<_i182.ThemeManager>(
       () => _i182.ThemeManager(gh<_i985.PreferencesService>()),
     );
-    gh.singleton<_i917.BilingualConfig>(
-      () => _i917.BilingualConfig(gh<_i985.PreferencesService>()),
-    );
-    gh.lazySingleton<_i884.BilingualService>(
-      () => bilingualModule.bilingualService(
-        gh<_i917.BilingualConfig>(),
-        gh<_i361.Dio>(),
-      ),
-    );
-    gh.factory<_i715.ChapterContentRepository>(
-      () => _i715.ChapterContentRepository(gh<_i267.ReaderConfig>()),
+    gh.singleton<_i123.DictionaryConfig>(
+      () => _i123.DictionaryConfig(gh<_i985.PreferencesService>()),
     );
     gh.factory<_i642.ChapterViewModel>(
       () => _i642.ChapterViewModel(
@@ -172,6 +154,12 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i690.PaginationEngine>(),
         gh<_i199.ProgressRepository>(),
         gh<_i267.ReaderConfig>(),
+      ),
+    );
+    gh.lazySingleton<_i888.DictionaryService>(
+      () => dictionaryModule.dictionaryService(
+        gh<_i123.DictionaryConfig>(),
+        gh<_i361.Dio>(),
       ),
     );
     return this;
@@ -182,4 +170,4 @@ class _$AppModule extends _i431.AppModule {}
 
 class _$NetworkModule extends _i510.NetworkModule {}
 
-class _$BilingualModule extends _i984.BilingualModule {}
+class _$DictionaryModule extends _i909.DictionaryModule {}

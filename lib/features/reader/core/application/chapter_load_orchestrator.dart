@@ -139,9 +139,9 @@ class ChapterLoadOrchestrator {
         '[Timing] gen=$gen intent=$intent preserveContent=$effectivePreserveContent',
       );
 
-      // Scroll/bilingual 模式跳过分页 pipeline，直接加载内容渲染
+      // Scroll 模式跳过分页 pipeline，直接加载内容渲染
       if (!_needsPagination(request.readingMode)) {
-        await _runScrollOrBilingualMode(
+        await _runScrollMode(
           gen,
           request,
           scheduleSearchIndex: scheduleSearchIndex,
@@ -244,10 +244,10 @@ class ChapterLoadOrchestrator {
       return;
     }
 
-    final descriptors = _engine.session.descriptors;
+    final pagePlans = _engine.session.pagePlans;
     final pageIndex = isForward
         ? 0
-        : ((descriptors?.length ?? 1) - 1).clamp(0, 0x7FFFFFFF);
+        : ((pagePlans?.length ?? 1) - 1).clamp(0, 0x7FFFFFFF);
 
     _applyIfCurrent(gen, () {
       _chapterVM.chapterContent.value = AsyncState.data(content);
@@ -255,8 +255,8 @@ class ChapterLoadOrchestrator {
       _totalPages.value = result.totalPages;
       _pageIndex.value = pageIndex;
       _chapterVM.currentCharOffset.value =
-          descriptors != null && pageIndex < descriptors.length
-          ? descriptors[pageIndex].startOffset
+          pagePlans != null && pageIndex < pagePlans.length
+          ? pagePlans[pageIndex].startUtf16
           : 0;
       _chapterVM.pendingJumpCharOffset.value = null;
       _error.value = null;
@@ -413,10 +413,10 @@ class ChapterLoadOrchestrator {
     );
   }
 
-  /// 滚动/双语模式：跳过所有分页 pipeline，直接加载全文渲染。
-  ///
+  /// 滚动模式：跳过所有分页 pipeline，直接加载全文渲染。
+
   /// 不触发分页/校准/首段提取，仅设置章节内容信号。
-  Future<void> _runScrollOrBilingualMode(
+  Future<void> _runScrollMode(
     int gen,
     ChapterLoadRequest request, {
     required Future<void> Function(int chapterIndex, String content)?
@@ -554,9 +554,9 @@ class ChapterLoadOrchestrator {
     );
     if (_isStale(gen)) return;
 
-    final descriptors = _engine.session.descriptors;
+    final pagePlans = _engine.session.pagePlans;
     final maxOffset = PaginationUtils.chapterCharOffsetMax(
-      descriptors: descriptors,
+      pages: pagePlans,
       phase1PlainContent: content,
     );
 

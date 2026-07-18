@@ -49,7 +49,6 @@
   "scrollMode": "滚动",
   "pageTurnMode": "翻页",
   "paginationMode": "分页",
-  "bilingualMode": "对照",
   "fontSize": "字体大小",
   "followSystemFontScale": "跟随系统",
   "lineHeight": "行间距",
@@ -78,7 +77,6 @@
   "selectionNote": "笔记",
   "selectionDictionary": "查词",
   "selectionVocabulary": "生词本",
-  "selectionBilingual": "标注两侧",
   "highlightYellow": "黄色",
   "highlightGreen": "绿色",
   "highlightBlue": "蓝色",
@@ -248,7 +246,6 @@
   "saveAnnotationFailed": "保存笔记失败",
   "deleteHighlightFailed": "删除高亮失败",
   "updateNoteFailed": "更新笔记失败",
-  "bilingualHighlightFailed": "双语高亮创建失败",
   "chapterLoadFailed": "章节加载失败：{error}",
   "epubRichTextSkipped": "本章内容较大，已以纯文本显示（图片与样式暂不可用）",
   "contentEmpty": "内容为空",
@@ -258,7 +255,6 @@
   "previous": "上一个",
   "next": "下一个",
   "currentlyReading": "正在阅读",
-  "setBilingualTranslation": "设置对照译文",
   "pasteTranslationHint": "粘贴或输入当前章节的译文内容：",
   "pasteTranslationPlaceholder": "在此粘贴译文文本…",
   "addNote": "添加笔记",
@@ -295,7 +291,6 @@
   "aboutFeature1": "纯离线使用，无需网络",
   "aboutFeature2": "支持 EPUB、TXT 格式",
   "aboutFeature3": "智能排版引擎",
-  "aboutFeature4": "双语对照阅读",
   "aboutFeature5": "生词本与学习记录",
   "aboutFeature6": "WebDAV 多端同步",
   "copyrightFooter": "© 2026 Zephyr Reader",
@@ -314,9 +309,6 @@
   "pronunciation": "发音",
   "noExactMatch": "未找到精确匹配。您是不是要找：",
   "wordSegmentation": "分词：",
-  "bilingualNoAlignment": "未找到双语对齐位置",
-  "bilingualNoParagraph": "未找到对应段落",
-  "bilingualHighlightCreated": "双语高亮已创建",
   "selectFile": "选择文件",
   "dictionaryConfigHint": "请选择一个 .mdx 格式的词典文件。如果有同名的 .mdd 资源文件（音频/图片），放在同一目录下会自动加载。",
   "categoryManagement": "分类管理",
@@ -325,13 +317,11 @@
   "aboutSectionFeatures": "核心特性",
   "aboutSectionTechStack": "技术栈",
   "aboutSectionLinks": "链接",
-  "aboutDescription": "Zephyr Reader 是一款纯离线的双语小说阅读器，Flutter + Rust 构建，100% 本地，无后端，无广告，无数据收集，专注于中英文双语阅读体验。",
+  "aboutDescription": "Zephyr Reader 是一款纯离线的阅读器，Flutter + Rust 构建，100% 本地，无后端，无广告，无数据收集，专注于中英文阅读体验。",
   "aboutFeatureOffline": "完全离线",
   "aboutFeatureOfflineDesc": "核心功能无需网络，无后端无广告",
   "aboutFeaturePerformance": "高性能",
   "aboutFeaturePerformanceDesc": "Rust 引擎即时解析大文件",
-  "aboutFeatureBilingual": "双语对照",
-  "aboutFeatureBilingualDesc": "中英同权对齐",
   "aboutFeatureThemes": "多主题",
   "aboutFeatureThemesDesc": "浅色/深色/纯黑夜间模式",
   "aboutFeatureAdaptive": "自适应布局",
@@ -553,10 +543,7 @@
   "ttsPlaybackParams": "播放参数",
   "ttsPitch": "音调",
   "ttsPauseBetween": "句间停顿",
-  "ttsBilingualReading": "双语朗读",
   "zephyrExclusive": "Zephyr 专属",
-  "ttsBilingualAlternate": "双语交替朗读",
-  "ttsBilingualAlternateDesc": "先读英文原文，再读中文译文",
   "ttsOriginalOnly": "仅朗读原文",
   "ttsOriginalOnlyDesc": "跳过译文段落，适合听力训练",
   "ttsSwitchInterval": "中英切换间隔",
@@ -618,14 +605,18 @@
   "@totalBookmarks": {
     "description": "书签总数统计",
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "bookTotalBookmarks": "本书总计 {count} 个",
   "@bookTotalBookmarks": {
     "description": "本书书签总数",
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "reload": "重新加载",
@@ -636,7 +627,9 @@
   "@confirmDeleteBookmark": {
     "description": "确认删除单个书签",
     "placeholders": {
-      "title": { "type": "String" }
+      "title": {
+        "type": "String"
+      }
     }
   },
   "confirmDeleteBookmarkSimple": "确定要删除此书签吗？",
@@ -645,14 +638,18 @@
   "@confirmBatchDelete": {
     "description": "确认批量删除书签",
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "deletedBookmarks": "已删除 {count} 个书签",
   "@deletedBookmarks": {
     "description": "删除书签成功提示",
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "clearAllBookmarks": "清空书签",
@@ -671,5 +668,7 @@
   "textAlignJustify": "两端对齐",
   "textAlignStart": "左对齐",
   "textAlignCenter": "居中",
-  "textAlignEnd": "右对齐"
+  "textAlignEnd": "右对齐",
+  "aboutFeatureLookup": "词典与翻译",
+  "aboutFeatureLookupDesc": "离线词典 + 可配置翻译 API"
 }

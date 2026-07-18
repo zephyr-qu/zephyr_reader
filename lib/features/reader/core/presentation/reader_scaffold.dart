@@ -47,6 +47,9 @@ class ReaderScaffold extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    // TEMP(Phase 13): Hide all bottom chrome while selecting the overflowing
+    // page widget with Flutter Inspector. Set to false after diagnosis.
+    final hideBottomChromeForLayoutInspection = true;
     final ReaderTheme bReadertheme = useSignalValue(vm.config.theme.signal);
     final int bBgindex = useSignalValue(vm.config.readerBgColorIndex.signal);
     final String bCurrentbookid = useSignalValue(vm.chapterManager.bookId);
@@ -141,53 +144,55 @@ class ReaderScaffold extends HookWidget {
                         selectionGlobalPos: uiState.selectionGlobalPos,
                         themeMode: themeMode,
                       ),
-                      ReaderBottomChrome(
-                        vm: vm,
-                        config: config,
-                        fontRepo: fontRepo,
-                        ttsService: ttsService,
-                        ttsVm: ttsVm,
-                        uiState: uiState,
-                      ),
+                      if (!hideBottomChromeForLayoutInspection)
+                        ReaderBottomChrome(
+                          vm: vm,
+                          config: config,
+                          fontRepo: fontRepo,
+                          ttsService: ttsService,
+                          ttsVm: ttsVm,
+                          uiState: uiState,
+                        ),
                       ReaderSelectionToolbarLayer(vm: vm, uiState: uiState),
-                      Positioned(
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        child: AnimatedToolbarPanel(
-                          visible: showToolbar && activePanel == null,
-                          slideBeginY: 1,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              ReaderBottomToolbar(
-                                onShowCatalog: () =>
-                                    scaffoldKey.currentState?.openDrawer(),
-                                onShowNotes: () =>
-                                    scaffoldKey.currentState?.openEndDrawer(),
-                                onToggleTypesetting: () =>
-                                    uiState.activePanel.value =
-                                        uiState.activePanel.value ==
-                                            ReaderPanelType.typesetting
-                                        ? null
-                                        : ReaderPanelType.typesetting,
-                                onToggleDisplay: () =>
-                                    uiState.activePanel.value =
-                                        uiState.activePanel.value ==
-                                            ReaderPanelType.display
-                                        ? null
-                                        : ReaderPanelType.display,
-                                onToggleAssist: () =>
-                                    uiState.activePanel.value =
-                                        uiState.activePanel.value ==
-                                            ReaderPanelType.assist
-                                        ? null
-                                        : ReaderPanelType.assist,
-                              ),
-                            ],
+                      if (!hideBottomChromeForLayoutInspection)
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          child: AnimatedToolbarPanel(
+                            visible: showToolbar && activePanel == null,
+                            slideBeginY: 1,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ReaderBottomToolbar(
+                                  onShowCatalog: () =>
+                                      scaffoldKey.currentState?.openDrawer(),
+                                  onShowNotes: () =>
+                                      scaffoldKey.currentState?.openEndDrawer(),
+                                  onToggleTypesetting: () =>
+                                      uiState.activePanel.value =
+                                          uiState.activePanel.value ==
+                                              ReaderPanelType.typesetting
+                                          ? null
+                                          : ReaderPanelType.typesetting,
+                                  onToggleDisplay: () =>
+                                      uiState.activePanel.value =
+                                          uiState.activePanel.value ==
+                                              ReaderPanelType.display
+                                          ? null
+                                          : ReaderPanelType.display,
+                                  onToggleAssist: () =>
+                                      uiState.activePanel.value =
+                                          uiState.activePanel.value ==
+                                              ReaderPanelType.assist
+                                          ? null
+                                          : ReaderPanelType.assist,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                 ),

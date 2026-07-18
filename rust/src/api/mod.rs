@@ -1,7 +1,6 @@
 //! FRB 薄封装层 — FFI 函数委托到 domain
 
 pub mod backup;
-pub mod bilingual;
 pub mod book;
 pub mod bookmark;
 pub mod category;

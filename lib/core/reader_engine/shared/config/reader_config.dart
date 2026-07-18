@@ -11,7 +11,7 @@ import 'package:zephyr_reader/core/reader_engine/shared/config/language_type.dar
 /// 阅读器翻页点击区域布局（右手/左手习惯）
 enum TapLayout { rightHanded, leftHanded }
 
-/// 阅读模式 — 上下滚动、左右分页、双语对照。
+/// 阅读模式 — 上下滚动、左右分页。
 /// 卷曲翻页见 [PaginationSkin]（ADR-002，非独立模式）。
 enum ReadingMode {
   /// 上下滚动
@@ -19,9 +19,6 @@ enum ReadingMode {
 
   /// 左右分页（配合 [PaginationSkin]）
   pagination,
-
-  /// 双语对照
-  bilingual,
 }
 
 /// 阅读器主题 — 亮色、深色、护眼色

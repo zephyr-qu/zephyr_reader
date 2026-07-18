@@ -79,13 +79,14 @@ abstract final class FlutterStagingPreloader {
       final prefetchPages = forNext
           ? pages.take(3)
           : pages.reversed.take(3).toList().reversed;
+      final prefetchFragments = <PageFragment>[];
       for (final p in prefetchPages) {
-        final slices = p.fragments
-            .map((PageFragment f) => f.toPackedSlice())
-            .toList();
+        prefetchFragments.addAll(p.fragments.where((f) => f.isImage));
+      }
+      if (prefetchFragments.isNotEmpty) {
         epubBlockImageCache.prefetchBlocks(
           filePath: book.filePath,
-          blocks: slices,
+          fragments: prefetchFragments,
           maxWidthPx: imageMaxWidthPx,
         );
       }
@@ -132,11 +133,9 @@ abstract final class FlutterStagingPreloader {
     final plain = ready.ir.plainText;
     final end = anchor.endUtf16.clamp(0, plain.length);
     final start = anchor.startUtf16.clamp(0, end);
-    final packedPages = pages.map((p) => p.toPackedPage()).toList();
     return NextChapterStaging(
       chapterIndex: ready.chapterIndex,
       configHash: ready.configHash,
-      descriptors: packedPages,
       pagePlans: pages,
       firstPageContent: plain.substring(start, end),
       isPartial: false,

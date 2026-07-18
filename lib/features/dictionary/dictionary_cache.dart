@@ -1,20 +1,20 @@
 import 'dart:convert';
 
-/// 翻译缓存（内存 LRU）。
+/// 词典查询缓存（内存 LRU）。
 ///
 /// 以章节 index + 内容哈希为键，避免同一章节重复翻译。
 /// 固定最大条目数，超出时淘汰最久未使用的条目。
-class BilingualCache {
+class DictionaryCache {
   final int _maxEntries;
 
   // Linked-hash-map 风格：插入/访问时更新顺序
   final _cache = <String, _CacheEntry>{};
 
-  BilingualCache({this._maxEntries = 20});
+  DictionaryCache({this._maxEntries = 20});
 
   /// 生成缓存键。
   String _key(int chapterIndex, String content) {
-    final hash = sha256(content);
+    final hash = _adler32(content);
     return '$chapterIndex:$hash';
   }
 
@@ -53,9 +53,8 @@ class BilingualCache {
   }
 
   /// 简单 Adler-32 摘要（纯 Dart，无 crypto 依赖）。
-  static String sha256(String input) {
+  static String _adler32(String input) {
     final bytes = utf8.encode(input);
-    // 用 Adler-32 近似哈希（足够区分章节内容变更）
     var a = 1, b = 0;
     for (final byte in bytes) {
       a = (a + byte) % 65521;

@@ -27,8 +27,7 @@ class BrightnessMask extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           gradient:
-              readingMode == ReadingMode.scroll ||
-                  readingMode == ReadingMode.bilingual
+              readingMode == ReadingMode.scroll
               ? LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
