@@ -47,6 +47,7 @@ analyzer:
     - '**/*.config.dart'
     - 'rust_builder/**'
     - 'lib/src/**'
+    - 'piolium/**'
 
   errors:
     avoid_print: error
