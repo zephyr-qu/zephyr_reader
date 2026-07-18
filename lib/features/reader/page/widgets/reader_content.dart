@@ -54,8 +54,6 @@ class ReaderContent extends HookWidget {
   final VoidCallback? onPaginationBoundaryReset;
   final Widget Function(BuildContext context, ScrollController scrollController)
   scrollBuilder;
-  final Widget Function(BuildContext context, ScrollController scrollController)
-  bilingualBuilder;
   final Widget Function(BuildContext context, PageController pageController)
   paginatedBuilder;
 
@@ -72,7 +70,6 @@ class ReaderContent extends HookWidget {
     required this.content,
     required this.isLoading,
     required this.scrollBuilder,
-    required this.bilingualBuilder,
     required this.paginatedBuilder,
     this.error,
     this.onPageChanged,
@@ -482,10 +479,6 @@ class ReaderContent extends HookWidget {
     switch (readingMode) {
       case ReadingMode.scroll:
         return RepaintBoundary(child: scrollBuilder(context, scrollController));
-      case ReadingMode.bilingual:
-        return RepaintBoundary(
-          child: bilingualBuilder(context, scrollController),
-        );
       case ReadingMode.pagination:
         return RepaintBoundary(
           child: paginatedBuilder(context, pageController),

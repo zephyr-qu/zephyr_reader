@@ -5,9 +5,8 @@ import 'package:zephyr_reader/core/reader_engine/layout/layout_spec.dart';
 import 'package:zephyr_reader/core/reader_engine/layout/layout_key.dart';
 import 'package:zephyr_reader/core/reader_engine/layout/block_layout.dart';
 import 'package:zephyr_reader/core/reader_engine/layout/layout_snapshot.dart';
-import 'package:zephyr_reader/core/reader_engine/pagination/page_plan.dart';
-import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart'
-    show ReaderIrBlockLayout;
+import 'package:zephyr_reader/core/reader_engine/pagination/page_plan.dart'
+    show PageFragment, PagePlan, PagePlanValidator, ReaderIrBlockLayout;
 import 'package:zephyr_reader/core/reader_engine/shared/ir_types.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/pagination_params.dart';
 import 'package:zephyr_reader/src/rust/pipeline/types.dart';
@@ -254,23 +253,22 @@ void main() {
         isLastPage: true,
       );
 
-      final packed = plan.toPackedPage();
 
-      expect(packed.pageIndex, 0);
-      expect(packed.startOffset, 10);
-      expect(packed.endOffset, 50);
-      expect(packed.isLastPage, isTrue);
-      expect(packed.slices, hasLength(2));
-      expect(packed.slices[0].text, 'Hello ');
-      expect(packed.slices[0].isBlockStart, isTrue);
-      expect(packed.slices[0].isBlockEnd, isFalse);
-      expect(packed.slices[1].text, 'world!');
-      expect(packed.slices[1].isBlockStart, isFalse);
-      expect(packed.slices[1].isBlockEnd, isTrue);
+      expect(plan.pageIndex, 0);
+      expect(plan.startUtf16, 10);
+      expect(plan.endUtf16, 50);
+      expect(plan.isLastPage, isTrue);
+      expect(plan.fragments, hasLength(2));
+      expect(plan.fragments[0].text, 'Hello ');
+      expect(plan.fragments[0].isBlockStart, isTrue);
+      expect(plan.fragments[0].isBlockEnd, isFalse);
+      expect(plan.fragments[1].text, 'world!');
+      expect(plan.fragments[1].isBlockStart, isFalse);
+      expect(plan.fragments[1].isBlockEnd, isTrue);
     });
 
-    test('image PageFragment → PackedBlockSlice preserves intrinsic size', () {
-      final fragment = const PageFragment.image(
+    test('image PageFragment preserves intrinsic size', () {
+      const fragment = PageFragment.image(
         blockIndex: 1,
         startUtf16: 50,
         endUtf16: 51,
@@ -281,18 +279,16 @@ void main() {
         intrinsicHeight: 600,
       );
 
-      final slice = fragment.toPackedSlice();
-
-      expect(slice.isImage, isTrue);
-      expect(slice.assetId, 'cover.jpg');
-      expect(slice.imageAlt, 'Cover');
-      expect(slice.imageIntrinsicWidth, 400);
-      expect(slice.imageIntrinsicHeight, 600);
-      expect(slice.imageLayout, ReaderIrBlockLayout.inlineContain);
+      expect(fragment.isImage, isTrue);
+      expect(fragment.assetId, 'cover.jpg');
+      expect(fragment.imageAlt, 'Cover');
+      expect(fragment.intrinsicWidth, 400);
+      expect(fragment.intrinsicHeight, 600);
+      expect(fragment.imageLayout, ReaderIrBlockLayout.inlineContain);
     });
 
-    test('adapter round-trip preserves range for empty fragments', () {
-      final plan = const PagePlan(
+    test('empty fragments page has isEmpty fragments list', () {
+      const plan = PagePlan(
         pageIndex: 0,
         startUtf16: 0,
         endUtf16: 0,
@@ -300,11 +296,9 @@ void main() {
         isLastPage: true,
       );
 
-      final packed = plan.toPackedPage();
-
-      expect(packed.startOffset, 0);
-      expect(packed.endOffset, 0);
-      expect(packed.slices, isEmpty);
+      expect(plan.startUtf16, 0);
+      expect(plan.endUtf16, 0);
+      expect(plan.fragments, isEmpty);
     });
   });
 

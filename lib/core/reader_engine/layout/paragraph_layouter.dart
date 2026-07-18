@@ -56,6 +56,7 @@ class ParagraphLayouter {
     final tp = TextPainter(
       text: layoutSpan,
       textDirection: spec.textDirection,
+      textAlign: spec.textAlign,
       strutStyle: strutStyle,
       textScaler: spec.textScaler,
       textHeightBehavior: spec.textHeightBehavior,

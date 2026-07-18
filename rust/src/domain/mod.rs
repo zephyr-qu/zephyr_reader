@@ -3,7 +3,6 @@
 // ============================================================
 
 pub mod backup;
-pub mod bilingual;
 pub mod book;
 pub mod bookmark;
 pub mod category;

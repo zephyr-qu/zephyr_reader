@@ -11,7 +11,6 @@ class SelectionToolbar extends StatelessWidget {
   final VoidCallback onAnnotate;
   final VoidCallback? onLookup;
   final VoidCallback? onAddToVocabulary;
-  final VoidCallback? onBilingualHighlight;
   final VoidCallback onDismiss;
 
   const SelectionToolbar({
@@ -21,7 +20,6 @@ class SelectionToolbar extends StatelessWidget {
     required this.onAnnotate,
     this.onLookup,
     this.onAddToVocabulary,
-    this.onBilingualHighlight,
     required this.onDismiss,
   });
 
@@ -80,15 +78,6 @@ class SelectionToolbar extends StatelessWidget {
               label: l10n.selectionVocabulary,
               iconColor: const Color(0xFF9C27B0),
               onTap: onAddToVocabulary!,
-            ),
-          ],
-          if (onBilingualHighlight != null) ...[
-            const SizedBox(width: 4),
-            _ActionChip(
-              icon: PhosphorIconsRegular.arrowsLeftRight,
-              label: l10n.selectionBilingual,
-              iconColor: const Color(0xFFE91E63),
-              onTap: onBilingualHighlight!,
             ),
           ],
           const SizedBox(width: 4),

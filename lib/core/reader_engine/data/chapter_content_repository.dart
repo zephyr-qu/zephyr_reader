@@ -279,7 +279,7 @@ class ChapterContentRepository {
     return content;
   }
 
-  /// 双语 / 默认路径：通过 IR 加载。
+  /// 默认路径：通过 IR 加载。
   Future<ScrollChapterPayload> _loadRichCapablePayload({
     required String bookId,
     required String filePath,
@@ -288,54 +288,9 @@ class ChapterContentRepository {
     required Stopwatch sw,
   }) async {
     final isEpub = filePath.toLowerCase().endsWith('.epub');
-    final shouldLoadIr = isEpub && readingMode == ReadingMode.bilingual;
-
-    if (shouldLoadIr) {
-      try {
-        final ir = await reader_api.getChapterContentIr(
-          bookId: bookId,
-          chapterIndex: chapterId,
-        );
-        if (ir.blocks.isNotEmpty && ir.plainText.isNotEmpty) {
-          Logging.info(
-            '[Timing] loadRichCapablePayload IR: ${sw.elapsedMilliseconds}ms '
-            'blocks=${ir.blocks.length}',
-          );
-          return scrollIrPayload(chapterIr: ir, chapterFilePath: filePath);
-        }
-        _logIrFallback(
-          stage: 'validate',
-          bookId: bookId,
-          chapterIndex: chapterId,
-          readingMode: readingMode,
-          reason:
-              'empty_ir blocks=${ir.blocks.length} plain=${ir.plainText.length}',
-          fallbackSucceeded: false,
-        );
-      } catch (error) {
-        _logIrFallback(
-          stage: 'fetch',
-          bookId: bookId,
-          chapterIndex: chapterId,
-          readingMode: readingMode,
-          reason: error,
-          fallbackSucceeded: false,
-        );
-      }
-    }
 
     final content = await _fetchPlainChapterContent(bookId, chapterId);
 
-    if (shouldLoadIr) {
-      _logIrFallback(
-        stage: 'plain',
-        bookId: bookId,
-        chapterIndex: chapterId,
-        readingMode: readingMode,
-        reason: 'ir_unavailable',
-        fallbackSucceeded: true,
-      );
-    }
 
     Logging.info(
       '[Timing] loadContent total: ${sw.elapsedMilliseconds}ms '

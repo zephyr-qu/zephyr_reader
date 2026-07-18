@@ -162,59 +162,6 @@ async fn test_extract_metadata() {
     }
 }
 
-// ==================== 双语对齐测试 ====================
-
-#[tokio::test]
-async fn test_bilingual_alignment_empty() {
-    common::init_logger();
-
-    // 测试空内容的双语对齐
-    let chinese = String::new();
-    let english = String::new();
-    let min_similarity = 0.5;
-
-    let result = rust_lib_zephyr_reader::api::bilingual::align_bilingual_content(
-        chinese,
-        english,
-        min_similarity,
-    )
-    .await;
-
-    // 空输入应该返回空输出
-    assert!(result.is_ok(), "空内容对齐应该成功");
-
-    let alignment = result.unwrap();
-    assert!(alignment.segments.is_empty(), "空输入应该产生空输出");
-    println!("空内容对齐成功");
-}
-
-#[tokio::test]
-async fn test_bilingual_alignment_simple() {
-    common::init_logger();
-
-    // 测试简单的双语对齐
-    let chinese = "你好世界\n这是一个测试".to_string();
-    let english = "Hello world\nThis is a test".to_string();
-    let min_similarity = 0.3;
-
-    let result = rust_lib_zephyr_reader::api::bilingual::align_bilingual_content(
-        chinese,
-        english,
-        min_similarity,
-    )
-    .await;
-
-    // 应该成功对齐
-    assert!(result.is_ok(), "简单对齐应该成功: {:?}", result);
-
-    let alignment = result.unwrap();
-    println!(
-        "双语对齐成功: 匹配数={}, 未匹配中文={}, 未匹配英文={}",
-        alignment.segments.len(),
-        alignment.unmatched_chinese.len(),
-        alignment.unmatched_english.len()
-    );
-}
 // ==================== 错误处理测试 ====================
 
 #[test]

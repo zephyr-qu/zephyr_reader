@@ -3,7 +3,7 @@ import 'package:zephyr_reader/features/reader/core/application/pagination_coordi
 import 'package:zephyr_reader/core/reader_engine/data/chapter_content_repository.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/engine.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/engine_utils.dart';
-import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/page_plan.dart';
 
 /// 章节分页意图。取代 `restartSession` 布尔，使 orchestrator 能显式选择路径。
 ///
@@ -64,12 +64,12 @@ ChapterPaginationIntent resolveChapterPaginationIntent({
   }
 
   final hash = engine.session.sessionConfigHash;
-  final descriptors = engine.session.descriptors;
+  final pagePlans = engine.session.pagePlans;
   final sessionChapterIndex = engine.session.sessionChapterIndex;
 
   final sessionValid =
       hash != null &&
-      (descriptors?.isNotEmpty == true) &&
+      (pagePlans?.isNotEmpty == true) &&
       sessionChapterIndex == chapterIndex;
 
   if (!sessionValid) return ChapterPaginationIntent.normalLoad;
@@ -84,15 +84,14 @@ ChapterPaginationIntent resolveChapterPaginationIntent({
 bool shouldPreserveContentForIntent(ChapterPaginationIntent intent) =>
     intent != ChapterPaginationIntent.normalLoad;
 
-/// partial descriptors 下由书签 [initialCharOffset] 推算首屏页码。
 QuickPageResolveResult resolveQuickPageForPartial({
-  required List<PackedPage> descriptors,
+  required List<PagePlan> pages,
   required int initialCharOffset,
   required bool isPartial,
   required int fallbackPageIndex,
-  int Function(int charOffset, List<PackedPage> descriptors)? resolvePageIndex,
+  int Function(int charOffset, List<PagePlan> pages)? resolvePageIndex,
 }) {
-  final partialEnd = descriptors.last.endOffset;
+  final partialEnd = pages.last.endUtf16;
   final offsetBeyondPartial = isPartial && initialCharOffset > partialEnd;
   if (offsetBeyondPartial) {
     return QuickPageResolveResult(
@@ -103,9 +102,9 @@ QuickPageResolveResult resolveQuickPageForPartial({
 
   final charOffsetForPartial = initialCharOffset.clamp(0, partialEnd);
   final resolved = resolvePageIndex != null
-      ? resolvePageIndex(charOffsetForPartial, descriptors)
-      : PaginationUtils.resolvePageIndexForOffset(
-          descriptors,
+      ? resolvePageIndex(charOffsetForPartial, pages)
+      : PaginationUtils.resolvePageIndexForPagePlan(
+          pages,
           charOffsetForPartial,
         );
   final pageIndex = resolved >= 0 ? resolved : fallbackPageIndex;

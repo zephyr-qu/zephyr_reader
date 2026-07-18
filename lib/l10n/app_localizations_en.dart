@@ -157,9 +157,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get paginationMode => 'Pages';
 
   @override
-  String get bilingualMode => 'Bilingual';
-
-  @override
   String get fontSize => 'Font Size';
 
   @override
@@ -246,9 +243,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get selectionVocabulary => 'Vocabulary';
-
-  @override
-  String get selectionBilingual => 'Bilingual Pair';
 
   @override
   String get highlightYellow => 'Yellow';
@@ -781,9 +775,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updateNoteFailed => 'Failed to update note';
 
   @override
-  String get bilingualHighlightFailed => 'Failed to create bilingual highlight';
-
-  @override
   String chapterLoadFailed(Object error) {
     return 'Failed to load chapter: $error';
   }
@@ -812,9 +803,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get currentlyReading => 'Currently Reading';
-
-  @override
-  String get setBilingualTranslation => 'Set Bilingual Translation';
 
   @override
   String get pasteTranslationHint =>
@@ -928,9 +916,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aboutFeature3 => 'Smart typesetting engine';
 
   @override
-  String get aboutFeature4 => 'Bilingual reading';
-
-  @override
   String get aboutFeature5 => 'Vocabulary book & learning records';
 
   @override
@@ -988,16 +973,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wordSegmentation => 'Segmentation:';
 
   @override
-  String get bilingualNoAlignment =>
-      'No alignment found for bilingual highlight';
-
-  @override
-  String get bilingualNoParagraph => 'No matching paragraph found';
-
-  @override
-  String get bilingualHighlightCreated => 'Bilingual highlight created';
-
-  @override
   String get selectFile => 'Select File';
 
   @override
@@ -1024,7 +999,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutDescription =>
-      'Zephyr Reader is an offline bilingual novel reader built with Flutter + Rust.';
+      'Zephyr Reader is an offline novel reader built with Flutter + Rust, supporting EPUB and TXT formats with smart typesetting.';
 
   @override
   String get aboutFeatureOffline => '100% Offline';
@@ -1039,13 +1014,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aboutFeaturePerformanceDesc =>
       'Rust-powered engine parses large files instantly';
-
-  @override
-  String get aboutFeatureBilingual => 'Bilingual Layout';
-
-  @override
-  String get aboutFeatureBilingualDesc =>
-      'Equal priority for Chinese & English';
 
   @override
   String get aboutFeatureThemes => 'Multiple Themes';
@@ -1779,16 +1747,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ttsPauseBetween => 'Pause Between Sentences';
 
   @override
-  String get ttsBilingualReading => 'Bilingual Reading';
-
-  @override
   String get zephyrExclusive => 'Zephyr Exclusive';
-
-  @override
-  String get ttsBilingualAlternate => 'Alternate Bilingual';
-
-  @override
-  String get ttsBilingualAlternateDesc => 'Read English first, then Chinese';
 
   @override
   String get ttsOriginalOnly => 'Original Only';
@@ -2068,4 +2027,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get textAlignEnd => 'Right-aligned';
+
+  @override
+  String get aboutFeatureLookup => 'Dictionary & Translation';
+
+  @override
+  String get aboutFeatureLookupDesc =>
+      'Offline dictionary with configurable translation API';
 }

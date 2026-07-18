@@ -1,4 +1,3 @@
-import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/page_plan.dart';
 
 /// 无状态分页工具方法。
@@ -28,8 +27,6 @@ class PaginationUtils {
     return charOffset < getStart(pages[0]) ? 0 : pages.length - 1;
   }
 
-  /// 二分查找字符偏移所在的页码（PageInfo 列表）。
-
   /// 二分查找字符偏移所在的页码（PagePlan 列表）。
   static int resolvePageIndexForPagePlan(
     List<PagePlan> pages,
@@ -41,35 +38,13 @@ class PaginationUtils {
     getEnd: (p) => p.endUtf16,
   );
 
-  /// 二分查找字符偏移所在的页码（PackedPage 列表）。
-  static int resolvePageIndexForOffset(
-    List<PackedPage> descriptors,
-    int charOffset,
-  ) => _resolvePageIndex(
-    descriptors,
-    charOffset,
-    getStart: (d) => d.startOffset,
-    getEnd: (d) => d.endOffset,
-  );
-
-  /// 计算段落内最大字符偏移，用于 clamp 上限（PagePlan 版）。
-  static int chapterCharOffsetMaxFromPlans({
+  /// 计算段落内最大字符偏移，用于 clamp 上限。
+  static int chapterCharOffsetMax({
     required List<PagePlan>? pages,
     required String phase1PlainContent,
   }) {
     if (pages != null && pages.isNotEmpty) {
       return pages.last.endUtf16;
-    }
-    return phase1PlainContent.length;
-  }
-
-  /// 计算段落内最大字符偏移，用于 clamp 上限（PackedPage 版）。
-  static int chapterCharOffsetMax({
-    required List<PackedPage>? descriptors,
-    required String phase1PlainContent,
-  }) {
-    if (descriptors != null && descriptors.isNotEmpty) {
-      return descriptors.last.endOffset;
     }
     return phase1PlainContent.length;
   }

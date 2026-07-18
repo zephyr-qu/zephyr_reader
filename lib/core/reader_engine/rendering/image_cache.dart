@@ -2,7 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/page_plan.dart'
+    show PageFragment;
 import 'package:zephyr_reader/src/rust/api/book.dart' as epub_api;
 
 /// 解码 EPUB 图片字节（可注入以便测试）。
@@ -153,18 +154,17 @@ class EpubBlockImageCache {
     _ready.remove(_lru.removeAt(0));
   }
 
-  /// 页块列表中的 Image 切片后台预解码（与 session 滑动窗口同步触发）。
   void prefetchBlocks({
     required String filePath,
-    required List<PackedBlockSlice> blocks,
+    required List<PageFragment> fragments,
     required int maxWidthPx,
   }) {
     if (filePath.isEmpty || maxWidthPx <= 0) return;
-    for (final block in blocks) {
-      if (!block.isImage) continue;
+    for (final frag in fragments) {
+      if (!frag.isImage) continue;
       if (get(
             filePath: filePath,
-            assetId: block.assetId!,
+            assetId: frag.assetId!,
             maxWidthPx: maxWidthPx,
           ) !=
           null) {
@@ -172,18 +172,18 @@ class EpubBlockImageCache {
       }
       final key = loadKey(
         filePath: filePath,
-        assetId: block.assetId!,
+        assetId: frag.assetId!,
         maxWidthPx: maxWidthPx,
       );
       if (_inflight.containsKey(key)) continue;
       unawaited(
         load(
           filePath: filePath,
-          assetId: block.assetId!,
+          assetId: frag.assetId!,
           maxWidthPx: maxWidthPx,
         ).catchError((Object e) {
           Logging.debug(
-            '[EpubBlockImageCache] prefetch failed asset=${block.assetId}: $e',
+            '[EpubBlockImageCache] prefetch failed asset=${frag.assetId}: $e',
           );
           return Uint8List(0);
         }),

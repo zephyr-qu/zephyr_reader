@@ -3,14 +3,13 @@ import 'package:zephyr_reader/core/reader_engine/layout/layout_key.dart';
 import 'package:zephyr_reader/core/reader_engine/layout/layout_snapshot.dart';
 import 'package:zephyr_reader/core/reader_engine/layout/block_layout.dart';
 import 'package:zephyr_reader/core/reader_engine/layout/layout_spec.dart';
-import 'package:zephyr_reader/core/reader_engine/pagination/page_plan.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/page_plan.dart'
+    show PageFragment, PagePlan;
 import 'package:zephyr_reader/core/reader_engine/rendering/image_cache.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/line_break_extractor.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/engine_utils.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/pagination_params.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/flutter_block_paginator.dart';
-import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart'
-    show PackedBlockSlice, PackedPage;
 import 'package:zephyr_reader/core/reader_engine/pagination/pagination_staging_store.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/pagination_viewport_metrics.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/reader_render_config.dart';
@@ -35,12 +34,8 @@ class PaginationSession {
 
   LayoutSnapshot? get layoutSnapshot => _layoutSnapshot;
 
-  /// 底层页面快照列表（PagePlan，零分配）。
+  /// 底层页面快照列表（PagePlan）。
   List<PagePlan>? get pagePlans => _layoutSnapshot?.pages;
-
-  /// @Deprecated('Use pagePlans')
-  List<PackedPage>? get descriptors =>
-      _layoutSnapshot?.pages.map((p) => p.toPackedPage()).toList();
   BigInt? get sessionConfigHash => _layoutSnapshot?.key.hash;
   int? get sessionChapterIndex => _chapterIndex;
   bool get sessionIsPartial =>
@@ -144,7 +139,7 @@ class PaginationSession {
     void Function(int totalPages, bool isPartial)? onProgress,
   }) async {
     if (!sessionIsPartial) {
-      final n = descriptors?.length ?? 0;
+      final n = pagePlans?.length ?? 0;
       return (totalPages: n, isPartial: false);
     }
     final ir = _layoutSnapshot?.chapter;
@@ -180,9 +175,7 @@ class PaginationSession {
       final page = pages[i];
       final fragments = page.fragments;
       if (fragments.any((f) => f.isImage)) {
-        _prefetchBlockImages(
-          fragments.map((f) => f.toPackedSlice()).toList(),
-        );
+        _prefetchBlockImages(fragments);
       }
     }
   }
@@ -212,12 +205,12 @@ class PaginationSession {
     return book;
   }
 
-  void _prefetchBlockImages(List<PackedBlockSlice> blocks) {
+  void _prefetchBlockImages(List<PageFragment> fragments) {
     final path = _sessionFilePath;
     if (path == null || path.isEmpty) return;
     epubBlockImageCache.prefetchBlocks(
       filePath: path,
-      blocks: blocks,
+      fragments: fragments,
       maxWidthPx: _imageMaxWidthPx,
     );
   }
@@ -331,14 +324,14 @@ class PaginationSession {
     } on PaginationCancelledException {
       Logging.info('[FlutterPagination] paginate cancelled gen=$gen');
       return (
-        totalPages: descriptors?.length ?? 0,
+        totalPages: pagePlans?.length ?? 0,
         isPartial: sessionIsPartial,
       );
     }
 
     if (gen != _paginateGen) {
       return (
-        totalPages: descriptors?.length ?? 0,
+        totalPages: pagePlans?.length ?? 0,
         isPartial: sessionIsPartial,
       );
     }

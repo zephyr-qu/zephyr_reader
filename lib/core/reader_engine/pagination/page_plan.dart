@@ -1,9 +1,16 @@
 import 'package:flutter/foundation.dart';
 
-import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart'
-    show PackedBlockSlice, PackedPage, ReaderIrBlockLayout;
 import 'package:zephyr_reader/core/reader_engine/shared/ir_types.dart'
     show BlockStyle, ReaderInlineRun;
+
+/// 页内 Image 块的排版方式。
+enum ReaderIrBlockLayout {
+  /// 剩余页高足够：缩放 contain，与文本同页。
+  inlineContain,
+
+  /// 放不下：独占一页（全屏 contain）。
+  fullPage,
+}
 
 /// 一页的完整描述。
 ///
@@ -25,19 +32,6 @@ class PagePlan {
     this.usedHeight = 0,
     this.isLastPage = false,
   });
-
-  // Phase 6 compat: maps to fragments for legacy consumers.
-  List<PackedBlockSlice> get slices =>
-      fragments.map((f) => f.toPackedSlice()).toList();
-
-  /// Adapter: PagePlan → PackedPage（过渡期）。
-  PackedPage toPackedPage() => PackedPage(
-    pageIndex: pageIndex,
-    startOffset: startUtf16,
-    endOffset: endUtf16,
-    slices: slices,
-    isLastPage: isLastPage,
-  );
 }
 
 /// 页内一块连续渲染片段。
@@ -99,28 +93,6 @@ class PageFragment {
        style = null,
        isBlockStart = true,
        isBlockEnd = true;
-
-  /// Adapter: PageFragment → PackedBlockSlice（过渡期）。
-  PackedBlockSlice toPackedSlice() {
-    if (isImage) {
-      return PackedBlockSlice.image(
-        blockIndex: blockIndex,
-        assetId: assetId ?? '',
-        imageAlt: imageAlt,
-        imageIntrinsicWidth: intrinsicWidth,
-        imageIntrinsicHeight: intrinsicHeight,
-        imageLayout: imageLayout ?? ReaderIrBlockLayout.inlineContain,
-      );
-    }
-    return PackedBlockSlice.text(
-      blockIndex: blockIndex,
-      text: text ?? '',
-      spans: spans,
-      isBlockStart: isBlockStart,
-      isBlockEnd: isBlockEnd,
-      style: style,
-    );
-  }
 }
 
 /// PagePlan 集合的不变量验证。

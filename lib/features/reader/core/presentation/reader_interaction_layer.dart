@@ -43,7 +43,6 @@ class ReaderSelectionToolbarLayer extends HookWidget {
     final l10n = AppLocalizations.of(context)!;
     final String bSelectedtext = useSignalValue(vm.annotations.selectedText);
     final int bSelectionstart = useSignalValue(vm.annotations.selectionStart);
-    final ReadingMode bCurrentreadingmode = useSignalValue(vm.readingMode);
     final Offset? selectionGlobalPos = useSignalValue(
       uiState.selectionGlobalPos,
     );
@@ -86,9 +85,6 @@ class ReaderSelectionToolbarLayer extends HookWidget {
           chapterIndex: vm.chapterManager.chapterIndex.value,
           charOffset: bSelectionstart,
         ),
-        onBilingualHighlight: bCurrentreadingmode == ReadingMode.bilingual
-            ? () => onBilingualHighlight(context, vm)
-            : null,
         onDismiss: () => vm.annotations.clearSelection(),
       ),
       ),

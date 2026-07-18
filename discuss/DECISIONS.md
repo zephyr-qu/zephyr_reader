@@ -8,14 +8,14 @@
 | [002](./adr/002-pageturn-is-pagination-skin.md) | pageTurn 合并为 pagination 皮肤 | **已接受** | 2026-06-18 |
 | [003](./adr/003-block-pagination-ir.md) | 分页必须 EPUB 看图 → IR + 块分页 | **已接受** | 2026-06-18 |
 | [004](./adr/004-cross-chapter-staging.md) | 保留 staging，换章零感知 loading | **已接受** | 2026-06-18 |
-| [005](./adr/005-bilingual-optional.md) | 双语 = 设置项，非主加载链 | **已接受** | 2026-06-18 |
+| [005](./adr/005-bilingual-optional.md) | 双语 = 设置项，非主加载链 | **已废弃** | 2026-06-18 |
 | [006](./adr/006-rust-flutter-division.md) | Rust IR+分页；Flutter 渲染+staging | **已接受** | 2026-06-18 |
 | [007](./adr/007-plaintext-segmentation-stability.md) | plainText 分段冻结；charOffset 稳定 | **已接受** | 2026-06-18 |
 | [017](./adr/017-reading-offset-utf16-contract.md) | charOffset 跨 Rust/Flutter/SQLite 统一为 UTF-16 code unit | **已接受** | 2026-07-16 |
 | [008](./adr/008-ir-image-plain-placeholder.md) | IR 图片在 plain 中用 `\uFFFC` 占位 | **已接受** | 2026-06-18 |
 | [009](./adr/009-scroll-ir-unification.md) | Scroll 统一 Chunked IR | **已接受** | 2026-06-25 |
 | [010](./adr/010-block-css-in-ir.md) | IR Text 块基础 CSS；版式窄义 | **已接受** | 2026-06-25 |
-| [011](./adr/011-bilingual-feature-module.md) | 双语独立 feature，主链零依赖 | **已接受** | 2026-06-25 |
+| [011](./adr/011-bilingual-feature-module.md) | 双语独立 feature，主链零依赖 | **已废弃** | 2026-06-25 |
 | [012](./adr/012-staging-prefetch-guarantee.md) | Staging 预取硬保证，零可见 loading | **已接受** | 2026-06-25 |
 | [013](./adr/013-flutter-metrics-calibration.md) | Rust 初筛 + Flutter metrics 回传 | **Superseded by 016** | 2026-06-25 |
 | [014](./adr/014-api-path-unification.md) | 分页 API 路径统一 | **已接受** | 2026-07-03 |

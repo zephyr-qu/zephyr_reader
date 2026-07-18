@@ -67,7 +67,9 @@ class LayoutSpec {
       viewportWidth: viewportWidth,
       viewportHeight: viewportHeight,
       contentPadding: config.pageMargin,
-      fontFamily: config.fontFamily,
+      fontFamily: config.fontFamily.isNotEmpty
+          ? config.fontFamily
+          : ReaderRenderConfig.chineseFont,
       fontSize: config.fontSize,
       lineHeight: config.lineHeight,
       letterSpacing: config.letterSpacing,
@@ -86,7 +88,9 @@ class LayoutSpec {
       viewportWidth: params.width,
       viewportHeight: params.height,
       contentPadding: params.padding,
-      fontFamily: params.fontFamily,
+      fontFamily: params.fontFamily.isNotEmpty
+          ? params.fontFamily
+          : ReaderRenderConfig.chineseFont,
       fontSize: params.fontSize,
       lineHeight: params.lineHeight,
       letterSpacing: params.letterSpacing,

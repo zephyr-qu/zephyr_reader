@@ -296,11 +296,11 @@ class ChapterViewModel {
     if (pageIndex < 0 || pageIndex >= totalPages.value) return;
     this.pageIndex.value = pageIndex;
 
-    final descriptors = _engine.session.descriptors;
-    if (descriptors != null && pageIndex < descriptors.length) {
-      final d = descriptors[pageIndex];
-      final start = d.startOffset;
-      final end = d.endOffset;
+    final pagePlans = _engine.session.pagePlans;
+    if (pagePlans != null && pageIndex < pagePlans.length) {
+      final p = pagePlans[pageIndex];
+      final start = p.startUtf16;
+      final end = p.endUtf16;
       // 书签/跳转用页内偏移，避免落在页边界导致解析到上一页。
       final inside = end > start + 1 ? start + 1 : start;
       currentCharOffset.value = inside;

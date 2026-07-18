@@ -97,7 +97,6 @@ class TypesettingPanel extends StatelessWidget {
     return switch (readingMode) {
       ReadingMode.scroll => l10n.scrollMode,
       ReadingMode.pagination => l10n.paginationMode,
-      ReadingMode.bilingual => l10n.bilingualMode,
     };
   }
 
@@ -253,12 +252,6 @@ class TypesettingPanel extends StatelessWidget {
         PaginationSkin.slide,
         l10n.paginationMode,
         PhosphorIconsFill.bookOpenText,
-      ),
-      (
-        ReadingMode.bilingual,
-        PaginationSkin.slide,
-        l10n.bilingualMode,
-        PhosphorIconsRegular.translate,
       ),
     ];
 

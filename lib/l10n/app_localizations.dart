@@ -386,12 +386,6 @@ abstract class AppLocalizations {
   /// **'分页'**
   String get paginationMode;
 
-  /// No description provided for @bilingualMode.
-  ///
-  /// In zh, this message translates to:
-  /// **'对照'**
-  String get bilingualMode;
-
   /// No description provided for @fontSize.
   ///
   /// In zh, this message translates to:
@@ -559,12 +553,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'生词本'**
   String get selectionVocabulary;
-
-  /// No description provided for @selectionBilingual.
-  ///
-  /// In zh, this message translates to:
-  /// **'标注两侧'**
-  String get selectionBilingual;
 
   /// No description provided for @highlightYellow.
   ///
@@ -1580,12 +1568,6 @@ abstract class AppLocalizations {
   /// **'更新笔记失败'**
   String get updateNoteFailed;
 
-  /// No description provided for @bilingualHighlightFailed.
-  ///
-  /// In zh, this message translates to:
-  /// **'双语高亮创建失败'**
-  String get bilingualHighlightFailed;
-
   /// No description provided for @chapterLoadFailed.
   ///
   /// In zh, this message translates to:
@@ -1639,12 +1621,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'正在阅读'**
   String get currentlyReading;
-
-  /// No description provided for @setBilingualTranslation.
-  ///
-  /// In zh, this message translates to:
-  /// **'设置对照译文'**
-  String get setBilingualTranslation;
 
   /// No description provided for @pasteTranslationHint.
   ///
@@ -1862,12 +1838,6 @@ abstract class AppLocalizations {
   /// **'智能排版引擎'**
   String get aboutFeature3;
 
-  /// No description provided for @aboutFeature4.
-  ///
-  /// In zh, this message translates to:
-  /// **'双语对照阅读'**
-  String get aboutFeature4;
-
   /// No description provided for @aboutFeature5.
   ///
   /// In zh, this message translates to:
@@ -1976,24 +1946,6 @@ abstract class AppLocalizations {
   /// **'分词：'**
   String get wordSegmentation;
 
-  /// No description provided for @bilingualNoAlignment.
-  ///
-  /// In zh, this message translates to:
-  /// **'未找到双语对齐位置'**
-  String get bilingualNoAlignment;
-
-  /// No description provided for @bilingualNoParagraph.
-  ///
-  /// In zh, this message translates to:
-  /// **'未找到对应段落'**
-  String get bilingualNoParagraph;
-
-  /// No description provided for @bilingualHighlightCreated.
-  ///
-  /// In zh, this message translates to:
-  /// **'双语高亮已创建'**
-  String get bilingualHighlightCreated;
-
   /// No description provided for @selectFile.
   ///
   /// In zh, this message translates to:
@@ -2045,7 +1997,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutDescription.
   ///
   /// In zh, this message translates to:
-  /// **'Zephyr Reader 是一款纯离线的双语小说阅读器，Flutter + Rust 构建，100% 本地，无后端，无广告，无数据收集，专注于中英文双语阅读体验。'**
+  /// **'Zephyr Reader 是一款纯离线的阅读器，Flutter + Rust 构建，100% 本地，无后端，无广告，无数据收集，专注于中英文阅读体验。'**
   String get aboutDescription;
 
   /// No description provided for @aboutFeatureOffline.
@@ -2071,18 +2023,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'Rust 引擎即时解析大文件'**
   String get aboutFeaturePerformanceDesc;
-
-  /// No description provided for @aboutFeatureBilingual.
-  ///
-  /// In zh, this message translates to:
-  /// **'双语对照'**
-  String get aboutFeatureBilingual;
-
-  /// No description provided for @aboutFeatureBilingualDesc.
-  ///
-  /// In zh, this message translates to:
-  /// **'中英同权对齐'**
-  String get aboutFeatureBilingualDesc;
 
   /// No description provided for @aboutFeatureThemes.
   ///
@@ -3410,29 +3350,11 @@ abstract class AppLocalizations {
   /// **'句间停顿'**
   String get ttsPauseBetween;
 
-  /// No description provided for @ttsBilingualReading.
-  ///
-  /// In zh, this message translates to:
-  /// **'双语朗读'**
-  String get ttsBilingualReading;
-
   /// No description provided for @zephyrExclusive.
   ///
   /// In zh, this message translates to:
   /// **'Zephyr 专属'**
   String get zephyrExclusive;
-
-  /// No description provided for @ttsBilingualAlternate.
-  ///
-  /// In zh, this message translates to:
-  /// **'双语交替朗读'**
-  String get ttsBilingualAlternate;
-
-  /// No description provided for @ttsBilingualAlternateDesc.
-  ///
-  /// In zh, this message translates to:
-  /// **'先读英文原文，再读中文译文'**
-  String get ttsBilingualAlternateDesc;
 
   /// No description provided for @ttsOriginalOnly.
   ///
@@ -3943,6 +3865,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'右对齐'**
   String get textAlignEnd;
+
+  /// No description provided for @aboutFeatureLookup.
+  ///
+  /// In zh, this message translates to:
+  /// **'词典与翻译'**
+  String get aboutFeatureLookup;
+
+  /// No description provided for @aboutFeatureLookupDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'离线词典 + 可配置翻译 API'**
+  String get aboutFeatureLookupDesc;
 }
 
 class _AppLocalizationsDelegate

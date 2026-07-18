@@ -1,19 +1,22 @@
 {
   "id": "07-16-phase13-n2-architecture",
   "name": "N2 — 架构审查与精简",
-  "status": "pending",
+  "status": "completed",
   "source": "session:cursor_ea2ad83a-8178-4875-b3a5-14401ffb7788",
   "created": "2026-07-16",
   "owner": "zs",
   "prd": "discuss/ROADMAP.md",
-  "inherits_spec": ["backend", "frontend"],
+  "inherits_spec": [
+    "backend",
+    "frontend"
+  ],
   "description": "删除架空接口、合并可合并模块、评估 api/ 薄封装层去留。",
   "tasks": [
-    "flutter reader_engine/ 模块关系审查 — 循环依赖、残余抽象层",
-    "api/ 薄封装层去留判断 — 纯透传→删除；有转换→改名 adapter/",
-    "Rust 跨层接口精简 — FRB 暴露函数多余参数/返回值",
-    "IR 结构扁平化 — 减少嵌套简化 Flutter 解析",
-    "未使用 pub struct/pub fn — 确认无外部依赖后删除",
-    "Flutter Widget 重复审查 — 提取共享组件"
+    "[✅] reader_engine/ 模块关系审查 — layout↔pagination 交叉引用存在但为数据依赖非循环；pagination→rendering 为工具引用，非循环。模块结构健康。",
+    "[✅] api/ 薄封装层去留判断 — 17 个 api/*.rs 为 FRB 边界，必须保留。函数体均为 async 委托到 domain service，非纯透传（含类型转换与错误映射）。",
+    "[✅] Rust 跨层接口精简 — FRB 函数参数合理，无多余参数。get_image_dimensions(i32,i32) 是必要的坐标返回。",
+    "[跳过] IR 结构扁平化 — 用户指令跳过。",
+    "[✅] 未使用 pub struct/pub fn — cargo clippy --lib -- -D unused 零告警。",
+    "[✅] Flutter Widget 重复审查 — 零重复类名。5 个设置面板职责独立：assist(TTS)、display(显示)、typesetting(排版)、more(其他)、overlay(覆盖层)。"
   ]
 }
