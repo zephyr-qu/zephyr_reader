@@ -1,8 +1,8 @@
-use flutter_rust_bridge::frb;
-use chrono::NaiveDate;
-use sqlx::SqlitePool;
 use crate::common::AppError;
 use crate::domain::sessions::models::ReadingSession;
+use chrono::NaiveDate;
+use flutter_rust_bridge::frb;
+use sqlx::SqlitePool;
 
 const SQL_UPSERT_SESSION: &str = "\
 INSERT INTO reading_sessions (id, book_id, chapter_index, start_char_offset, end_char_offset, started_at, ended_at, duration_seconds) \
@@ -20,7 +20,10 @@ duration_seconds = excluded.duration_seconds";
 pub struct SessionRepository;
 
 impl SessionRepository {
-    pub async fn save(pool: &SqlitePool, session: &ReadingSession) -> Result<ReadingSession, AppError> {
+    pub async fn save(
+        pool: &SqlitePool,
+        session: &ReadingSession,
+    ) -> Result<ReadingSession, AppError> {
         sqlx::query(SQL_UPSERT_SESSION)
             .bind(&session.id)
             .bind(&session.book_id)
@@ -40,15 +43,13 @@ impl SessionRepository {
         book_id: &str,
         limit: i64,
     ) -> Result<Vec<ReadingSession>, AppError> {
-        Ok(
-            sqlx::query_as::<_, ReadingSession>(
-                "SELECT * FROM reading_sessions WHERE book_id = ? ORDER BY started_at DESC LIMIT ?",
-            )
-            .bind(book_id)
-            .bind(limit)
-            .fetch_all(pool)
-            .await?,
+        Ok(sqlx::query_as::<_, ReadingSession>(
+            "SELECT * FROM reading_sessions WHERE book_id = ? ORDER BY started_at DESC LIMIT ?",
         )
+        .bind(book_id)
+        .bind(limit)
+        .fetch_all(pool)
+        .await?)
     }
 
     pub async fn find_by_date_range(
@@ -75,14 +76,12 @@ impl SessionRepository {
         pool: &SqlitePool,
         limit: i64,
     ) -> Result<Vec<ReadingSession>, AppError> {
-        Ok(
-            sqlx::query_as::<_, ReadingSession>(
-                "SELECT * FROM reading_sessions ORDER BY started_at DESC LIMIT ?",
-            )
-            .bind(limit)
-            .fetch_all(pool)
-            .await?,
+        Ok(sqlx::query_as::<_, ReadingSession>(
+            "SELECT * FROM reading_sessions ORDER BY started_at DESC LIMIT ?",
         )
+        .bind(limit)
+        .fetch_all(pool)
+        .await?)
     }
 
     pub async fn delete_by_book(pool: &SqlitePool, book_id: &str) -> Result<(), AppError> {
@@ -95,12 +94,11 @@ impl SessionRepository {
 
     /// 获取指定书籍的会话数量
     pub async fn count_by_book(pool: &SqlitePool, book_id: &str) -> Result<i32, AppError> {
-        let count: i32 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM reading_sessions WHERE book_id = ?",
-        )
-        .bind(book_id)
-        .fetch_one(pool)
-        .await?;
+        let count: i32 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM reading_sessions WHERE book_id = ?")
+                .bind(book_id)
+                .fetch_one(pool)
+                .await?;
         Ok(count)
     }
 }

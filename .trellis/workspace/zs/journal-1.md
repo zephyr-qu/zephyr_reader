@@ -116,3 +116,32 @@
 - 滚动模式 Flutter 化：用 IR 统一 scroll 和分页渲染路径
 - 目标：删除 `get_epub_chapter_rich_content`、`TypesetConfig` FRB、`RichParagraph` 全链路
 - 分支：phase/8-scroll-flutter-migration
+
+### Phase 13 核心架构审查（2026-07-18）
+
+审查结论：核心架构方向正确，不需要推倒重来。但必须先解决 source graph 污染和几个真实竞态。
+
+**发现的 P0 问题：**
+- DI config 仍引用已移走的 piolium 证据文件 → 编译错误
+- next/prev staging 共享同一个 _stagingGen → 双向预取互相取消
+- 视口尺寸回传已断开 → session 一直使用 estimated height
+
+**P1 问题：**
+- scroll fetch 会污染当前章 IR
+- scroll 进度被保存成 100%（pageIndex 泄漏）
+- EPUB 嵌套图丢弃、大 HTML 字节切片可切断标签
+- 图片同步 FFI 可能卡顿（Future.microtask 不隔离）
+
+**P1-P2 问题：**
+- ADR-018 未完成：LayoutSnapshot→PagePlan→PackedPage 两套页模型共存
+- PagePlan 和 PackedPage 都通不过 deletion test
+
+**Phase 13 重排后的执行顺序：**
+N0A → N0B → N2A → N2B → N3 → N4 → N1/N5
+
+**当前预清理阶段（N0A）：**
+- 净化 source graph（piolium 污染）
+- 重新生成 DI/FRB
+- 增加 source-root gate
+
+来源：architecture-review-20260718-095042.html

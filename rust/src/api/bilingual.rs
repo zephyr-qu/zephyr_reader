@@ -3,8 +3,10 @@
 use flutter_rust_bridge::frb;
 
 use crate::common::AppError;
-use crate::domain::bilingual::{BilingualAlignment, BilingualHighlightPair, BilingualHighlightParams};
 use crate::domain::bilingual::service;
+use crate::domain::bilingual::{
+    BilingualAlignment, BilingualHighlightPair, BilingualHighlightParams,
+};
 
 /// 对齐双语文本（基于相似度匹配）
 #[frb]
@@ -13,8 +15,11 @@ pub async fn align_bilingual_content(
     english_content: String,
     min_similarity: f32,
 ) -> Result<BilingualAlignment, AppError> {
-    tracing::info!("[bilingual] align_bilingual_content: chinese_len={}, english_len={}",
-        chinese_content.len(), english_content.len());
+    tracing::info!(
+        "[bilingual] align_bilingual_content: chinese_len={}, english_len={}",
+        chinese_content.len(),
+        english_content.len()
+    );
     service::align_bilingual_content(chinese_content, english_content, min_similarity).await
 }
 
@@ -23,8 +28,11 @@ pub async fn align_bilingual_content(
 pub async fn create_bilingual_highlight_pair(
     params: BilingualHighlightParams,
 ) -> Result<BilingualHighlightPair, AppError> {
-    tracing::info!("[bilingual] create_bilingual_highlight_pair: book_id={}, chapter_index={}",
-        params.book_id, params.chapter_index);
+    tracing::info!(
+        "[bilingual] create_bilingual_highlight_pair: book_id={}, chapter_index={}",
+        params.book_id,
+        params.chapter_index
+    );
     service::create_bilingual_highlight_pair(&params).await
 }
 
@@ -34,8 +42,11 @@ pub async fn get_bilingual_highlight_pairs(
     book_id: String,
     chapter_index: i32,
 ) -> Result<Vec<BilingualHighlightPair>, AppError> {
-    tracing::debug!("[bilingual] get_bilingual_highlight_pairs: book_id={}, chapter_index={}",
-        book_id, chapter_index);
+    tracing::debug!(
+        "[bilingual] get_bilingual_highlight_pairs: book_id={}, chapter_index={}",
+        book_id,
+        chapter_index
+    );
     service::get_bilingual_highlight_pairs(&book_id, chapter_index as i64).await
 }
 

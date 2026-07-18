@@ -140,9 +140,9 @@ Phase 7 代码清理完成后，此阶段各项已自然完成。
 
 ---
 
-## Phase 9 — Flutter 原生 IR + 管线简化（规划中）
+## Phase 9 — IR 优化 + Flutter 管线简化 ✅ 已完成
 
-**目标**：IR 数据结构从 Rust 遗留设计优化为 Flutter 原生形式，
+**目标**：优化 Rust 定义、FRB 生成的 IR 数据结构，收口 Flutter 导入边界，
 消除 Rust-era 中间类型，简化两条渲染管线。
 
 ### 与 Phase 7 的分工
@@ -154,7 +154,7 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 | # | 优先级 | 项 | 说明 |
 | --- | ------ | ----- | ------ |
 | 0 | **P0** | **Rust 目录重组** | ✅ 已完成 — API 瘦身 + Flutter import 修复 |
-| 1 | **P1** | **IR 结构优化 + 纯 Dart 化**（两项合并） | ✅ 已完成 — 创建 `ir_types.dart`，`ReaderChapterIr`/`ReaderIrBlock`/`ReaderInlineRun` 等为纯 Dart 类，`RustChapterContentRepository` 边界处 `convertChapterIrFromFrb` 转换 |
+| 1 | **P1** | **IR 结构优化 + Flutter 入口收口** | ✅ 已完成 — IR 由 Rust 定义并由 FRB 自动生成 Dart 类型；`ir_types.dart` 是 Flutter 阅读引擎的统一导入入口，不维护重复 Dart IR |
 | 2 | **P1** | **`PaginationSession` 接口简化** | ✅ 已完成 — 假抽象类已合并，DI 工厂已删除 |
 | 3 | **P2** | **`ChapterPaginationMode.plainText` 死变体删除** | ✅ 已完成 — 枚举及字段已删除，残留测试引用待清理 |
 | 4 | **P2** | **`LINE_BREAKS_STORE` 行断点缓存评估** | ✅ 已完成 — `line_breaking.rs`/`char_width.rs` 已在 Phase 8 删除，Flutter 侧 `TextPainter` 完成所有断行 |
@@ -296,56 +296,89 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 | 12 | 大 TXT 切窗边界优化 | 加中文句号 `。` / 英文句号 `.` 作为备选切窗边界，减少句子中间截断 | P2 |
 ---
 
-## Phase 13 — 基础质量攻坚（已分节点）
+## Phase 13 — 基础质量攻坚（2026-07-18 重排）
 
-**目标**：彻底解决项目基础质量问题 — 代码冗余、架构精简、核心链路健壮性、边界验证、依赖清理，最终达到 `cargo clippy -D warnings` + `flutter analyze --fatal-infos` 双零。
+**目标**：彻底解决项目基础质量问题 — source graph 净化、正确性 seam 修复、ADR-018 收口、Rust 健壮性、边界验证、最终双零门禁。
 
-**执行顺序**：N0 → N2 → N3 → N4 → N1 → N5（清理最后做，避免前置变更产生的新死代码反复清理）
+**执行顺序**：N0A → N0B → N2A → N2B → N3 → N4 → N1/N5
+
+**背景**：2026-07-18 核心架构审查完成，结论为核心架构方向正确不需要推倒重来。
+审查报告：[architecture-review-20260718-095042.html]。
 
 ---
 
-### N0 — 预清理（N2 前置）
+### N0A — 净化 source graph（P0）
 
-**目标**：快速扫除明显死代码，净化架构审查视野。
+**目标**：安全审计文件已污染生产 DI。全部移动到仓库根目录，重新生成 DI/FRB，增加 source-root gate。
 
 | # | 项 | 说明 |
 | --- | ----- | ------ |
-| 1 | `dart analyze` 扫描 | 找出 unused import/field/class 并删除 |
-| 2 | `cargo clippy` 扫描 | 找出 Rust 侧 unused / dead_code 并删除 |
-| 3 | 明显废弃文件 | 确认无引用后直接删除 |
+| 1 | 移动 piolium 资料到仓库根目录 `./piolium/` | 已迁移。清理 DI config 残留，删除 build cache |
+| 2 | 重新生成 DI codegen/FRB codegen | `flutter_rust_bridge_codegen generate` 验证 |
+| 3 | 增加 CI gate | 禁止 `lib/` 和 `rust/src/` 包含 piolium 文件 |
+| 4 | 禁止审计源码/PoC/exploit 进入 `lib/` 和 `rust/src/` | CI gate 合并检查 |
 
 ---
 
-### N2 — 架构审查与精简
+### N0B — 建立可信基线
 
-**目标**：删除架空接口、合并可合并模块、评估 api/ 薄封装层去留。
+**目标**：统一门禁标准、修复两个现有 lib-test 失败、建立完整的失败清单。
 
 | # | 项 | 说明 |
 | --- | ----- | ------ |
-| 1 | Flutter `reader_engine/` 模块关系审查 | 检查循环依赖、残余抽象层 |
-| 2 | `api/` 薄封装层去留判断 | 纯透传→删除；有类型转换→改名 `adapter/` 或 `mapper/` |
-| 3 | Rust 跨层接口精简 | 检查 FRB 暴露函数是否有多余参数/返回值 |
-| 4 | IR 结构扁平化 | 检查是否过于嵌套，简化 Flutter 侧解析 |
-| 5 | 未使用 `pub struct` / `pub fn` | 确认无外部依赖后删除 |
-| 6 | Flutter Widget 重复审查 | 提取共享组件，减少重复渲染树 |
+| 1 | 文档统一当前 Phase 13 | ROADMAP 已更新 |
+| 2 | 区分 `lib` gate 与 `all-targets` gate | 生产代码 vs 测试/集成门禁分开 |
+| 3 | 修复两个现有 lib 测试失败 | 嵌套图片丢失（真实 bug）、oversized EPUB fixture（不稳定） |
+| 4 | 记录完整失败清单 | `cargo clippy --all-targets` 失败、跨层测试断裂 |
 
 ---
 
-### N3 — 核心链路健壮性
+### N2A — 修正确性 seam（P0/P1）
 
-**目标**：全链路端到端验证 + FFI 错误路径审计 + Panic 边界检查。
+**目标**：修复审查发现的正确性问题 — staging/scroll generation 独立化、viewport metrics 断链、scroll progress 污染。
 
 | # | 项 | 说明 |
 | --- | ----- | ------ |
-| 1 | 全链路手动测试 | 开书→画笔记→存进度→杀进程→恢复→检查一致性 |
-| 2 | FFI 错误审计 | 所有 FRB 函数返回 `Result<T, AppError>`？ |
-| 3 | Panic 边界检查 | 禁用非测试代码 `unwrap()`，`catch_unwind` 覆盖 |
-| 4 | Flutter 异步错误处理 | 所有 FFI 调用是否 `try-catch` / `.onError` |
-| 5 | 异常路径验证 | 断网、空书、异常退出场景 |
+| 1 | staging 双向 next/prev generation 独立 | `nextToken+nextSlot` / `prevToken+prevSlot`，`clearAll` 才取消两边 |
+| 2 | scroll append/prepend generation 独立 | 双向加载不互相取消 |
+| 3 | viewport metrics 断链修复 | 正式 `buildPagePlanContent` 的 LayoutBuilder 上报正文尺寸 |
+| 4 | scroll fetch 不污染当前章 | 建立 `ChapterDocument` module，fetch 无副作用 |
+| 5 | scroll progress 100% 修复 | 统一 `ReadingPosition` + 章节长度，删除 `pageIndex` 进度计算 |
+| 6 | 旧 renderer (`buildBlockPageContent`) 移除准备 | 确认无生产调用后删除 |
 
 ---
 
-### N4 — 边界场景验证
+### N2B — 完成 ADR-018（P1/P2）
+
+**目标**：删除 `PackedPage` 和旧 renderer，renderer/navigation/staging 直消费 `LayoutSnapshot`。
+
+| # | 项 | 说明 |
+| --- | ----- | ------ |
+| 1 | renderer 直接消费 `LayoutSnapshot.pages` | 删除 `PackedPage` 转换步骤 |
+| 2 | navigation 直接二分 `PagePlan` | 删除 `PackedPage` 导航查询 |
+| 3 | staging 保存原生 snapshot/page plans | 不转 `PackedPage` |
+| 4 | 图片预取直接消费 `PageFragment` | 不经过 `PackedBlockSlice` |
+| 5 | 删除 `PackedPage` / `PackedBlockSlice` | 完整 deletion test |
+| 6 | 删除旧 renderer 和旧行断模块 | 确认无生产调用后删除 |
+
+---
+
+### N3 — Rust 健壮性
+
+**目标**：EPUB 解析健壮性、FFI 阻塞隔离、cache 新鲜度、所有 FFI Result、panic 审计。
+
+| # | 项 | 说明 |
+| --- | ----- | ------ |
+| 1 | EPUB 嵌套图修复 + 大 HTML DOM seam | `<span><img/></span>` 图片不被丢弃，字节切片不切断标签 |
+| 2 | sync FFI 阻塞隔离 | `spawn_blocking` 包装 ZIP/read/decode/resize |
+| 3 | IR cache 新鲜度 | mtime/size 判断 + singleflight |
+| 4 | Rust cache 淘汰策略 | 按时间而非字典序 |
+| 5 | 所有 FFI `Result<T, AppError>` | 审计非特殊导出函数 |
+| 6 | `panic/unwrap` 审计 | 区分常量不变量和真实风险 |
+
+---
+
+### N4 — 边界压力验证
 
 **目标**：大文件、含图 EPUB、快速交互等边界压力测试。
 
@@ -353,37 +386,29 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 | --- | ----- | ------ |
 | 1 | 大 TXT 打开与翻页 | 百万字级别文件 |
 | 2 | 含图 EPUB 章节切换 | 高清图片密集章节流畅度 |
-| 3 | 切换排版即时生效 | 字号/行距/主题切换后无延迟 |
-| 4 | 快速连续翻页 | 5+ 页/秒，状态不混乱 |
-| 5 | 打断操作 | 翻页动画中点击目录等打断操作不崩溃 |
+| 3 | 切换排版即时生效 | 字号/行距/主题切换无延迟 |
+| 4 | 快速连续翻页 | 5+ 页/秒状态不混乱 |
+| 5 | 打断操作 | 翻页动画中点击目录不崩溃 |
 | 6 | 反复换章 | 多章来回切换稳定性 |
+| 7 | scroll 跨章进度与批注 | 自然跨章不丢失批注 |
 
 ---
 
-### N1 — 深度清理与依赖评估
+### N1/N5 — 最后清理 + 双零门禁
 
-**目标**：清理 N0-N4 遗留的死代码 + 依赖审计（sled 评估）。
+**目标**：清扫 N2-N4 遗留死代码、依赖审计、最终 `cargo clippy -D warnings` + `flutter analyze --fatal-infos` 双零。
 
 | # | 项 | 说明 |
 | --- | ----- | ------ |
 | 1 | 死代码清扫 | N2-N4 变更后遗留的老接口、未用 import |
 | 2 | `#[allow(...)]` 审计 | 移除不再需要的 suppress |
-| 3 | sled KV 存储评估 | 查 sled 消费者，做基准测试辅助决策：迁移到 SQLite/redb 或保留 |
+| 3 | sled KV 存储评估 | 查 sled 消费者，基准测试辅助决策：迁移/保留 |
 | 4 | 废弃 Cargo/Flutter 依赖 | 检查 `Cargo.toml`、`pubspec.yaml` 未用依赖 |
-
----
-
-### N5 — 质量门禁归零
-
-**目标**：最终收口，达到零告警稳定基线。
-
-| # | 项 | 说明 |
-| --- | ----- | ------ |
-| 1 | `cargo clippy -- -D warnings` | 零告警 |
-| 2 | `flutter analyze --fatal-infos` | 零告警 |
-| 3 | FRB codegen 验证 | 确认生成代码已同步，接口稳定 |
-| 4 | CI 流水线 | 全部通过 |
-| 5 | 文档同步 | 更新架构图，记录 N3 关键 Bug 与修复 |
+| 5 | `cargo clippy -- -D warnings` | 零告警（lib + all-targets） |
+| 6 | `flutter analyze --fatal-infos` | 零告警 |
+| 7 | FRB codegen 验证 | 生成代码同步、接口稳定 |
+| 8 | CI 流水线全部通过 | |
+| 9 | 文档同步 | 更新架构图、记录关键 Bug 与修复 |
 
 ---
 
@@ -395,7 +420,6 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 - ❌ 不改 UI/UX 细节
 
 ---
-
 ## Phase 14 — 阅读中增强（规划中）
 
 **目标**：优化用户在阅读过程中直接使用的外围功能。

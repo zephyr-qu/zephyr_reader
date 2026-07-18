@@ -54,11 +54,7 @@ fn compile_builtin_patterns() -> Vec<CompiledPattern> {
 }
 
 /// 使用单个 pattern 尝试提取章节
-fn try_pattern(
-    content: &str,
-    pattern: &CompiledPattern,
-    book_id: &str,
-) -> Vec<Chapter> {
+fn try_pattern(content: &str, pattern: &CompiledPattern, book_id: &str) -> Vec<Chapter> {
     let content_len = content.len() as i64;
     let mut chapters: Vec<Chapter> = Vec::new();
 

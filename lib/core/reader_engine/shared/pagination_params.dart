@@ -40,24 +40,4 @@ class PaginationParams {
     this.baselineAlign = true,
     this.textScaler = TextScaler.noScaling,
   });
-
-  BigInt get layoutHash => BigInt.from(
-    Object.hash(
-      width,
-      height,
-      fontSize,
-      lineHeight,
-      padding,
-      devicePixelRatio,
-      fontFamily,
-      letterSpacing,
-      paragraphSpacing,
-      punctuationSqueeze,
-      firstLineIndent,
-      language,
-      autoSpaceRatio,
-      baselineAlign,
-      textScaler,
-    ),
-  );
 }

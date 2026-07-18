@@ -16,7 +16,6 @@ async fn init_test_env() {
     common::init_test_search_engine().await;
 }
 
-
 // ==================== 索引测试 ====================
 
 #[tokio::test]
@@ -511,11 +510,7 @@ async fn test_get_index_stats() {
         .await
         .expect("获取索引统计失败");
     assert!(mid.total_chunks > before.total_chunks, "索引后数据块应增加");
-    assert_eq!(
-        mid.indexed_books,
-        before.indexed_books + 1,
-        "应增加 1 本书",
-    );
+    assert_eq!(mid.indexed_books, before.indexed_books + 1, "应增加 1 本书",);
     assert_eq!(
         mid.indexed_chapters,
         before.indexed_chapters + 1,

@@ -135,13 +135,10 @@ impl ComputedStyle {
 
 /// 将 CSS 计算样式映射为行内 SpanStyle（`<span style="font-weight:bold">` 等）。
 pub fn span_style_from_computed(style: &ComputedStyle) -> ReaderInlineStyle {
-    if style.font_weight.unwrap_or(400) >= 700 {
-        return ReaderInlineStyle::Bold;
+    ReaderInlineStyle {
+        bold: style.font_weight.unwrap_or(400) >= 700,
+        italic: style.font_style.as_deref() == Some("italic"),
     }
-    if style.font_style.as_deref() == Some("italic") {
-        return ReaderInlineStyle::Italic;
-    }
-    ReaderInlineStyle::Plain
 }
 
 pub fn push_styled_text_span(

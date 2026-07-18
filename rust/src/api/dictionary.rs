@@ -3,9 +3,9 @@
 use flutter_rust_bridge::frb;
 
 use crate::common::AppError;
-use crate::domain::dictionary::{DictSearchResult, models::Dictionary};
 use crate::domain::dictionary::dictionary_repo::DictionaryRepository;
 use crate::domain::dictionary::service;
+use crate::domain::dictionary::{DictSearchResult, models::Dictionary};
 use crate::infra::manager::storage_pool;
 
 // ==================== 词典数据 CRUD ====================
@@ -22,7 +22,9 @@ pub async fn create_dictionary(
     word_count: i64,
 ) -> Result<Dictionary, AppError> {
     tracing::info!("[dictionary] create_dictionary: name={}", name);
-    let dict = Dictionary::new(&name, &file_path, &dict_type, lang_from, lang_to, is_enabled, word_count);
+    let dict = Dictionary::new(
+        &name, &file_path, &dict_type, lang_from, lang_to, is_enabled, word_count,
+    );
     let pool = storage_pool()?;
     DictionaryRepository::save(&pool, &dict).await
 }

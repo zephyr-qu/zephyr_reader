@@ -1,15 +1,14 @@
 mod common;
 
-use std::path::Path;
 use rust_lib_zephyr_reader::api::dictionary::{
-    init_dictionary, close_dictionary, lookup_mdict, suggest_mdict,
+    close_dictionary, init_dictionary, lookup_mdict, suggest_mdict,
 };
+use std::path::Path;
 
 // Resolve the canonical path to the dictionary .mdx file.
 fn mdx_path() -> String {
     let manifest_dir = std::env!("CARGO_MANIFEST_DIR");
-    let path = Path::new(manifest_dir)
-        .join("../assets/dictionary.mdx");
+    let path = Path::new(manifest_dir).join("../assets/dictionary.mdx");
     path.canonicalize()
         .expect("dictionary.mdx not found at assets/dictionary.mdx")
         .to_str()
@@ -21,7 +20,9 @@ fn mdx_path() -> String {
 async fn ensure_dictionary_initialized() {
     close_dictionary();
     let path = mdx_path();
-    init_dictionary(path, None).await.expect("init_dictionary should succeed");
+    init_dictionary(path, None)
+        .await
+        .expect("init_dictionary should succeed");
 }
 
 // ==================== 词典初始化测试 ====================
@@ -35,7 +36,10 @@ async fn test_dictionary_init_success() {
     close_dictionary();
     let mdx_path = mdx_path();
     let result = init_dictionary(mdx_path, None).await;
-    assert!(result.is_ok(), "init_dictionary should succeed with a valid .mdx file");
+    assert!(
+        result.is_ok(),
+        "init_dictionary should succeed with a valid .mdx file"
+    );
 }
 
 // 使用不存在的路径应返回错误
@@ -46,7 +50,10 @@ async fn test_dictionary_init_wrong_path() {
 
     close_dictionary();
     let result = init_dictionary("/nonexistent/foo.mdx".to_string(), None).await;
-    assert!(result.is_err(), "init_dictionary should fail with a non-existent path");
+    assert!(
+        result.is_err(),
+        "init_dictionary should fail with a non-existent path"
+    );
 }
 
 // 关闭后重新初始化应成功
@@ -94,7 +101,10 @@ async fn test_dictionary_lookup_nonexistent_word() {
     ensure_dictionary_initialized().await;
 
     let result = lookup_mdict("xyznonexistentword123".to_string()).await;
-    assert!(result.is_ok(), "lookup_mdict should return Ok even for missing words");
+    assert!(
+        result.is_ok(),
+        "lookup_mdict should return Ok even for missing words"
+    );
 }
 
 // 前缀建议
@@ -120,5 +130,8 @@ async fn test_dictionary_suggest_zero_limit() {
 
     // limit=0 应被 clamp 到 1（内部使用 limit.max(1))
     let result = suggest_mdict("hel".to_string(), 0).await;
-    assert!(result.is_ok(), "suggest_mdict with limit=0 should still return Ok");
+    assert!(
+        result.is_ok(),
+        "suggest_mdict with limit=0 should still return Ok"
+    );
 }

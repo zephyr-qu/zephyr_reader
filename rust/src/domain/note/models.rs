@@ -1,7 +1,7 @@
 //! 备份数据模型
 
-use flutter_rust_bridge::frb;
 use chrono::{DateTime, Utc};
+use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
 
 //// 笔记类型
@@ -123,4 +123,3 @@ pub struct NoteWithBook {
     pub note: Note,
     pub book_title: String,
 }
-

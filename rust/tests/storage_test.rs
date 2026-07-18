@@ -95,17 +95,20 @@ async fn test_book_update() {
 
 #[tokio::test]
 async fn test_book_delete() {
-// 测试删除书籍，验证删除后无法获取
+    // 测试删除书籍，验证删除后无法获取
     common::init_test_storage().await;
 
     // 创建书籍
     let book = create_test_book("/tmp/test3.txt");
     let book_id = book.book_id.clone();
 
-    rust_lib_zephyr_reader::api::book::upsert_book(book).await.expect("创建失败");
+    rust_lib_zephyr_reader::api::book::upsert_book(book)
+        .await
+        .expect("创建失败");
 
     // 删除书籍
-    let result = rust_lib_zephyr_reader::api::book::delete_book(book_id.clone(), String::new()).await;
+    let result =
+        rust_lib_zephyr_reader::api::book::delete_book(book_id.clone(), String::new()).await;
     assert!(result.is_ok(), "删除书籍应该成功");
 
     // 验证删除
@@ -118,7 +121,7 @@ async fn test_book_delete() {
 
 #[tokio::test]
 async fn test_book_list_all() {
-// 测试获取所有书籍列表，验证列表完整性
+    // 测试获取所有书籍列表，验证列表完整性
     common::init_test_storage().await;
 
     // 创建多本书籍（使用唯一 ID 避免冲突）
@@ -126,7 +129,9 @@ async fn test_book_list_all() {
         let mut book = create_test_book(&format!("/tmp/test_list_{}.txt", i));
         book.book_id = format!("unique_book_list_{}", i);
         book.title = format!("书籍{}", i);
-        rust_lib_zephyr_reader::api::book::upsert_book(book).await.expect("创建失败");
+        rust_lib_zephyr_reader::api::book::upsert_book(book)
+            .await
+            .expect("创建失败");
     }
 
     // 获取所有书籍
@@ -141,19 +146,23 @@ async fn test_book_list_all() {
 
 #[tokio::test]
 async fn test_book_search() {
-// 测试按书名关键词搜索书籍
+    // 测试按书名关键词搜索书籍
     common::init_test_storage().await;
 
     // 创建测试书籍
     let mut book1 = create_test_book("/tmp/search1.txt");
     book1.book_id = "unique_search_1".to_string();
     book1.title = "Rust编程指南".to_string();
-    rust_lib_zephyr_reader::api::book::upsert_book(book1).await.expect("创建失败");
+    rust_lib_zephyr_reader::api::book::upsert_book(book1)
+        .await
+        .expect("创建失败");
 
     let mut book2 = create_test_book("/tmp/search2.txt");
     book2.book_id = "unique_search_2".to_string();
     book2.title = "Python入门教程".to_string();
-    rust_lib_zephyr_reader::api::book::upsert_book(book2).await.expect("创建失败");
+    rust_lib_zephyr_reader::api::book::upsert_book(book2)
+        .await
+        .expect("创建失败");
 
     // 搜索书籍
     let result = rust_lib_zephyr_reader::api::book::search_books("Rust".to_string()).await;
@@ -167,24 +176,30 @@ async fn test_book_search() {
 
 #[tokio::test]
 async fn test_book_get_by_status() {
-// 测试按阅读状态筛选书籍
+    // 测试按阅读状态筛选书籍
     common::init_test_storage().await;
 
     // 创建不同状态的书籍
     let mut book1 = create_test_book("/tmp/status1.txt");
     book1.book_id = "unique_status_1".to_string();
     book1.status = BookStatus::Reading;
-    rust_lib_zephyr_reader::api::book::upsert_book(book1).await.expect("创建失败");
+    rust_lib_zephyr_reader::api::book::upsert_book(book1)
+        .await
+        .expect("创建失败");
 
     let mut book2 = create_test_book("/tmp/status2.txt");
     book2.book_id = "unique_status_2".to_string();
     book2.status = BookStatus::Completed;
-    rust_lib_zephyr_reader::api::book::upsert_book(book2).await.expect("创建失败");
+    rust_lib_zephyr_reader::api::book::upsert_book(book2)
+        .await
+        .expect("创建失败");
 
     let mut book3 = create_test_book("/tmp/status3.txt");
     book3.book_id = "unique_status_3".to_string();
     book3.status = BookStatus::Reading;
-    rust_lib_zephyr_reader::api::book::upsert_book(book3).await.expect("创建失败");
+    rust_lib_zephyr_reader::api::book::upsert_book(book3)
+        .await
+        .expect("创建失败");
 
     // 获取阅读中的书籍
     let result = rust_lib_zephyr_reader::api::book::list_books_by_status(BookStatus::Reading).await;
@@ -200,13 +215,15 @@ async fn test_book_get_by_status() {
 
 #[tokio::test]
 async fn test_bookmark_create_and_get() {
-// 测试创建书签并获取，验证字段正确性
+    // 测试创建书签并获取，验证字段正确性
     common::init_test_storage().await;
 
     // 先创建关联的书籍记录
     let book = create_test_book("/tmp/bookmark_test.txt");
     let book_id = book.book_id.clone();
-    rust_lib_zephyr_reader::api::book::upsert_book(book).await.expect("创建书籍失败");
+    rust_lib_zephyr_reader::api::book::upsert_book(book)
+        .await
+        .expect("创建书籍失败");
 
     // 创建书签
     let result = rust_lib_zephyr_reader::api::bookmark::create_bookmark(
@@ -243,7 +260,9 @@ async fn test_bookmark_list_by_book() {
     // 先创建关联的书籍记录
     let mut book = create_test_book("/tmp/bookmark_list_test.txt");
     book.book_id = book_id.clone();
-    rust_lib_zephyr_reader::api::book::upsert_book(book).await.expect("创建书籍失败");
+    rust_lib_zephyr_reader::api::book::upsert_book(book)
+        .await
+        .expect("创建书籍失败");
 
     // 创建多个书签
     for i in 0..5 {
@@ -258,7 +277,8 @@ async fn test_bookmark_list_by_book() {
     }
 
     // 获取书签列表
-    let result = rust_lib_zephyr_reader::api::bookmark::list_bookmarks_by_book(book_id.clone()).await;
+    let result =
+        rust_lib_zephyr_reader::api::bookmark::list_bookmarks_by_book(book_id.clone()).await;
     assert!(result.is_ok(), "获取书签列表应该成功");
 
     let bookmarks = result.unwrap();
@@ -269,7 +289,7 @@ async fn test_bookmark_list_by_book() {
 
 #[tokio::test]
 async fn test_bookmark_delete() {
-// 测试删除书签，验证删除后无法获取
+    // 测试删除书签，验证删除后无法获取
     common::init_test_storage().await;
 
     let book_id = "test_book_for_delete_unique".to_string();
@@ -277,13 +297,19 @@ async fn test_bookmark_delete() {
     // 先创建关联的书籍记录
     let mut book = create_test_book("/tmp/bookmark_delete_test.txt");
     book.book_id = book_id.clone();
-    rust_lib_zephyr_reader::api::book::upsert_book(book).await.expect("创建书籍失败");
+    rust_lib_zephyr_reader::api::book::upsert_book(book)
+        .await
+        .expect("创建书籍失败");
 
     // 创建书签
-    let bookmark =
-        rust_lib_zephyr_reader::api::bookmark::create_bookmark(book_id.clone(), 0, 50, "待删除书签".to_string())
-            .await
-            .expect("创建失败");
+    let bookmark = rust_lib_zephyr_reader::api::bookmark::create_bookmark(
+        book_id.clone(),
+        0,
+        50,
+        "待删除书签".to_string(),
+    )
+    .await
+    .expect("创建失败");
 
     let bookmark_id = bookmark.id.clone();
 
@@ -301,7 +327,7 @@ async fn test_bookmark_delete() {
 
 #[tokio::test]
 async fn test_bookmark_clear_by_book() {
-// 测试清除某本书的所有书签
+    // 测试清除某本书的所有书签
     common::init_test_storage().await;
 
     let book_id = "test_book_for_clear_unique".to_string();
@@ -309,7 +335,9 @@ async fn test_bookmark_clear_by_book() {
     // 先创建关联的书籍记录
     let mut book = create_test_book("/tmp/bookmark_clear_test.txt");
     book.book_id = book_id.clone();
-    rust_lib_zephyr_reader::api::book::upsert_book(book).await.expect("创建书籍失败");
+    rust_lib_zephyr_reader::api::book::upsert_book(book)
+        .await
+        .expect("创建书籍失败");
 
     // 创建多个书签
     for i in 0..3 {
@@ -324,7 +352,8 @@ async fn test_bookmark_clear_by_book() {
     }
 
     // 清除所有书签
-    let result = rust_lib_zephyr_reader::api::bookmark::clear_bookmarks_by_book(book_id.clone()).await;
+    let result =
+        rust_lib_zephyr_reader::api::bookmark::clear_bookmarks_by_book(book_id.clone()).await;
     assert!(result.is_ok(), "清除书签应该成功");
 
     // 验证清除
@@ -339,7 +368,7 @@ async fn test_bookmark_clear_by_book() {
 
 #[tokio::test]
 async fn test_note_create_highlight() {
-// 测试创建高亮笔记，验证类型和字段正确性
+    // 测试创建高亮笔记，验证类型和字段正确性
     common::init_test_storage().await;
 
     let book_id = "test_book_for_highlight_unique".to_string();
@@ -347,7 +376,9 @@ async fn test_note_create_highlight() {
     // 先创建关联的书籍记录
     let mut book = create_test_book("/tmp/note_highlight_test.txt");
     book.book_id = book_id.clone();
-    rust_lib_zephyr_reader::api::book::upsert_book(book).await.expect("创建书籍失败");
+    rust_lib_zephyr_reader::api::book::upsert_book(book)
+        .await
+        .expect("创建书籍失败");
 
     // 创建高亮笔记
     let result = rust_lib_zephyr_reader::api::note::create_highlight(
@@ -375,7 +406,7 @@ async fn test_note_create_highlight() {
 
 #[tokio::test]
 async fn test_note_create_annotation() {
-// 测试创建批注笔记，验证类型和字段正确性
+    // 测试创建批注笔记，验证类型和字段正确性
     common::init_test_storage().await;
 
     let book_id = "test_book_for_annotation_unique".to_string();
@@ -383,7 +414,9 @@ async fn test_note_create_annotation() {
     // 先创建关联的书籍记录
     let mut book = create_test_book("/tmp/note_annotation_test.txt");
     book.book_id = book_id.clone();
-    rust_lib_zephyr_reader::api::book::upsert_book(book).await.expect("创建书籍失败");
+    rust_lib_zephyr_reader::api::book::upsert_book(book)
+        .await
+        .expect("创建书籍失败");
 
     // 创建批注笔记
     let result = rust_lib_zephyr_reader::api::note::create_annotation(
@@ -409,7 +442,7 @@ async fn test_note_create_annotation() {
 
 #[tokio::test]
 async fn test_note_list_by_book() {
-// 测试按书籍获取所有笔记列表，支持按类型筛选
+    // 测试按书籍获取所有笔记列表，支持按类型筛选
     common::init_test_storage().await;
 
     let book_id = "test_book_for_notes_unique".to_string();
@@ -417,7 +450,9 @@ async fn test_note_list_by_book() {
     // 先创建关联的书籍记录
     let mut book = create_test_book("/tmp/note_list_test.txt");
     book.book_id = book_id.clone();
-    rust_lib_zephyr_reader::api::book::upsert_book(book).await.expect("创建书籍失败");
+    rust_lib_zephyr_reader::api::book::upsert_book(book)
+        .await
+        .expect("创建书籍失败");
 
     // 创建多个笔记
     rust_lib_zephyr_reader::api::note::create_highlight(
@@ -470,7 +505,7 @@ async fn test_note_list_by_book() {
 
 #[tokio::test]
 async fn test_note_list_by_type() {
-// 测试按笔记类型筛选笔记
+    // 测试按笔记类型筛选笔记
     common::init_test_storage().await;
 
     let book_id = "test_book_for_type_filter_unique".to_string();
@@ -478,7 +513,9 @@ async fn test_note_list_by_type() {
     // 先创建关联的书籍记录
     let mut book = create_test_book("/tmp/note_type_filter_test.txt");
     book.book_id = book_id.clone();
-    rust_lib_zephyr_reader::api::book::upsert_book(book).await.expect("创建书籍失败");
+    rust_lib_zephyr_reader::api::book::upsert_book(book)
+        .await
+        .expect("创建书籍失败");
 
     // 创建不同类型的笔记
     rust_lib_zephyr_reader::api::note::create_highlight(
@@ -507,7 +544,11 @@ async fn test_note_list_by_type() {
     .expect("创建失败");
 
     // 只获取高亮笔记
-    let result = rust_lib_zephyr_reader::api::note::list_notes_by_book(book_id.clone(), Some(NoteType::Highlight)).await;
+    let result = rust_lib_zephyr_reader::api::note::list_notes_by_book(
+        book_id.clone(),
+        Some(NoteType::Highlight),
+    )
+    .await;
     assert!(result.is_ok());
 
     let notes = result.unwrap();
@@ -519,7 +560,7 @@ async fn test_note_list_by_type() {
 
 #[tokio::test]
 async fn test_note_delete() {
-// 测试删除笔记
+    // 测试删除笔记
     common::init_test_storage().await;
 
     let book_id = "test_book_for_note_delete_unique".to_string();
@@ -527,7 +568,9 @@ async fn test_note_delete() {
     // 先创建关联的书籍记录
     let mut book = create_test_book("/tmp/note_delete_test.txt");
     book.book_id = book_id.clone();
-    rust_lib_zephyr_reader::api::book::upsert_book(book).await.expect("创建书籍失败");
+    rust_lib_zephyr_reader::api::book::upsert_book(book)
+        .await
+        .expect("创建书籍失败");
 
     // 创建笔记
     let note = rust_lib_zephyr_reader::api::note::create_highlight(
@@ -554,7 +597,7 @@ async fn test_note_delete() {
 
 #[tokio::test]
 async fn test_note_clear_by_book() {
-// 测试清除某本书的所有笔记
+    // 测试清除某本书的所有笔记
     common::init_test_storage().await;
 
     let book_id = "test_book_for_note_clear_unique".to_string();
@@ -562,7 +605,9 @@ async fn test_note_clear_by_book() {
     // 先创建关联的书籍记录
     let mut book = create_test_book("/tmp/note_clear_test.txt");
     book.book_id = book_id.clone();
-    rust_lib_zephyr_reader::api::book::upsert_book(book).await.expect("创建书籍失败");
+    rust_lib_zephyr_reader::api::book::upsert_book(book)
+        .await
+        .expect("创建书籍失败");
 
     // 创建多个笔记
     for i in 0..3 {
@@ -596,19 +641,26 @@ async fn test_note_clear_by_book() {
 
 #[tokio::test]
 async fn test_book_and_bookmark_relation() {
-// 测试删除书籍时级联删除关联书签
+    // 测试删除书籍时级联删除关联书签
     common::init_test_storage().await;
 
     // 创建书籍
     let mut book = create_test_book("/tmp/relation_test.txt");
     let book_id = "test_relation_bookmark_book".to_string();
     book.book_id = book_id.clone();
-    rust_lib_zephyr_reader::api::book::upsert_book(book).await.expect("创建书籍失败");
+    rust_lib_zephyr_reader::api::book::upsert_book(book)
+        .await
+        .expect("创建书籍失败");
 
     // 为书籍创建书签
-    rust_lib_zephyr_reader::api::bookmark::create_bookmark(book_id.clone(), 0, 100, "关联测试".to_string())
-        .await
-        .expect("创建书签失败");
+    rust_lib_zephyr_reader::api::bookmark::create_bookmark(
+        book_id.clone(),
+        0,
+        100,
+        "关联测试".to_string(),
+    )
+    .await
+    .expect("创建书签失败");
 
     // 删除书籍（应该级联删除书签）
     rust_lib_zephyr_reader::api::book::delete_book(book_id.clone(), String::new())
@@ -625,14 +677,16 @@ async fn test_book_and_bookmark_relation() {
 
 #[tokio::test]
 async fn test_book_and_note_relation() {
-// 测试删除书籍时级联删除关联笔记
+    // 测试删除书籍时级联删除关联笔记
     common::init_test_storage().await;
 
     // 创建书籍
     let mut book = create_test_book("/tmp/note_relation_test.txt");
     let book_id = "test_relation_note_book".to_string();
     book.book_id = book_id.clone();
-    rust_lib_zephyr_reader::api::book::upsert_book(book).await.expect("创建书籍失败");
+    rust_lib_zephyr_reader::api::book::upsert_book(book)
+        .await
+        .expect("创建书籍失败");
 
     // 为书籍创建笔记
     rust_lib_zephyr_reader::api::note::create_highlight(

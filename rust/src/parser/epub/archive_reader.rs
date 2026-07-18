@@ -99,12 +99,15 @@ impl EpubFile {
     /// 打开 EPUB 文件
     pub fn open(file_path: &str) -> Result<Self, AppError> {
         if !std::path::Path::new(file_path).exists() {
-            return Err(AppError::FileNotFound { path: file_path.into() });
+            return Err(AppError::FileNotFound {
+                path: file_path.into(),
+            });
         }
 
         tracing::info!("[EpubFile::open] opening EPUB: {}", file_path);
-        let doc = EpubDoc::new(file_path).map_err(|e| {
-            AppError::FileReadError { path: file_path.into(), details: format!("EPUB parse failed: {}", e) }
+        let doc = EpubDoc::new(file_path).map_err(|e| AppError::FileReadError {
+            path: file_path.into(),
+            details: format!("EPUB parse failed: {}", e),
         })?;
         tracing::info!(
             "[EpubFile::open] success: metadata={}, resources={}, spine={}, toc={}",
@@ -130,7 +133,9 @@ impl EpubFile {
 
         // 查找资源
         let (resource_href, resource) = find_resource_by_href_or_path(&self.doc.resources, href)
-            .ok_or_else(|| AppError::EpubParseError { reason: format!("resource not found: {}", href) })?;
+            .ok_or_else(|| AppError::EpubParseError {
+                reason: format!("resource not found: {}", href),
+            })?;
 
         let resource_href: String = resource_href.clone();
         tracing::debug!(
@@ -149,9 +154,12 @@ impl EpubFile {
             let _ = self.doc.set_current_chapter(idx);
 
             // 读取内容 - epub 2.x 返回 (Vec<u8>, String) 元组
-            let (content, charset) = self.doc.get_current().ok_or_else(|| {
-                AppError::EpubParseError { reason: "read resource failed: unable to get current content".to_string() }
-            })?;
+            let (content, charset) =
+                self.doc
+                    .get_current()
+                    .ok_or_else(|| AppError::EpubParseError {
+                        reason: "read resource failed: unable to get current content".to_string(),
+                    })?;
 
             tracing::debug!(
                 "[read_resource] read success: {} bytes, charset={:?}",
@@ -169,10 +177,9 @@ impl EpubFile {
             "[read_resource] resource not found in spine: {}",
             resource_href
         );
-        Err(AppError::EpubParseError { reason: format!(
-            "unable to locate resource: {}",
-            href
-        ) })
+        Err(AppError::EpubParseError {
+            reason: format!("unable to locate resource: {}", href),
+        })
     }
 
     /// 解码内容（EPUB 规范要求 UTF-8，提供回退）
@@ -220,14 +227,15 @@ impl EpubFile {
                 .spine
                 .iter()
                 .position(|item: &SpineItem| item.idref == resource_href)
+        {
+            let _ = self.doc.set_current_chapter(index);
+            if let Some((content, _charset)) = self.doc.get_current()
+                && !content.is_empty()
             {
-                let _ = self.doc.set_current_chapter(index);
-                if let Some((content, _charset)) = self.doc.get_current()
-                    && !content.is_empty() {
-                        self.cache.put(href.to_string(), content.clone());
-                        return Some(content);
-                    }
+                self.cache.put(href.to_string(), content.clone());
+                return Some(content);
             }
+        }
 
         let (content, _mime) = self.doc.get_resource(&resource_href)?;
         if content.is_empty() {

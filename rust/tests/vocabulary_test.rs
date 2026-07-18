@@ -7,7 +7,6 @@ mod common;
 use rust_lib_zephyr_reader::api::vocab;
 use rust_lib_zephyr_reader::domain::vocabulary::VocabStatus;
 
-
 // 使用 tag 生成唯一的单词名称，避免并行测试间数据污染
 fn unique_word(name: &str) -> String {
     format!("vocab_test_{name}")
@@ -20,8 +19,14 @@ async fn test_create_and_list_vocab_word() {
 
     let word = unique_word("create_list");
     let entry = vocab::create_vocabulary_word(
-        word.clone(), "fang qi".to_string(), "放弃".to_string(),
-        None, None, None, None, None,
+        word.clone(),
+        "fang qi".to_string(),
+        "放弃".to_string(),
+        None,
+        None,
+        None,
+        None,
+        None,
     )
     .await
     .unwrap();
@@ -44,10 +49,12 @@ async fn test_create_vocab_with_book_and_word_list() {
 
     let entry = vocab::create_vocabulary_word(
         unique_word("with_context").to_string(),
-        String::new(), "你好".to_string(),
+        String::new(),
+        "你好".to_string(),
         Some("Hello, world!".to_string()),
         Some("book1".to_string()),
-        Some(1), Some(100),
+        Some(1),
+        Some(100),
         Some("CET-4".to_string()),
     )
     .await
@@ -66,8 +73,14 @@ async fn test_list_vocab_filter_by_status() {
 
     let word = unique_word("filter_status");
     let entry = vocab::create_vocabulary_word(
-        word.clone(), String::new(), "你好".to_string(),
-        None, None, None, None, None,
+        word.clone(),
+        String::new(),
+        "你好".to_string(),
+        None,
+        None,
+        None,
+        None,
+        None,
     )
     .await
     .unwrap();
@@ -78,11 +91,9 @@ async fn test_list_vocab_filter_by_status() {
         .unwrap();
 
     // 按 Mastered 筛选应能找到
-    let mastered = vocab::list_vocabulary_by_status(
-        None, Some(VocabStatus::Mastered), None,
-    )
-    .await
-    .unwrap();
+    let mastered = vocab::list_vocabulary_by_status(None, Some(VocabStatus::Mastered), None)
+        .await
+        .unwrap();
     assert!(
         mastered.iter().any(|w| w.word == word),
         "Mastered word should appear in Mastered filter"
@@ -93,11 +104,9 @@ async fn test_list_vocab_filter_by_status() {
     );
 
     // 按 Unstarted 筛选不应包含该词
-    let unstarted = vocab::list_vocabulary_by_status(
-        None, Some(VocabStatus::Unstarted), None,
-    )
-    .await
-    .unwrap();
+    let unstarted = vocab::list_vocabulary_by_status(None, Some(VocabStatus::Unstarted), None)
+        .await
+        .unwrap();
     assert!(
         unstarted.iter().all(|w| w.word != word),
         "Mastered word should not appear in Unstarted filter"
@@ -113,23 +122,33 @@ async fn test_list_vocab_filter_by_word_list() {
     let w2 = unique_word("wl_cet6");
 
     vocab::create_vocabulary_word(
-        w1.clone(), String::new(), "你好".to_string(),
-        None, None, None, None, Some("CET-4".to_string()),
+        w1.clone(),
+        String::new(),
+        "你好".to_string(),
+        None,
+        None,
+        None,
+        None,
+        Some("CET-4".to_string()),
     )
     .await
     .unwrap();
     vocab::create_vocabulary_word(
-        w2.clone(), String::new(), "世界".to_string(),
-        None, None, None, None, Some("CET-6".to_string()),
+        w2.clone(),
+        String::new(),
+        "世界".to_string(),
+        None,
+        None,
+        None,
+        None,
+        Some("CET-6".to_string()),
     )
     .await
     .unwrap();
 
-    let cet4 = vocab::list_vocabulary_by_status(
-        None, None, Some("CET-4".to_string()),
-    )
-    .await
-    .unwrap();
+    let cet4 = vocab::list_vocabulary_by_status(None, None, Some("CET-4".to_string()))
+        .await
+        .unwrap();
     assert!(
         cet4.iter().any(|w| w.word == w1),
         "CET-4 word should appear in CET-4 filter"
@@ -147,14 +166,26 @@ async fn test_search_vocabulary() {
 
     let unique = unique_word("search_target");
     vocab::create_vocabulary_word(
-        unique.clone(), "".to_string(), "测试".to_string(),
-        None, None, None, None, None,
+        unique.clone(),
+        "".to_string(),
+        "测试".to_string(),
+        None,
+        None,
+        None,
+        None,
+        None,
     )
     .await
     .unwrap();
     vocab::create_vocabulary_word(
-        "other_word_dummy".to_string(), "".to_string(), "占位".to_string(),
-        None, None, None, None, None,
+        "other_word_dummy".to_string(),
+        "".to_string(),
+        "占位".to_string(),
+        None,
+        None,
+        None,
+        None,
+        None,
     )
     .await
     .unwrap();
@@ -183,8 +214,14 @@ async fn test_update_vocabulary_status() {
 
     let word = unique_word("status_update");
     let entry = vocab::create_vocabulary_word(
-        word.clone(), String::new(), "你好".to_string(),
-        None, None, None, None, None,
+        word.clone(),
+        String::new(),
+        "你好".to_string(),
+        None,
+        None,
+        None,
+        None,
+        None,
     )
     .await
     .unwrap();
@@ -195,11 +232,9 @@ async fn test_update_vocabulary_status() {
         .unwrap();
 
     // 按 Mastered 筛选应出现
-    let mastered = vocab::list_vocabulary_by_status(
-        None, Some(VocabStatus::Mastered), None,
-    )
-    .await
-    .unwrap();
+    let mastered = vocab::list_vocabulary_by_status(None, Some(VocabStatus::Mastered), None)
+        .await
+        .unwrap();
     assert!(mastered.iter().any(|w| w.word == word));
 }
 
@@ -210,8 +245,14 @@ async fn test_delete_vocabulary() {
 
     let word = unique_word("delete_me");
     let entry = vocab::create_vocabulary_word(
-        word.clone(), String::new(), "你好".to_string(),
-        None, None, None, None, None,
+        word.clone(),
+        String::new(),
+        "你好".to_string(),
+        None,
+        None,
+        None,
+        None,
+        None,
     )
     .await
     .unwrap();
@@ -250,12 +291,6 @@ async fn test_list_word_lists() {
 
     let lists = vocab::list_word_lists();
     assert!(!lists.is_empty(), "should have at least one built-in list");
-    assert!(
-        lists.contains(&"CET-4".to_string()),
-        "should contain CET-4"
-    );
-    assert!(
-        lists.contains(&"CET-6".to_string()),
-        "should contain CET-6"
-    );
+    assert!(lists.contains(&"CET-4".to_string()), "should contain CET-4");
+    assert!(lists.contains(&"CET-6".to_string()), "should contain CET-6");
 }

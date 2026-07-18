@@ -20,7 +20,8 @@ class ScrollBoundaryCoordinator {
   final void Function(List<ScrollChapterSegment> segments) _onSegmentsChanged;
 
   ScrollDocumentComposer? _composer;
-  int _loadingGen = 0;
+  int _appendLoadingGen = 0;
+  int _prependLoadingGen = 0;
   bool _isLoadingNext = false;
   bool _isLoadingPrev = false;
 
@@ -68,14 +69,14 @@ class ScrollBoundaryCoordinator {
     if (_composer!.hasChapter(nextIdx)) return;
 
     _isLoadingNext = true;
-    final gen = ++_loadingGen;
+    final gen = ++_appendLoadingGen;
     try {
       final payload = await _contentRepo.loadScrollSegment(
         bookId,
         nextIdx,
         readingMode: readingMode,
       );
-      if (gen != _loadingGen || _composer == null) return;
+      if (gen != _appendLoadingGen || _composer == null) return;
       _composer!.appendNext(ScrollSegmentFactory.fromPayload(nextIdx, payload));
       _emitSegments();
       unawaited(
@@ -104,14 +105,14 @@ class ScrollBoundaryCoordinator {
     if (_composer!.hasChapter(prevIdx)) return;
 
     _isLoadingPrev = true;
-    final gen = ++_loadingGen;
+    final gen = ++_prependLoadingGen;
     try {
       final payload = await _contentRepo.loadScrollSegment(
         bookId,
         prevIdx,
         readingMode: readingMode,
       );
-      if (gen != _loadingGen || _composer == null) return;
+      if (gen != _prependLoadingGen || _composer == null) return;
       _composer!.prependPrev(
         ScrollSegmentFactory.fromPayload(prevIdx, payload),
       );
@@ -150,7 +151,8 @@ class ScrollBoundaryCoordinator {
     ReaderChapterIr? chapterIr,
     String? chapterFilePath,
   }) {
-    _loadingGen++;
+    _appendLoadingGen++;
+    _prependLoadingGen++;
     _isLoadingNext = false;
     _isLoadingPrev = false;
     _composer = ScrollDocumentComposer(centerChapterIndex: chapterIndex);

@@ -47,6 +47,15 @@ pub enum PlainProjectionError {
         plain_len: u32,
         plain_len_total: u32,
     },
+    BlockPlainOrderInvalid {
+        block_index: usize,
+        previous_end: u32,
+        plain_start: u32,
+    },
+    BlockPayloadInvalid {
+        block_index: usize,
+        reason: &'static str,
+    },
     TextBlockPlainLenMismatch {
         block_index: usize,
         expected: u32,
@@ -92,6 +101,18 @@ impl fmt::Display for PlainProjectionError {
                     plain_start.saturating_add(*plain_len)
                 )
             }
+            Self::BlockPlainOrderInvalid {
+                block_index,
+                previous_end,
+                plain_start,
+            } => write!(
+                f,
+                "block {block_index} starts at {plain_start} before previous end {previous_end}"
+            ),
+            Self::BlockPayloadInvalid {
+                block_index,
+                reason,
+            } => write!(f, "block {block_index} has invalid payload: {reason}"),
             Self::TextBlockPlainLenMismatch {
                 block_index,
                 expected,
@@ -249,8 +270,16 @@ pub fn validate_chapter_plain(
         }
     }
 
+    let mut previous_end = 0u32;
     for (i, block) in ir.blocks.iter().enumerate() {
-        let block_end = block.plain_start.saturating_add(block.plain_len);
+        let Some(block_end) = block.plain_start.checked_add(block.plain_len) else {
+            return Err(PlainProjectionError::BlockPlainOutOfRange {
+                block_index: i,
+                plain_start: block.plain_start,
+                plain_len: block.plain_len,
+                plain_len_total: plain_len,
+            });
+        };
         if block_end > plain_len {
             return Err(PlainProjectionError::BlockPlainOutOfRange {
                 block_index: i,
@@ -259,9 +288,27 @@ pub fn validate_chapter_plain(
                 plain_len_total: plain_len,
             });
         }
+        if block.plain_start < previous_end {
+            return Err(PlainProjectionError::BlockPlainOrderInvalid {
+                block_index: i,
+                previous_end,
+                plain_start: block.plain_start,
+            });
+        }
+        previous_end = block_end;
 
         match block.kind {
             ReaderIrBlockKind::Text => {
+                if block.image_asset_id.is_some()
+                    || block.image_alt.is_some()
+                    || block.image_intrinsic_width.is_some()
+                    || block.image_intrinsic_height.is_some()
+                {
+                    return Err(PlainProjectionError::BlockPayloadInvalid {
+                        block_index: i,
+                        reason: "text block contains image fields",
+                    });
+                }
                 let expected_len = utf16_len(&block.text);
                 if block.plain_len != expected_len {
                     return Err(PlainProjectionError::TextBlockPlainLenMismatch {
@@ -291,6 +338,25 @@ pub fn validate_chapter_plain(
                 }
             }
             ReaderIrBlockKind::Image => {
+                if block.image_asset_id.as_deref().is_none_or(str::is_empty) {
+                    return Err(PlainProjectionError::BlockPayloadInvalid {
+                        block_index: i,
+                        reason: "image asset id is empty",
+                    });
+                }
+                if !block.text.is_empty() || !block.runs.is_empty() {
+                    return Err(PlainProjectionError::BlockPayloadInvalid {
+                        block_index: i,
+                        reason: "image block contains text fields",
+                    });
+                }
+                if block.image_intrinsic_width == Some(0) || block.image_intrinsic_height == Some(0)
+                {
+                    return Err(PlainProjectionError::BlockPayloadInvalid {
+                        block_index: i,
+                        reason: "image intrinsic dimensions must be positive",
+                    });
+                }
                 if block.plain_len != IMAGE_PLAIN_CHAR_LEN {
                     return Err(PlainProjectionError::ImageBlockPlainLenInvalid { block_index: i });
                 }
@@ -412,6 +478,42 @@ mod tests {
     }
 
     #[test]
+    fn validate_rejects_invalid_block_payloads() {
+        let invalid_image = ReaderChapterIr::new(
+            vec![ReaderIrBlock::image(0, String::new(), None, None, None)],
+            IMAGE_PLAIN_PLACEHOLDER.to_string(),
+        );
+        assert!(matches!(
+            invalid_image.validate_plain(PlainProjectionStyle::BlockJoined),
+            Err(PlainProjectionError::BlockPayloadInvalid { .. })
+        ));
+
+        let mut invalid_text =
+            ReaderIrBlock::text(0, "text".into(), Vec::new(), BlockStyle::empty());
+        invalid_text.image_asset_id = Some("unexpected".into());
+        let invalid_text_ir = ReaderChapterIr::new(vec![invalid_text], "text".into());
+        assert!(matches!(
+            invalid_text_ir.validate_plain(PlainProjectionStyle::SourcePreserved),
+            Err(PlainProjectionError::BlockPayloadInvalid { .. })
+        ));
+    }
+
+    #[test]
+    fn validate_rejects_overlapping_blocks() {
+        let ir = ReaderChapterIr::new(
+            vec![
+                ReaderIrBlock::text(0, "abc".into(), Vec::new(), BlockStyle::empty()),
+                ReaderIrBlock::text(2, "c".into(), Vec::new(), BlockStyle::empty()),
+            ],
+            "abc".into(),
+        );
+        assert!(matches!(
+            ir.validate_plain(PlainProjectionStyle::SourcePreserved),
+            Err(PlainProjectionError::BlockPlainOrderInvalid { .. })
+        ));
+    }
+
+    #[test]
     fn project_block_joined_empty() {
         assert!(project_block_joined(&[]).is_empty());
     }
@@ -421,23 +523,38 @@ mod tests {
         let runs = vec![
             ReaderInlineRun {
                 text: "Hello ".into(),
-                style: ReaderInlineStyle::Plain,
+                style: ReaderInlineStyle {
+                    bold: false,
+                    italic: false,
+                },
                 url: None,
             },
             ReaderInlineRun {
                 text: "bold".into(),
-                style: ReaderInlineStyle::Bold,
+                style: ReaderInlineStyle {
+                    bold: true,
+                    italic: false,
+                },
                 url: None,
             },
             ReaderInlineRun {
                 text: " world".into(),
-                style: ReaderInlineStyle::Plain,
+                style: ReaderInlineStyle {
+                    bold: false,
+                    italic: false,
+                },
                 url: None,
             },
         ];
         let sliced = slice_inline_runs(&runs, 6, 4);
         assert_eq!(sliced.len(), 1);
-        assert_eq!(sliced[0].style, ReaderInlineStyle::Bold);
+        assert_eq!(
+            sliced[0].style,
+            ReaderInlineStyle {
+                bold: true,
+                italic: false,
+            }
+        );
         assert_eq!(sliced[0].text, "bold");
     }
 
@@ -454,7 +571,10 @@ mod tests {
     fn inline_runs_slice_with_utf16_offsets() {
         let runs = vec![ReaderInlineRun {
             text: "A😀B".into(),
-            style: ReaderInlineStyle::Bold,
+            style: ReaderInlineStyle {
+                bold: true,
+                italic: false,
+            },
             url: None,
         }];
 

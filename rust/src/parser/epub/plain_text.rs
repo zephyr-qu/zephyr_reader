@@ -40,7 +40,11 @@ pub(crate) fn html_to_plain_text(html: &str) -> String {
     let mut out = String::with_capacity(html.len());
     let mut pos = 0;
 
-    enum SkipMode { None, Script, Style }
+    enum SkipMode {
+        None,
+        Script,
+        Style,
+    }
     let mut skip = SkipMode::None;
     let mut last_was_newline = true;
 
@@ -125,9 +129,23 @@ pub(crate) fn html_to_plain_text(html: &str) -> String {
 
             // Block-level tags → newline
             const BLOCK_TAGS: &[&[u8]] = &[
-                b"p", b"div", b"h1", b"h2", b"h3", b"h4", b"h5", b"h6",
-                b"li", b"tr", b"th", b"td", b"blockquote", b"dd", b"dt",
-                b"figcaption", b"figure",
+                b"p",
+                b"div",
+                b"h1",
+                b"h2",
+                b"h3",
+                b"h4",
+                b"h5",
+                b"h6",
+                b"li",
+                b"tr",
+                b"th",
+                b"td",
+                b"blockquote",
+                b"dd",
+                b"dt",
+                b"figcaption",
+                b"figure",
             ];
             let mut is_block = false;
             for &tag in BLOCK_TAGS {
@@ -184,9 +202,9 @@ pub(crate) fn html_to_plain_text(html: &str) -> String {
             if let Some(semi) = semi_pos {
                 let body = &rest[1..semi];
                 if !body.is_empty()
-                    && body.iter().all(|&b| {
-                        b.is_ascii_alphanumeric() || b == b'#' || b == b'x' || b == b'X'
-                    })
+                    && body
+                        .iter()
+                        .all(|&b| b.is_ascii_alphanumeric() || b == b'#' || b == b'x' || b == b'X')
                 {
                     let entity = std::str::from_utf8(&rest[..=semi]).unwrap_or("");
                     let decoded = decode_entity(entity);
@@ -242,14 +260,16 @@ fn decode_entity(entity: &str) -> String {
             // 数字实体
             if let Some(hex) = entity.strip_prefix("&#x").and_then(|s| s.strip_suffix(';'))
                 && let Ok(code) = u32::from_str_radix(hex, 16)
-                    && let Some(ch) = char::from_u32(code) {
-                        return ch.to_string();
-                    }
+                && let Some(ch) = char::from_u32(code)
+            {
+                return ch.to_string();
+            }
             if let Some(dec) = entity.strip_prefix("&#").and_then(|s| s.strip_suffix(';'))
                 && let Ok(code) = dec.parse::<u32>()
-                    && let Some(ch) = char::from_u32(code) {
-                        return ch.to_string();
-                    }
+                && let Some(ch) = char::from_u32(code)
+            {
+                return ch.to_string();
+            }
             entity.to_string()
         }
     }

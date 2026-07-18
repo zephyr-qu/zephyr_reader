@@ -13,24 +13,29 @@ use crate::domain::AppError;
 use crate::domain::chapter::Chapter;
 use sqlx::SqlitePool;
 
-
 /// 章节仓储 — 管理书籍章节的增删查
 #[frb(opaque)]
 pub struct ChapterRepository;
 
 impl ChapterRepository {
     /// 批量保存章节（事务内执行）
-    pub async fn save(pool: &SqlitePool, book_id: &str, chapters: &[Chapter]) -> Result<(), AppError> {
+    pub async fn save(
+        pool: &SqlitePool,
+        book_id: &str,
+        chapters: &[Chapter],
+    ) -> Result<(), AppError> {
         if chapters.is_empty() {
             return Ok(());
         }
         let mut tx = pool.begin().await?;
         for chapter in chapters {
             if chapter.book_id != book_id {
-                return Err(AppError::DatabaseError { reason: format!(
-                    "Chapter {} belongs to book {}, but expected {}",
-                    chapter.id, chapter.book_id, book_id
-                ) });
+                return Err(AppError::DatabaseError {
+                    reason: format!(
+                        "Chapter {} belongs to book {}, but expected {}",
+                        chapter.id, chapter.book_id, book_id
+                    ),
+                });
             }
             sqlx::query(
                 "INSERT INTO chapters (id, book_id, title, chapter_index, cached_at, level, start_index, end_index) \
@@ -93,4 +98,3 @@ impl ChapterRepository {
         Ok(())
     }
 }
-

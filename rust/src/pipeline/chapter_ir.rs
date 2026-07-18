@@ -20,8 +20,8 @@ use std::sync::{Arc, LazyLock};
 use lru::LruCache;
 use parking_lot::Mutex;
 
-use crate::common::security::validate_file_path;
 use crate::common::AppError;
+use crate::common::security::validate_file_path;
 use crate::domain::book::BookFormat;
 use crate::domain::book::book_repo::BookRepository;
 use crate::domain::chapter::chapter_repo::ChapterRepository;
@@ -188,7 +188,10 @@ async fn get_or_create_provider(
                 crate::parser::txt::TxtContentProvider::open(&path)
             })
             .await
-            .map_err(|e| AppError::TaskPanic { task_name: "txt provider".into(), details: e.to_string() })??;
+            .map_err(|e| AppError::TaskPanic {
+                task_name: "txt provider".into(),
+                details: e.to_string(),
+            })??;
             Arc::new(provider)
         }
         BookFormat::Epub => {
@@ -205,7 +208,10 @@ async fn get_or_create_provider(
                 )
             })
             .await
-            .map_err(|e| AppError::TaskPanic { task_name: "epub provider".into(), details: e.to_string() })??;
+            .map_err(|e| AppError::TaskPanic {
+                task_name: "epub provider".into(),
+                details: e.to_string(),
+            })??;
             Arc::new(provider)
         }
     };
@@ -220,10 +226,7 @@ async fn get_or_create_provider(
 // ==================== 章节原始文本 ====================
 
 /// 获取指定章节的原始文本内容。
-pub(crate) async fn get_chapter(
-    file_path: String,
-    chapter_index: i32,
-) -> Result<String, AppError> {
+pub(crate) async fn get_chapter(file_path: String, chapter_index: i32) -> Result<String, AppError> {
     let validated_path = validate_file_path(&file_path)?;
     let format = format_from_file_path(&validated_path)?;
 
@@ -260,8 +263,7 @@ pub async fn load_chapter_content_ir(
     chapter_index: i32,
 ) -> Result<ReaderChapterIr, AppError> {
     // 1. Try redb cache
-    if let Some(cached) = try_get_ir_cached(validated_path, chapter_index).await
-    {
+    if let Some(cached) = try_get_ir_cached(validated_path, chapter_index).await {
         return Ok(cached);
     }
 
@@ -271,26 +273,22 @@ pub async fn load_chapter_content_ir(
     let path = validated_path.to_string();
 
     let ir = match format {
-        BookFormat::Epub => {
-            tokio::task::spawn_blocking(move || {
-                crate::parser::epub::get_chapter_content_ir(&path, start, end)
-            })
-            .await
-            .map_err(|e| AppError::TaskPanic {
-                task_name: "load_chapter_ir:epub".into(),
-                details: e.to_string(),
-            })?
-        }
-        BookFormat::Txt => {
-            tokio::task::spawn_blocking(move || {
-                crate::parser::txt::get_chapter_content_ir(&path, start, end)
-            })
-            .await
-            .map_err(|e| AppError::TaskPanic {
-                task_name: "load_chapter_ir:txt".into(),
-                details: e.to_string(),
-            })?
-        }
+        BookFormat::Epub => tokio::task::spawn_blocking(move || {
+            crate::parser::epub::get_chapter_content_ir(&path, start, end)
+        })
+        .await
+        .map_err(|e| AppError::TaskPanic {
+            task_name: "load_chapter_ir:epub".into(),
+            details: e.to_string(),
+        })?,
+        BookFormat::Txt => tokio::task::spawn_blocking(move || {
+            crate::parser::txt::get_chapter_content_ir(&path, start, end)
+        })
+        .await
+        .map_err(|e| AppError::TaskPanic {
+            task_name: "load_chapter_ir:txt".into(),
+            details: e.to_string(),
+        })?,
     }?;
 
     // 3. Write-back to cache (fire-and-forget; failure is non-fatal)
@@ -300,19 +298,12 @@ pub async fn load_chapter_content_ir(
 }
 
 /// 尝试从 redb 加载 IR 缓存（分页+scroll 共享）。
-async fn try_get_ir_cached(
-    validated_path: &str,
-    chapter_index: i32,
-) -> Option<ReaderChapterIr> {
+async fn try_get_ir_cached(validated_path: &str, chapter_index: i32) -> Option<ReaderChapterIr> {
     let storage = crate::infra::storage()?;
     let cache_repo = IrCacheRepository::new(storage.kv());
     match cache_repo.get_ir_cache(validated_path, chapter_index) {
         Ok(Some(cache)) => {
-            tracing::debug!(
-                "ir_cache HIT: {}#{}",
-                validated_path,
-                chapter_index,
-            );
+            tracing::debug!("ir_cache HIT: {}#{}", validated_path, chapter_index,);
             Some(cache.ir)
         }
         Ok(None) => None,
@@ -324,11 +315,7 @@ async fn try_get_ir_cached(
 }
 
 /// 保存 IR 到 redb（写入失败不影响阅读）。
-async fn try_save_ir_cached(
-    validated_path: &str,
-    chapter_index: i32,
-    ir: &ReaderChapterIr,
-) {
+async fn try_save_ir_cached(validated_path: &str, chapter_index: i32, ir: &ReaderChapterIr) {
     let Some(storage) = crate::infra::storage() else {
         return;
     };

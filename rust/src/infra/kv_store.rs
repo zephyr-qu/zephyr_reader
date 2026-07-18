@@ -33,8 +33,8 @@ pub struct KvStore {
 }
 
 /// Scroll IR 缓存格式版本。
-/// Version 2 freezes every IR offset as a UTF-16 code-unit offset.
-pub const SCROLL_IR_CACHE_VERSION: u8 = 2;
+/// Version 3 stores inline emphasis as composable bold/italic flags.
+pub const SCROLL_IR_CACHE_VERSION: u8 = 3;
 
 /// Scroll 路径章 IR 缓存（无 config_hash 依赖；跨 session 复用 HTML 解析）。
 #[derive(Debug, Clone, PartialEq, bincode::Encode, bincode::Decode)]
@@ -75,7 +75,7 @@ mod tests {
     #[test]
     fn scalar_offset_cache_version_is_stale() {
         let cache = ScrollIrCache {
-            version: 1,
+            version: 2,
             ir: crate::pipeline::ReaderChapterIr::new(Vec::new(), String::new()),
             created_at: 0,
         };
@@ -219,7 +219,7 @@ impl KvStore {
         Ok(())
     }
 
-    /// 容量淘汰：当 scroll_ir_cache 条目超过上限时，按版本号淘汰无效条目，再按 key 顺序淘汰最旧。
+    /// 容量淘汰：当 scroll_ir_cache 条目超过上限时，先按版本号淘汰无效条目，再按 created_at 淘汰最旧（LRU）。
     fn enforce_scroll_ir_capacity(&self) -> Result<(), AppError> {
         let write_tx = self.db.begin_write().map_err(|e| AppError::DatabaseError {
             reason: format!("Failed to begin eviction write tx: {e}"),
@@ -232,7 +232,7 @@ impl KvStore {
                         reason: format!("Failed to open ir table: {e}"),
                     })?;
             let mut total = 0usize;
-            let mut valid_keys: Vec<String> = Vec::new();
+            let mut valid: Vec<(String, i64)> = Vec::new();
             let mut stale_keys: Vec<String> = Vec::new();
             for item in table.iter().map_err(|e| AppError::DatabaseError {
                 reason: format!("Failed to iterate ir table: {e}"),
@@ -246,7 +246,7 @@ impl KvStore {
                     bincode::config::standard(),
                 ) {
                     if cache.is_valid() {
-                        valid_keys.push(key_bytes.value().to_string());
+                        valid.push((key_bytes.value().to_string(), cache.created_at));
                     } else {
                         stale_keys.push(key_bytes.value().to_string());
                     }
@@ -266,7 +266,9 @@ impl KvStore {
             let remaining = total - stale_keys.len();
             if remaining > SCROLL_IR_MAX_ENTRIES {
                 let to_evict = remaining - SCROLL_IR_MAX_ENTRIES;
-                for key in valid_keys.iter().take(to_evict) {
+                // ponytail: LRU by created_at instead of lexicographic key order
+                valid.sort_by_key(|(_, t)| *t);
+                for (key, _) in valid.iter().take(to_evict) {
                     table
                         .remove(key.as_str())
                         .map_err(|e| AppError::DatabaseError {

@@ -3,11 +3,11 @@
 //! 提供书籍的聚合查询、级联删除、创建和解析等业务操作。
 //! 纯 CRUD 透传已内联到 api/ 层，此处只保留有实际业务逻辑的操作。
 
-use std::path::Path;
+use crate::api::book::BookDetail;
 use crate::common::AppError;
 use crate::common::security::validate_file_path;
-use crate::domain::book::{Book, BookFormat, BookStatus, BookshelfBook};
 use crate::domain::book::book_repo::BookRepository;
+use crate::domain::book::{Book, BookFormat, BookStatus, BookshelfBook};
 use crate::domain::category::category_repo::CategoryRepository;
 use crate::domain::chapter::chapter_repo::ChapterRepository;
 use crate::domain::note::note_repo::NoteRepository;
@@ -17,17 +17,17 @@ use crate::domain::vocab::vocab_repo::VocabRepository;
 use crate::infra::manager::storage_pool;
 use crate::parser::registry::parser_for_file;
 use crate::pipeline::chapter_ir::IrCacheRepository;
-use crate::api::book::BookDetail;
+use std::path::Path;
 
 /// 获取书籍详情（聚合查询）
-pub async fn get_book_detail(
-    book_id: &str,
-) -> Result<BookDetail, AppError> {
+pub async fn get_book_detail(book_id: &str) -> Result<BookDetail, AppError> {
     let pool = storage_pool()?;
 
     let book = BookRepository::find_by_id(&pool, book_id)
         .await?
-        .ok_or_else(|| AppError::NotFound { entity: "book".into() })?;
+        .ok_or_else(|| AppError::NotFound {
+            entity: "book".into(),
+        })?;
     let progress = ProgressRepository::find_by_book(&pool, book_id).await?;
     let note_stats = NoteRepository::find_note_stats(&pool, book_id).await?;
     let chapters = ChapterRepository::find_by_book(&pool, book_id).await?;
@@ -35,7 +35,15 @@ pub async fn get_book_detail(
     let session_count = SessionRepository::count_by_book(&pool, book_id).await?;
     let vocab_count = VocabRepository::count_by_book(&pool, book_id).await?;
 
-    Ok(BookDetail { book, progress, note_stats, chapters, categories, session_count, vocab_count })
+    Ok(BookDetail {
+        book,
+        progress,
+        note_stats,
+        chapters,
+        categories,
+        session_count,
+        vocab_count,
+    })
 }
 
 /// 列出书架书籍（含进度），支持按分类/状态筛选/排序。
@@ -48,16 +56,10 @@ pub async fn list_bookshelf_books(
     let pool = storage_pool()?;
     match (category_id, status) {
         (Some(cat_id), Some(st)) => {
-            CategoryRepository::list_bookshelf_by_category_and_status(
-                &pool, cat_id, st,
-            ).await
+            CategoryRepository::list_bookshelf_by_category_and_status(&pool, cat_id, st).await
         }
-        (Some(cat_id), None) => {
-            CategoryRepository::list_bookshelf_by_category(&pool, cat_id).await
-        }
-        (None, Some(st)) => {
-            BookRepository::list_bookshelf_by_status(&pool, st).await
-        }
+        (Some(cat_id), None) => CategoryRepository::list_bookshelf_by_category(&pool, cat_id).await,
+        (None, Some(st)) => BookRepository::list_bookshelf_by_status(&pool, st).await,
         (None, None) => {
             let sort_by = sort_by.unwrap_or("last_opened_at");
             let sort_order = sort_order.unwrap_or("desc");
@@ -82,15 +84,18 @@ pub async fn delete_book(book_id: &str, covers_dir: &str) -> Result<(), AppError
     if let Ok(Some(cover_path)) = BookRepository::find_cover_path(&pool, book_id).await {
         let full_path = std::path::Path::new(covers_dir).join(&cover_path);
         if full_path.exists()
-            && let Err(e) = tokio::fs::remove_file(&full_path).await {
-                tracing::warn!("[book] failed to delete cover file: {}", e);
-            }
+            && let Err(e) = tokio::fs::remove_file(&full_path).await
+        {
+            tracing::warn!("[book] failed to delete cover file: {}", e);
+        }
     }
 
     // 级联删除关联数据
     BookRepository::delete_cascade(&pool, book_id)
         .await
-        .map_err(|e| AppError::DatabaseError { reason: e.to_string() })?;
+        .map_err(|e| AppError::DatabaseError {
+            reason: e.to_string(),
+        })?;
 
     // 失效 IR 缓存
     if let Some(ref fp) = file_path {
@@ -100,7 +105,10 @@ pub async fn delete_book(book_id: &str, covers_dir: &str) -> Result<(), AppError
             tracing::warn!("[book] failed to clear ir cache for '{}': {}", fp, e);
         }
     } else {
-        tracing::warn!("[book] book '{}' not found — cannot invalidate IR cache", book_id);
+        tracing::warn!(
+            "[book] book '{}' not found — cannot invalidate IR cache",
+            book_id
+        );
     }
 
     Ok(())
@@ -120,8 +128,20 @@ pub async fn create_web_book(
         .and_then(|s| Path::new(s).file_name())
         .map(|f| f.to_string_lossy().into_owned());
     let book = Book::new(
-        file_path.to_string(), 0, title.to_string(), BookFormat::Txt, chapter_count, total_characters,
-        None, None, Some(author.to_string()), cover, description.map(|s| s.to_string()), None, None, None,
+        file_path.to_string(),
+        0,
+        title.to_string(),
+        BookFormat::Txt,
+        chapter_count,
+        total_characters,
+        None,
+        None,
+        Some(author.to_string()),
+        cover,
+        description.map(|s| s.to_string()),
+        None,
+        None,
+        None,
     );
     let pool = storage_pool()?;
     BookRepository::save(&pool, &book).await?;
@@ -130,7 +150,10 @@ pub async fn create_web_book(
 }
 
 /// 批量更新书籍阅读状态
-pub async fn batch_update_book_status(book_ids: &[String], status: BookStatus) -> Result<(), AppError> {
+pub async fn batch_update_book_status(
+    book_ids: &[String],
+    status: BookStatus,
+) -> Result<(), AppError> {
     let pool = storage_pool()?;
     let mut tx = pool.begin().await?;
     for book_id in book_ids {
@@ -178,11 +201,19 @@ pub async fn import_book(file_path: &str) -> Result<String, AppError> {
     const MAX_FILE_SIZE: u64 = 500 * 1024 * 1024;
 
     let validated_path = validate_file_path(file_path)?;
-    let metadata = tokio::fs::metadata(&validated_path).await
-        .map_err(|e| AppError::FileReadError { path: validated_path.clone(), details: e.to_string() })?;
+    let metadata =
+        tokio::fs::metadata(&validated_path)
+            .await
+            .map_err(|e| AppError::FileReadError {
+                path: validated_path.clone(),
+                details: e.to_string(),
+            })?;
     if metadata.len() > MAX_FILE_SIZE {
         return Err(AppError::SecurityError {
-            reason: format!("file size exceeds limit (max {} MB)", MAX_FILE_SIZE / 1024 / 1024),
+            reason: format!(
+                "file size exceeds limit (max {} MB)",
+                MAX_FILE_SIZE / 1024 / 1024
+            ),
             path: validated_path,
         });
     }

@@ -26,16 +26,16 @@
 //! 每个 spine 的纯文本在其内容首次被请求时才加载和缓存，
 //! 避免首次访问时加载整章所有 spine item 的内存浪费。
 
-use std::sync::OnceLock as OnceLock;
+use std::sync::OnceLock;
 
 use parking_lot::Mutex;
 
-use super::asset_registry::EpubAssetRegistry;
 use super::archive_reader::EpubFile;
-use crate::domain::AppError;
-use crate::parser::provider::ChapterContentProvider;
-use crate::domain::book::BookFormat;
+use super::asset_registry::EpubAssetRegistry;
 use super::plain_text::html_to_plain_text;
+use crate::domain::AppError;
+use crate::domain::book::BookFormat;
+use crate::parser::provider::ChapterContentProvider;
 
 /// EPUB 按需内容提供器
 ///
@@ -67,9 +67,7 @@ impl EpubContentProvider {
         let mut epub = EpubFile::open(file_path)?;
         let spine = epub.spine();
         let start = start_index.max(0) as usize;
-        let end = (end_index.max(0) as usize)
-            .min(spine.len())
-            .max(start + 1);
+        let end = (end_index.max(0) as usize).min(spine.len()).max(start + 1);
 
         let spine_hrefs: Vec<String> = spine[start..end].to_vec();
         let count = spine_hrefs.len();
@@ -77,12 +75,13 @@ impl EpubContentProvider {
         // Detect oversized single-spine chapters (>2MB HTML)
         if count == 1
             && let Ok(html) = epub.read_resource(&spine_hrefs[0])
-                && html.len() > 2_000_000 {
-                    return Err(AppError::ChapterTooLarge {
-                        size_bytes: html.len(),
-                        details: format!("spine {} is {} bytes", &spine_hrefs[0], html.len()),
-                    });
-                }
+            && html.len() > 2_000_000
+        {
+            return Err(AppError::ChapterTooLarge {
+                size_bytes: html.len(),
+                details: format!("spine {} is {} bytes", &spine_hrefs[0], html.len()),
+            });
+        }
 
         Ok(Self {
             epub: Mutex::new(epub),
@@ -103,9 +102,12 @@ impl EpubContentProvider {
 
         let mut epub = self.epub.lock();
         let href = &self.spine_hrefs[index];
-        let html = epub.read_resource(href).map_err(|e| {
-            AppError::ChapterExtractError { index: -1, reason: format!("failed to read spine item {}: {}", href, e) }
-        })?;
+        let html = epub
+            .read_resource(href)
+            .map_err(|e| AppError::ChapterExtractError {
+                index: -1,
+                reason: format!("failed to read spine item {}: {}", href, e),
+            })?;
         // 缓存原始 HTML，供 read_html_range 使用
         let _ = self.spine_htmls[index].get_or_init(|| html.clone());
         let plain = html_to_plain_text(&html);
@@ -191,9 +193,9 @@ impl EpubContentProvider {
     pub fn spine_internal_path(&self, index: usize) -> Option<String> {
         let idref = self.spine_hrefs.get(index)?;
         let epub = self.epub.lock();
-        epub.resources().get(idref).map(|item| {
-            item.path.to_string_lossy().replace('\\', "/")
-        })
+        epub.resources()
+            .get(idref)
+            .map(|item| item.path.to_string_lossy().replace('\\', "/"))
     }
 
     /// 构建本书 manifest asset 注册表。
@@ -224,8 +226,7 @@ impl ChapterContentProvider for EpubContentProvider {
             let i = first_spine + relative_idx;
             let spine_text = self.ensure_spine_text(i)?;
             let raw_local_start = (start.saturating_sub(spine_start)) as usize;
-            let raw_local_end = (end.saturating_sub(spine_start) as usize)
-                .min(spine_text.len());
+            let raw_local_end = (end.saturating_sub(spine_start) as usize).min(spine_text.len());
             let local_start = spine_text.ceil_char_boundary(raw_local_start);
             let local_end = spine_text.floor_char_boundary(raw_local_end);
             if local_start < local_end {
@@ -253,8 +254,12 @@ impl ChapterContentProvider for EpubContentProvider {
             let mut html = String::new();
             for i in 0..self.spine_htmls.len() {
                 self.ensure_spine_text(i)?;
-                let content = self.spine_htmls[i].get()
-                    .ok_or_else(|| AppError::EpubParseError { reason: "spine HTML not cached".into() })?;
+                let content =
+                    self.spine_htmls[i]
+                        .get()
+                        .ok_or_else(|| AppError::EpubParseError {
+                            reason: "spine HTML not cached".into(),
+                        })?;
                 html.push_str(content);
                 html.push('\n');
             }
@@ -267,76 +272,62 @@ impl ChapterContentProvider for EpubContentProvider {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_oversized_single_spine_returns_too_large() {
-        use std::io::{Read, Write};
-        use std::path::PathBuf;
-        use zip::write::SimpleFileOptions;
+        use std::io::Write;
         use zip::CompressionMethod;
         use zip::ZipWriter;
-
-        // Start from the real medium.epub fixture, extract all entries,
-        // then replace a spine XHTML with >2MB content
-        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let src_path = manifest_dir.join("../test/fixtures/medium.epub");
-
-        // Read the real EPUB
-        let src_bytes = std::fs::read(&src_path).unwrap();
-        let src_zip = std::io::Cursor::new(src_bytes);
-        let mut src_archive = zip::ZipArchive::new(src_zip).unwrap();
+        use zip::write::SimpleFileOptions;
 
         let dir = tempfile::TempDir::new().unwrap();
         let out_path = dir.path().join("large.epub");
         let out_file = std::fs::File::create(&out_path).unwrap();
         let mut out_zip = ZipWriter::new(out_file);
 
-        // Get all entry names, keep mimetype first
-        let mut names: Vec<String> = (0..src_archive.len())
-.map(|i| src_archive.by_index(i).unwrap().name().to_string())
-.collect();
-        // Sort so mimetype is first
-        names.sort_by(|a, b| {
-            if a == "mimetype" { std::cmp::Ordering::Less }
-            else if b == "mimetype" { std::cmp::Ordering::Greater }
-            else { a.cmp(b) }
-        });
+        // ponytail: minimal EPUB from scratch, no fixture dependency
+        let stored = SimpleFileOptions::default().compression_method(CompressionMethod::Stored);
+        let deflated = SimpleFileOptions::default();
 
-        for name in &names {
-            let mut entry = src_archive.by_name(name).unwrap();
-            let opts = if name == "mimetype" {
-                SimpleFileOptions::default().compression_method(CompressionMethod::Stored)
-            } else {
-                SimpleFileOptions::default()
-            };
-            out_zip.start_file(name, opts).unwrap();
-            let mut data = Vec::new();
-            entry.read_to_end(&mut data).unwrap();
+        out_zip.start_file("mimetype", stored).unwrap();
+        out_zip.write_all(b"application/epub+zip").unwrap();
 
-            // Replace the first XHTML entry (spine) with >2MB content
-            if name.ends_with(".xhtml") && !name.contains("nav") {
-                let mut large_html = Vec::new();
-                write!(&mut large_html, r#"<?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head><title>Large</title></head>
-<body><p>"#).unwrap();
-                let content = "A".repeat(2_100_000);
-                write!(&mut large_html, "{}</p></body></html>", content).unwrap();
-                out_zip.write_all(&large_html).unwrap();
-            } else {
-                out_zip.write_all(&data).unwrap();
-            }
-        }
+        out_zip.start_file("META-INF/container.xml", deflated).unwrap();
+        out_zip.write_all(b"<?xml version=\"1.0\"?>\n").unwrap();
+        out_zip.write_all(b"<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\">\n").unwrap();
+        out_zip.write_all(b"  <rootfiles>\n").unwrap();
+        out_zip.write_all(b"    <rootfile full-path=\"OEBPS/content.opf\" media-type=\"application/oebps-package+xml\"/>\n").unwrap();
+        out_zip.write_all(b"  </rootfiles>\n").unwrap();
+        out_zip.write_all(b"</container>").unwrap();
+
+        out_zip.start_file("OEBPS/content.opf", deflated).unwrap();
+        out_zip.write_all(b"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n").unwrap();
+        out_zip.write_all(b"<package xmlns=\"http://www.idpf.org/2007/opf\" unique-identifier=\"book-id\" version=\"2.0\">\n").unwrap();
+        out_zip.write_all(b"  <metadata><dc:title xmlns:dc=\"http://purl.org/dc/elements/1.1/\">Test</dc:title></metadata>\n").unwrap();
+        out_zip.write_all(b"  <manifest>\n").unwrap();
+        out_zip.write_all(b"    <item id=\"ch1\" href=\"chapter1.xhtml\" media-type=\"application/xhtml+xml\"/>\n").unwrap();
+        out_zip.write_all(b"  </manifest>\n").unwrap();
+        out_zip.write_all(b"  <spine><itemref idref=\"ch1\"/></spine>\n").unwrap();
+        out_zip.write_all(b"</package>").unwrap();
+
+        out_zip.start_file("OEBPS/chapter1.xhtml", deflated).unwrap();
+        out_zip.write_all(b"<html xmlns=\"http://www.w3.org/1999/xhtml\">").unwrap();
+        out_zip.write_all(b"<head><title>Large</title></head><body><p>").unwrap();
+        out_zip.write_all("A".repeat(2_100_000).as_bytes()).unwrap();
+        out_zip.write_all(b"</p></body></html>").unwrap();
         out_zip.finish().unwrap();
 
         let path = out_path.to_string_lossy().to_string();
         let result = EpubContentProvider::open_from_bounds(&path, 0, 1);
-        assert!(result.as_ref().is_err_and(|e| matches!(e, AppError::ChapterTooLarge { .. })),
-            "expected ChapterTooLarge, got {:?}", result.as_ref().err());
+        assert!(
+        result
+            .as_ref()
+            .is_err_and(|e| matches!(e, AppError::ChapterTooLarge { .. })),
+        "expected ChapterTooLarge, got {:?}",
+        result.as_ref().err()
+    );
     }
 }

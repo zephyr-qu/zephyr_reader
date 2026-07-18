@@ -1,11 +1,9 @@
 //! 备份数据模型
 
-use flutter_rust_bridge::frb;
 use chrono::{DateTime, Utc};
-use uuid::Uuid;
+use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
-
-
+use uuid::Uuid;
 
 /// 生词学习状态
 ///

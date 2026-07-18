@@ -19,14 +19,14 @@ pub const IMAGE_PLAIN_CHAR_LEN: u32 = 1;
 
 // ==================== 行内样式 ====================
 
-/// 行内 span 样式。
+/// 可组合的行内 span 样式。
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, bincode::Encode, bincode::Decode,
 )]
-pub enum ReaderInlineStyle {
-    Plain,
-    Bold,
-    Italic,
+#[frb(non_opaque)]
+pub struct ReaderInlineStyle {
+    pub bold: bool,
+    pub italic: bool,
 }
 
 // ==================== 行内运行 ====================

@@ -1,4 +1,0 @@
-# Telemetry/crash-reporter search ¡ª files that reference crashlytics/sentry/firebase
-
-No references to crashlytics, Sentry, or Firebase in lib/core/.
-However, the 'logger' package writes to stderr, which on Android is captured by Logcat and on iOS by NSLog ¡ª reachable via device logs.

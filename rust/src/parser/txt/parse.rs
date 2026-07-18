@@ -18,10 +18,10 @@ use std::path::Path;
 
 use super::decode;
 use crate::domain::AppError;
-use crate::domain::chapter::Chapter;
-use crate::parser::types::ParseResult;
 use crate::domain::book::{Book, BookFormat};
+use crate::domain::chapter::Chapter;
 use crate::domain::chapter_detect::detector::detect_with_builtin_only;
+use crate::parser::types::ParseResult;
 /// 解析 TXT 文件
 pub fn parse_txt(file_path: String) -> Result<ParseResult, AppError> {
     parse_txt_inner(file_path)
@@ -47,23 +47,25 @@ fn extract_metadata_from_content(
         }
 
         if title.is_none()
-            && let Some(val) = extract_kv(line, &["书名", "書名"]) {
-                title = Some(val);
-                continue;
-            }
+            && let Some(val) = extract_kv(line, &["书名", "書名"])
+        {
+            title = Some(val);
+            continue;
+        }
 
         if author.is_none()
-            && let Some(val) = extract_kv(line, &["作者"]) {
-                author = Some(val);
-                continue;
-            }
+            && let Some(val) = extract_kv(line, &["作者"])
+        {
+            author = Some(val);
+            continue;
+        }
 
         if description.is_none()
             && let Some(val) =
                 extract_kv(line, &["简介", "簡介", "内容简介", "內容簡介", "内容提要"])
-            {
-                description = Some(val);
-            }
+        {
+            description = Some(val);
+        }
 
         if title.is_some() && author.is_some() && description.is_some() {
             break;
@@ -324,10 +326,7 @@ mod tests {
 
     #[test]
     fn extract_kv_ascii_colon() {
-        assert_eq!(
-            extract_kv("书名:三体", &["书名"]),
-            Some("三体".to_string())
-        );
+        assert_eq!(extract_kv("书名:三体", &["书名"]), Some("三体".to_string()));
     }
 
     #[test]
@@ -362,4 +361,3 @@ mod tests {
         );
     }
 }
-

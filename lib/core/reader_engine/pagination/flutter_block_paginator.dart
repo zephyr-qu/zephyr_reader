@@ -1,14 +1,14 @@
 import 'package:flutter/foundation.dart' show visibleForTesting;
-import 'package:flutter/painting.dart';
+import 'package:zephyr_reader/core/reader_engine/layout/block_layout.dart';
 import 'package:zephyr_reader/core/reader_engine/layout/layout_spec.dart';
 import 'package:zephyr_reader/core/reader_engine/layout/paragraph_layouter.dart';
 import 'package:zephyr_reader/core/reader_engine/layout/span_factory.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/page_packer.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/page_plan.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/slice_rich_spans.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/ir_text_block_style.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/reader_render_config.dart';
-import 'package:zephyr_reader/core/reader_engine/pagination/slice_rich_spans.dart';
-import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/ir_types.dart';
-import 'package:zephyr_reader/src/rust/pipeline/types.dart' show BlockStyle;
 
 /// 无 intrinsic 时图片高度 = 内容宽 × 此比（与 Rust `DEFAULT_IMAGE_HEIGHT_RATIO` 对齐）。
 const kDefaultImageHeightRatio = 0.55;
@@ -19,9 +19,7 @@ const kInlineImageVerticalPaddingDp = 8.0;
 /// 单次 TextPainter 断行上限：大单块 TXT 必须切窗。
 const kLineBreakChunkChars = 4000;
 
-/// 页底保守余量：仅吸收残余子像素差异 + 图片 inline padding 舍入，非 heading 补偿。
-/// heading 高度误差已由 _strutLineH 的 blockFontSize 修复消除。
-const kPagePackBottomSlackDp = 8.0;
+/// Phase 6: 真实 line height 已消除估算误差，余量设为 0。
 
 @visibleForTesting
 int utf16SafeChunkEnd(String text, int proposedEnd) {
@@ -37,6 +35,14 @@ int utf16SafeChunkEnd(String text, int proposedEnd) {
     if (splitsSurrogatePair) end--;
   }
   return end;
+}
+
+@visibleForTesting
+int utf16SafeStopEnd(String text, int proposedEnd) {
+  final end = proposedEnd.clamp(0, text.length);
+  final safeBefore = utf16SafeChunkEnd(text, end);
+  if (safeBefore == end) return end;
+  return (end + 1).clamp(0, text.length);
 }
 
 @visibleForTesting
@@ -61,11 +67,18 @@ final class PaginationCancelledException implements Exception {
   String toString() => 'PaginationCancelledException';
 }
 
-/// [FlutterBlockPaginator.paginateAsync] 结果。
+/// [FlutterBlockPaginator.paginateAsync] 结果（Phase 6: 原生 PagePlan）。
 class FlutterPaginateOutcome {
-  const FlutterPaginateOutcome({required this.pages, required this.isPartial});
+  const FlutterPaginateOutcome({
+    required this.pages,
+    required this.blocks,
+    required this.spec,
+    required this.isPartial,
+  });
 
-  final List<PackedPage> pages;
+  final List<PagePlan> pages;
+  final List<BlockLayout> blocks;
+  final LayoutSpec spec;
   final bool isPartial;
 }
 
@@ -87,9 +100,11 @@ double imageDisplayHeightDp({
 }
 
 /// Flutter 侧页装箱（方案三）。
+///
+/// Phase 6: 使用 [ParagraphLayouter] + [PagePacker]，原生输出 [PagePlan]。
 abstract final class FlutterBlockPaginator {
   /// 同步装箱（单测 / 小章）。
-  static List<PackedPage> paginate(
+  static List<PagePlan> paginate(
     ReaderChapterIr ir, {
     required ReaderRenderConfig config,
     required double contentWidthDp,
@@ -100,38 +115,25 @@ abstract final class FlutterBlockPaginator {
     final maxH = contentHeightDp.clamp(1.0, 8192.0);
     if (ir.plainText.isEmpty && ir.blocks.isEmpty) {
       return const [
-        PackedPage(
+        PagePlan(
           pageIndex: 0,
-          startOffset: 0,
-          endOffset: 0,
-          slices: [],
+          startUtf16: 0,
+          endUtf16: 0,
+          fragments: <PageFragment>[],
           isLastPage: true,
         ),
       ];
     }
-
     final blocks = _resolveBlocks(ir);
-    final packer = _PagePacker(
+    final spec = _toLayoutSpec(config, maxW, maxH);
+    final blockLayouts = _layoutBlocks(blocks, spec, maxW, config);
+    return PagePacker.pack(
+      blocks: blockLayouts,
+      spec: spec,
       maxHeight: maxH,
-      config: config,
-      stopAfterPlainOffset: stopAfterPlainOffset,
+      chapterPlainText: ir.plainText,
+      irBlocks: blocks,
     );
-
-    for (var i = 0; i < blocks.length; i++) {
-      final block = blocks[i];
-      final stop = block.kind == ReaderIrBlockKind.text
-          ? packer.packTextSync(blockIndex: i, block: block, maxWidth: maxW)
-          : packer.packImage(blockIndex: i, block: block, maxWidth: maxW);
-      if (stop) break;
-      if (stopAfterPlainOffset != null &&
-          packer.plainEnd >= stopAfterPlainOffset &&
-          packer.hasEmittedPages &&
-          i + 1 < blocks.length) {
-        packer.stoppedEarly = true;
-        break;
-      }
-    }
-    return packer.finish(forcePartial: packer.stoppedEarly);
   }
 
   /// 异步分块装箱；大块按 [kLineBreakChunkChars] 切窗并 yield。
@@ -143,7 +145,13 @@ abstract final class FlutterBlockPaginator {
     bool Function()? isCancelled,
     int yieldEveryChunks = 1,
     int? stopAfterPlainOffset,
-    void Function(List<PackedPage> pagesSoFar, bool isPartial)? onProgress,
+    void Function(
+      List<PagePlan> pagesSoFar,
+      List<BlockLayout> blocksSoFar,
+      LayoutSpec spec,
+      bool isPartial,
+    )?
+    onProgress,
   }) async {
     void checkCancel() {
       if (isCancelled?.call() == true) {
@@ -154,72 +162,146 @@ abstract final class FlutterBlockPaginator {
     checkCancel();
     final maxW = contentWidthDp.clamp(1.0, 4096.0);
     final maxH = contentHeightDp.clamp(1.0, 8192.0);
+    final spec = _toLayoutSpec(config, maxW, maxH);
 
     if (ir.plainText.isEmpty && ir.blocks.isEmpty) {
-      return const FlutterPaginateOutcome(
-        pages: [
-          PackedPage(
+      return FlutterPaginateOutcome(
+        pages: const [
+          PagePlan(
             pageIndex: 0,
-            startOffset: 0,
-            endOffset: 0,
-            slices: [],
+            startUtf16: 0,
+            endUtf16: 0,
+            fragments: <PageFragment>[],
             isLastPage: true,
           ),
         ],
+        blocks: const <BlockLayout>[],
+        spec: spec,
         isPartial: false,
       );
     }
 
     final blocks = _resolveBlocks(ir);
-    final packer = _PagePacker(
-      maxHeight: maxH,
-      config: config,
-      stopAfterPlainOffset: stopAfterPlainOffset,
-    );
+    final packer = PagePacker(spec: spec, maxHeight: maxH);
+    final blockLayouts = <BlockLayout>[];
 
-    var lastReported = 0;
     void report() {
       if (onProgress == null) return;
-      final n = packer.emittedPageCount;
-      if (n - lastReported < 2) return;
-      lastReported = n;
-      onProgress(packer.snapshotPages(forcePartial: true), true);
+      // Non-destructive snapshot — does not mutate packer state.
+      final pagesSnapshot = packer.snapshotPages(isPartial: true);
+      onProgress(pagesSnapshot, List.unmodifiable(blockLayouts), spec, true);
     }
 
-    var chunkOrdinal = 0;
-    for (var i = 0; i < blocks.length; i++) {
+    var lastEmittedPageCount = 0;
+    var isStopped = false;
+
+    for (var i = 0; i < blocks.length && !isStopped; i++) {
       checkCancel();
       final block = blocks[i];
-      final stop = block.kind == ReaderIrBlockKind.text
-          ? await packer.packTextAsync(
-              blockIndex: i,
-              block: block,
-              maxWidth: maxW,
-              onChunkDone: () async {
-                chunkOrdinal++;
-                report();
-                if (yieldEveryChunks > 0 &&
-                    chunkOrdinal % yieldEveryChunks == 0) {
-                  await Future<void>.delayed(Duration.zero);
-                  checkCancel();
-                }
-              },
-            )
-          : packer.packImage(blockIndex: i, block: block, maxWidth: maxW);
-      if (stop) break;
 
-      if (stopAfterPlainOffset != null &&
-          packer.plainEnd >= stopAfterPlainOffset &&
-          packer.hasEmittedPages &&
-          i + 1 < blocks.length) {
-        packer.stoppedEarly = true;
-        break;
+      if (block.kind == ReaderIrBlockKind.text) {
+        final indentPx = IrReaderIrBlock.resolveFirstLineIndentPx(
+          block.style,
+          config,
+        );
+        final spanFactory = SpanFactory(spec);
+        final layouter = ParagraphLayouter(spanFactory, spec);
+
+        var chunkFrom = 0;
+        var chunkOrdinal = 0;
+        while (chunkFrom < block.text.length && !isStopped) {
+          final chunkTo = textBlockChunkEnd(block.text, chunkFrom);
+          final chunk = block.text.substring(chunkFrom, chunkTo);
+          final chunkRuns = sliceRichSpans(
+            block.runs,
+            start: chunkFrom,
+            len: chunk.length,
+          );
+
+          final layout = layouter.layoutTextBlock(
+            blockIndex: i,
+            text: chunk,
+            spans: chunkRuns,
+            style: block.style,
+            maxWidth: maxW,
+            firstLineIndentPx: chunkFrom == 0 ? indentPx : 0.0,
+          );
+          blockLayouts.add(layout);
+          // Pass chunk-start offset so PagePacker computes correct chapter offsets
+          final stopped = packer.appendTextBlock(
+            block: layout,
+            blockText: chunk,
+            blockRuns: chunkRuns,
+            blockPlainStart: block.plainStart + chunkFrom,
+            blockStyle: block.style,
+            startsBlock: chunkFrom == 0,
+            endsBlock: chunkTo == block.text.length,
+            stopAfterPlainOffset: stopAfterPlainOffset,
+          );
+
+          chunkFrom = chunkTo;
+          chunkOrdinal++;
+
+          if (stopped) {
+            isStopped = true;
+            break;
+          }
+
+          if (chunkFrom < block.text.length) {
+            final em = packer.emittedPageCount;
+            if (em - lastEmittedPageCount >= 2) {
+              lastEmittedPageCount = em;
+              report();
+            }
+            if (yieldEveryChunks > 0 && chunkOrdinal % yieldEveryChunks == 0) {
+              await Future<void>.delayed(Duration.zero);
+              checkCancel();
+            }
+          }
+        }
+      } else {
+        final imgH = PagePacker.imageDisplayHeight(
+          contentWidthDp: maxW,
+          intrinsicWidth: block.imageIntrinsicWidth,
+          intrinsicHeight: block.imageIntrinsicHeight,
+        );
+        final imageLayout = BlockLayout(
+          blockIndex: i,
+          startUtf16: block.plainStart,
+          endUtf16: block.plainStart + block.plainLen,
+          lines: const <LineLayout>[],
+          isImage: true,
+          assetId: block.imageAssetId ?? '',
+          imageAlt: block.imageAlt,
+          intrinsicWidth: block.imageIntrinsicWidth,
+          intrinsicHeight: block.imageIntrinsicHeight,
+        );
+        blockLayouts.add(imageLayout);
+        final stopped = packer.appendImageBlock(
+          block: imageLayout,
+          blockPlainStart: block.plainStart,
+          displayHeight: imgH,
+          assetId: block.imageAssetId ?? '',
+          imageAlt: block.imageAlt,
+          intrinsicWidth: block.imageIntrinsicWidth,
+          intrinsicHeight: block.imageIntrinsicHeight,
+          stopAfterPlainOffset: stopAfterPlainOffset,
+        );
+
+        if (stopped) {
+          isStopped = true;
+        }
       }
     }
 
-    final pages = packer.finish(forcePartial: packer.stoppedEarly);
-    onProgress?.call(pages, packer.stoppedEarly);
-    return FlutterPaginateOutcome(pages: pages, isPartial: packer.stoppedEarly);
+    final pages = packer.finish(isPartial: isStopped);
+    onProgress?.call(pages, List.unmodifiable(blockLayouts), spec, isStopped);
+    return FlutterPaginateOutcome(
+      pages: pages,
+      blocks: List.unmodifiable(blockLayouts),
+      spec: spec,
+      isPartial: isStopped,
+    );
   }
 
   static List<ReaderIrBlock> _resolveBlocks(ReaderChapterIr ir) {
@@ -231,15 +313,7 @@ abstract final class FlutterBlockPaginator {
         plainLen: ir.plainText.length,
         text: ir.plainText,
         runs: const [],
-        style: const BlockStyle(
-          isHeading: false,
-          headingLevel: 0,
-          textIndentEm: null,
-          marginTopEm: null,
-          marginBottomEm: null,
-          textAlign: null,
-          fontSize: null,
-        ),
+        style: const BlockStyle(isHeading: false, headingLevel: 0),
         imageAssetId: null,
         imageAlt: null,
         imageIntrinsicWidth: null,
@@ -247,464 +321,70 @@ abstract final class FlutterBlockPaginator {
       ),
     ];
   }
-}
 
-class _PagePacker {
-  _PagePacker({
-    required this.maxHeight,
-    required this.config,
-    this.stopAfterPlainOffset,
-  }) : packBudget = (maxHeight - kPagePackBottomSlackDp).clamp(1.0, maxHeight),
-       layoutSpec = LayoutSpec.fromRenderConfig(
-         config,
-         viewportWidth: 0, // unused; real width passed per-block as maxWidth
-         viewportHeight: maxHeight + 2 * ReaderRenderConfig.pageContentVerticalPadding,
-       );
-  final double maxHeight;
-
-  /// 实际可装高度（扣底边 slack）。
-  final double packBudget;
-  final ReaderRenderConfig config;
-  final LayoutSpec layoutSpec;
-  final int? stopAfterPlainOffset;
-
-  final List<PackedPage> _pages = [];
-  final List<PackedBlockSlice> _slices = [];
-  int? _pageStart;
-  int _pageEnd = 0;
-  double _used = 0;
-  bool _pageHasContent = false;
-
-  /// 上一结束块是否允许补 paragraphSpacing（isBlockEnd 且无显式 bottom margin）。
-  bool _prevBlockAllowsParagraphSpacing = false;
-  bool stoppedEarly = false;
-
-  /// 已越过 stopAfter，但仍先把当前页装满再停（避免半页留白）。
-  bool _pastStop = false;
-
-  int get plainEnd => _pageEnd;
-  bool get hasEmittedPages => _pages.isNotEmpty || _pageHasContent;
-  int get emittedPageCount => _pages.length + (_pageHasContent ? 1 : 0);
-
-  bool _hitStop() {
-    final stop = stopAfterPlainOffset;
-    return stop != null && plainEnd >= stop && hasEmittedPages;
-  }
-
-  List<PackedPage> snapshotPages({required bool forcePartial}) {
-    final out = <PackedPage>[
-      for (final p in _pages)
-        PackedPage(
-          pageIndex: p.pageIndex,
-          startOffset: p.startOffset,
-          endOffset: p.endOffset,
-          slices: p.slices,
-          isLastPage: false,
-        ),
-    ];
-    if (_pageHasContent || _slices.isNotEmpty) {
-      out.add(
-        PackedPage(
-          pageIndex: out.length,
-          startOffset: _pageStart ?? 0,
-          endOffset: _pageEnd,
-          slices: List.unmodifiable(List<PackedBlockSlice>.from(_slices)),
-          isLastPage: !forcePartial,
-        ),
-      );
-    }
-    return List.unmodifiable(out);
-  }
-
-  bool packTextSync({
-    required int blockIndex,
-    required ReaderIrBlock block,
-    required double maxWidth,
-  }) {
-    return _packText(
-      blockIndex: blockIndex,
-      block: block,
-      maxWidth: maxWidth,
-      onChunkDone: null,
+  static LayoutSpec _toLayoutSpec(
+    ReaderRenderConfig config,
+    double maxW,
+    double maxH,
+  ) {
+    return LayoutSpec.fromRenderConfig(
+      config,
+      viewportWidth: maxW + 2 * config.pageMargin,
+      viewportHeight: maxH + 2 * ReaderRenderConfig.pageContentVerticalPadding,
     );
   }
 
-  Future<bool> packTextAsync({
-    required int blockIndex,
-    required ReaderIrBlock block,
-    required double maxWidth,
-    required Future<void> Function() onChunkDone,
-  }) {
-    return _packTextAsync(
-      blockIndex: blockIndex,
-      block: block,
-      maxWidth: maxWidth,
-      onChunkDone: onChunkDone,
-    );
-  }
-
-  /// 同步版：onChunkDone 忽略。
-  bool _packText({
-    required int blockIndex,
-    required ReaderIrBlock block,
-    required double maxWidth,
-    required Future<void> Function()? onChunkDone,
-  }) {
-    assert(onChunkDone == null, 'use _packTextAsync for yields');
-    return _packTextBody(
-      blockIndex: blockIndex,
-      block: block,
-      maxWidth: maxWidth,
-      afterChunk: null,
-    );
-  }
-
-  Future<bool> _packTextAsync({
-    required int blockIndex,
-    required ReaderIrBlock block,
-    required double maxWidth,
-    required Future<void> Function() onChunkDone,
-  }) async {
-    // 用同步 body + 手动切窗循环，便于 await。
-    final plainEnd = block.plainStart + block.plainLen;
-    if (block.text.isEmpty) {
-      _pageEnd = plainEnd;
-      return false;
-    }
-
-    final ctx = _TextPackContext.create(
-      packer: this,
-      blockIndex: blockIndex,
-      block: block,
-      maxWidth: maxWidth,
-    );
-
-    var chunkFrom = 0;
-    while (chunkFrom < block.text.length) {
-      // 首屏：越过 stopAfter 后仍要装满当前页，再截断。
-      if (stoppedEarly) break;
-
-      final chunkTo = textBlockChunkEnd(block.text, chunkFrom);
-
-      final stop = ctx.packChunk(chunkFrom, chunkTo);
-      if (stop) {
-        stoppedEarly = true;
-        return true;
-      }
-
-      chunkFrom = chunkTo;
-      if (chunkFrom < block.text.length) {
-        await onChunkDone();
-      }
-    }
-
-    ctx.flushSlice(isBlockEnd: true);
-    _pageEnd = plainEnd;
-    return false;
-  }
-
-  bool _packTextBody({
-    required int blockIndex,
-    required ReaderIrBlock block,
-    required double maxWidth,
-    required void Function()? afterChunk,
-  }) {
-    final plainEnd = block.plainStart + block.plainLen;
-    if (block.text.isEmpty) {
-      _pageEnd = plainEnd;
-      return false;
-    }
-
-    final ctx = _TextPackContext.create(
-      packer: this,
-      blockIndex: blockIndex,
-      block: block,
-      maxWidth: maxWidth,
-    );
-
-    var chunkFrom = 0;
-    while (chunkFrom < block.text.length) {
-      if (stoppedEarly) break;
-
-      final chunkTo = textBlockChunkEnd(block.text, chunkFrom);
-
-      final stop = ctx.packChunk(chunkFrom, chunkTo);
-      if (stop) {
-        stoppedEarly = true;
-        return true;
-      }
-
-      chunkFrom = chunkTo;
-      afterChunk?.call();
-    }
-
-    ctx.flushSlice(isBlockEnd: true);
-    _pageEnd = plainEnd;
-    return false;
-  }
-
-  bool packImage({
-    required int blockIndex,
-    required ReaderIrBlock block,
-    required double maxWidth,
-  }) {
-    final imgH = imageDisplayHeightDp(
-      contentWidthDp: maxWidth,
-      intrinsicWidth: block.imageIntrinsicWidth,
-      intrinsicHeight: block.imageIntrinsicHeight,
-    );
-    // 内联路径渲染有 ±4dp padding；装箱必须计入，否则页底易溢出。
-    final inlinePackedH = imgH + kInlineImageVerticalPaddingDp;
-    final precedingSpacing = _prevBlockAllowsParagraphSpacing
-        ? config.paragraphSpacing
-        : 0.0;
-    final inlinePackedHWithSpacing = precedingSpacing + inlinePackedH;
-    final remaining = packBudget - _used;
-    final start = block.plainStart;
-    final end = start + block.plainLen;
-
-    if (inlinePackedHWithSpacing <= remaining) {
-      _pageStart ??= start;
-      _pageEnd = end;
-      _slices.add(
-        PackedBlockSlice.image(
-          blockIndex: blockIndex,
-          assetId: block.imageAssetId ?? '',
-          imageAlt: block.imageAlt,
-          imageIntrinsicWidth: block.imageIntrinsicWidth,
-          imageIntrinsicHeight: block.imageIntrinsicHeight,
-          imageLayout: ReaderIrBlockLayout.inlineContain,
-        ),
-      );
-      _used += inlinePackedHWithSpacing;
-      _pageHasContent = true;
-      _prevBlockAllowsParagraphSpacing = false;
-      return false;
-    }
-
-    if (_pageHasContent) _flushPage();
-
-    _pageStart = start;
-    _pageEnd = end;
-    _slices.add(
-      PackedBlockSlice.image(
-        blockIndex: blockIndex,
-        assetId: block.imageAssetId ?? '',
-        imageAlt: block.imageAlt,
-        imageIntrinsicWidth: block.imageIntrinsicWidth,
-        imageIntrinsicHeight: block.imageIntrinsicHeight,
-        imageLayout: ReaderIrBlockLayout.fullPage,
-      ),
-    );
-    _pageHasContent = true;
-    _prevBlockAllowsParagraphSpacing = false;
-    _flushPage();
-    return false;
-  }
-
-  void _flushPage() {
-    if (!_pageHasContent && _slices.isEmpty) return;
-    _pages.add(
-      PackedPage(
-        pageIndex: _pages.length,
-        startOffset: _pageStart ?? 0,
-        endOffset: _pageEnd,
-        slices: List.unmodifiable(_slices),
-        isLastPage: false,
-      ),
-    );
-    _slices.clear();
-    _pageStart = null;
-    _used = 0;
-    _pageHasContent = false;
-    _prevBlockAllowsParagraphSpacing = false;
-  }
-
-  List<PackedPage> finish({bool forcePartial = false}) {
-    if (_pageHasContent || _slices.isNotEmpty || _pages.isEmpty) {
-      _pages.add(
-        PackedPage(
-          pageIndex: _pages.length,
-          startOffset: _pageStart ?? 0,
-          endOffset: _pageEnd,
-          slices: List.unmodifiable(_slices),
-          isLastPage: !forcePartial,
-        ),
-      );
-    } else {
-      final last = _pages.removeLast();
-      _pages.add(
-        PackedPage(
-          pageIndex: last.pageIndex,
-          startOffset: last.startOffset,
-          endOffset: last.endOffset,
-          slices: last.slices,
-          isLastPage: !forcePartial,
-        ),
-      );
-    }
-    return List.unmodifiable(_pages);
-  }
-}
-
-/// 单个 ReaderIrBlock 的断行+装箱状态机。
-///
-/// Phase 2：使用 [ParagraphLayouter] 消费真实 line height，替代 _sliceHeightForLines 估算。
-class _TextPackContext {
-  _TextPackContext({
-    required this.packer,
-    required this.blockIndex,
-    required this.block,
-    required this.irStyle,
-    required this.layouter,
-    required double maxWidth,
-  })  : indentPx = IrReaderIrBlock.resolveFirstLineIndentPx(irStyle, packer.config),
-       blockPadding = IrReaderIrBlock.resolveBlockPadding(irStyle, packer.config),
-       layoutMaxWidth = (maxWidth - IrReaderIrBlock.resolveBlockPadding(irStyle, packer.config).horizontal).clamp(1.0, maxWidth);
-
-  factory _TextPackContext.create({
-    required _PagePacker packer,
-    required int blockIndex,
-    required ReaderIrBlock block,
-    required double maxWidth,
-  }) {
-    final irStyle = block.style;
-    final spec = packer.layoutSpec;
+  /// Layout all blocks into BlockLayouts (for sync path).
+  static List<BlockLayout> _layoutBlocks(
+    List<ReaderIrBlock> blocks,
+    LayoutSpec spec,
+    double maxW,
+    ReaderRenderConfig config,
+  ) {
     final spanFactory = SpanFactory(spec);
     final layouter = ParagraphLayouter(spanFactory, spec);
-    return _TextPackContext(
-      packer: packer,
-      blockIndex: blockIndex,
-      block: block,
-      irStyle: irStyle,
-      layouter: layouter,
-      maxWidth: maxWidth,
-    );
-  }
+    final out = <BlockLayout>[];
 
-  final _PagePacker packer;
-  final int blockIndex;
-  final ReaderIrBlock block;
-  final double indentPx;
-  final EdgeInsets blockPadding;
-  final double layoutMaxWidth;
-  final BlockStyle irStyle;
-  final ParagraphLayouter layouter;
-
-  var localStart = 0;
-  var isBlockStart = true;
-  final lineBuf = StringBuffer();
-  var sliceLocalStart = 0;
-  var sliceIsBlockStart = true;
-
-
-  double _blockOverhead() {
-    var oh = blockPadding.vertical;
-    if (packer._prevBlockAllowsParagraphSpacing &&
-        packer.config.paragraphSpacing > 0) {
-      oh += packer.config.paragraphSpacing;
-    }
-    return oh;
-  }
-
-  void flushSlice({required bool isBlockEnd}) {
-    if (lineBuf.isEmpty) return;
-    final text = lineBuf.toString();
-    final absStart = block.plainStart + sliceLocalStart;
-    final absEnd = absStart + text.length;
-    packer._pageStart ??= absStart;
-    packer._pageEnd = absEnd;
-    packer._slices.add(
-      PackedBlockSlice.text(
-        blockIndex: blockIndex,
-        text: text,
-        isBlockStart: sliceIsBlockStart,
-        isBlockEnd: isBlockEnd,
-        style: irStyle,
-        spans: sliceRichSpans(
-          block.runs,
-          start: sliceLocalStart,
-          len: text.length,
-        ),
-      ),
-    );
-    packer._pageHasContent = true;
-    packer._prevBlockAllowsParagraphSpacing =
-        isBlockEnd && irStyle.marginBottomEm == null;
-    lineBuf.clear();
-  }
-
-  /// 处理 [chunkFrom, chunkTo) 子串。返回是否应停止后续块。
-  ///
-  /// Phase 2: 使用 [ParagraphLayouter] 获取真实 line height。
-  bool packChunk(int chunkFrom, int chunkTo) {
-    final chunk = block.text.substring(chunkFrom, chunkTo);
-    final chunkRuns = sliceRichSpans(
-      block.runs,
-      start: chunkFrom,
-      len: chunk.length,
-    );
-    final layout = layouter.layoutTextBlock(
-      blockIndex: blockIndex,
-      text: chunk,
-      spans: chunkRuns,
-      style: irStyle,
-      maxWidth: layoutMaxWidth,
-      firstLineIndentPx: isBlockStart ? indentPx : 0.0,
-    );
-    if (layout.lines.isEmpty) return false;
-
-    for (final line in layout.lines) {
-      final localEnd = chunkFrom + line.endUtf16;
-      if (localEnd <= localStart) continue;
-      final lineText = block.text.substring(localStart, localEnd);
-      final lineH = line.height;
-
-      if (lineBuf.isEmpty) {
-        var need = lineH + (isBlockStart ? _blockOverhead() : 0.0);
-        // 仅在本页已有内容时才因装不下而翻页；允许贴满 maxHeight。
-        if (packer._pageHasContent && packer._used + need > packer.packBudget) {
-          flushSlice(isBlockEnd: false);
-          packer._flushPage();
-          if (packer._pastStop) {
-            packer.stoppedEarly = true;
-            return true;
-          }
-          // 上一块留在前页，页首不应继续携带它产生的 paragraphSpacing。
-          need = lineH + (isBlockStart ? _blockOverhead() : 0.0);
-        }
-        sliceLocalStart = localStart;
-        sliceIsBlockStart = isBlockStart;
-        packer._used += need;
-        lineBuf.write(lineText);
+    for (var i = 0; i < blocks.length; i++) {
+      final block = blocks[i];
+      if (block.kind == ReaderIrBlockKind.text) {
+        final indentPx = IrReaderIrBlock.resolveFirstLineIndentPx(
+          block.style,
+          config,
+        );
+        out.add(
+          layouter.layoutTextBlock(
+            blockIndex: i,
+            text: block.text,
+            spans: block.runs,
+            style: block.style,
+            maxWidth: maxW,
+            firstLineIndentPx: indentPx,
+            plainStart: block.plainStart,
+          ),
+        );
       } else {
-        if (packer._used + lineH > packer.packBudget) {
-          flushSlice(isBlockEnd: false);
-          packer._flushPage();
-          if (packer._pastStop) {
-            packer.stoppedEarly = true;
-            return true;
-          }
-          final need = lineH + (isBlockStart ? _blockOverhead() : 0.0);
-          sliceLocalStart = localStart;
-          sliceIsBlockStart = isBlockStart;
-          packer._used += need;
-          lineBuf.write(lineText);
-        } else {
-          packer._used += lineH;
-          lineBuf.write(lineText);
-        }
-      }
-
-      packer._pageHasContent = true;
-      localStart = localEnd;
-      isBlockStart = false;
-      packer._pageEnd = block.plainStart + localEnd;
-
-      if (packer._hitStop()) {
-        packer._pastStop = true;
+        final imgH = PagePacker.imageDisplayHeight(
+          contentWidthDp: maxW,
+          intrinsicWidth: block.imageIntrinsicWidth,
+          intrinsicHeight: block.imageIntrinsicHeight,
+        );
+        out.add(
+          layouter.layoutImageBlock(
+            blockIndex: i,
+            startUtf16: block.plainStart,
+            endUtf16: block.plainStart + block.plainLen,
+            assetId: block.imageAssetId ?? '',
+            imageAlt: block.imageAlt,
+            intrinsicWidth: block.imageIntrinsicWidth,
+            intrinsicHeight: block.imageIntrinsicHeight,
+            imageDisplayWidth: maxW,
+            imageDisplayHeight: imgH,
+            isFullPage: imgH > (spec.contentHeight),
+          ),
+        );
       }
     }
-    return false;
+    return out;
   }
 }

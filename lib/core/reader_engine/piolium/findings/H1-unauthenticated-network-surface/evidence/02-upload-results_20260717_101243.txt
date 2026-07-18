@@ -1,3 +1,0 @@
-EPUB: HTTP 200 | {"status": "ok", "fileName": "malicious.epub", "size": 540, "message": "File received, importing..."}
-TXT: HTTP 200 | {"status": "ok", "fileName": "inject.txt", "size": 25, "message": "File received, importing..."}
-PDF: HTTP 400 | {"error": "Unsupported format: .pdf (supported: txt, epub)"}

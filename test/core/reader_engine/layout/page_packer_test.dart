@@ -5,6 +5,8 @@ import 'package:zephyr_reader/core/reader_engine/layout/block_layout.dart';
 import 'package:zephyr_reader/core/reader_engine/layout/layout_spec.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/page_packer.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/page_plan.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart'
+    show ReaderIrBlockLayout;
 import 'package:zephyr_reader/src/rust/pipeline/types.dart';
 
 LayoutSpec _spec({
@@ -33,7 +35,6 @@ BlockLayout _textBlock(
   // Estimate line height as fontSize * lineHeight * textScaler with 8dp slack
   const fontSize = 16.0;
   const lineH = fontSize * 1.5;
-  const lines = 1; // simple text fits on one line
   return BlockLayout(
     blockIndex: idx,
     startUtf16: 0,
@@ -78,7 +79,78 @@ void main() {
       expect(pages, hasLength(1));
       expect(pages.single.startUtf16, 0);
       expect(pages.single.endUtf16, 'Hello world'.length);
+      expect(pages.single.fragments.single.text, 'Hello world');
       expect(pages.single.isLastPage, isTrue);
+    });
+
+    test('fragment text preserves source without duplicated first line', () {
+      final packer = PagePacker(spec: _spec(), maxHeight: 800);
+      const text = 'firstsecond';
+      const block = BlockLayout(
+        blockIndex: 0,
+        startUtf16: 0,
+        endUtf16: 11,
+        lines: [
+          LineLayout(startUtf16: 0, endUtf16: 5, height: 24, baseline: 19),
+          LineLayout(startUtf16: 5, endUtf16: 11, height: 24, baseline: 19),
+        ],
+      );
+      packer.appendTextBlock(
+        block: block,
+        blockText: text,
+        blockRuns: const [],
+        blockPlainStart: 0,
+        blockStyle: const BlockStyle(isHeading: false, headingLevel: 0),
+      );
+
+      final fragment = packer.finish().single.fragments.single;
+      expect(fragment.text, text);
+      expect(fragment.endUtf16 - fragment.startUtf16, text.length);
+    });
+
+    test('chunk continuation preserves one semantic block boundary', () {
+      final packer = PagePacker(
+        spec: _spec(paragraphSpacing: 12),
+        maxHeight: 800,
+      );
+      const style = BlockStyle(isHeading: false, headingLevel: 0);
+      packer.appendTextBlock(
+        block: _textBlock(0, 'first'),
+        blockText: 'first',
+        blockRuns: const [],
+        blockPlainStart: 0,
+        blockStyle: style,
+        endsBlock: false,
+      );
+      packer.appendTextBlock(
+        block: _textBlock(0, 'second'),
+        blockText: 'second',
+        blockRuns: const [],
+        blockPlainStart: 5,
+        blockStyle: style,
+        startsBlock: false,
+      );
+
+      final fragments = packer.finish().single.fragments;
+      expect(fragments.map((f) => f.text).join(), 'firstsecond');
+      expect(fragments.map((f) => f.isBlockStart), [true, false]);
+      expect(fragments.map((f) => f.isBlockEnd), [false, true]);
+    });
+
+    test('progress snapshot includes pending fragment without mutation', () {
+      final packer = PagePacker(spec: _spec(), maxHeight: 800);
+      packer.appendTextBlock(
+        block: _textBlock(0, 'pending'),
+        blockText: 'pending',
+        blockRuns: const [],
+        blockPlainStart: 0,
+        blockStyle: const BlockStyle(isHeading: false, headingLevel: 0),
+      );
+
+      final snapshot = packer.snapshotPages(isPartial: true);
+      expect(snapshot.single.fragments.single.text, 'pending');
+      expect(snapshot.single.isLastPage, isFalse);
+      expect(packer.finish().single.fragments.single.text, 'pending');
     });
 
     test('multiple blocks pack into one page', () {
@@ -167,6 +239,32 @@ void main() {
 
       expect(pages, hasLength(1));
       expect(pages.single.fragments.single.isImage, isTrue);
+      expect(pages.single.fragments.single.imageDisplayWidth, 360);
+      expect(pages.single.fragments.single.imageDisplayHeight, 100);
+    });
+
+    test('inline image follows pending text and keeps measured size', () {
+      final packer = PagePacker(spec: _spec(), maxHeight: 800);
+      packer.appendTextBlock(
+        block: _textBlock(0, 'A'),
+        blockText: 'A',
+        blockRuns: const [],
+        blockPlainStart: 0,
+        blockStyle: const BlockStyle(isHeading: false, headingLevel: 0),
+      );
+      packer.appendImageBlock(
+        block: _imageBlock(1, start: 1, end: 2),
+        blockPlainStart: 1,
+        displayHeight: 100,
+        assetId: 'img1',
+        intrinsicWidth: 100,
+        intrinsicHeight: 100,
+      );
+
+      final fragments = packer.finish().single.fragments;
+      expect(fragments.map((f) => f.isImage), [false, true]);
+      expect(fragments.last.imageDisplayWidth, 100);
+      expect(fragments.last.imageDisplayHeight, 100);
     });
 
     test('oversized image pushes to full-page', () {
@@ -190,8 +288,12 @@ void main() {
       );
       final pages = packer.finish();
 
-      // ponytail: first text block takes page, image gets own page
-      expect(pages.length, greaterThanOrEqualTo(1));
+      expect(pages, hasLength(2));
+      expect(
+        pages.last.fragments.single.imageLayout,
+        ReaderIrBlockLayout.fullPage,
+      );
+      expect(pages.last.usedHeight, packer.packBudget);
     });
   });
 
@@ -225,6 +327,37 @@ void main() {
       expect(pages, hasLength(1));
       expect(pages.single.fragments, isEmpty);
     });
+  });
+
+  test('split block applies top margin to start and bottom margin to end', () {
+    final packer = PagePacker(spec: _spec(), maxHeight: 65);
+    const text = 'firstsecond';
+    const block = BlockLayout(
+      blockIndex: 0,
+      startUtf16: 0,
+      endUtf16: 11,
+      margins: EdgeInsets.only(top: 5, bottom: 7),
+      lines: [
+        LineLayout(startUtf16: 0, endUtf16: 5, height: 30, baseline: 24),
+        LineLayout(startUtf16: 5, endUtf16: 11, height: 30, baseline: 24),
+      ],
+    );
+    packer.appendTextBlock(
+      block: block,
+      blockText: text,
+      blockRuns: const [],
+      blockPlainStart: 0,
+      blockStyle: const BlockStyle(isHeading: false, headingLevel: 0),
+    );
+
+    final pages = packer.finish();
+    expect(pages, hasLength(2));
+    expect(pages.first.usedHeight, 35);
+    expect(pages.last.usedHeight, 37);
+    expect(pages.first.fragments.single.isBlockStart, isTrue);
+    expect(pages.first.fragments.single.isBlockEnd, isFalse);
+    expect(pages.last.fragments.single.isBlockStart, isFalse);
+    expect(pages.last.fragments.single.isBlockEnd, isTrue);
   });
 
   group('PagePacker image display height', () {

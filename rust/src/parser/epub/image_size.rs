@@ -9,8 +9,8 @@
 //! 图片 intrinsic 尺寸读取
 //! 从 PNG/JPEG 头部轻量解析，无需完整解码
 
-use crate::pipeline::{ReaderChapterIr, ReaderIrBlockKind};
 use super::provider::EpubContentProvider;
+use crate::pipeline::{ReaderChapterIr, ReaderIrBlockKind};
 
 /// 从 PNG/JPEG 头部读取 intrinsic 尺寸（轻量，无完整解码）。
 pub fn read_image_dimensions(bytes: &[u8]) -> Option<(u32, u32)> {
@@ -75,14 +75,16 @@ pub fn resolve_image_dimensions(ir: &mut ReaderChapterIr, provider: &EpubContent
         }
         if let Some(ref asset_id) = block.image_asset_id
             && let Some(data) = provider.read_resource_bytes(asset_id)
-                && let Some((w, h)) = read_image_dimensions(&data)
-            {
-                block.image_intrinsic_width = Some(w);
-                block.image_intrinsic_height = Some(h);
-                tracing::debug!(
-                    "[get_chapter_content_ir] image {} intrinsic={}×{}",
-                    asset_id, w, h
-                );
-            }
+            && let Some((w, h)) = read_image_dimensions(&data)
+        {
+            block.image_intrinsic_width = Some(w);
+            block.image_intrinsic_height = Some(h);
+            tracing::debug!(
+                "[get_chapter_content_ir] image {} intrinsic={}×{}",
+                asset_id,
+                w,
+                h
+            );
+        }
     }
 }

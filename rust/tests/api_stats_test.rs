@@ -7,7 +7,6 @@ mod common;
 use rust_lib_zephyr_reader::api::stats;
 use rust_lib_zephyr_reader::domain::stats::models::ReadingStats;
 
-
 fn make_stats(book_id: &str, date: &str, secs: i64, chars: i64) -> ReadingStats {
     ReadingStats {
         book_id: book_id.to_string(),
@@ -36,7 +35,9 @@ async fn test_update_and_get_today_stats() {
         !results.is_empty(),
         "should have at least one reading stats for today"
     );
-    let entry = results.iter().find(|s| s.book_id == "stats_test_book_today");
+    let entry = results
+        .iter()
+        .find(|s| s.book_id == "stats_test_book_today");
     assert!(entry.is_some(), "should find the inserted book's stats");
     assert_eq!(entry.unwrap().reading_time_seconds, 1800);
 }
@@ -54,25 +55,24 @@ async fn test_get_reading_stats_by_range() {
     stats::update_daily_stats(stats).await.unwrap();
 
     // Query range that includes that date
-    let results = stats::get_reading_stats_by_range(
-        "2024-06-01".to_string(),
-        "2024-06-07".to_string(),
-    )
-    .await
-    .unwrap();
+    let results =
+        stats::get_reading_stats_by_range("2024-06-01".to_string(), "2024-06-07".to_string())
+            .await
+            .unwrap();
     assert!(
         !results.is_empty(),
         "should return stats for the matching range"
     );
 
     // Query range that does NOT include it
-    let empty = stats::get_reading_stats_by_range(
-        "2024-07-01".to_string(),
-        "2024-07-07".to_string(),
-    )
-    .await
-    .unwrap();
-    assert!(empty.is_empty(), "should return empty for non-matching range");
+    let empty =
+        stats::get_reading_stats_by_range("2024-07-01".to_string(), "2024-07-07".to_string())
+            .await
+            .unwrap();
+    assert!(
+        empty.is_empty(),
+        "should return empty for non-matching range"
+    );
 }
 
 // ==================== 最近N天查询 ====================
@@ -156,12 +156,10 @@ async fn test_update_multiple_days() {
     stats::update_daily_stats(stats1).await.unwrap();
     stats::update_daily_stats(stats2).await.unwrap();
 
-    let results = stats::get_reading_stats_by_range(
-        "2099-06-01".to_string(),
-        "2099-06-02".to_string(),
-    )
-    .await
-    .unwrap();
+    let results =
+        stats::get_reading_stats_by_range("2099-06-01".to_string(), "2099-06-02".to_string())
+            .await
+            .unwrap();
     assert_eq!(
         results.len(),
         2,

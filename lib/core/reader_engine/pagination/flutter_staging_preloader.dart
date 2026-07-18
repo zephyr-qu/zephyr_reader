@@ -1,10 +1,13 @@
 import 'package:zephyr_reader/core/utils/logging.dart';
+import 'package:zephyr_reader/core/reader_engine/layout/block_layout.dart';
+import 'package:zephyr_reader/core/reader_engine/layout/layout_key.dart';
+import 'package:zephyr_reader/core/reader_engine/layout/layout_spec.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/image_cache.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/next_chapter_staging.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/line_break_extractor.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/pagination_params.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/flutter_block_paginator.dart';
-import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/page_plan.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/pagination_staging_store.dart';
 import 'package:zephyr_reader/core/reader_engine/pagination/pagination_viewport_metrics.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/reader_render_config.dart';
@@ -53,7 +56,9 @@ abstract final class FlutterStagingPreloader {
         textScaler: params.textScaler,
       );
 
-      late final List<PackedPage> pages;
+      late final List<PagePlan> pages;
+      late final List<BlockLayout> blocks;
+      late final LayoutSpec spec;
       try {
         final outcome = await FlutterBlockPaginator.paginateAsync(
           ir,
@@ -63,6 +68,8 @@ abstract final class FlutterStagingPreloader {
           isCancelled: () => !PaginationStagingStore.isCurrent(gen),
         );
         pages = outcome.pages;
+        blocks = outcome.blocks;
+        spec = outcome.spec;
       } on PaginationCancelledException {
         return null;
       }
@@ -73,9 +80,12 @@ abstract final class FlutterStagingPreloader {
           ? pages.take(3)
           : pages.reversed.take(3).toList().reversed;
       for (final p in prefetchPages) {
+        final slices = p.fragments
+            .map((PageFragment f) => f.toPackedSlice())
+            .toList();
         epubBlockImageCache.prefetchBlocks(
           filePath: book.filePath,
-          blocks: p.slices,
+          blocks: slices,
           maxWidthPx: imageMaxWidthPx,
         );
       }
@@ -86,9 +96,11 @@ abstract final class FlutterStagingPreloader {
         filePath: book.filePath,
         ir: ir,
         pages: pages,
+        blocks: blocks,
+        spec: spec,
         contentWidthDp: contentWidth,
         contentHeightDp: contentHeight,
-        configHash: params.layoutHash,
+        configHash: LayoutKey.fromSpec(spec).hash,
       );
       if (forNext) {
         PaginationStagingStore.next = ready;
@@ -118,16 +130,19 @@ abstract final class FlutterStagingPreloader {
     final pages = ready.pages;
     final anchor = pages[anchorIndex.clamp(0, pages.length - 1)];
     final plain = ready.ir.plainText;
-    final end = anchor.endOffset.clamp(0, plain.length);
-    final start = anchor.startOffset.clamp(0, end);
+    final end = anchor.endUtf16.clamp(0, plain.length);
+    final start = anchor.startUtf16.clamp(0, end);
+    final packedPages = pages.map((p) => p.toPackedPage()).toList();
     return NextChapterStaging(
       chapterIndex: ready.chapterIndex,
       configHash: ready.configHash,
-      descriptors: pages,
+      descriptors: packedPages,
+      pagePlans: pages,
       firstPageContent: plain.substring(start, end),
       isPartial: false,
       bookId: ready.bookId,
-      anchorPageBlocks: anchor.slices,
+      anchorPagePlan: anchor,
+      spec: ready.spec,
     );
   }
 }

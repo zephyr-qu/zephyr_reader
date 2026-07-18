@@ -5,7 +5,6 @@ use flutter_rust_bridge::frb;
 use crate::common::AppError;
 use crate::domain::sessions::models::ReadingSession;
 
-
 use crate::domain::sessions::session_repo::SessionRepository;
 use crate::infra::manager::storage_pool;
 use chrono::{DateTime, NaiveDate};
@@ -28,10 +27,15 @@ pub async fn list_sessions_by_date_range(
     end_date: String,
 ) -> Result<Vec<ReadingSession>, AppError> {
     tracing::debug!("[session] list_sessions_by_date_range: book_id={}", book_id);
-    let start = NaiveDate::parse_from_str(&start_date, "%Y-%m-%d")
-        .map_err(|e| AppError::InternalError { reason: e.to_string() })?;
-    let end = NaiveDate::parse_from_str(&end_date, "%Y-%m-%d")
-        .map_err(|e| AppError::InternalError { reason: e.to_string() })?;
+    let start = NaiveDate::parse_from_str(&start_date, "%Y-%m-%d").map_err(|e| {
+        AppError::InternalError {
+            reason: e.to_string(),
+        }
+    })?;
+    let end =
+        NaiveDate::parse_from_str(&end_date, "%Y-%m-%d").map_err(|e| AppError::InternalError {
+            reason: e.to_string(),
+        })?;
     let pool = storage_pool()?;
     SessionRepository::find_by_date_range(&pool, &book_id, start, end).await
 }
@@ -53,10 +57,22 @@ pub async fn create_session(
     end_char_offset: i32,
     started_at: i64,
 ) -> Result<ReadingSession, AppError> {
-    tracing::info!("[session] create_session: book_id={}, chapter_index={}", book_id, chapter_index);
-    let started = DateTime::from_timestamp(started_at, 0)
-        .ok_or_else(|| AppError::InternalError { reason: "invalid started_at timestamp".to_string() })?;
-    let session = ReadingSession::new(&book_id, chapter_index as i64, start_char_offset as i64, end_char_offset as i64, started);
+    tracing::info!(
+        "[session] create_session: book_id={}, chapter_index={}",
+        book_id,
+        chapter_index
+    );
+    let started =
+        DateTime::from_timestamp(started_at, 0).ok_or_else(|| AppError::InternalError {
+            reason: "invalid started_at timestamp".to_string(),
+        })?;
+    let session = ReadingSession::new(
+        &book_id,
+        chapter_index as i64,
+        start_char_offset as i64,
+        end_char_offset as i64,
+        started,
+    );
     let pool = storage_pool()?;
     SessionRepository::save(&pool, &session).await
 }

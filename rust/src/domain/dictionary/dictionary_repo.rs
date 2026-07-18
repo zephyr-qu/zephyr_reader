@@ -9,11 +9,9 @@ use flutter_rust_bridge::frb;
 //   - delete() — 删除词典
 // ============================================================
 
-use crate::domain::dictionary::models::Dictionary;
 use crate::domain::AppError;
+use crate::domain::dictionary::models::Dictionary;
 use sqlx::SqlitePool;
-
-
 
 /// 词典仓储 — 管理词典配置的增删改查
 #[frb(opaque)]

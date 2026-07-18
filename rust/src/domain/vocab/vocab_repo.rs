@@ -11,11 +11,10 @@ use flutter_rust_bridge::frb;
 //   - count() / count_by_book() — 统计
 // ============================================================
 
-use crate::domain::vocab::models::{Vocab, VocabStatus, VocabStats};
 use crate::domain::AppError;
+use crate::domain::vocab::models::{Vocab, VocabStats, VocabStatus};
 use chrono::Utc;
 use sqlx::{QueryBuilder, SqlitePool};
-
 
 /// 生词仓储 — 管理生词本的增删改查
 #[frb(opaque)]
@@ -126,7 +125,11 @@ impl VocabRepository {
     }
 
     /// 更新生词状态
-    pub async fn update_by_status(pool: &SqlitePool, id: &str, status: VocabStatus) -> Result<(), AppError> {
+    pub async fn update_by_status(
+        pool: &SqlitePool,
+        id: &str,
+        status: VocabStatus,
+    ) -> Result<(), AppError> {
         sqlx::query("UPDATE vocabulary_words SET status = ?1, last_reviewed_at = ?2 WHERE id = ?3")
             .bind(status.as_ref())
             .bind(Utc::now().timestamp())
@@ -147,29 +150,28 @@ impl VocabRepository {
 
     /// 获取生词本统计
     pub async fn count(pool: &SqlitePool) -> Result<VocabStats, AppError> {
-    let stats: VocabStats = sqlx::query_as(
-        "SELECT \
+        let stats: VocabStats = sqlx::query_as(
+            "SELECT \
             COUNT(*) AS total_words, \
             COALESCE(SUM(CASE WHEN status = 'unstarted' THEN 1 ELSE 0 END), 0) AS unstarted_count, \
             COALESCE(SUM(CASE WHEN status = 'learning' THEN 1 ELSE 0 END), 0) AS learning_count, \
             COALESCE(SUM(CASE WHEN status = 'mastered' THEN 1 ELSE 0 END), 0) AS mastered_count, \
             COALESCE(SUM(CASE WHEN status = 'ignored' THEN 1 ELSE 0 END), 0) AS ignored_count \
          FROM vocabulary_words",
-    )
-    .fetch_one(pool)
-    .await?;
+        )
+        .fetch_one(pool)
+        .await?;
 
-    Ok(stats)
-}
+        Ok(stats)
+    }
 
     /// 获取指定书籍的生词数量
     pub async fn count_by_book(pool: &SqlitePool, book_id: &str) -> Result<i32, AppError> {
-        let count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM vocabulary_words WHERE book_id = ?",
-        )
-        .bind(book_id)
-        .fetch_one(pool)
-        .await?;
+        let count: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM vocabulary_words WHERE book_id = ?")
+                .bind(book_id)
+                .fetch_one(pool)
+                .await?;
         Ok(count as i32)
     }
 }

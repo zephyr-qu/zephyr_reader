@@ -32,8 +32,11 @@ class ChapterContentRepository {
   NextChapterStaging? _nextChapterStaging;
   NextChapterStaging? _prevChapterStaging;
 
-  /// staging 预加载 generation 计数器，用于丢弃过期结果。
-  int _stagingGen = 0;
+  /// next 方向 staging generation 计数器
+  int _nextStagingGen = 0;
+
+  /// prev 方向 staging generation 计数器
+  int _prevStagingGen = 0;
 
   final preloadGeneration = ValueNotifier<int>(0);
 
@@ -246,8 +249,6 @@ class ChapterContentRepository {
       readingMode: ReadingMode.scroll,
     );
     if (irPayload != null) {
-      _applyCurrentIr(irPayload);
-      _setChapterFilePath(filePath);
       return irPayload;
     }
 
@@ -264,8 +265,6 @@ class ChapterContentRepository {
       reason: 'ir_unavailable',
       fallbackSucceeded: true,
     );
-    _applyCurrentIr(plainPayload);
-    _setChapterFilePath(filePath);
     return plainPayload;
   }
 
@@ -381,7 +380,7 @@ class ChapterContentRepository {
     double devicePixelRatio = 1.0,
     String fontFamily = 'Noto Sans SC',
   }) async {
-    final gen = ++_stagingGen;
+    final gen = ++_nextStagingGen;
     final p = _resolveStagingParams(
       fontSize: fontSize,
       lineHeight: lineHeight,
@@ -397,7 +396,7 @@ class ChapterContentRepository {
       params: p,
       forNext: true,
     );
-    if (gen != _stagingGen) return;
+    if (gen != _nextStagingGen) return;
     _nextChapterStaging = staging;
     if (staging != null) preloadGeneration.value++;
   }
@@ -413,7 +412,7 @@ class ChapterContentRepository {
     double devicePixelRatio = 1.0,
     String fontFamily = 'Noto Sans SC',
   }) async {
-    final gen = ++_stagingGen;
+    final gen = ++_prevStagingGen;
     final p = _resolveStagingParams(
       fontSize: fontSize,
       lineHeight: lineHeight,
@@ -429,19 +428,20 @@ class ChapterContentRepository {
       params: p,
       forNext: false,
     );
-    if (gen != _stagingGen) return;
+    if (gen != _prevStagingGen) return;
     _prevChapterStaging = staging;
     if (staging != null) preloadGeneration.value++;
   }
 
   void clearNextChapterStaging() {
-    _stagingGen++;
+    _nextStagingGen++;
     _nextChapterStaging = null;
     PaginationStagingStore.clearNext();
   }
 
   void clearAdjacentStaging() {
-    _stagingGen++;
+    _nextStagingGen++;
+    _prevStagingGen++;
     _nextChapterStaging = null;
     _prevChapterStaging = null;
     PaginationStagingStore.clearAll();

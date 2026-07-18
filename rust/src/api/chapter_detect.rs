@@ -35,7 +35,10 @@ pub async fn save_detect_config(config: ChapterDetectConfig) -> Result<(), AppEr
     for p in &config.patterns {
         if regex::Regex::new(&p.regex).is_err() {
             return Err(AppError::InvalidInput {
-                reason: format!("invalid regex in pattern '{}': '{}'", p.pattern_name, p.regex),
+                reason: format!(
+                    "invalid regex in pattern '{}': '{}'",
+                    p.pattern_name, p.regex
+                ),
             });
         }
     }

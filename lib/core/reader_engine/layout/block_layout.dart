@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:zephyr_reader/src/rust/pipeline/types.dart' show BlockStyle;
+import 'package:zephyr_reader/core/reader_engine/shared/ir_types.dart'
+    show BlockStyle;
 
 /// 一个 IR 块的完整行式布局结果。
 ///

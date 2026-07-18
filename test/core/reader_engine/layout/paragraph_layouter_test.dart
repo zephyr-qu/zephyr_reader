@@ -151,9 +151,18 @@ void main() {
         blockIndex: 0,
         text: 'Normal bold mix',
         spans: const [
-          ReaderInlineRun(text: 'Normal ', style: ReaderInlineStyle.plain),
-          ReaderInlineRun(text: 'bold ', style: ReaderInlineStyle.bold),
-          ReaderInlineRun(text: 'mix', style: ReaderInlineStyle.plain),
+          ReaderInlineRun(
+            text: 'Normal ',
+            style: ReaderInlineStyle(bold: false, italic: false),
+          ),
+          ReaderInlineRun(
+            text: 'bold ',
+            style: ReaderInlineStyle(bold: true, italic: false),
+          ),
+          ReaderInlineRun(
+            text: 'mix',
+            style: ReaderInlineStyle(bold: false, italic: false),
+          ),
         ],
         style: _bodyStyle,
         maxWidth: 300,

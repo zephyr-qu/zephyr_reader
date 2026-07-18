@@ -12,17 +12,13 @@ class RichTextConverter {
 
   /// 将单个 [ReaderInlineRun] 映射为 [TextStyle]。
   TextStyle spanToStyle(ReaderInlineRun span) {
-    if (span.url != null && span.url!.isNotEmpty) {
-      return const TextStyle(
-        decoration: TextDecoration.underline,
-        color: Colors.blue,
-      );
-    }
-    return switch (span.style) {
-      ReaderInlineStyle.plain => const TextStyle(),
-      ReaderInlineStyle.bold => const TextStyle(fontWeight: FontWeight.bold),
-      ReaderInlineStyle.italic => const TextStyle(fontStyle: FontStyle.italic),
-    };
+    final isLink = span.url != null && span.url!.isNotEmpty;
+    return TextStyle(
+      fontWeight: span.style.bold ? FontWeight.bold : null,
+      fontStyle: span.style.italic ? FontStyle.italic : null,
+      decoration: isLink ? TextDecoration.underline : null,
+      color: isLink ? Colors.blue : null,
+    );
   }
 
   /// 将 IR 行内 [ReaderInlineRun] 列表转为 [TextSpan] 树（块级样式作基底）。
@@ -37,10 +33,8 @@ class RichTextConverter {
       style: blockStyle,
       children: spans
           .map(
-            (s) => TextSpan(
-              text: s.text,
-              style: blockStyle.merge(spanToStyle(s)),
-            ),
+            (s) =>
+                TextSpan(text: s.text, style: blockStyle.merge(spanToStyle(s))),
           )
           .toList(),
     );

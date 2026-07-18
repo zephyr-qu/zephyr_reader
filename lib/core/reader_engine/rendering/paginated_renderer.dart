@@ -10,7 +10,7 @@ import 'package:zephyr_reader/core/reader_engine/pagination/flutter_pagination_s
 import 'package:zephyr_reader/core/reader_engine/rendering/block_page_content.dart';
 import 'package:zephyr_reader/core/reader_engine/rendering/highlight_painter.dart';
 
-import 'package:zephyr_reader/core/reader_engine/pagination/packed_page.dart';
+import 'package:zephyr_reader/core/reader_engine/pagination/page_plan.dart';
 
 import 'package:zephyr_reader/core/utils/find_render_box.dart';
 import 'reader_render_config.dart';
@@ -96,26 +96,25 @@ class PaginatedModeRenderer extends StatelessWidget {
   }
 
   Widget _buildPageTurnShell(BuildContext context) {
-    final descriptors = engine.session.descriptors;
-    if (descriptors == null) {
+    final pages = engine.session.pagePlans;
+    if (pages == null) {
       return _buildPageSkeleton();
     }
-    if (descriptors.isEmpty) {
+    if (pages.isEmpty) {
       Logging.warning(
-        '[Renderer] _buildPageTurnShell: descriptors null/empty → fallback',
+        '[Renderer] _buildPageTurnShell: pages null/empty → fallback',
       );
       return _buildFallbackPagination(context);
     }
 
     Logging.info(
-      '[Render] pageTurnShell descriptors=${descriptors.length} logicalIdx=${pageIndex.clamp(0, descriptors.length - 1)}',
+      '[Render] pageTurnShell pages=${pages.length} logicalIdx=${pageIndex.clamp(0, pages.length - 1)}',
     );
-    // 打印每页内容量（从 descriptors 反推）
-    for (var i = 0; i < descriptors.length && i < 8; i++) {
-      final d = descriptors[i];
+    for (var i = 0; i < pages.length && i < 8; i++) {
+      final d = pages[i];
       Logging.info(
-        '[PageContent] page=$i start=${d.startOffset} end=${d.endOffset}'
-        ' chars=${d.endOffset - d.startOffset}',
+        '[PageContent] page=$i start=${d.startUtf16} end=${d.endUtf16}'
+        ' chars=${d.endUtf16 - d.startUtf16}',
       );
     }
 
@@ -123,17 +122,17 @@ class PaginatedModeRenderer extends StatelessWidget {
       animation: contentRepo.preloadGeneration,
       builder: (context, _) {
         return PageTurnShell(
-          logicalPageIndex: pageIndex.clamp(0, descriptors.length - 1),
-          logicalPageCount: descriptors.length,
+          logicalPageIndex: pageIndex.clamp(0, pages.length - 1),
+          logicalPageCount: pages.length,
           hasPreviousChapter: hasPreviousChapter,
           hasNextStagingPage: _stagingReadyForNext(),
-          descriptors: descriptors,
+          pagePlans: pages,
           onLogicalPageChanged: (idx) => onPageChanged?.call(idx),
           onReachEnd: onReachEnd,
           onReachStart: onReachStart,
           onPositionChanged: onPositionChanged,
           pageBuilder: (physicalIdx) =>
-              _buildPageTurnPhysicalPage(context, physicalIdx, descriptors),
+              _buildPageTurnPhysicalPage(context, physicalIdx, pages),
         );
       },
     );
@@ -142,21 +141,17 @@ class PaginatedModeRenderer extends StatelessWidget {
   Widget _buildPageTurnPhysicalPage(
     BuildContext context,
     int physicalIdx,
-    List<PackedPage> descriptors,
+    List<PagePlan> pages,
   ) {
     final virtualPrev = paginationVirtualPrevOffset(hasPreviousChapter);
     if (hasPreviousChapter && physicalIdx == 0) {
       return _buildPreviousChapterPage(context);
     }
     final logicalIdx = physicalIdx - virtualPrev;
-    if (logicalIdx >= descriptors.length) {
+    if (logicalIdx >= pages.length) {
       return _buildCrossChapterPage(context, physicalIdx);
     }
-    return _buildPageContent(
-      context,
-      logicalIdx,
-      descriptors[logicalIdx].startOffset,
-    );
+    return _buildPageContent(context, logicalIdx, pages[logicalIdx].startUtf16);
   }
 
   /// 构建页面内容组件（描述符模式）。
@@ -193,8 +188,8 @@ class PaginatedModeRenderer extends StatelessWidget {
         '[ChapterTransition] renderCrossChapter staging_ready=true'
         ' chapter=${staging.chapterIndex} virtualIndex=$virtualIndex',
       );
-      final startOffset = staging.descriptors.isNotEmpty
-          ? staging.descriptors[0].startOffset
+      final startOffset = staging.pagePlans.isNotEmpty
+          ? staging.pagePlans[0].startUtf16
           : 0;
       return _buildStagingPageFromStaging(context, staging, startOffset);
     }
@@ -211,38 +206,37 @@ class PaginatedModeRenderer extends StatelessWidget {
     NextChapterStaging staging,
     int startOffset,
   ) {
-    final blocks = staging.anchorPageBlocks;
+    final page = staging.anchorPagePlan;
     final bookId = staging.bookId;
-    if (blocks == null || bookId == null || bookId.isEmpty) {
+    if (page == null || bookId == null || bookId.isEmpty) {
       // ADR-012: incomplete staging → hold frame, not spinner
       return _buildHoldFrame(context, isFirstPage: true);
     }
     return LayoutBuilder(
       builder: (context, constraints) {
-        return buildBlockPageContent(
+        final spec = staging.spec;
+        return buildPagePlanContent(
           context: context,
-          blocks: blocks,
-          startOffset: startOffset,
-          epubFilePath: engine.session.sessionFilePath ?? '',
+          page: page,
+          spec: spec,
           config: config,
+          epubFilePath: engine.session.sessionFilePath ?? '',
           highlights: highlights,
           onHighlightTap: onHighlightTap,
           onSelectionChanged: onSelectionChanged,
           onSelectionGlobalPosition: onSelectionGlobalPosition,
-          maxContentWidth: constraints.maxWidth,
         );
       },
     );
   }
 
-
   /// 上一章虚拟页：staging 命中渲染预加载内容，miss 显示当前章首页 hold 帧。
   Widget _buildPreviousChapterPage(BuildContext context) {
     final staging = contentRepo.prevChapterStaging;
     if (staging != null && staging.chapterIndex == chapterId - 1) {
-      final lastIdx = staging.descriptors.length - 1;
+      final lastIdx = staging.pagePlans.length - 1;
       final startOffset = lastIdx >= 0
-          ? staging.descriptors[lastIdx].startOffset
+          ? staging.pagePlans[lastIdx].startUtf16
           : 0;
       return _buildStagingPageFromStaging(context, staging, startOffset);
     }
@@ -250,24 +244,19 @@ class PaginatedModeRenderer extends StatelessWidget {
     return _buildHoldFrame(context, isFirstPage: true);
   }
 
-  /// ADR-012: staging miss 时显示当前章首/末页 hold 帧，替代 spinner。
   Widget _buildHoldFrame(BuildContext context, {required bool isFirstPage}) {
-    final descriptors = engine.session.descriptors;
-    if (descriptors == null || descriptors.isEmpty) {
+    final pages = engine.session.pagePlans;
+    if (pages == null || pages.isEmpty) {
       return _buildPageSkeleton();
     }
     if (isFirstPage) {
-      return _buildPageContent(context, 0, descriptors[0].startOffset);
+      return _buildPageContent(context, 0, pages[0].startUtf16);
     }
-    final lastIdx = descriptors.length - 1;
-    return _buildPageContent(
-      context,
-      lastIdx,
-      descriptors[lastIdx].startOffset,
-    );
+    final lastIdx = pages.length - 1;
+    return _buildPageContent(context, lastIdx, pages[lastIdx].startUtf16);
   }
 
-  void _handlePageChanged(List<PackedPage> descriptors, int index) {
+  void _handlePageChanged(List<PagePlan> pages, int index) {
     // _handlePageChanged 每翻页触发一次
     // 向后虚拟页 → onReachStart
     if (index == 0 && hasPreviousChapter) {
@@ -279,12 +268,12 @@ class PaginatedModeRenderer extends StatelessWidget {
       onReachStart?.call();
       return;
     }
-    if (realIndex >= descriptors.length) {
+    if (realIndex >= pages.length) {
       onReachEnd?.call();
       return;
     }
     onPageChanged?.call(realIndex);
-    onPositionChanged?.call(descriptors[realIndex].startOffset);
+    onPositionChanged?.call(pages[realIndex].startUtf16);
   }
 
   bool _stagingReadyForNext() {
@@ -293,30 +282,27 @@ class PaginatedModeRenderer extends StatelessWidget {
     return staging != null && staging.chapterIndex == chapterId + 1;
   }
 
-  int _extendedPageCount(List<PackedPage> descriptors) {
+  int _extendedPageCount(List<PagePlan> pages) {
     // Prev virtual page always included (hasPreviousChapter flag is static);
     // hold frame in _buildPreviousChapterPage covers the staging-miss visual.
     final prevOffset = hasPreviousChapter ? 1 : 0;
-    return descriptors.length + (_stagingReadyForNext() ? 1 : 0) + prevOffset;
+    return pages.length + (_stagingReadyForNext() ? 1 : 0) + prevOffset;
   }
 
   @override
   Widget build(BuildContext context) {
-    Logging.info(
-      ' descCount=${engine.session.descriptors?.length ?? 0}'
-    );
+    final pages = engine.session.pagePlans;
+    Logging.info(' pageCount=${pages?.length ?? 0}');
 
     if (usesPageCurlSkin(mode: readingMode, skin: paginationSkin)) {
       return _buildPageTurnShell(context);
     }
-    final descriptors = engine.session.descriptors;
-    if (descriptors != null && descriptors.isNotEmpty) {
-      // 打印每页内容量（从 descriptors 反推）
-      for (var i = 0; i < descriptors.length && i < 8; i++) {
-        final d = descriptors[i];
+    if (pages != null && pages.isNotEmpty) {
+      for (var i = 0; i < pages.length && i < 8; i++) {
+        final d = pages[i];
         Logging.info(
-          '[PageContent] page=$i start=${d.startOffset} end=${d.endOffset}'
-          ' chars=${d.endOffset - d.startOffset}',
+          '[PageContent] page=$i start=${d.startUtf16} end=${d.endUtf16}'
+          ' chars=${d.endUtf16 - d.startUtf16}',
         );
       }
       return AnimatedBuilder(
@@ -325,30 +311,30 @@ class PaginatedModeRenderer extends StatelessWidget {
           return PageView.builder(
             controller: pageController,
             physics: const PageScrollPhysics(),
-            itemCount: _extendedPageCount(descriptors),
-            onPageChanged: (index) => _handlePageChanged(descriptors, index),
+            itemCount: _extendedPageCount(pages),
+            onPageChanged: (index) => _handlePageChanged(pages, index),
             itemBuilder: (context, index) {
               if (hasPreviousChapter && index == 0) {
                 return _buildPreviousChapterPage(context);
               }
               final realIndex = hasPreviousChapter ? index - 1 : index;
-              if (realIndex >= descriptors.length) {
+              if (realIndex >= pages.length) {
                 return _buildCrossChapterPage(context, index);
               }
               return _buildPageContent(
                 context,
                 realIndex,
-                descriptors[realIndex].startOffset,
+                pages[realIndex].startUtf16,
               );
             },
           );
         },
       );
     }
-    if (descriptors == null) {
+    if (pages == null) {
       return _buildPageSkeleton();
     }
-    Logging.warning('[Renderer] build: descriptors null/empty → fallback');
+    Logging.warning('[Renderer] build: pages null/empty → fallback');
     return _buildFallbackPagination(context);
   }
 }
@@ -472,11 +458,11 @@ Widget buildSinglePageContent({
   required void Function(String text, int start, int end)? onSelectionChanged,
   required void Function(Offset?)? onSelectionGlobalPosition,
 }) {
-  final blocks = session.pageBlocks(pageIndex);
-  if (blocks == null) {
+  final page = session.pagePlan(pageIndex);
+  if (page == null) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Logging.info(
-        '[Renderer] buildBlockPageContent MISS page=$pageIndex → skeleton + ensureWindow',
+        '[Renderer] buildPagePlanContent MISS page=$pageIndex → skeleton + ensureWindow',
       );
       session.ensureWindow(pageIndex);
     });
@@ -488,17 +474,17 @@ Widget buildSinglePageContent({
   }
   return LayoutBuilder(
     builder: (context, constraints) {
-      return buildBlockPageContent(
+      final spec = session.layoutSnapshot!.spec;
+      return buildPagePlanContent(
         context: context,
-        blocks: blocks,
-        startOffset: startOffset,
-        epubFilePath: filePath,
+        page: page,
+        spec: spec,
         config: config,
+        epubFilePath: filePath,
         highlights: highlights,
         onHighlightTap: onHighlightTap,
         onSelectionChanged: onSelectionChanged,
         onSelectionGlobalPosition: onSelectionGlobalPosition,
-        maxContentWidth: constraints.maxWidth,
       );
     },
   );

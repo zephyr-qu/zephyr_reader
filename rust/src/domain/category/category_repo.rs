@@ -10,8 +10,8 @@ use flutter_rust_bridge::frb;
 //   - list_by_book() / list_books_by_category() — 按分类查询
 // ============================================================
 
-use crate::domain::book::{Book, BookshelfBook, BookStatus};
 use crate::domain::AppError;
+use crate::domain::book::{Book, BookStatus, BookshelfBook};
 use crate::domain::category::Category;
 use sqlx::SqlitePool;
 
@@ -63,7 +63,10 @@ impl CategoryRepository {
     }
 
     /// 按 ID 查找分类
-    pub async fn find_by_id(pool: &SqlitePool, category_id: &str) -> Result<Option<Category>, AppError> {
+    pub async fn find_by_id(
+        pool: &SqlitePool,
+        category_id: &str,
+    ) -> Result<Option<Category>, AppError> {
         Ok(
             sqlx::query_as::<_, Category>("SELECT * FROM categories WHERE id = ?")
                 .bind(category_id)
@@ -73,7 +76,11 @@ impl CategoryRepository {
     }
 
     /// 为书籍分配分类（幂等操作）
-    pub async fn assign_by_book(pool: &SqlitePool, book_id: &str, category_id: &str) -> Result<(), AppError> {
+    pub async fn assign_by_book(
+        pool: &SqlitePool,
+        book_id: &str,
+        category_id: &str,
+    ) -> Result<(), AppError> {
         // 关联表无需 UPDATE SET，DO NOTHING 即可实现幂等
         sqlx::query(
             "INSERT INTO book_categories (book_id, category_id) VALUES (?, ?) \
@@ -87,7 +94,11 @@ impl CategoryRepository {
     }
 
     /// 移除书籍的某个分类
-    pub async fn remove_by_book(pool: &SqlitePool, book_id: &str, category_id: &str) -> Result<(), AppError> {
+    pub async fn remove_by_book(
+        pool: &SqlitePool,
+        book_id: &str,
+        category_id: &str,
+    ) -> Result<(), AppError> {
         sqlx::query("DELETE FROM book_categories WHERE book_id = ? AND category_id = ?")
             .bind(book_id)
             .bind(category_id)
@@ -109,7 +120,10 @@ impl CategoryRepository {
     }
 
     /// 获取指定分类下的所有书籍
-    pub async fn list_books_by_category(pool: &SqlitePool, category_id: &str) -> Result<Vec<Book>, AppError> {
+    pub async fn list_books_by_category(
+        pool: &SqlitePool,
+        category_id: &str,
+    ) -> Result<Vec<Book>, AppError> {
         Ok(sqlx::query_as::<_, Book>(
             "SELECT b.* FROM books b \
              INNER JOIN book_categories bc ON b.id = bc.book_id \
@@ -196,10 +210,7 @@ impl CategoryRepository {
     ///
     /// 接收已设置 `sort_order` 的分类列表，一次事务写入所有排序值。
     /// 替代 N 次串行 save() 调用，避免部分更新风险。
-    pub async fn reorder(
-        pool: &SqlitePool,
-        categories: &[Category],
-    ) -> Result<(), AppError> {
+    pub async fn reorder(pool: &SqlitePool, categories: &[Category]) -> Result<(), AppError> {
         let mut tx = pool.begin().await?;
         for cat in categories {
             sqlx::query("UPDATE categories SET sort_order = ? WHERE id = ?")

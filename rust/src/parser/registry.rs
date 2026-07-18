@@ -10,8 +10,8 @@
 //! Parser registry
 //! Format-to-parser mapping via free functions
 
-use crate::domain::book::BookFormat;
 use crate::domain::AppError;
+use crate::domain::book::BookFormat;
 
 use crate::parser::Parser;
 

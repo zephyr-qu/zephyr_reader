@@ -1,6 +1,6 @@
 //! 工具模块纯函数单元测试
 
-use rust_lib_zephyr_reader::common::security::{validate_file_path};
+use rust_lib_zephyr_reader::common::security::validate_file_path;
 
 mod common;
 

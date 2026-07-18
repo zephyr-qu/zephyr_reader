@@ -10,11 +10,9 @@ use flutter_rust_bridge::frb;
 //   - count() / update_status() / update_pin() — 统计与状态更新
 // ============================================================
 
-
 use crate::domain::AppError;
-use crate::domain::book::{Book, BookshelfBook, BookStatus, BookTitle};
+use crate::domain::book::{Book, BookStatus, BookTitle, BookshelfBook};
 use sqlx::{QueryBuilder, SqlitePool};
-
 
 /// 书籍热字段 UPSERT
 const SQL_UPSERT_BOOK: &str = "\
@@ -138,14 +136,19 @@ impl BookRepository {
         builder.push(sort_column);
         builder.push(" ");
         builder.push(order);
-        Ok(builder.build_query_as::<BookshelfBook>().fetch_all(pool).await?)
+        Ok(builder
+            .build_query_as::<BookshelfBook>()
+            .fetch_all(pool)
+            .await?)
     }
 
     /// 获取所有书籍的 ID 和标题
     pub async fn list_titles(pool: &SqlitePool) -> Result<Vec<BookTitle>, AppError> {
-        Ok(sqlx::query_as::<_, BookTitle>("SELECT id, title FROM books")
-            .fetch_all(pool)
-            .await?)
+        Ok(
+            sqlx::query_as::<_, BookTitle>("SELECT id, title FROM books")
+                .fetch_all(pool)
+                .await?,
+        )
     }
 
     /// 按 ID 查找书籍（含元数据 LEFT JOIN）
@@ -162,7 +165,10 @@ impl BookRepository {
     }
 
     /// 按文件路径查找书籍
-    pub async fn find_by_file_path(pool: &SqlitePool, file_path: &str) -> Result<Option<Book>, AppError> {
+    pub async fn find_by_file_path(
+        pool: &SqlitePool,
+        file_path: &str,
+    ) -> Result<Option<Book>, AppError> {
         Ok(sqlx::query_as::<_, Book>(
             "SELECT b.*, m.description, m.publisher, m.translator, m.isbn \
              FROM books b \
@@ -261,7 +267,10 @@ impl BookRepository {
     }
 
     /// 按阅读状态筛选
-    pub async fn list_by_status(pool: &SqlitePool, status: BookStatus) -> Result<Vec<Book>, AppError> {
+    pub async fn list_by_status(
+        pool: &SqlitePool,
+        status: BookStatus,
+    ) -> Result<Vec<Book>, AppError> {
         Ok(sqlx::query_as::<_, Book>(
             "SELECT * FROM books WHERE status = ? ORDER BY last_opened_at DESC NULLS LAST",
         )
@@ -345,7 +354,11 @@ impl BookRepository {
     }
 
     /// 更新阅读状态
-    pub async fn update_status(pool: &SqlitePool, id: &str, status: BookStatus) -> Result<(), AppError> {
+    pub async fn update_status(
+        pool: &SqlitePool,
+        id: &str,
+        status: BookStatus,
+    ) -> Result<(), AppError> {
         sqlx::query("UPDATE books SET status = ? WHERE id = ?")
             .bind(status.as_ref())
             .bind(id)
@@ -374,7 +387,11 @@ impl BookRepository {
     }
 
     /// 更新书籍标题
-    pub async fn update_title(pool: &SqlitePool, book_id: &str, title: &str) -> Result<(), AppError> {
+    pub async fn update_title(
+        pool: &SqlitePool,
+        book_id: &str,
+        title: &str,
+    ) -> Result<(), AppError> {
         sqlx::query("UPDATE books SET title = ? WHERE id = ?")
             .bind(title)
             .bind(book_id)
@@ -384,7 +401,10 @@ impl BookRepository {
     }
 
     /// 查找书籍封面路径
-    pub async fn find_cover_path(pool: &SqlitePool, book_id: &str) -> Result<Option<String>, AppError> {
+    pub async fn find_cover_path(
+        pool: &SqlitePool,
+        book_id: &str,
+    ) -> Result<Option<String>, AppError> {
         let row: Option<(String,)> =
             sqlx::query_as("SELECT cover_path FROM books WHERE id = ? AND cover_path IS NOT NULL")
                 .bind(book_id)
@@ -444,4 +464,3 @@ impl BookRepository {
         Ok(())
     }
 }
-

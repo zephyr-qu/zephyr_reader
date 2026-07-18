@@ -17,12 +17,12 @@ use std::fs;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
-use image::imageops::FilterType;
 use image::ImageFormat as ImgFormat;
+use image::imageops::FilterType;
 use xxhash_rust::xxh3::xxh3_64;
 
-use super::asset_registry::EpubAssetRegistry;
 use super::archive_reader::EpubFile;
+use super::asset_registry::EpubAssetRegistry;
 use crate::domain::AppError;
 
 fn image_cache_root() -> Result<PathBuf, AppError> {

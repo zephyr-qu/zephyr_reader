@@ -1,4 +1,4 @@
-import 'package:zephyr_reader/src/rust/pipeline/types.dart';
+import 'package:zephyr_reader/core/reader_engine/shared/ir_types.dart';
 
 /// Flutter 装箱页内块切片。
 class PackedBlockSlice {

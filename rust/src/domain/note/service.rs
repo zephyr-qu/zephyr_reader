@@ -4,9 +4,9 @@
 //! 纯 CRUD 透传已内联到 api/ 层，此处只保留有实际业务逻辑的操作。
 
 use crate::common::AppError;
+use crate::domain::note::note_repo::NoteRepository;
 use crate::domain::note::{Note, NoteType};
 use crate::infra::manager::storage_pool;
-use crate::domain::note::note_repo::NoteRepository;
 
 // ==================== 数据查询 ====================
 
@@ -18,7 +18,9 @@ pub async fn list_notes_in_chapter(
 ) -> Result<Vec<Note>, AppError> {
     let pool = storage_pool()?;
     match note_type {
-        Some(nt) => NoteRepository::find_by_type_in_chapter(&pool, book_id, chapter_index, nt).await,
+        Some(nt) => {
+            NoteRepository::find_by_type_in_chapter(&pool, book_id, chapter_index, nt).await
+        }
         None => NoteRepository::find_paired_notes_in_chapter(&pool, book_id, chapter_index).await,
     }
 }
@@ -37,7 +39,16 @@ pub async fn create_highlight(
     language: Option<String>,
     paired_note_id: Option<String>,
 ) -> Result<Note, AppError> {
-    let note = Note::highlight(book_id, chapter_index, char_offset, length, selected_text, color, language, paired_note_id);
+    let note = Note::highlight(
+        book_id,
+        chapter_index,
+        char_offset,
+        length,
+        selected_text,
+        color,
+        language,
+        paired_note_id,
+    );
     let pool = storage_pool()?;
     NoteRepository::save(&pool, &note).await
 }
@@ -52,7 +63,15 @@ pub async fn create_annotation(
     language: Option<String>,
     paired_note_id: Option<String>,
 ) -> Result<Note, AppError> {
-    let note = Note::annotation(book_id, chapter_index, char_offset, content, selected_text, language, paired_note_id);
+    let note = Note::annotation(
+        book_id,
+        chapter_index,
+        char_offset,
+        content,
+        selected_text,
+        language,
+        paired_note_id,
+    );
     let pool = storage_pool()?;
     NoteRepository::save(&pool, &note).await
 }
@@ -99,10 +118,15 @@ fn render_txt(notes: Vec<Note>, book_title: &str) -> String {
             &mut buf,
             format_args!("章节: 第 {} 章\n", note.chapter_index + 1),
         );
-        if let Some(ref sel) = note.selected_text && !sel.is_empty() {
+        if let Some(ref sel) = note.selected_text
+            && !sel.is_empty()
+        {
             let _ = std::fmt::Write::write_fmt(&mut buf, format_args!("原文: \"{}\"\n", sel));
         }
-        let _ = std::fmt::Write::write_fmt(&mut buf, format_args!("时间: {}\n", format_timestamp(&note.created_at)));
+        let _ = std::fmt::Write::write_fmt(
+            &mut buf,
+            format_args!("时间: {}\n", format_timestamp(&note.created_at)),
+        );
         if !note.content.is_empty() && note.selected_text.as_deref() != Some(&note.content) {
             let _ = std::fmt::Write::write_fmt(&mut buf, format_args!("笔记: {}\n", note.content));
         }
@@ -119,11 +143,19 @@ fn render_markdown(notes: Vec<Note>, book_title: &str) -> String {
     for (i, note) in notes.iter().enumerate() {
         let label = note_type_label(&note.note_type);
         let _ = std::fmt::Write::write_fmt(&mut buf, format_args!("## {} #{}\n\n", label, i + 1));
-        let _ = std::fmt::Write::write_fmt(&mut buf, format_args!("- **章节**: 第 {} 章\n", note.chapter_index + 1));
-        if let Some(ref sel) = note.selected_text && !sel.is_empty() {
+        let _ = std::fmt::Write::write_fmt(
+            &mut buf,
+            format_args!("- **章节**: 第 {} 章\n", note.chapter_index + 1),
+        );
+        if let Some(ref sel) = note.selected_text
+            && !sel.is_empty()
+        {
             let _ = std::fmt::Write::write_fmt(&mut buf, format_args!("- **原文**: \"{}\"\n", sel));
         }
-        let _ = std::fmt::Write::write_fmt(&mut buf, format_args!("- **时间**: {}\n\n", format_timestamp(&note.created_at)));
+        let _ = std::fmt::Write::write_fmt(
+            &mut buf,
+            format_args!("- **时间**: {}\n\n", format_timestamp(&note.created_at)),
+        );
         if !note.content.is_empty() && note.selected_text.as_deref() != Some(&note.content) {
             let _ = std::fmt::Write::write_fmt(&mut buf, format_args!("> {}\n\n", note.content));
         }
@@ -138,14 +170,40 @@ fn render_html(notes: Vec<Note>, book_title: &str) -> String {
     for (i, note) in notes.iter().enumerate() {
         let label = note_type_label(&note.note_type);
         body.push_str("    <div class=\"note\">\n");
-        let _ = std::fmt::Write::write_fmt(&mut body, format_args!("      <h2>{} #{}</h2>\n", label, i + 1));
-        let _ = std::fmt::Write::write_fmt(&mut body, format_args!("      <p class=\"meta\">章节: 第 {} 章</p>\n", note.chapter_index + 1));
-        if let Some(ref sel) = note.selected_text && !sel.is_empty() {
-            let _ = std::fmt::Write::write_fmt(&mut body, format_args!("      <blockquote>{}</blockquote>\n", escape_html(sel)));
+        let _ = std::fmt::Write::write_fmt(
+            &mut body,
+            format_args!("      <h2>{} #{}</h2>\n", label, i + 1),
+        );
+        let _ = std::fmt::Write::write_fmt(
+            &mut body,
+            format_args!(
+                "      <p class=\"meta\">章节: 第 {} 章</p>\n",
+                note.chapter_index + 1
+            ),
+        );
+        if let Some(ref sel) = note.selected_text
+            && !sel.is_empty()
+        {
+            let _ = std::fmt::Write::write_fmt(
+                &mut body,
+                format_args!("      <blockquote>{}</blockquote>\n", escape_html(sel)),
+            );
         }
-        let _ = std::fmt::Write::write_fmt(&mut body, format_args!("      <p class=\"meta\">{}</p>\n", format_timestamp(&note.created_at)));
+        let _ = std::fmt::Write::write_fmt(
+            &mut body,
+            format_args!(
+                "      <p class=\"meta\">{}</p>\n",
+                format_timestamp(&note.created_at)
+            ),
+        );
         if !note.content.is_empty() && note.selected_text.as_deref() != Some(&note.content) {
-            let _ = std::fmt::Write::write_fmt(&mut body, format_args!("      <p class=\"content\">{}</p>\n", escape_html(&note.content)));
+            let _ = std::fmt::Write::write_fmt(
+                &mut body,
+                format_args!(
+                    "      <p class=\"content\">{}</p>\n",
+                    escape_html(&note.content)
+                ),
+            );
         }
         body.push_str("      <hr>\n");
         body.push_str("    </div>\n");
