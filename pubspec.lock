@@ -329,6 +329,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.10.0"
+  diff_match_patch:
+    dependency: transitive
+    description:
+      name: diff_match_patch
+      sha256: "2efc9e6e8f449d0abe15be240e2c2a3bcd977c8d126cfd70598aee60af35c0a4"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.4.1"
   dio:
     dependency: "direct main"
     description:
@@ -401,6 +409,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "12.0.0-beta.5"
+  fimber:
+    dependency: transitive
+    description:
+      name: fimber
+      sha256: "42fcfa33acd43556c1e7ebfc12c2b03893418bc04a07931368c3573e228af2f0"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.7.0"
   fixnum:
     dependency: transitive
     description:
@@ -417,6 +433,22 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.2.0"
+  flureadium:
+    dependency: "direct main"
+    description:
+      name: flureadium
+      sha256: f65a12499db2ce90b0a9a2de2196eec8a8eaec802a1722c8c6a99cdf7d9dadbb
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.13.2"
+  flureadium_platform_interface:
+    dependency: transitive
+    description:
+      name: flureadium_platform_interface
+      sha256: b35b862b2f96ee02412e8ea2869000bc7d2d0f54ba6ad427202c1f7ee7eafa75
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.7.1"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -472,22 +504,6 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.0.35"
-  flutter_readium:
-    dependency: "direct main"
-    description:
-      name: flutter_readium
-      sha256: e9f500ac3fa03f119a7fb60644a005222215249e3af91e54da0940f44b3d4f78
-      url: "https://pub.flutter-io.cn"
-    source: hosted
-    version: "0.3.0"
-  flutter_readium_platform_interface:
-    dependency: transitive
-    description:
-      name: flutter_readium_platform_interface
-      sha256: "59ce207046ab237c5b23300acf91db49b256cdf0c8e586c0653d238e0aa4213f"
-      url: "https://pub.flutter-io.cn"
-    source: hosted
-    version: "0.3.0"
   flutter_rust_bridge:
     dependency: "direct main"
     description:
@@ -764,6 +780,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "4.12.0"
+  json_diff:
+    dependency: transitive
+    description:
+      name: json_diff
+      sha256: "10d82dd4455109bc4dd66335db2d34b4bdf4441dc8fdd6ad6fb914395b9f9e95"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.2.1"
   json_rpc_2:
     dependency: transitive
     description:
@@ -1099,6 +1123,14 @@ packages:
       relative: true
     source: path
     version: "0.0.1"
+  rxdart:
+    dependency: transitive
+    description:
+      name: rxdart
+      sha256: "5c3004a4a8dbb94bd4bf5412a4def4acdaa12e12f269737a5751369e12d1a962"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.28.0"
   shared_preferences:
     dependency: "direct main"
     description:

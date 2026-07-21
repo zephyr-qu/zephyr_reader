@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_readium/flutter_readium.dart';
+import 'package:flureadium/flureadium.dart';
 
 /// 最小化 Readium PoC 阅读器页面。
 ///
@@ -23,7 +23,7 @@ class ReadiumPocReader extends StatefulWidget {
 }
 
 class _ReadiumPocReaderState extends State<ReadiumPocReader> {
-  final reader = FlutterReadium();
+  final reader = Flureadium();
   late Future<Publication> _openFuture;
   StreamSubscription<Locator>? _locatorSub;
   StreamSubscription<ReadiumReaderStatus>? _statusSub;
@@ -101,20 +101,20 @@ class _ReadiumPocReaderState extends State<ReadiumPocReader> {
         children: [
           IconButton(
             icon: const Icon(Icons.skip_previous),
-            onPressed: () => reader.goBackward(),
+            onPressed: () => reader.goLeft(),
           ),
           IconButton(
             icon: const Icon(Icons.arrow_back_ios),
-            onPressed: () => reader.goBackward(),
+            onPressed: () => reader.goLeft(),
           ),
           Text('${(_progress * 100).toStringAsFixed(0)}%'),
           IconButton(
             icon: const Icon(Icons.arrow_forward_ios),
-            onPressed: () => reader.goForward(),
+            onPressed: () => reader.goRight(),
           ),
           IconButton(
             icon: const Icon(Icons.skip_next),
-            onPressed: () => reader.goForward(),
+            onPressed: () => reader.goRight(),
           ),
         ],
       ),
