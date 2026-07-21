@@ -24,7 +24,9 @@ enum AppRoute {
   typographySettings('/settings/typography'),
   themeBrightness('/settings/theme'),
   otherSettings('/settings/other'),
-  wifiTransfer('/wifi-transfer');
+  wifiTransfer('/wifi-transfer'),
+  readiumPoc('/readium-poc'),
+  readiumPocReader('/readium-poc/:filePath');
 
   /// 路径模式字符串（如 `/books/:id`）。
   final String path;
