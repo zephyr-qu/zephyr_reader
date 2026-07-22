@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'reading_backend_kind.dart';
 import 'reading_capabilities.dart';
 import 'reading_command.dart';
@@ -39,11 +40,3 @@ abstract interface class ReadingBackend {
   Future<void> close();
 }
 
-/// Value change notifier interface (minimal, no Flutter dependency).
-///
-/// In Flutter code, implement this via [ValueNotifier] or [ChangeNotifier].
-abstract class ValueListenable<T> {
-  T get value;
-  void addListener(void Function() listener);
-  void removeListener(void Function() listener);
-}

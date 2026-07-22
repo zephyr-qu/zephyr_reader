@@ -1,0 +1,29 @@
+{
+  "id": "r1-04-builtin-adapter",
+  "name": "r1-04-builtin-adapter",
+  "title": "R4: Builtin Adapter",
+  "description": "包装 ReaderSession/ReaderViewModel/ChapterViewModel/PaginationEngine 到 ReadingBackend。TXT 行为不变，Builtin EPUB 行为不变。不重写现有逻辑，不移动 PaginationEngine。约 10h。",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P0",
+  "creator": "zs",
+  "assignee": "zs",
+  "createdAt": "2026-07-22",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "feature/readium-poc",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "07-22-r1-readium-unification",
+  "relatedFiles": [
+    "lib/features/reader/core/application/reader_session.dart",
+    "lib/core/reading/"
+  ],
+  "notes": "依赖 R2 核心模型。Adapter 是现有实现的正式入口，页面迁移完成前不直改消费者。",
+  "meta": {}
+}
