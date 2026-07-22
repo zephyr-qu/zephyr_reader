@@ -1,6 +1,6 @@
 # 阅读核心 — 领域模型
 
-> Phase 0 产出；Phase 4 更新（2026-06-25）。实现渐进，**语义**以此为准。  
+> Phase 0 产出；Phase R1 更新（2026-07-22）。实现渐进，**语义**以此为准。  
 > 术语见 [glossary.md](./glossary.md)；边界见 [READING_BOUNDARIES.md](./READING_BOUNDARIES.md)。
 
 ---
@@ -16,10 +16,10 @@ erDiagram
     ChapterDocument ||--o| RichPayload : legacy_scroll
     ReadingSession ||--|| ReadingPosition : tracks
     ReadingPosition }o--|| Chapter : at
+    ReadingPosition ||--o| EnginePositionHint : may_have
     PaginationView }o--|| ContentIR : derives_from
     ScrollView }o--|| ContentIR : derives_from
     StagingCache }o--|| Chapter : prefetches
-```
 
 ### Book / Chapter
 
@@ -40,6 +40,9 @@ erDiagram
 |------|------|------|
 | `chapterIndex` | int | |
 | `charOffset` | int | 在 `plainText` 内的 UTF-16 code-unit offset（ADR-017） |
+**不持久化** `pageIndex`（ADR-001）。
+
+**不持久化** Readium Locator（ADR-019）— 仅作为 EnginePositionHint 保存。
 
 **不持久化** `pageIndex`（ADR-001）。
 
@@ -74,6 +77,77 @@ erDiagram
 
 ---
 
+### ReadingBackend（Phase R1 新增 seam）
+
+**不是领域实体**，而是 Adapter 抽象 seam。放在此处以保持领域模型的可见性。
+
+```dart
+abstract interface class ReadingBackend {
+  ReadingBackendKind get kind;
+  ReadingCapabilities get capabilities;
+  ValueListenable<ReadingSnapshot> get snapshot;
+
+  Future<void> open(ReadingOpenRequest request);
+  Future<void> execute(ReadingCommand command);
+  Future<void> applyPreferences(ReadingPreferences preferences);
+  Future<void> close();
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| `kind` | builtin / readium |
+| `capabilities` | 引擎支持的能力列表 |
+| `snapshot` | 原子阅读状态快照 |
+
+### ReadingCapabilities（引擎能力描述）
+
+引擎不支持的能力必须显式标记，UI 据此决定显示/禁用/降级，禁止空实现。
+
+```dart
+class ReadingCapabilities {
+  final bool pagination;
+  final bool continuousScroll;
+  final bool precisePosition;
+  final bool textSelection;
+  final bool annotations;
+  final bool nativeTts;
+  final bool customFont;
+  final bool letterSpacing;
+  final bool paragraphSpacing;
+  final bool firstLineIndent;
+}
+```
+
+### ReadingSnapshot（原子阅读状态快照）
+
+每页一次看到内部一致的一份状态，而非分别订阅多个可能不同步的信号。
+
+```dart
+class ReadingSnapshot {
+  final ReadingStatus status;
+  final String bookTitle;
+  final String chapterTitle;
+  final double totalProgress;
+  final ReadingPosition? position;
+  final String? errorMessage;
+}
+```
+
+### EnginePositionHint（引擎私有位置加速）
+
+只用于恢复加速，不是跨功能真理。Locator 与当前出版物指纹不匹配时必须丢弃。
+
+```dart
+class EnginePositionHint {
+  final ReadingBackendKind engineKind;
+  final String publicationFingerprint;
+  final String opaqueLocator;
+}
+```
+
+---
+
 ## 2. 用例 → 实体（谁读谁）
 
 | 用例 | 读什么 | 模式 |
@@ -82,14 +156,19 @@ erDiagram
 | 滚动显示 | IR 块（目标）/ rich 过渡 | scroll |
 | 存进度 | ReadingPosition | 全模式 |
 | 书签/笔记 | ReadingPosition + plain 内 offset | 全模式 |
-| 全书搜索 | plainText（FTS）；**无独立章内搜索 UI**（D4-C） | 全文 ready 后 |
+| 全书搜索 | plainText（FTS） | 全文 ready 后 |
 | TTS | plainText | 全文 ready 后 |
 | 双语 | IR/plain + 翻译 API | 独立 feature；设置开启 |
 | 换章丝滑 | StagingCache | pagination / pageTurn |
-
+| Readium 渲染 | ReadiumBackend → ReadiumViewport | Readium adapter |
+| 引擎选择 | ReadingBackendPolicy | 按格式/配置 |
 ---
 
 ## 3. 不变量（违反即 bug）
+
+> I1-I7 保留不变。新增 Phase R1 不变量：
+
+> **I1**：持久化只用 `ReadingPosition`，不用 `pageIndex`。
 
 1. **I1**：持久化只用 `ReadingPosition`，不用 `pageIndex`。
 2. **I2**：`plainText` 全文未 ready 时，不跑 TTS/搜索索引。
@@ -98,10 +177,12 @@ erDiagram
 5. **I5**：pageTurn 与 pagination 共享同一 PaginationView 加载路径（ADR-002）。
 6. **I6**：scroll 与 pagination **渲染输入均为 IR**（ADR-009）；`plainText` 仍为进度锚点。
 7. **I7**：adjacent 跨章 staging 未就绪时 **不得** 展示可见 loading（ADR-012）。
-
+8. **I8**：引擎切换时，`ReadingPosition` 保持为统一格式；Readium Locator 仅作为 hint。
+9. **I9**：不支持的能力必须通过 `ReadingCapabilities` 显式暴露，不得空实现。
+10. **I10**：Readium Locator 与当前出版物指纹不匹配时必须丢弃（不用于恢复）。
 ---
 
-## 4. 现状 vs 目标（2026-06-26 更新）
+## 4. 现状 vs 目标（2026-07-22 更新）
 
 | 目标实体 | 现状 | 状态 |
 |----------|------|------|
@@ -109,12 +190,18 @@ erDiagram
 | ChapterDocument.plainText | `chapterContent` + IR 投影 | ✅ 对齐 ADR-001/008 |
 | PaginationView | `RustPaginationSession` + descriptors + 块渲染 | ✅ P4-2/P4-4 |
 | ScrollView | `ScrollBoundaryCoordinator` + IR 段 | ✅ P4-1 |
-| RichPayload | block `font_size` 贯穿 `RichParagraph` → IR → Flutter | ✅ G1+G2 |
+| RichPayload | block `font_size` 贯穿 IR → Flutter | ✅ G1+G2 |
 | StagingCache | `next/prevChapterStaging` 零 spinner | ✅ P4-3 |
-| ReadingPosition | `chapterIndex` + `currentCharOffset`，`pageIndex` 已从持久化移除 | ✅ I1 fixed |
-| Bilingual | 独立 `features/bilingual/` 模块，主链零 import | ✅ P4-5 |
+| ReadingPosition | `chapterIndex` + `currentCharOffset` | ✅ I1 fixed |
+| Bilingual | 独立 `features/bilingual/` 模块 | ✅ P4-5 |
+| ReadingBackend | 抽象 seam — 待实现 | 🔄 R1-3/R1-4 |
+| ReadingCapabilities | 引擎能力描述 — 待实现 | 🔄 R1-2 |
+| EnginePositionHint | 引擎私有位置加速 — 待实现 | 🔄 R1-2 |
+| ReadiumPositionMapper | Locator ↔ charOffset 双向映射 — 待实现 | 🔄 R1-2 |
+
 ---
 
-## 5. 一句话（Phase 4 北极星）
+## 5. 北极星（Phase R1）
 
+> **进度领域真理不变（charOffset）；Builtin 继续服务 TXT + EPUB；Readium 渐进补齐 EPUB 渲染；UI 零引擎感知。**
 > **进度存 charOffset；渲染统一吃 IR；plain 为搜索/TTS 锚点；staging 预取必须命中、零可见 loading。**

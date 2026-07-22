@@ -1,6 +1,6 @@
-# Zephyr Reader — 阅读核心边界 v1.2
+# Zephyr Reader — 阅读核心边界 v1.4
 
-> **状态**：已冻结 · **Phase 4 范围已定义**（2026-06-25）  
+> **状态**：已冻结 · **Phase R1 范围已定义**（2026-07-22）  
 > 来源：`xinxi.md` → … → [xinxi-round5.md](./xinxi-round5.md)  
 > 冲突时以本文为准；技术细节见 [DECISIONS.md](./DECISIONS.md)、[DOMAIN_MODEL.md](./DOMAIN_MODEL.md)。
 
@@ -16,8 +16,8 @@
 | **80%** | 进度/书签/笔记稳定 · 排版可调 · 搜索快 · **换章丝滑** |
 | **进度真理** | `chapterIndex` + `charOffset`（plainText）— [ADR-001](./adr/001-reading-position-truth.md) |
 | **技术分工** | Rust IR+块分页+缓存；Flutter 渲染+staging — [ADR-006](./adr/006-rust-flutter-division.md) |
-| **当前阶段** | **Phase 7 清理冗余代码** — [ROADMAP.md](./ROADMAP.md) |
-| **明确不做** | PDF 阅读、账号/多端同步、复杂 CSS、WebView 全引擎、章内搜索 UI |
+| **当前阶段** | **Phase R1 Readium 双引擎统一接入** — [ROADMAP.md](./ROADMAP.md) |
+| **明确不做** | PDF 阅读、账号/多端同步、复杂 CSS、章内搜索 UI |
 
 ---
 
@@ -52,10 +52,15 @@
 
 - PDF 阅读（主仓不投入；文档不对用户承诺）
 - **多设备同步、账号**（WebDAV 仅作备份/手动工具，非产品级同步）
-- WebView / 完整 HTML 排版引擎
+- ~~WebView / 完整 HTML 排版引擎~~ → 见下方注释
 - CSS float / 多栏 / 复杂表格
 - **章内搜索 UI**（全书搜索已覆盖；D4-C）
 - 对标微信读书全量能力
+
+> **Phase R1 更新**：原 "WebView / 完整 HTML 排版引擎" 禁令调整为：
+> - ✅ 允许封装后的 Readium EPUB Navigator（通过 flureadium 接入 Readium SDK）
+> - ❌ 不允许业务代码或 UI 层直接依赖裸 WebView / Platform View
+> - ❌ 不在 Readium Adapter 目录外引入 `flureadium` 类型依赖
 
 ---
 
@@ -78,7 +83,7 @@
 | [013](./adr/013-flutter-metrics-calibration.md) | Metrics 回传校准 |
 | [014](./adr/014-api-path-unification.md) | 分页 API 路径统一 |
 | [017](./adr/017-reading-offset-utf16-contract.md) | 阅读坐标统一为 UTF-16 code unit |
-
+| [019](./adr/019-engine-unification.md) | Readium 双引擎统一接入（Phase R1） |
 ---
 
 ## North Star 加载路径
@@ -104,3 +109,4 @@
 | v1.1 | 2026-06-18 | 第三轮闭环；Phase 0 完成 |
 | v1.2 | 2026-06-25 | Phase 4 范围；ADR-009～013；章内搜索降为 Won't |
 | v1.3 | 2026-07-03 | Phase 4 退出 → Phase 5 启动；ADR-014；MD 格式残留清除 |
+| v1.4 | 2026-07-22 | Phase R1 更新：允许封装的 Readium EPUB Navigator；ADR-019 已通过 |
