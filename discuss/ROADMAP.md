@@ -1,6 +1,6 @@
 # 阅读核心路线图（与边界 v1.1 绑定）
 
-> **当前阶段 = Phase 13**（基础质量攻坚）
+> **当前阶段 = Phase R1**（Readium 双引擎统一接入）
 > **Phase 0-12** 已完成 ✅
 > **Phase 13** ✅ 已完成
 
@@ -417,6 +417,59 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 - ❌ 不写大量单元测试（等 Phase 19）
 - ❌ 不盲目做性能调优（除非边界测试暴露必须修的瓶颈）
 - ❌ 不改 UI/UX 细节
+
+---
+
+## Phase R1 — Readium 双引擎统一接入 🔄 当前进行中
+
+**目标**：统一阅读入口、页面壳层和产品功能；正文排版由 Builtin / Readium 两个 Adapter 分别实现。
+Readium 首期只接 EPUB，不接 PDF 或漫画。
+
+**讨论**：`discuss/adr/019-engine-unification.md`
+
+### 背景
+
+项目已有两条阅读器实现路径（自研 Builtin + Readium POC），但完全隔离。
+目标是单一阅读入口、统一 UI 壳层、引擎差异对用户透明。
+
+### 执行顺序
+
+```
+R1-0 文档与决策冻结        🔄 当前
+  → R1-1 能力探针
+  → R1-2 位置桥
+  → R1-3 Builtin Adapter
+  → R1-4 Readium Adapter
+  → R1-5 策略与工厂
+  → R1-6 单入口页面
+  → R1-7 功能补齐
+  → R1-8 真机签退与灰度
+```
+
+### 任务清单
+
+| # | 项 | 说明 | 状态 |
+|---|----|------|------|
+| 0 | 文档与决策冻结 | 修订 ADR、边界、领域模型、路线图 | 🔄 进行中 |
+| 1 | Readium 能力探针 | 真机验证 Locator/目录/配置/选区/翻页稳定性 | ⏳ 待开始 |
+| 2 | 统一模型与位置桥 | ReadingBackend/ReadingCommand/ReadingSnapshot + 位置映射 | ⏳ 待开始 |
+| 3 | Builtin Adapter | 包装现有 ReaderSession 到 ReadingBackend | ⏳ 待开始 |
+| 4 | Readium Adapter | 包装 flureadium + 修正生命周期问题 | ⏳ 待开始 |
+| 5 | 统一会话工厂与引擎策略 | ReadingBackendPolicy、格式感知引擎选择、失败回退 | ⏳ 待开始 |
+| 6 | 统一入口与页面 | 唯一 /reader/:bookId/:chapterId 路由、UnifiedReaderShell | ⏳ 待开始 |
+| 7 | 功能补齐 | 进度/恢复/目录/设置/书签/高亮/TTS/搜索/生词逐步补齐 | ⏳ 待开始 |
+| 8 | 真机签退与灰度 | Android/iOS 验收、feature flag 关闭测试、文档同步 | ⏳ 待开始 |
+
+### 关键原则
+
+| 原则 | 说明 |
+|------|------|
+| charOffset 为领域真理 | Readium Locator 仅为 Adapter 私有位置加速提示 |
+| 三小接口 | ReadingBackend / ReadingSnapshot / ReadingViewportAdapter |
+| 能力显式暴露 | ReadingCapabilities 列出引擎支持/不支持的能力，禁止空实现 |
+| UI 零引擎感知 | UI 不 import flureadium，不判断具体引擎类型 |
+| 灰度和回滚 | Feature flag 可完整关闭 Readium；删除 Adapter 不断裂 UI |
+| 允许删除 | 如维护成本超过收益可删除 ReadiumReadingAdapter |
 
 ---
 ## Phase 14 — 阅读中增强（规划中）
