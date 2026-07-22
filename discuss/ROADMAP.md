@@ -420,45 +420,59 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 
 ---
 
-## Phase R1 — Readium 双引擎统一接入 🔄 当前进行中
+## Phase R1 — Readium 正式接入（15 阶段计划） 🔄 当前进行中
 
 **目标**：统一阅读入口、页面壳层和产品功能；正文排版由 Builtin / Readium 两个 Adapter 分别实现。
 Readium 首期只接 EPUB，不接 PDF 或漫画。
+PoC 阶段已取消，正式按 R1-R15 15 阶段实施。
 
 **讨论**：`discuss/adr/019-engine-unification.md`
 
-### 背景
-
-项目已有两条阅读器实现路径（自研 Builtin + Readium POC），但完全隔离。
-目标是单一阅读入口、统一 UI 壳层、引擎差异对用户透明。
+**工作量估算**：约 95-105h（约 2.5-3 周满负荷）
 
 ### 执行顺序
 
 ```
-R1-0 文档与决策冻结        🔄 当前
-  → R1-1 能力探针
-  → R1-2 位置桥
-  → R1-3 Builtin Adapter
-  → R1-4 Readium Adapter
-  → R1-5 策略与工厂
-  → R1-6 单入口页面
-  → R1-7 功能补齐
-  → R1-8 真机签退与灰度
+R1  Docs ──→ R2  Core Models ──→ R3  Persistence
+                                       ├── R4  Builtin Adapter
+                                       └── R5  Readium Adapter
+                                                │
+                                      R6  Position Bridge
+                                                │
+                             R7  Policy + R8  SessionFactory
+                                        │
+                                  R9  Unified Page
+                                   ├── R10 TOC & Progress
+                                   ├── R11 Preferences
+                                   ├── R12 Bookmarks & Annotations
+                                   └── R13 TTS/Search/Vocab
+                                        │
+                                  R14 Cleanup PoC
+                                        │
+                                  R15 Verification & Signoff
 ```
 
 ### 任务清单
 
-| # | 项 | 说明 | 状态 |
-|---|----|------|------|
-| 0 | 文档与决策冻结 | 修订 ADR、边界、领域模型、路线图 | 🔄 进行中 |
-| 1 | Readium 能力探针 | 真机验证 Locator/目录/配置/选区/翻页稳定性 | ⏳ 待开始 |
-| 2 | 统一模型与位置桥 | ReadingBackend/ReadingCommand/ReadingSnapshot + 位置映射 | ⏳ 待开始 |
-| 3 | Builtin Adapter | 包装现有 ReaderSession 到 ReadingBackend | ⏳ 待开始 |
-| 4 | Readium Adapter | 包装 flureadium + 修正生命周期问题 | ⏳ 待开始 |
-| 5 | 统一会话工厂与引擎策略 | ReadingBackendPolicy、格式感知引擎选择、失败回退 | ⏳ 待开始 |
-| 6 | 统一入口与页面 | 唯一 /reader/:bookId/:chapterId 路由、UnifiedReaderShell | ⏳ 待开始 |
-| 7 | 功能补齐 | 进度/恢复/目录/设置/书签/高亮/TTS/搜索/生词逐步补齐 | ⏳ 待开始 |
-| 8 | 真机签退与灰度 | Android/iOS 验收、feature flag 关闭测试、文档同步 | ⏳ 待开始 |
+| # | 阶段 | 工作量 | 说明 | 状态 |
+|---|------|--------|------|------|
+| **R1** | 冻结正式架构 | ~2h | ADR-019 Accepted，文档对齐，声明 ReadingBackend seam | ⏳ 待开始 |
+| **R2** | 多引擎核心模型 | ~5h | lib/core/reading/ 下纯 Dart seam 文件 | ⏳ 待开始 |
+| **R3** | 引擎位置持久化 | ~8h | reading_engine_positions 表 + FRB API + EnginePositionHintRepository | ⏳ 待开始 |
+| **R4** | Builtin Adapter | ~10h | 包装 ReaderVM/PaginationEngine → ReadingBackend | ⏳ 待开始 |
+| **R5** | Readium Adapter | ~14h | Flureadium 生命周期+viewport+状态机 | ⏳ 待开始 |
+| **R6** | 位置桥 | ~8h | Locator ↔ ReadingPosition 映射，含边界测试 | ⏳ 待开始 |
+| **R7** | 引擎策略与回退 | ~3h | ReadingBackendPolicy + 每书覆盖 | ⏳ 待开始 |
+| **R8** | SessionFactory | ~5h | 带 scope 的 scoped ReadingSession | ⏳ 待开始 |
+| **R9** | 统一阅读页面 | ~12h | UnifiedReaderShell，基于 ReaderChromeShell + 删除重复壳层 | ⏳ 待开始 |
+| **R10** | 目录与进度 | ~5h | ReadingChapter 统一 + 节流持久化 | ⏳ 待开始 |
+| **R11** | 排版设置映射 | ~3h | ReadingPreferences → EPUBPreferences | ⏳ 待开始 |
+| **R12** | 书签与批注 | ~6h | 统一书签 + decoration 桥 | ⏳ 待开始 |
+| **R13** | TTS/搜索/生词 | ~3h | 应用层功能 Readium 适配 | ⏳ 待开始 |
+| **R14** | 清理 PoC | ~2h | 删除 PoC 文件和路由（零结果门禁） | ⏳ 待开始 |
+| **R15** | 全量验证 | ~12h | 契约测试 + 真机 20+ 用例 + 门禁 | ⏳ 待开始 |
+|
+**合计：约 95-105h**
 
 ### 关键原则
 
@@ -470,7 +484,6 @@ R1-0 文档与决策冻结        🔄 当前
 | UI 零引擎感知 | UI 不 import flureadium，不判断具体引擎类型 |
 | 灰度和回滚 | Feature flag 可完整关闭 Readium；删除 Adapter 不断裂 UI |
 | 允许删除 | 如维护成本超过收益可删除 ReadiumReadingAdapter |
-
 ---
 ## Phase 14 — 阅读中增强（规划中）
 

@@ -14,7 +14,7 @@
 | 引擎 | 技术栈 | 适合格式 | 功能完整度 |
 | ------ | -------- | --------- | ----------- |
 | **Builtin（自研）** | Rust IR → Flutter `TextPainter` | TXT + EPUB（自研渲染管线） | 完整 |
-| **Readium（POC）** | `flureadium` 封装 Readium SDK | EPUB（原生渲染器） | 实验性 |
+| **Readium（正式）** | `flureadium` 封装 Readium SDK | EPUB（原生渲染器） | 正式 |
 
 当前两条路径完全隔离：
 
@@ -312,87 +312,40 @@ Phase R1 目标:
 
 ## 实施计划
 
-### Phase R1：Readium 双引擎统一接入
+### Phase R1：Readium 双引擎统一接入（15 阶段计划）
 
-```
-R1-0 文档与决策冻结       ← 当前
-  → R1-1 能力探针
-  → R1-2 位置桥
-  → R1-3 Builtin Adapter
-  → R1-4 Readium Adapter
-  → R1-5 策略与工厂
-  → R1-6 单入口页面
-  → R1-7 功能补齐
-  → R1-8 真机签退与灰度
-```
+> **注意**：以下为 R1-R15 概述，每阶段详细要求见对应任务 PRD（`.trellis/tasks/07-22-r1-??-*/prd.md`）。
 
-#### R1-0：文档与决策冻结
+| 阶段 | 名称 | 工作量 | 说明 |
+|------|------|--------|------|
+| R1 | 冻结正式架构 | ~2h | ADR-019 Accepted，文档对齐，声明 seam
+| R2 | 多引擎核心模型 | ~5h | lib/core/reading/ 纯 Dart seam 文件
+| R3 | 引擎位置持久化 | ~8h | reading_engine_positions 表 + FRB API
+| R4 | Builtin Adapter | ~10h | 包装 ReaderVM → ReadingBackend
+| R5 | Readium Adapter | ~14h | Flureadium 生命周期封装
+| R6 | 位置桥 | ~8h | Locator ↔ ReadingPosition 映射
+| R7 | 引擎策略与回退 | ~3h | ReadingBackendPolicy + 每书覆盖
+| R8 | SessionFactory | ~5h | 带 scope 的 scoped ReadingSession
+| R9 | 统一阅读页面 | ~12h | UnifiedReaderShell，唯一壳层
+| R10 | 目录与进度 | ~5h | ReadingChapter + 节流持久化
+| R11 | 排版设置映射 | ~3h | ReadingPreferences → EPUBPreferences
+| R12 | 书签与批注 | ~6h | 统一书签 + decoration 桥
+| R13 | TTS/搜索/生词 | ~3h | 应用层功能适配
+| R14 | 清理 PoC | ~2h | 删除 PoC 文件和路由
+| R15 | 全量验证 | ~12h | 契约测试 + 真机 + 门禁
+|
+**合计：约 95-105h**
 
-只改文档，不改生产代码。
+> 依赖：R1→R2→R3→(R4,R5→R6)→R7→R8→R9→(R10,R11,R12,R13)→R14→R15
 
-- 重写 ADR-019 为正式决策
-- 修改 READING_BOUNDARIES.md — 允许封装后的 Readium EPUB Navigator
-- 更新 DOMAIN_MODEL.md — 新增 ReadingBackend、EnginePositionHint、ReadingCapabilities、ReadingSnapshot
-- 更新 ROADMAP.md — 新增 Phase R1
+---
 
-#### R1-1：能力探针
-
-只增强 PoC，不接主入口。
-
-验证矩阵：
-
-- Android 真机打开 3 类 EPUB（纯文本、图片密集、复杂 CSS）
-- iOS 真机执行相同矩阵
-- 获取和序列化 Locator
-- 关闭后用 Locator 恢复
-- 目录跳转
-- 字号、行距、主题即时更新
-- pagination/scroll preference
-- decorations 显示
-- 选区事件
-- 连续快速翻页
-- 返回后 native view 释放
-- 重复打开不同 EPUB 不串状态
-
-产出：`CAPABILITY_MATRIX.md`、`LOCATOR_MAPPING_REPORT.md`
-
-#### R1-2：位置桥
-
-纯 Dart 模型，不动主阅读页面。
-
-- `ReadingBackend`、`ReadingCommand`、`ReadingSnapshot`、`ReadingCapabilities`
-- `ReadingPosition`、`EnginePositionHint`、`ReadiumPositionMapper`
-- 位置映射测试（href→chapterIndex、Locator quote→UTF-16 offset、round-trip）
-
-#### R1-3：Builtin Adapter
-
-包装现有 `ReaderSession` / `ReaderViewModel` 到 `ReadingBackend`。行为不变。
-
-#### R1-4：Readium Adapter
-
-包装 flureadium 到 `ReadingBackend`。修正当前生命周期问题。
-
-#### R1-5：策略与工厂
-
-实现 `ReadingBackendPolicy`，TXT 永远 Builtin，EPUB 可配置。
-
-#### R1-6：统一入口
-
-唯一 `/reader/:bookId/:chapterId` 路由。UI 零 flureadium import。
-
-#### R1-7：功能补齐
-
-按产品价值分组补齐进度、恢复、目录、设置、书签、高亮等。
-
-#### R1-8：真机签退与灰度
-
-Android/iOS 双平台验收，feature flag 可完整关闭 Readium。
-
+R1-R15 各阶段取代了原 R1-0~R1-8。PoC 阶段已取消，Readium 作为 EPUB 正式后端实施。
 ---
 
 ## 演进注意
 
-1. **Readium 是实验性并轨**：不阻塞其他 Phase
+1. **Readium 是正式后端（按可删除设计）**：不阻塞其他 Phase
 2. **允许删除**：如果 Readium 维护成本超过收益，可删除 `ReadiumReadingAdapter` 而不断裂 UI
 3. **接口最小化**：只包含两个引擎都有意义的操作
 4. **`lib/features/reader/epub/` 路径规划**：统一后应移至 `lib/core/reading/backend/readium/`，使 features/ 不再直接感知引擎实现

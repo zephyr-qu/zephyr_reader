@@ -8,7 +8,7 @@ pub mod chapter;
 pub mod chapter_detect;
 pub mod cover;
 pub mod dictionary;
-pub mod note;
+pub mod engine_position;
 pub mod progress;
 pub mod reader;
 pub mod search;
