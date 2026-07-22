@@ -1,0 +1,29 @@
+{
+  "id": "r1-05-readium-adapter",
+  "name": "r1-05-readium-adapter",
+  "title": "R5: Readium Adapter",
+  "description": "包装 flureadium 到 ReadingBackend。完整生命周期管理（open generation、viewport ready 门控、关闭幂等）、EPUBPreferences 映射、decorations 基础支持。目录交互、位置保存等基础连通。约 14h — 最大头之一。",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P0",
+  "creator": "zs",
+  "assignee": "zs",
+  "createdAt": "2026-07-22",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "feature/readium-poc",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "07-22-r1-readium-unification",
+  "relatedFiles": [
+    "lib/features/reader/epub/readium_view_model.dart",
+    "lib/features/reader/epub/readium_reader_content.dart"
+  ],
+  "notes": "依赖 R2 + R3。最大工作项之一。ReadiumSession 独占 Flureadium 实例。",
+  "meta": {}
+}
