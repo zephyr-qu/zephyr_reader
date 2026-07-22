@@ -194,10 +194,10 @@ class EnginePositionHint {
 | StagingCache | `next/prevChapterStaging` 零 spinner | ✅ P4-3 |
 | ReadingPosition | `chapterIndex` + `currentCharOffset` | ✅ I1 fixed |
 | Bilingual | 独立 `features/bilingual/` 模块 | ✅ P4-5 |
-| ReadingBackend | 抽象 seam — 待实现 | 🔄 R1-3/R1-4 |
-| ReadingCapabilities | 引擎能力描述 — 待实现 | 🔄 R1-2 |
-| EnginePositionHint | 引擎私有位置加速 — 待实现 | 🔄 R1-2 |
-| ReadiumPositionMapper | Locator ↔ charOffset 双向映射 — 待实现 | 🔄 R1-2 |
+| ReadingBackend | 抽象 seam — 待实现 | 🔄 R04/R05 |
+| ReadingCapabilities | 引擎能力描述 — 待实现 | 🔄 R02 |
+| EnginePositionHint | 引擎私有位置加速 — 待实现 | 🔄 R03 |
+| ReadiumPositionMapper | Locator ↔ charOffset 双向映射 — 待实现 | 🔄 R06 |
 
 ---
 

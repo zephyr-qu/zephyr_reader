@@ -161,3 +161,13 @@ N1/N5 ✅ 死代码清扫 + 依赖审计 + ROADMAP 更新
 - FRB codegen 验证（需完整 build_runner）
 - sync FFI 真正异步隔离
 来源：architecture-review-20260718-095042.html
+
+### Phase R1 重规划（2026-07-22）
+
+- 取消 PoC 阶段（R1-1 能力探针）
+- CAPABILITY_MATRIX.md + LOCATOR_MAPPING_REPORT.md 已在 commit 79d7d770 产出
+- 正式 Readium 接入计划，15 阶段（R01-R15），约 95-105h
+- 关键决策：Rust DB 表持久化、基于 ReaderChromeShell 合并、R7→R8 顺序、Android Only 真机
+- 旧任务结构 R1-1~R1-8 标记为已删除/取代
+- 新任务结构 R01-R15 已创建为 pending 状态
+- 待用户启动：R1（文档冻结）→ R2（核心模型）→ ...
