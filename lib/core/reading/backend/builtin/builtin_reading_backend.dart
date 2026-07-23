@@ -10,6 +10,7 @@ import '../reading_snapshot.dart';
 import '../reading_status.dart';
 import '../../preferences/reading_preferences.dart';
 import '../../position/reading_position.dart';
+import '../../chapter/reading_chapter.dart';
 import 'package:zephyr_reader/features/reader/core/application/reader_view_model.dart';
 import 'package:zephyr_reader/core/reader_engine/shared/config/reader_config.dart' show ReadingMode;
 ///
@@ -32,6 +33,13 @@ class BuiltinReadingBackend implements ReadingBackend {
   final ValueNotifier<ReadingSnapshot> snapshot;
 
   final ReaderViewModel _vm;
+  /// Temporary accessor for migration period (R9-R12).
+  /// After full migration, all callers should use the ReadingBackend
+  /// interface instead.
+  ReaderViewModel get viewModel => _vm;
+
+  /// Called after chapters are loaded from the database.
+  void Function(List<ReadingChapter> chapters)? onChaptersReady;
 
   BuiltinReadingBackend({
     required ReaderViewModel viewModel,
@@ -74,6 +82,20 @@ class BuiltinReadingBackend implements ReadingBackend {
         chapterTitle: title,
         totalProgress: _computeProgress(),
       );
+    });
+
+    // Watch chapters for TOC
+    effect(() {
+      final rustChapters = _vm.chapterManager.chapters.value.value;
+      if (rustChapters == null || rustChapters.isEmpty) return;
+      final readingChapters = rustChapters
+          .map((ch) => ReadingChapter(
+                id: ch.id,
+                index: ch.chapterIndex.toInt(),
+                title: ch.title,
+              ))
+          .toList();
+      onChaptersReady?.call(readingChapters);
     });
   }
 
