@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/painting.dart';
 import 'package:flureadium/flureadium.dart';
 
 import '../reading_backend.dart';
@@ -15,6 +14,7 @@ import '../../preferences/reading_preferences.dart';
 import '../../chapter/reading_chapter.dart';
 import '../../progress/progress_saver.dart';
 import 'readium_chapter_mapper.dart';
+import 'readium_preferences_mapper.dart';
 import 'readium_session.dart';
 
 /// Readium reading backend wrapping [ReadiumSession].
@@ -35,7 +35,9 @@ class ReadiumReadingBackend implements ReadingBackend {
   Locator? _lastLocator;
   ReadiumChapterMapper? _chapterMapper;
   final ProgressSaver _progressSaver = ProgressSaver();
-
+  final ReadiumPreferencesMapper _prefsMapper =
+      const ReadiumPreferencesMapper();
+  Timer? _prefsDebounce;
   /// Called after chapters are parsed from the publication.
   void Function(List<ReadingChapter> chapters)? onChaptersReady;
 
@@ -65,11 +67,9 @@ class ReadiumReadingBackend implements ReadingBackend {
     _session.onLocatorChanged = (locator) {
       _lastLocator = locator;
       final title = locator.title ?? '';
-      _emitSnapshot(
-        ReadingStatus.ready,
-        chapterTitle: title,
-        totalProgress: locator.locations?.totalProgression ?? 0.0,
-      );
+      _emitSnapshot(ReadingStatus.ready,
+          chapterTitle: title,
+          totalProgress: locator.locations?.totalProgression ?? 0.0);
       _progressSaver.onLocatorChanged(locator);
     };
 
@@ -143,55 +143,32 @@ class ReadiumReadingBackend implements ReadingBackend {
 
   @override
   Future<void> applyPreferences(ReadingPreferences preferences) async {
-    final epubPrefs = _toEpubPreferences(preferences);
-    await _session.setEPUBPreferences(epubPrefs);
+    _prefsDebounce?.cancel();
+    _prefsDebounce = Timer(const Duration(milliseconds: 200), () {
+      unawaited(_applyPreferencesNow(preferences));
+    });
+  }
+
+  /// Apply preferences immediately (called by debounced timer).
+  Future<void> _applyPreferencesNow(ReadingPreferences prefs) async {
+    try {
+      final epubPrefs = _prefsMapper.toEpubPreferences(prefs);
+      await _session.setEPUBPreferences(epubPrefs);
+    } catch (e) {
+      _emitSnapshot(ReadingStatus.failed,
+          errorMessage: 'Preferences: ${e.toString()}');
+    }
   }
 
   @override
   Future<void> close() async {
+    _prefsDebounce?.cancel();
     await _progressSaver.flush();
     _progressSaver.dispose();
     await _session.close();
     _lastLocator = null;
   }
 
-  // ---------------------------------------------------------------
-  // Preference mapping
-  // ---------------------------------------------------------------
-
-  EPUBPreferences _toEpubPreferences(ReadingPreferences prefs) {
-    return EPUBPreferences(
-      fontFamily: prefs.fontFamily ?? 'Original',
-      fontSize: prefs.fontSize.toInt(),
-      fontWeight: 400,
-      backgroundColor: _themeBg(prefs.theme),
-      textColor: _themeFg(prefs.theme),
-      pageMargins: prefs.pageMargin,
-      verticalScroll: prefs.readingMode == 'scroll',
-    );
-  }
-
-  Color _themeBg(String theme) {
-    switch (theme) {
-      case 'sepia':
-        return const Color(0xFFF5E6D3);
-      case 'dark':
-        return const Color(0xFF1A1A2E);
-      default:
-        return const Color(0xFFFFFFFF);
-    }
-  }
-
-  Color _themeFg(String theme) {
-    switch (theme) {
-      case 'sepia':
-        return const Color(0xFF3E2723);
-      case 'dark':
-        return const Color(0xFFE0E0E0);
-      default:
-        return const Color(0xFF000000);
-    }
-  }
 
   // ---------------------------------------------------------------
   // Snapshot helper
