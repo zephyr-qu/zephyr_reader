@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flureadium/flureadium.dart';
+import 'package:zephyr_reader/src/rust/api/note.dart' as note_api;
+import 'package:zephyr_reader/src/rust/domain/note/models.dart';
 
 import '../reading_backend.dart';
 import '../reading_backend_kind.dart';
@@ -15,6 +17,7 @@ import '../../chapter/reading_chapter.dart';
 import '../../progress/progress_saver.dart';
 import 'readium_chapter_mapper.dart';
 import 'readium_preferences_mapper.dart';
+import 'readium_decoration_mapper.dart';
 import 'readium_session.dart';
 
 /// Readium reading backend wrapping [ReadiumSession].
@@ -33,11 +36,18 @@ class ReadiumReadingBackend implements ReadingBackend {
   final ReadiumSession _session;
 
   Locator? _lastLocator;
+  String _bookId = '';
   ReadiumChapterMapper? _chapterMapper;
   final ProgressSaver _progressSaver = ProgressSaver();
   final ReadiumPreferencesMapper _prefsMapper =
       const ReadiumPreferencesMapper();
+  final ReadiumDecorationMapper _decorationMapper =
+      const ReadiumDecorationMapper();
   Timer? _prefsDebounce;
+
+  /// Latest known locator from the viewport.
+  Locator? get currentLocator => _lastLocator;
+
   /// Called after chapters are parsed from the publication.
   void Function(List<ReadingChapter> chapters)? onChaptersReady;
 
@@ -47,8 +57,11 @@ class ReadiumReadingBackend implements ReadingBackend {
     _setupCallbacks();
   }
 
+  // ---------------------------------------------------------------
+  // Callback wiring
+  // ---------------------------------------------------------------
+
   void _setupCallbacks() {
-    // State changes from the session are forwarded to the snapshot.
     _session.onStateChanged = (state) {
       switch (state) {
         case ReadiumSessionState.idle:
@@ -57,13 +70,13 @@ class ReadiumReadingBackend implements ReadingBackend {
           _emitSnapshot(ReadingStatus.opening);
         case ReadiumSessionState.ready:
           _buildChapterMapper();
+          _applyDecorations();
           _emitSnapshot(ReadingStatus.ready);
         case ReadiumSessionState.failed:
           _emitSnapshot(ReadingStatus.failed, errorMessage: 'Session failed');
       }
     };
 
-    // Track locator updates from the native viewport.
     _session.onLocatorChanged = (locator) {
       _lastLocator = locator;
       final title = locator.title ?? '';
@@ -73,7 +86,6 @@ class ReadiumReadingBackend implements ReadingBackend {
       _progressSaver.onLocatorChanged(locator);
     };
 
-    // Forward errors.
     _session.onError = (message) {
       _emitSnapshot(ReadingStatus.failed, errorMessage: message);
     };
@@ -88,6 +100,32 @@ class ReadiumReadingBackend implements ReadingBackend {
     _progressSaver.setHrefResolver(_chapterMapper!.indexForHref);
   }
 
+  Future<void> _applyDecorations() async {
+    if (_bookId.isEmpty) return;
+    try {
+      final pub = _session.publication;
+      if (pub == null) return;
+      final notes = await note_api.listNotesByBook(
+        bookId: _bookId,
+        noteType: NoteType.highlight,
+      );
+      final hrefMapping = <int, String>{};
+      for (var i = 0; i < pub.readingOrder.length; i++) {
+        hrefMapping[i] = pub.readingOrder[i].href;
+      }
+      final decorations = _decorationMapper.notesToDecorations(
+        notes: notes,
+        hrefMapping: hrefMapping,
+        getChapterPlainText: (_) => '',
+      );
+      if (decorations.isNotEmpty) {
+        await _session.applyDecorations('zephyr-highlights', decorations);
+      }
+    } catch (_) {
+      // Silently ignore decoration failures.
+    }
+  }
+
   // ---------------------------------------------------------------
   // ReadingBackend interface
   // ---------------------------------------------------------------
@@ -95,6 +133,7 @@ class ReadiumReadingBackend implements ReadingBackend {
   @override
   Future<void> open(ReadingOpenRequest request) async {
     try {
+      _bookId = request.bookId;
       _progressSaver.setBookId(request.bookId);
       _emitSnapshot(ReadingStatus.opening);
       await _session.open(request.bookId);
@@ -134,10 +173,16 @@ class ReadiumReadingBackend implements ReadingBackend {
           }
         }
       case GoToPosition(:final position):
-        // Position bridge (R6) handles Locator ↔ ReadingPosition mapping.
-        // TOC-level navigation uses GoToChapter; intra-chapter navigation
-        // via GoToPosition will be wired in R12 (bookmarks/annotations).
-        break;
+        if (_chapterMapper == null) break;
+        final href = _chapterMapper!.hrefForIndex(position.chapterIndex);
+        if (href.isEmpty) break;
+        final pub = _session.publication;
+        if (pub == null) break;
+        final link = pub.linkWithHref(href);
+        if (link == null) break;
+        final locator = pub.locatorFromLink(link);
+        if (locator == null) break;
+        await _session.goToLocator(locator);
     }
   }
 
@@ -149,7 +194,6 @@ class ReadiumReadingBackend implements ReadingBackend {
     });
   }
 
-  /// Apply preferences immediately (called by debounced timer).
   Future<void> _applyPreferencesNow(ReadingPreferences prefs) async {
     try {
       final epubPrefs = _prefsMapper.toEpubPreferences(prefs);
@@ -169,13 +213,12 @@ class ReadiumReadingBackend implements ReadingBackend {
     _lastLocator = null;
   }
 
-
   // ---------------------------------------------------------------
   // Snapshot helper
   // ---------------------------------------------------------------
 
   void _emitSnapshot(
-    ReadingStatus status, {
+      ReadingStatus status, {
     double totalProgress = 0.0,
     String chapterTitle = '',
     String? errorMessage,
