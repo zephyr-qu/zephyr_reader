@@ -12,6 +12,9 @@ import '../reading_open_request.dart';
 import '../reading_snapshot.dart';
 import '../reading_status.dart';
 import '../../preferences/reading_preferences.dart';
+import '../../chapter/reading_chapter.dart';
+import '../../progress/progress_saver.dart';
+import 'readium_chapter_mapper.dart';
 import 'readium_session.dart';
 
 /// Readium reading backend wrapping [ReadiumSession].
@@ -30,11 +33,15 @@ class ReadiumReadingBackend implements ReadingBackend {
   final ReadiumSession _session;
 
   Locator? _lastLocator;
+  ReadiumChapterMapper? _chapterMapper;
+  final ProgressSaver _progressSaver = ProgressSaver();
 
-  ReadiumReadingBackend({
-    ReadiumSession? session,
-  }) : _session = session ?? ReadiumSession(),
-       snapshot = ValueNotifier<ReadingSnapshot>(ReadingSnapshot.closed) {
+  /// Called after chapters are parsed from the publication.
+  void Function(List<ReadingChapter> chapters)? onChaptersReady;
+
+  ReadiumReadingBackend({ReadiumSession? session})
+    : _session = session ?? ReadiumSession(),
+      snapshot = ValueNotifier<ReadingSnapshot>(ReadingSnapshot.closed) {
     _setupCallbacks();
   }
 
@@ -47,6 +54,7 @@ class ReadiumReadingBackend implements ReadingBackend {
         case ReadiumSessionState.opening:
           _emitSnapshot(ReadingStatus.opening);
         case ReadiumSessionState.ready:
+          _buildChapterMapper();
           _emitSnapshot(ReadingStatus.ready);
         case ReadiumSessionState.failed:
           _emitSnapshot(ReadingStatus.failed, errorMessage: 'Session failed');
@@ -56,14 +64,28 @@ class ReadiumReadingBackend implements ReadingBackend {
     // Track locator updates from the native viewport.
     _session.onLocatorChanged = (locator) {
       _lastLocator = locator;
-      _emitSnapshot(ReadingStatus.ready,
-          totalProgress: locator.locations?.totalProgression ?? 0.0);
+      final title = locator.title ?? '';
+      _emitSnapshot(
+        ReadingStatus.ready,
+        chapterTitle: title,
+        totalProgress: locator.locations?.totalProgression ?? 0.0,
+      );
+      _progressSaver.onLocatorChanged(locator);
     };
 
     // Forward errors.
     _session.onError = (message) {
       _emitSnapshot(ReadingStatus.failed, errorMessage: message);
     };
+  }
+
+  void _buildChapterMapper() {
+    final pub = _session.publication;
+    if (pub == null) return;
+    _chapterMapper = ReadiumChapterMapper(pub);
+    final chapters = _chapterMapper!.chapters;
+    onChaptersReady?.call(chapters);
+    _progressSaver.setHrefResolver(_chapterMapper!.indexForHref);
   }
 
   // ---------------------------------------------------------------
@@ -73,6 +95,7 @@ class ReadiumReadingBackend implements ReadingBackend {
   @override
   Future<void> open(ReadingOpenRequest request) async {
     try {
+      _progressSaver.setBookId(request.bookId);
       _emitSnapshot(ReadingStatus.opening);
       await _session.open(request.bookId);
       _emitSnapshot(ReadingStatus.ready);
@@ -93,11 +116,27 @@ class ReadiumReadingBackend implements ReadingBackend {
         await _session.skipToPrevious();
       case NextChapter():
         await _session.skipToNext();
-      case GoToChapter():
-        // Requires chapter mapper (R6). Use skipToNext/Previous for now.
-        break;
-      case GoToPosition():
-        // Requires position bridge (R6).
+      case GoToChapter(:final chapterId):
+        final idx = int.tryParse(chapterId);
+        if (idx != null && _chapterMapper != null) {
+          final href = _chapterMapper!.hrefForIndex(idx);
+          if (href.isNotEmpty) {
+            final pub = _session.publication;
+            if (pub != null) {
+              final link = pub.linkWithHref(href);
+              if (link != null) {
+                final locator = pub.locatorFromLink(link);
+                if (locator != null) {
+                  await _session.goToLocator(locator);
+                }
+              }
+            }
+          }
+        }
+      case GoToPosition(:final position):
+        // Position bridge (R6) handles Locator ↔ ReadingPosition mapping.
+        // TOC-level navigation uses GoToChapter; intra-chapter navigation
+        // via GoToPosition will be wired in R12 (bookmarks/annotations).
         break;
     }
   }
@@ -110,6 +149,8 @@ class ReadiumReadingBackend implements ReadingBackend {
 
   @override
   Future<void> close() async {
+    await _progressSaver.flush();
+    _progressSaver.dispose();
     await _session.close();
     _lastLocator = null;
   }
@@ -159,6 +200,7 @@ class ReadiumReadingBackend implements ReadingBackend {
   void _emitSnapshot(
     ReadingStatus status, {
     double totalProgress = 0.0,
+    String chapterTitle = '',
     String? errorMessage,
   }) {
     String title = '';
@@ -168,7 +210,7 @@ class ReadiumReadingBackend implements ReadingBackend {
     snapshot.value = ReadingSnapshot(
       status: status,
       bookTitle: title,
-      chapterTitle: '',
+      chapterTitle: chapterTitle,
       totalProgress: totalProgress,
       errorMessage: errorMessage,
     );

@@ -26,7 +26,6 @@ import 'package:zephyr_reader/features/statistics/page/reading_sessions_page.dar
 import 'package:zephyr_reader/features/statistics/page/statistics_page.dart';
 import 'package:zephyr_reader/features/data/page/data_management_page.dart';
 import 'package:zephyr_reader/features/vocabulary/page/vocabulary_page.dart';
-import 'package:zephyr_reader/readium_poc/poc_entry.dart';
 
 /// 解析深度链接 URI，返回重定向路径
 String? _resolveDeepLink(Uri uri) {
@@ -59,10 +58,6 @@ final router = GoRouter(
 
     final location = state.matchedLocation;
     if (location == AppRoute.splash.path) return null;
-    // Readium PoC: debug 模式下启动后直接进入验证页面
-    if (kDebugMode && location == AppRoute.home.path) {
-      return AppRoute.readiumPoc.path;
-    }
     return null;
   },
 
@@ -249,12 +244,6 @@ final router = GoRouter(
       name: AppRoute.splash.name,
       path: AppRoute.splash.path,
       builder: (_, _) => const SplashPage(),
-    ),
-    // Readium PoC 页面
-    GoRoute(
-      name: AppRoute.readiumPoc.name,
-      path: AppRoute.readiumPoc.path,
-      builder: (_, _) => const PocEntry(),
     ),
   ],
 

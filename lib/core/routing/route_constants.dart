@@ -25,7 +25,10 @@ enum AppRoute {
   themeBrightness('/settings/theme'),
   otherSettings('/settings/other'),
   wifiTransfer('/wifi-transfer'),
+  @Deprecated('PoC routes superseded by unified reader route. Remove in R14.')
   readiumPoc('/readium-poc'),
+
+  @Deprecated('PoC routes superseded by unified reader route. Remove in R14.')
   readiumPocReader('/readium-poc/:filePath');
 
   /// 路径模式字符串（如 `/books/:id`）。
