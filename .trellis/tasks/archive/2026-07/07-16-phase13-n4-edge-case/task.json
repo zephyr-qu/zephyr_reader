@@ -1,12 +1,15 @@
 {
   "id": "07-16-phase13-n4-edge-case",
   "name": "N4 — 边界场景验证",
-  "status": "pending",
+  "status": "completed",
   "source": "session:cursor_ea2ad83a-8178-4875-b3a5-14401ffb7788",
   "created": "2026-07-16",
   "owner": "zs",
   "prd": "discuss/ROADMAP.md",
-  "inherits_spec": ["backend", "frontend"],
+  "inherits_spec": [
+    "backend",
+    "frontend"
+  ],
   "description": "大文件、含图 EPUB、快速交互等边界压力测试。",
   "tasks": [
     "大 TXT 打开与翻页 — 百万字级别文件",
@@ -15,5 +18,6 @@
     "快速连续翻页 — 5+ 页/秒状态不混乱",
     "打断操作 — 翻页动画中点击目录不崩溃",
     "反复换章 — 多章来回切换稳定性"
-  ]
+  ],
+  "completedAt": "2026-07-31"
 }
