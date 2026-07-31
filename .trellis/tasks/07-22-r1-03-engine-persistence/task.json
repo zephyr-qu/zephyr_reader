@@ -19,7 +19,7 @@
   "pr_url": null,
   "subtasks": [],
   "children": [],
-  "parent": "07-22-r1-readium-unification",
+  "parent": null,
   "relatedFiles": [],
   "notes": "方案: Rust DB 表 (reading_engine_positions) + migration + FRB API。R3 完成后解锁 R4/R5。",
   "meta": {}

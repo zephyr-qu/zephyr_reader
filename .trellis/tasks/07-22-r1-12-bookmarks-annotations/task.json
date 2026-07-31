@@ -19,7 +19,7 @@
   "pr_url": null,
   "subtasks": [],
   "children": [],
-  "parent": "07-22-r1-readium-unification",
+  "parent": null,
   "relatedFiles": [],
   "notes": "依赖 R6（位置桥）和 R9（统一页面）。书签跨重排恢复是重点。",
   "meta": {}

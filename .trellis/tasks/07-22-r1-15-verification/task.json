@@ -19,7 +19,7 @@
   "pr_url": null,
   "subtasks": [],
   "children": [],
-  "parent": "07-22-r1-readium-unification",
+  "parent": null,
   "relatedFiles": [],
   "notes": "Android Only 真机验证（因 flureadium iOS Platform View 问题）。完成全部 15 阶段后此任务标记 P0 目标达成。",
   "meta": {}

@@ -19,7 +19,7 @@
   "pr_url": null,
   "subtasks": [],
   "children": [],
-  "parent": "07-22-r1-readium-unification",
+  "parent": null,
   "relatedFiles": [],
   "notes": "依赖 R9。页面显示 totalProgression，持久化仍存 ReadingPosition。",
   "meta": {}
