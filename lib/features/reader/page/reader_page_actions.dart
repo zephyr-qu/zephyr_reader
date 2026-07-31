@@ -3,10 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
-import 'package:zephyr_reader/src/rust/api/dictionary.dart'
-    as dict_api;
+import 'package:zephyr_reader/src/rust/api/dictionary.dart' as dict_api;
 import 'package:zephyr_reader/src/rust/api/vocab.dart' as vocab_api;
-import 'package:zephyr_reader/features/reader/core/application/reader_view_model.dart';
 
 String _stripHtml(String html) {
   return html
@@ -15,9 +13,9 @@ String _stripHtml(String html) {
       .trim();
 }
 
+/// Add a word to vocabulary (MVP stub — no toast feedback).
 Future<void> addToVocabulary(
   BuildContext context,
-  ReaderViewModel vm,
   String word, {
   String? definition,
   String? bookId,
@@ -51,9 +49,7 @@ Future<void> addToVocabulary(
       bookId: bookId,
       contextSentence: null,
     );
-    vm.toastMessage.value = l10n.addedToVocabulary(trimmed);
   } catch (e) {
-    vm.toastMessage.value = l10n.addToVocabFailed(e.toString());
+    // MVP: silently ignore vocab add failures
   }
 }
-

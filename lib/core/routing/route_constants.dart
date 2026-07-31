@@ -1,6 +1,6 @@
-/// 统一路由定义，包含 path 和自动派生的 name。
+/// Unified route definitions, each value carries its path pattern.
 ///
-/// 后续替代 [RoutePaths] 和 [RouteNames] 成为单一来源。
+/// Replaces [RoutePaths] and [RouteNames] as the single source of truth.
 enum AppRoute {
   splash('/'),
   home('/home'),
@@ -23,8 +23,10 @@ enum AppRoute {
   typographySettings('/settings/typography'),
   themeBrightness('/settings/theme'),
   otherSettings('/settings/other'),
-  wifiTransfer('/wifi-transfer'),
-  /// 路径模式字符串（如 `/books/:id`）。
+  wifiTransfer('/wifi-transfer');
+
+  /// Path pattern string (e.g. `/books/:id`).
   final String path;
+
   const AppRoute(this.path);
 }
