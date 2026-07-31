@@ -16,12 +16,7 @@ import 'package:zephyr_reader/core/local/file_storage.dart' as _i772;
 import 'package:zephyr_reader/core/local/preferences_service.dart' as _i985;
 import 'package:zephyr_reader/core/network/network_module.dart' as _i510;
 import 'package:zephyr_reader/core/network/wifi_transfer_service.dart' as _i82;
-import 'package:zephyr_reader/core/reader_engine/data/chapter_content_repository.dart'
-    as _i715;
-import 'package:zephyr_reader/core/reader_engine/pagination/engine.dart'
-    as _i690;
-import 'package:zephyr_reader/core/reading/config/reader_config.dart'
-    as _i267;
+import 'package:zephyr_reader/core/reading/config/reader_config.dart' as _i1067;
 import 'package:zephyr_reader/core/theme/theme_manager.dart' as _i182;
 import 'package:zephyr_reader/di/app_module.dart' as _i431;
 import 'package:zephyr_reader/features/bookshelf/application/book_import_service.dart'
@@ -50,22 +45,6 @@ import 'package:zephyr_reader/features/profile/application/theme_brightness_view
     as _i583;
 import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart'
     as _i136;
-import 'package:zephyr_reader/features/reader/annotations/application/annotation_view_model.dart'
-    as _i407;
-import 'package:zephyr_reader/features/reader/annotations/application/bookmark_view_model.dart'
-    as _i474;
-import 'package:zephyr_reader/features/reader/core/application/chapter_view_model.dart'
-    as _i642;
-import 'package:zephyr_reader/features/reader/core/application/reading_session_manager.dart'
-    as _i306;
-import 'package:zephyr_reader/features/reader/data/vocabulary_marker_service.dart'
-    as _i880;
-import 'package:zephyr_reader/features/reader/domain/progress_repository.dart'
-    as _i199;
-import 'package:zephyr_reader/features/reader/domain/service/custom_font_service.dart'
-    as _i693;
-import 'package:zephyr_reader/features/reader/domain/service/tts_service.dart'
-    as _i1020;
 import 'package:zephyr_reader/features/search/application/search_view_model.dart'
     as _i1;
 
@@ -87,8 +66,7 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i965.DataManagementViewModel>(
       () => _i965.DataManagementViewModel(),
     );
-    gh.factory<_i199.ProgressRepository>(() => _i199.ProgressRepository());
-    gh.singleton<_i267.ReaderBgColors>(() => _i267.ReaderBgColors());
+    gh.singleton<_i1067.ReaderBgColors>(() => _i1067.ReaderBgColors());
     gh.lazySingletonAsync<_i772.FileStorage>(() {
       final i = _i772.FileStorage();
       return i.init().then((_) => i);
@@ -96,16 +74,7 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i361.Dio>(() => networkModule.dio);
     gh.lazySingleton<_i339.BookImportService>(() => _i339.BookImportService());
     gh.lazySingleton<_i415.WebDavSyncService>(() => _i415.WebDavSyncService());
-    gh.lazySingleton<_i880.VocabularyMarkerService>(
-      () => _i880.VocabularyMarkerService(),
-    );
-    gh.lazySingleton<_i1020.TtsService>(() => _i1020.TtsService());
     gh.lazySingleton<_i1.SearchViewModel>(() => _i1.SearchViewModel());
-    gh.factoryParam<
-      _i306.ReadingSessionManager,
-      _i642.ChapterViewModel,
-      dynamic
-    >((_chapterManager, _) => _i306.ReadingSessionManager(_chapterManager));
     gh.lazySingleton<_i790.BookshelfViewModel>(
       () => _i790.BookshelfViewModel(
         gh<_i985.PreferencesService>(),
@@ -127,20 +96,11 @@ extension GetItInjectableX on _i174.GetIt {
     gh.singleton<_i82.WifiTransferService>(
       () => _i82.WifiTransferService(gh<_i985.PreferencesService>()),
     );
-    gh.singleton<_i693.FontRepository>(
-      () => _i693.FontRepository(gh<_i985.PreferencesService>()),
-    );
     gh.lazySingleton<_i1022.BackupViewModel>(
       () => _i1022.BackupViewModel(gh<_i985.PreferencesService>()),
     );
-    gh.factoryParam<_i407.AnnotationViewModel, _i642.ChapterViewModel, dynamic>(
-      (_chapterVM, _) => _i407.AnnotationViewModel(_chapterVM),
-    );
-    gh.factoryParam<_i474.BookmarkViewModel, _i642.ChapterViewModel, dynamic>(
-      (_chapterVM, _) => _i474.BookmarkViewModel(_chapterVM),
-    );
-    gh.singleton<_i267.ReaderConfig>(
-      () => _i267.ReaderConfig(gh<_i985.PreferencesService>()),
+    gh.singleton<_i1067.ReaderConfig>(
+      () => _i1067.ReaderConfig(gh<_i985.PreferencesService>()),
     );
     gh.singleton<_i182.ThemeManager>(
       () => _i182.ThemeManager(gh<_i985.PreferencesService>()),
@@ -152,17 +112,6 @@ extension GetItInjectableX on _i174.GetIt {
       () => dictionaryModule.dictionaryService(
         gh<_i123.DictionaryConfig>(),
         gh<_i361.Dio>(),
-      ),
-    );
-    gh.factory<_i715.ChapterContentRepository>(
-      () => _i715.ChapterContentRepository(gh<_i267.ReaderConfig>()),
-    );
-    gh.factory<_i642.ChapterViewModel>(
-      () => _i642.ChapterViewModel(
-        gh<_i715.ChapterContentRepository>(),
-        gh<_i690.PaginationEngine>(),
-        gh<_i199.ProgressRepository>(),
-        gh<_i267.ReaderConfig>(),
       ),
     );
     return this;
