@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flureadium/flureadium.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/reading/config/reader_config.dart';
@@ -53,6 +54,9 @@ class ReadiumViewModel {
       title.value = pub.metadata.title;
       tocLinks.value = pub.tableOfContents;
       status.value = 'ready';
+
+      // Apply user preferences
+      unawaited(applyPreferences());
 
       // Restore last position
       unawaited(_restorePosition());
@@ -117,13 +121,27 @@ class ReadiumViewModel {
   // ==================== Preferences ====================
 
   Future<void> applyPreferences() async {
+    final theme = config.theme.value;
+    Color bg;
+    Color text;
+    switch (theme) {
+      case ReaderTheme.dark:
+        bg = const Color(0xFF1A1A1A);
+        text = const Color(0xFFCCCCCC);
+      case ReaderTheme.sepia:
+        bg = const Color(0xFFF5E6D3);
+        text = const Color(0xFF4A3B2F);
+      case ReaderTheme.light:
+        bg = const Color(0xFFFFFFFF);
+        text = const Color(0xFF1A1A1A);
+    }
     final prefs = EPUBPreferences(
-      fontFamily: 'System', // MVP: default system font
+      fontFamily: 'System',
       fontSize: config.fontSize.value.round(),
       fontWeight: null,
-      verticalScroll: false, // MVP: pagination mode
-      backgroundColor: null, // let Readium use defaults
-      textColor: null,
+      verticalScroll: false,
+      backgroundColor: bg,
+      textColor: text,
     );
     await reader.setEPUBPreferences(prefs);
   }
