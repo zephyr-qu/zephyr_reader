@@ -114,7 +114,20 @@ class ReadiumViewModel {
   Future<void> goLeft() => reader.goLeft();
   Future<void> goRight() => reader.goRight();
   Future<void> skipToNext() => reader.skipToNext();
-  Future<void> skipToPrevious() => reader.skipToPrevious();
+  // ==================== Preferences ====================
+
+  Future<void> applyPreferences() async {
+    final prefs = EPUBPreferences(
+      fontFamily: 'System', // MVP: default system font
+      fontSize: config.fontSize.value.round(),
+      fontWeight: null,
+      verticalScroll: false, // MVP: pagination mode
+      backgroundColor: null, // let Readium use defaults
+      textColor: null,
+    );
+    await reader.setEPUBPreferences(prefs);
+  }
+
 
   // ==================== TTS ====================
 
