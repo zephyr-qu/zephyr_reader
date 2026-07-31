@@ -33,7 +33,7 @@ class _ReadiumPocReaderState extends State<ReadiumPocReader> {
   @override
   void initState() {
     super.initState();
-    _openFuture = reader.openPublication(widget.filePath);
+    _openFuture = reader.openPublication(Uri.file(widget.filePath).toString());
     _locatorSub = reader.onTextLocatorChanged.listen((locator) {
       if (!mounted) return;
       setState(() {

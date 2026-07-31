@@ -80,9 +80,11 @@ class ReadiumReadingBackend implements ReadingBackend {
     _session.onLocatorChanged = (locator) {
       _lastLocator = locator;
       final title = locator.title ?? '';
-      _emitSnapshot(ReadingStatus.ready,
-          chapterTitle: title,
-          totalProgress: locator.locations?.totalProgression ?? 0.0);
+      _emitSnapshot(
+        ReadingStatus.ready,
+        chapterTitle: title,
+        totalProgress: locator.locations?.totalProgression ?? 0.0,
+      );
       _progressSaver.onLocatorChanged(locator);
     };
 
@@ -199,8 +201,10 @@ class ReadiumReadingBackend implements ReadingBackend {
       final epubPrefs = _prefsMapper.toEpubPreferences(prefs);
       await _session.setEPUBPreferences(epubPrefs);
     } catch (e) {
-      _emitSnapshot(ReadingStatus.failed,
-          errorMessage: 'Preferences: ${e.toString()}');
+      _emitSnapshot(
+        ReadingStatus.failed,
+        errorMessage: 'Preferences: ${e.toString()}',
+      );
     }
   }
 
@@ -218,7 +222,7 @@ class ReadiumReadingBackend implements ReadingBackend {
   // ---------------------------------------------------------------
 
   void _emitSnapshot(
-      ReadingStatus status, {
+    ReadingStatus status, {
     double totalProgress = 0.0,
     String chapterTitle = '',
     String? errorMessage,

@@ -45,6 +45,9 @@ class ZephyrReaderApp extends HookWidget {
     );
     final String? localeStr = useSignalValue(themeManager.locale.signal);
 
+
+    // 缓存 ThemeData，仅在 customPrimary 变化时重建
+
     // 缓存 ThemeData，仅在 customPrimary 变化时重建
     final theme = useMemoized(
       () =>
