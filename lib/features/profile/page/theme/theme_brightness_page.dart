@@ -15,7 +15,7 @@ import 'package:zephyr_reader/features/profile/page/theme/theme_preview_card.dar
 import 'package:zephyr_reader/features/profile/page/widgets/settings_app_bar.dart';
 import 'package:zephyr_reader/features/profile/page/theme/theme_mode_option.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/core/reader_engine/shared/config/reader_config.dart';
+import 'package:zephyr_reader/core/reading/config/reader_config.dart';
 import 'package:zephyr_reader/features/profile/application/theme_brightness_view_model.dart';
 
 /// 主题与亮度设置页面。
