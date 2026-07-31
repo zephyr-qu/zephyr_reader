@@ -1,0 +1,31 @@
+{
+  "id": "r1-09-unified-page",
+  "name": "r1-09-unified-page",
+  "title": "R9: 统一阅读页面",
+  "description": "保留 ReaderPage 为唯一入口，基于 ReaderChromeShell 注入 ReadingBackend。ReadingViewportHost 切换 Builtin/Readium 视口。壳层统一，零 flureadium import。约 12h — 最大头之二。",
+  "status": "pending",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P0",
+  "creator": "zs",
+  "assignee": "zs",
+  "createdAt": "2026-07-22",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "feature/readium-poc",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "07-22-r1-readium-unification",
+  "relatedFiles": [
+    "lib/features/reader/core/presentation/reader_chrome_shell.dart",
+    "lib/features/reader/epub/readium_reader_shell.dart",
+    "lib/features/reader/epub/readium_reader_page.dart",
+    "lib/features/reader/page/reader_page.dart"
+  ],
+  "notes": "基于 ReaderChromeShell 合并，删除 ReadiumReaderShell。R9 完成后解锁 R10-R13。",
+  "meta": {}
+}

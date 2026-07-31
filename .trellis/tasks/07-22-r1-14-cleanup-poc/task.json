@@ -1,0 +1,32 @@
+{
+  "id": "r1-14-cleanup-poc",
+  "name": "r1-14-cleanup-poc",
+  "title": "R14: 清理 PoC 与重复代码",
+  "description": "删除 lib/readium_poc/、readium_reader_page.dart、readium_reader_shell.dart、/readium-poc 路由、入口按钮、PoC DI 注册、Android 残留配置。保留 flureadium 正式依赖和插件配置。约 2h。",
+  "status": "pending",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P0",
+  "creator": "zs",
+  "assignee": "zs",
+  "createdAt": "2026-07-22",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "feature/readium-poc",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "07-22-r1-readium-unification",
+  "relatedFiles": [
+    "lib/readium_poc/",
+    "lib/features/reader/epub/readium_reader_page.dart",
+    "lib/features/reader/epub/readium_reader_shell.dart",
+    "lib/app.dart",
+    "lib/core/routing/app_router.dart"
+  ],
+  "notes": "依赖 R13 完成（功能补齐后清理）。不修改 FRB 生成文件。",
+  "meta": {}
+}
