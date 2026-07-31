@@ -33,8 +33,10 @@ class ReadiumReaderShell extends HookWidget {
     final String bookTitle = useSignalValue(vm.title) as String;
     final List<Link> tocLinks = useSignalValue(vm.tocLinks) as List<Link>;
     final String currentHref = useSignalValue(vm.currentChapterHref) as String;
+    final bool isTtsPlaying = useSignalValue(vm.isTtsPlaying) as bool;
 
     final scaffoldKey = useRef(GlobalKey<ScaffoldState>());
+
 
     // Lifecycle — clean up ViewModel resources
     useEffect(() {
@@ -59,6 +61,13 @@ class ReadiumReaderShell extends HookWidget {
         ),
         title: Text(bookTitle, style: const TextStyle(color: Colors.white)),
         actions: [
+          IconButton(
+            icon: Icon(
+              isTtsPlaying ? Icons.pause : Icons.volume_up,
+              color: Colors.white,
+            ),
+            onPressed: () => vm.toggleTts(),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: Center(

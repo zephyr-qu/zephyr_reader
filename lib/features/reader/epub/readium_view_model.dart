@@ -25,10 +25,11 @@ class ReadiumViewModel {
   final error = signal<String?>(null);
   final tocLinks = signal<List<Link>>([]);
   final currentChapterHref = signal<String>('');
+  final isTtsPlaying = signal<bool>(false);
 
   Locator? _currentLocator;
   Publication? _publication;
-
+  bool _ttsEnabled = false;
   // ==================== Subscriptions ====================
 
   StreamSubscription<Locator>? _locatorSub;
@@ -96,6 +97,7 @@ class ReadiumViewModel {
 
   /// Close the current publication.
   Future<void> close() async {
+    await stopTts();
     _saveTimer?.cancel();
     await _savePositionNow();
     _locatorSub = null;
@@ -113,6 +115,28 @@ class ReadiumViewModel {
   Future<void> goRight() => reader.goRight();
   Future<void> skipToNext() => reader.skipToNext();
   Future<void> skipToPrevious() => reader.skipToPrevious();
+
+  // ==================== TTS ====================
+
+  Future<void> toggleTts() async {
+    if (!_ttsEnabled) {
+      await reader.ttsEnable(null);
+      _ttsEnabled = true;
+      isTtsPlaying.value = true;
+    } else if (isTtsPlaying.value) {
+      await reader.pause();
+      isTtsPlaying.value = false;
+    } else {
+      await reader.play(null);
+      isTtsPlaying.value = true;
+    }
+  }
+
+  Future<void> stopTts() async {
+    await reader.stop();
+    isTtsPlaying.value = false;
+  }
+
 
   // ==================== Lifecycle ====================
 
