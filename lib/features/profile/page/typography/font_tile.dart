@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/features/reader/domain/model/font_info.dart';
 import 'package:zephyr_reader/core/theme/anim_tokens.dart';
+
+/// Minimal font info stub (MVP — custom font service removed).
+class FontInfo {
+  final String id;
+  final String name;
+
+  const FontInfo({required this.id, required this.name});
+}
 
 class FontTile extends StatelessWidget {
   final FontInfo font;

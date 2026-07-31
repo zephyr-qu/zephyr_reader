@@ -3,11 +3,17 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/features/reader/domain/service/custom_font_service.dart';
-import 'package:zephyr_reader/features/reader/domain/model/font_info.dart';
 import 'package:zephyr_reader/core/reading/config/reader_config.dart';
 import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
+import 'package:zephyr_reader/features/profile/page/typography/font_tile.dart';
+
+
+class FontRepository {
+  final currentFont = ValueNotifier<FontInfo?>(null);
+  final availableFonts = ValueNotifier<List<FontInfo>>([]);
+  String familyNameFor(FontInfo f) => 'system-ui, sans-serif';
+}
 
 String _fontFamily(FontRepository fontRepo, String fontId) {
   try {
@@ -16,7 +22,9 @@ String _fontFamily(FontRepository fontRepo, String fontId) {
     );
     return fontRepo.familyNameFor(font);
   } catch (e) {
-    Logging.debug('字体查找失败(fontId=$fontId)，回退到系统默认: $e');
+    Logging.debug(
+      'Font lookup failed (fontId=$fontId), fallback to system default: $e',
+    );
     return 'system-ui, sans-serif';
   }
 }
@@ -42,9 +50,7 @@ class TypographyPreview extends HookWidget {
     );
     final double letterSpacing = useSignalValue(config.letterSpacing.signal);
     final double margin = useSignalValue(config.padding.signal);
-    final FontInfo? currentFontInfo = useSignalValue(fontRepo.currentFont);
-    final fontId = currentFontInfo?.id ?? 'system';
-
+    final fontId = 'system'; // MVP: font selection removed
     return Container(
       padding: EdgeInsets.fromLTRB(margin, 24, margin, 24),
       decoration: BoxDecoration(

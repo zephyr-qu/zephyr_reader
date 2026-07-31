@@ -1,4 +1,5 @@
 import 'package:zephyr_reader/src/rust/domain/note/models.dart';
+import 'package:zephyr_reader/features/learning_notes/domain/note_with_book.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';

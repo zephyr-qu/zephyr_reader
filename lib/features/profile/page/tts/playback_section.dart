@@ -1,4 +1,3 @@
-import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -7,19 +6,16 @@ import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_slider_tile.dart';
-import 'package:zephyr_reader/features/reader/domain/service/tts_service.dart';
 import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 class PlaybackSection extends HookWidget {
   final TtsSettingsViewModel vm;
-  final TtsService tts;
   final AppLocalizations l10n;
 
   const PlaybackSection({
     super.key,
     required this.vm,
-    required this.tts,
     required this.l10n,
   });
 
@@ -42,7 +38,6 @@ class PlaybackSection extends HookWidget {
                   max: 2.0,
                   onChanged: (v) {
                     vm.speed.value = v;
-                    unawaited(tts.setSpeed(v));
                   },
                 ),
                 SettingsSliderTile(
@@ -53,7 +48,6 @@ class PlaybackSection extends HookWidget {
                   max: 2.0,
                   onChanged: (v) {
                     vm.pitch.value = v;
-                    unawaited(tts.setPitch(v));
                   },
                 ),
                 SettingsSliderTile(
@@ -64,7 +58,6 @@ class PlaybackSection extends HookWidget {
                   max: 1000,
                   onChanged: (v) {
                     vm.pauseBetween.value = v.toInt();
-                    tts.setPauseBetween(v.toInt());
                   },
                   step: 50,
                 ),

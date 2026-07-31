@@ -1,18 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/features/reader/domain/service/custom_font_service.dart';
 import 'package:zephyr_reader/core/reading/config/reader_config.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart';
 import 'package:zephyr_reader/features/reader/settings/assist_panel.dart';
 import 'package:zephyr_reader/features/reader/settings/display_panel.dart';
-import 'package:zephyr_reader/features/reader/settings/more_panel.dart';
 import 'package:zephyr_reader/features/reader/settings/reader_panel_type.dart';
 import 'package:zephyr_reader/features/reader/settings/settings_widgets.dart';
-import 'package:zephyr_reader/features/reader/settings/typesetting_panel.dart';
 
-/// 阅读器设置浮层面板。
-///
-/// 根据 [panelType] 展示不同功能区块，替代原来单一臃肿的设置面板。
+/// Reader settings overlay (MVP simplified — display + assist only).
 class ReaderSettingsOverlay extends StatelessWidget {
   final ReaderPanelType panelType;
   final ReaderConfig config;
@@ -25,7 +20,6 @@ class ReaderSettingsOverlay extends StatelessWidget {
   final ValueChanged<double> onPageMarginChanged;
   final VoidCallback onTtsToggle;
   final VoidCallback onClose;
-  final FontRepository fontRepo;
   final TtsSettingsViewModel ttsVm;
 
   const ReaderSettingsOverlay({
@@ -42,7 +36,6 @@ class ReaderSettingsOverlay extends StatelessWidget {
     required this.onTtsToggle,
     required this.onClose,
     required this.ttsVm,
-    required this.fontRepo,
   });
 
   @override
@@ -68,17 +61,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                 children: [
                   switch (panelType) {
-                    ReaderPanelType.typesetting => TypesettingPanel(
-                      config: config,
-                      readingMode: readingMode,
-                      fontRepo: fontRepo,
-                      onFontSizeChanged: onFontSizeChanged,
-                      onLineHeightChanged: onLineHeightChanged,
-                      onPageMarginChanged: onPageMarginChanged,
-                      onReadingModeChanged: onReadingModeChanged,
-                    ),
                     ReaderPanelType.display => DisplayPanel(config: config),
-                    ReaderPanelType.more => MorePanel(config: config),
                     ReaderPanelType.assist => AssistPanel(
                       config: config,
                       ttsVm: ttsVm,
@@ -86,6 +69,8 @@ class ReaderSettingsOverlay extends StatelessWidget {
                       isTtsPaused: isTtsPaused,
                       onTtsToggle: onTtsToggle,
                     ),
+                    // Typesetting and more panels removed for MVP
+                    _ => const SizedBox.shrink(),
                   },
                 ],
               ),
