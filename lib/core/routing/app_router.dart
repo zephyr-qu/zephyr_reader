@@ -144,11 +144,9 @@ final router = GoRouter(
       path: AppRoute.reader.path,
       pageBuilder: (context, state) {
         final bookId = state.pathParameters['bookId'] ?? '0';
-        final chapterId =
-            int.tryParse(state.pathParameters['chapterId'] ?? '') ?? 0;
         return CustomTransitionPage<void>(
           key: state.pageKey,
-          child: ReaderPage(bookId: bookId, initialChapterId: chapterId),
+          child: ReaderPage(bookId: bookId),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             // 前进: 上滑 + 淡入 + 微微放大（翻书）
             // 返回: 下滑 + 淡出 + 缩小到 96%（合书）

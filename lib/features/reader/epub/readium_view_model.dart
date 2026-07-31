@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flureadium/flureadium.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:zephyr_reader/core/reader_engine/shared/config/reader_config.dart';
+import 'package:zephyr_reader/core/reading/config/reader_config.dart';
 
 /// Readium EPUB 阅读器的轻量 ViewModel。
 ///

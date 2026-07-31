@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/core/reader_engine/shared/config/reader_config.dart';
+import 'package:zephyr_reader/core/reading/config/reader_config.dart';
 import 'package:flutter/services.dart';
 
 /// 全屏点击/滑动翻页区域。

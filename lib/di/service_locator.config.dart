@@ -20,7 +20,7 @@ import 'package:zephyr_reader/core/reader_engine/data/chapter_content_repository
     as _i715;
 import 'package:zephyr_reader/core/reader_engine/pagination/engine.dart'
     as _i690;
-import 'package:zephyr_reader/core/reader_engine/shared/config/reader_config.dart'
+import 'package:zephyr_reader/core/reading/config/reader_config.dart'
     as _i267;
 import 'package:zephyr_reader/core/theme/theme_manager.dart' as _i182;
 import 'package:zephyr_reader/di/app_module.dart' as _i431;
