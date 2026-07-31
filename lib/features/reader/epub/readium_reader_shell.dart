@@ -7,6 +7,9 @@ import 'package:signals_hooks/signals_hooks.dart';
 
 import 'package:zephyr_reader/core/reading/config/reader_config.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
+import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart';
+import 'package:zephyr_reader/features/reader/settings/reader_panel_type.dart';
+import 'package:zephyr_reader/features/reader/settings/reader_settings_overlay.dart';
 
 import 'readium_reader_content.dart';
 import 'readium_view_model.dart';
@@ -21,6 +24,7 @@ class ReadiumReaderShell extends HookWidget {
     required this.filePath,
     required this.bookId,
   });
+
   @override
   Widget build(BuildContext context) {
     final ReaderConfig config = useMemoized(() => getIt<ReaderConfig>());
@@ -37,7 +41,6 @@ class ReadiumReaderShell extends HookWidget {
 
     final scaffoldKey = useRef(GlobalKey<ScaffoldState>());
 
-
     // Lifecycle — clean up ViewModel resources
     useEffect(() {
       return () {
@@ -50,6 +53,29 @@ class ReadiumReaderShell extends HookWidget {
         ? '${(progress * 100).toStringAsFixed(0)}%'
         : statusText;
 
+    void showSettings() {
+      final ttsVm = getIt<TtsSettingsViewModel>();
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => ReaderSettingsOverlay(
+          panelType: ReaderPanelType.display,
+          config: config,
+          isTtsPlaying: isTtsPlaying,
+          isTtsPaused: false,
+          onReadingModeChanged: (_) => vm.applyPreferences(),
+          onFontSizeChanged: (_) => vm.applyPreferences(),
+          onLineHeightChanged: (_) => vm.applyPreferences(),
+          onPageMarginChanged: (_) => vm.applyPreferences(),
+          onTtsToggle: () => vm.toggleTts(),
+          onClose: () => Navigator.pop(context),
+          ttsVm: ttsVm,
+          onChanged: () => vm.applyPreferences(),
+        ),
+      );
+    }
+
     return Scaffold(
       key: scaffoldKey.value,
       backgroundColor: Colors.black,
@@ -61,6 +87,10 @@ class ReadiumReaderShell extends HookWidget {
         ),
         title: Text(bookTitle, style: const TextStyle(color: Colors.white)),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings, color: Colors.white),
+            onPressed: showSettings,
+          ),
           IconButton(
             icon: Icon(
               isTtsPlaying ? Icons.pause : Icons.volume_up,
@@ -130,9 +160,8 @@ class ReadiumReaderShell extends HookWidget {
                     link.title ?? 'Chapter ${index + 1}',
                     style: TextStyle(
                       color: isCurrent ? Colors.blue : Colors.white,
-                      fontWeight: isCurrent
-                          ? FontWeight.bold
-                          : FontWeight.normal,
+                      fontWeight:
+                          isCurrent ? FontWeight.bold : FontWeight.normal,
                     ),
                   ),
                   onTap: () {
