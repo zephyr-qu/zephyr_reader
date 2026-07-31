@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flureadium/flureadium.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:signals_hooks/signals_hooks.dart';
@@ -10,9 +11,7 @@ import 'package:zephyr_reader/di/service_locator.dart';
 import 'readium_reader_content.dart';
 import 'readium_view_model.dart';
 
-/// Readium EPUB reader shell (MVP simplified).
-///
-/// Wraps [ReadiumReaderContent] in a minimal Scaffold with a top bar.
+/// Readium EPUB reader shell (MVP).
 class ReadiumReaderShell extends HookWidget {
   final String filePath;
 
@@ -28,6 +27,10 @@ class ReadiumReaderShell extends HookWidget {
     final double progress = useSignalValue(vm.progress) as double;
     final String statusText = useSignalValue(vm.status) as String;
     final String bookTitle = useSignalValue(vm.title) as String;
+    final List<Link> tocLinks = useSignalValue(vm.tocLinks) as List<Link>;
+    final String currentHref = useSignalValue(vm.currentChapterHref) as String;
+
+    final scaffoldKey = useRef(GlobalKey<ScaffoldState>());
 
     // Lifecycle — clean up ViewModel resources
     useEffect(() {
@@ -42,9 +45,14 @@ class ReadiumReaderShell extends HookWidget {
         : statusText;
 
     return Scaffold(
+      key: scaffoldKey.value,
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black87,
+        leading: IconButton(
+          icon: const Icon(Icons.menu, color: Colors.white),
+          onPressed: () => scaffoldKey.value.currentState?.openDrawer(),
+        ),
         title: Text(bookTitle, style: const TextStyle(color: Colors.white)),
         actions: [
           Padding(
@@ -56,8 +64,69 @@ class ReadiumReaderShell extends HookWidget {
           ),
         ],
       ),
+      drawer: _buildTocDrawer(context, tocLinks, currentHref, vm),
       body: SafeArea(
         child: ReadiumReaderContent(vm: vm, filePath: filePath),
+      ),
+    );
+  }
+
+  Widget _buildTocDrawer(
+    BuildContext context,
+    List<Link> links,
+    String currentHref,
+    ReadiumViewModel vm,
+  ) {
+    return Drawer(
+      child: Column(
+        children: [
+          Container(
+            color: Colors.grey[900],
+            child: const SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(16, 12, 8, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '目录',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: links.length,
+              itemBuilder: (context, index) {
+                final link = links[index];
+                final isCurrent = link.href == currentHref ||
+                    currentHref.contains(link.href);
+                return ListTile(
+                  title: Text(
+                    link.title ?? 'Chapter ${index + 1}',
+                    style: TextStyle(
+                      color: isCurrent ? Colors.blue : Colors.white,
+                      fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    vm.goToLink(link);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

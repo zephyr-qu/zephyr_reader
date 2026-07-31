@@ -28,6 +28,15 @@ class ReadiumViewModel {
   /// Current Locator (updated from stream)
   Locator? _currentLocator;
 
+  /// Current Publication (set after open)
+  Publication? _publication;
+
+  /// Table of contents links
+  final tocLinks = signal<List<Link>>([]);
+
+  /// Current chapter href (for TOC highlighting)
+  final currentChapterHref = signal<String>('');
+
   // ==================== Subscriptions ====================
 
   StreamSubscription<Locator>? _locatorSub;
@@ -45,7 +54,9 @@ class ReadiumViewModel {
       error.value = null;
 
       final pub = await reader.openPublication(uriPath);
+      _publication = pub;
       title.value = pub.metadata.title;
+      tocLinks.value = pub.tableOfContents;
       status.value = 'ready';
 
       // Cancel old subscriptions, create new ones
@@ -53,6 +64,9 @@ class ReadiumViewModel {
       _locatorSub = reader.onTextLocatorChanged.listen((locator) {
         _currentLocator = locator;
         progress.value = locator.locations?.totalProgression ?? 0.0;
+        if (locator.href.isNotEmpty) {
+          currentChapterHref.value = locator.href;
+        }
       });
 
       await _statusSub?.cancel();
@@ -75,6 +89,13 @@ class ReadiumViewModel {
 
   /// Get the current locator for position persistence.
   Locator? getCurrentLocator() => _currentLocator;
+
+  /// Navigate to a TOC link.
+  Future<bool> goToLink(Link link) async {
+    if (_publication == null) return false;
+    return reader.goByLink(link, _publication!);
+  }
+
 
   /// Close the current publication.
   Future<void> close() async {
