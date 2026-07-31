@@ -88,4 +88,4 @@ rust/src/frb_generated*
 lib/src/rust/**
 
 # Worktrees
-.worktrees/
+.worktrees/nul
