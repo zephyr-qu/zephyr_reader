@@ -24,7 +24,7 @@ class ReaderPage extends HookWidget {
         } else {
           filePath.value = book.filePath;
         }
-      }).catchError((e) {
+      }).catchError((Object e) {
         error.value = 'Failed to load: $e';
       });
       return null;

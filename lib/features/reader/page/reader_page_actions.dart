@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 import 'package:zephyr_reader/src/rust/api/dictionary.dart' as dict_api;
 import 'package:zephyr_reader/src/rust/api/vocab.dart' as vocab_api;
@@ -23,9 +22,7 @@ Future<void> addToVocabulary(
   int? charOffset,
 }) async {
   final trimmed = word.trim();
-  final l10n = AppLocalizations.of(context)!;
   if (trimmed.isEmpty) return;
-
   try {
     String translation;
     if (definition != null) {

@@ -4,70 +4,65 @@ import 'package:flureadium/flureadium.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/reading/config/reader_config.dart';
 
-/// Readium EPUB 阅读器的轻量 ViewModel。
+/// Readium EPUB reader ViewModel (MVP).
 ///
-/// 封装 [Flureadium] API，通过信号暴露给 UI 层。
-/// 与现有 TXT 阅读器共用 [ReaderConfig] 共享设置（主题、字体等）。
+/// Wraps [Flureadium] directly, exposes reading state via signals.
 class ReadiumViewModel {
   final Flureadium reader;
   final ReaderConfig config;
 
-  // ==================== 信号 ====================
+  // ==================== Signals ====================
 
-  /// 阅读进度（0.0 ~ 1.0）
+  /// Reading progress (0.0 ~ 1.0)
   final progress = signal<double>(0.0);
 
-  /// 阅读器状态（如 opening, ready, closed）
+  /// Reader status (closed, opening..., ready, error)
   final status = signal<String>('closed');
 
-  /// 当前打开的书籍标题
+  /// Current book title
   final title = signal<String>('');
 
-  /// 错误信息
+  /// Error message
   final error = signal<String?>(null);
 
-  /// 文件路径
-  final filePath = signal<String>('');
+  /// Current Locator (updated from stream)
+  Locator? _currentLocator;
 
-  // ==================== 订阅 ====================
+  // ==================== Subscriptions ====================
 
   StreamSubscription<Locator>? _locatorSub;
   StreamSubscription<ReadiumReaderStatus>? _statusSub;
   StreamSubscription<ReadiumError>? _errorSub;
 
-  ReadiumViewModel({required this.config, Flureadium? reader})
-    : reader = reader ?? Flureadium();
-
-  /// 打开 EPUB 文件。
-  ///
-  /// [path] 可以是本地文件路径或 `file:///` URI。
+  ReadiumViewModel({required this.config}) : reader = Flureadium();
+  /// Open an EPUB file.
   Future<Publication> open(String path) async {
     try {
       final uriPath = path.startsWith('file://')
           ? path
           : Uri.file(path).toString();
-      filePath.value = uriPath;
       status.value = 'opening...';
       error.value = null;
 
       final pub = await reader.openPublication(uriPath);
-      title.value = pub.metadata.title ?? pub.metadata.identifier ?? '';
+      title.value = pub.metadata.title;
       status.value = 'ready';
 
-      // 取消旧订阅，建立新订阅（fire-and-forget）
-      unawaited(_locatorSub?.cancel().then((_) {}));
+      // Cancel old subscriptions, create new ones
+      await _locatorSub?.cancel();
       _locatorSub = reader.onTextLocatorChanged.listen((locator) {
+        _currentLocator = locator;
         progress.value = locator.locations?.totalProgression ?? 0.0;
       });
 
-      unawaited(_statusSub?.cancel().then((_) {}));
+      await _statusSub?.cancel();
       _statusSub = reader.onReaderStatusChanged.listen((s) {
         status.value = s.name;
       });
 
-      unawaited(_errorSub?.cancel().then((_) {}));
+      await _errorSub?.cancel();
       _errorSub = reader.onErrorEvent.listen((e) {
-        error.value = e.message ?? e.toString();
+        error.value = e.message;
       });
 
       return pub;
@@ -78,7 +73,10 @@ class ReadiumViewModel {
     }
   }
 
-  /// 关闭当前出版物。
+  /// Get the current locator for position persistence.
+  Locator? getCurrentLocator() => _currentLocator;
+
+  /// Close the current publication.
   Future<void> close() async {
     await _locatorSub?.cancel();
     _locatorSub = null;
@@ -90,7 +88,7 @@ class ReadiumViewModel {
     status.value = 'closed';
   }
 
-  // ==================== 导航 ====================
+  // ==================== Navigation ====================
 
   Future<void> goLeft() => reader.goLeft();
 
@@ -100,11 +98,11 @@ class ReadiumViewModel {
 
   Future<void> skipToPrevious() => reader.skipToPrevious();
 
-  // ==================== 生命周期 ====================
+  // ==================== Lifecycle ====================
 
   void dispose() {
-    unawaited(_locatorSub?.cancel().then((_) {}));
-    unawaited(_statusSub?.cancel().then((_) {}));
-    unawaited(_errorSub?.cancel().then((_) {}));
+    _locatorSub?.cancel();
+    _statusSub?.cancel();
+    _errorSub?.cancel();
   }
 }
