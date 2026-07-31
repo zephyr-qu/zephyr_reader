@@ -19,7 +19,7 @@
   "pr_url": null,
   "subtasks": [],
   "children": [],
-  "parent": "07-22-r1-readium-unification",
+  "parent": null,
   "relatedFiles": [
     "lib/features/reader/core/presentation/reader_chrome_shell.dart",
     "lib/features/reader/epub/readium_reader_shell.dart",

@@ -19,7 +19,7 @@
   "pr_url": null,
   "subtasks": [],
   "children": [],
-  "parent": "07-22-r1-readium-unification",
+  "parent": null,
   "relatedFiles": [
     "discuss/readium/LOCATOR_MAPPING_REPORT.md",
     "lib/core/reading/position/"

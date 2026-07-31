@@ -19,7 +19,7 @@
   "pr_url": null,
   "subtasks": [],
   "children": [],
-  "parent": "07-22-r1-readium-unification",
+  "parent": null,
   "relatedFiles": [],
   "notes": "依赖 R9。不启用 Readium 原生 TTS/GTT 搜索。capability 控制不支持功能。",
   "meta": {}
