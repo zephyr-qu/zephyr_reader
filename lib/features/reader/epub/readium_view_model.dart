@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flureadium/flureadium.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/reading/config/reader_config.dart';
 
@@ -10,32 +12,22 @@ import 'package:zephyr_reader/core/reading/config/reader_config.dart';
 class ReadiumViewModel {
   final Flureadium reader;
   final ReaderConfig config;
+  final String _bookId;
+  Timer? _saveTimer;
+
+  static const _positionPrefix = 'readium_position_';
 
   // ==================== Signals ====================
 
-  /// Reading progress (0.0 ~ 1.0)
   final progress = signal<double>(0.0);
-
-  /// Reader status (closed, opening..., ready, error)
   final status = signal<String>('closed');
-
-  /// Current book title
   final title = signal<String>('');
-
-  /// Error message
   final error = signal<String?>(null);
-
-  /// Current Locator (updated from stream)
-  Locator? _currentLocator;
-
-  /// Current Publication (set after open)
-  Publication? _publication;
-
-  /// Table of contents links
   final tocLinks = signal<List<Link>>([]);
-
-  /// Current chapter href (for TOC highlighting)
   final currentChapterHref = signal<String>('');
+
+  Locator? _currentLocator;
+  Publication? _publication;
 
   // ==================== Subscriptions ====================
 
@@ -43,7 +35,9 @@ class ReadiumViewModel {
   StreamSubscription<ReadiumReaderStatus>? _statusSub;
   StreamSubscription<ReadiumError>? _errorSub;
 
-  ReadiumViewModel({required this.config}) : reader = Flureadium();
+  ReadiumViewModel({required this.config, required this._bookId})
+    : reader = Flureadium();
+
   /// Open an EPUB file.
   Future<Publication> open(String path) async {
     try {
@@ -59,6 +53,9 @@ class ReadiumViewModel {
       tocLinks.value = pub.tableOfContents;
       status.value = 'ready';
 
+      // Restore last position
+      unawaited(_restorePosition());
+
       // Cancel old subscriptions, create new ones
       await _locatorSub?.cancel();
       _locatorSub = reader.onTextLocatorChanged.listen((locator) {
@@ -67,6 +64,7 @@ class ReadiumViewModel {
         if (locator.href.isNotEmpty) {
           currentChapterHref.value = locator.href;
         }
+        _scheduleSave();
       });
 
       await _statusSub?.cancel();
@@ -96,10 +94,10 @@ class ReadiumViewModel {
     return reader.goByLink(link, _publication!);
   }
 
-
   /// Close the current publication.
   Future<void> close() async {
-    await _locatorSub?.cancel();
+    _saveTimer?.cancel();
+    await _savePositionNow();
     _locatorSub = null;
     await _statusSub?.cancel();
     _statusSub = null;
@@ -112,18 +110,49 @@ class ReadiumViewModel {
   // ==================== Navigation ====================
 
   Future<void> goLeft() => reader.goLeft();
-
   Future<void> goRight() => reader.goRight();
-
   Future<void> skipToNext() => reader.skipToNext();
-
   Future<void> skipToPrevious() => reader.skipToPrevious();
 
   // ==================== Lifecycle ====================
 
   void dispose() {
+    _saveTimer?.cancel();
+    _savePositionNow();
     _locatorSub?.cancel();
     _statusSub?.cancel();
     _errorSub?.cancel();
+  }
+
+  // ==================== Position Persistence ====================
+
+  void _scheduleSave() {
+    _saveTimer?.cancel();
+    _saveTimer = Timer(const Duration(seconds: 2), _savePositionNow);
+  }
+
+  Future<void> _savePositionNow() async {
+    final locator = _currentLocator;
+    if (locator == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _positionPrefix + _bookId,
+      jsonEncode(locator.toJson()),
+    );
+  }
+
+  Future<void> _restorePosition() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = prefs.getString(_positionPrefix + _bookId);
+    if (jsonStr == null) return;
+    try {
+      final map = jsonDecode(jsonStr) as Map<String, dynamic>;
+      final locator = Locator.fromJson(map);
+      if (locator != null) {
+        await reader.goToLocator(locator);
+      }
+    } catch (_) {
+      // Corrupted position data, ignore
+    }
   }
 }

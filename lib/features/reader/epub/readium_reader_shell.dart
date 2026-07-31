@@ -14,14 +14,18 @@ import 'readium_view_model.dart';
 /// Readium EPUB reader shell (MVP).
 class ReadiumReaderShell extends HookWidget {
   final String filePath;
+  final String bookId;
 
-  const ReadiumReaderShell({super.key, required this.filePath});
-
+  const ReadiumReaderShell({
+    super.key,
+    required this.filePath,
+    required this.bookId,
+  });
   @override
   Widget build(BuildContext context) {
     final ReaderConfig config = useMemoized(() => getIt<ReaderConfig>());
     final ReadiumViewModel vm = useMemoized(
-      () => ReadiumViewModel(config: config),
+      () => ReadiumViewModel(config: config, bookId: bookId),
     );
 
     final double progress = useSignalValue(vm.progress) as double;
@@ -58,8 +62,10 @@ class ReadiumReaderShell extends HookWidget {
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: Center(
-              child: Text(progressText,
-                  style: const TextStyle(color: Colors.white70)),
+              child: Text(
+                progressText,
+                style: const TextStyle(color: Colors.white70),
+              ),
             ),
           ),
         ],
@@ -108,14 +114,16 @@ class ReadiumReaderShell extends HookWidget {
               itemCount: links.length,
               itemBuilder: (context, index) {
                 final link = links[index];
-                final isCurrent = link.href == currentHref ||
-                    currentHref.contains(link.href);
+                final isCurrent =
+                    link.href == currentHref || currentHref.contains(link.href);
                 return ListTile(
                   title: Text(
                     link.title ?? 'Chapter ${index + 1}',
                     style: TextStyle(
                       color: isCurrent ? Colors.blue : Colors.white,
-                      fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isCurrent
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                   ),
                   onTap: () {

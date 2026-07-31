@@ -39,6 +39,6 @@ class ReaderPage extends HookWidget {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return ReadiumReaderShell(filePath: filePath.value!);
+    return ReadiumReaderShell(filePath: filePath.value!, bookId: bookId);
   }
 }
