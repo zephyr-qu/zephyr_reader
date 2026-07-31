@@ -14,7 +14,6 @@ enum AppRoute {
   statistics('/statistics'),
   categoryManagement('/bookshelf/categories'),
   bookSearch('/search/book'),
-  bookmarkManage('/reader/:bookId/bookmarks'),
   vocabulary('/vocabulary'),
   learningNotes('/learning-notes'),
   readingSessions('/statistics/sessions'),

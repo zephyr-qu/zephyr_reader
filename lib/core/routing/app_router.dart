@@ -18,7 +18,6 @@ import 'package:zephyr_reader/features/profile/page/profile/profile_page.dart';
 import 'package:zephyr_reader/features/profile/page/theme/theme_brightness_page.dart';
 import 'package:zephyr_reader/features/profile/page/tts/tts_settings_page.dart';
 import 'package:zephyr_reader/features/profile/page/typography/typography_settings_page.dart';
-import 'package:zephyr_reader/features/reader/annotations/presentation/bookmark_manage_page.dart';
 import 'package:zephyr_reader/features/reader/page/reader_page.dart';
 import 'package:zephyr_reader/features/search/page/book_search_page.dart';
 import 'package:zephyr_reader/features/search/page/search_page.dart';
@@ -198,16 +197,6 @@ final router = GoRouter(
     ),
 
     // 笔记管理
-
-    // 书签管理
-    GoRoute(
-      name: AppRoute.bookmarkManage.name,
-      path: AppRoute.bookmarkManage.path,
-      builder: (_, state) {
-        final bookId = state.pathParameters['bookId'] ?? '';
-        return BookmarkManagePage(bookId: bookId);
-      },
-    ),
 
     // 生词本
     GoRoute(
