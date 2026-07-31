@@ -5,11 +5,16 @@ import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/features/reader/settings/settings_widgets.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
+/// Display settings panel (Readium MVP — theme + font size only).
 class DisplayPanel extends StatelessWidget {
   final ReaderConfig config;
   final VoidCallback onChanged;
 
-  const DisplayPanel({super.key, required this.config, required this.onChanged});
+  const DisplayPanel({
+    super.key,
+    required this.config,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -25,22 +30,25 @@ class DisplayPanel extends StatelessWidget {
           mutedColor: readerTheme.mutedColor,
         ),
         sliderTile(
-          label: l10n.brightness,
-          value: 1 - config.brightnessOverlay.value,
-          min: 0.3,
-          max: 1.0,
-          divisions: 14,
-          display:
-              '${((1 - config.brightnessOverlay.value) * 100).toStringAsFixed(0)}%',
-          onChanged: (v) => config.brightnessOverlay.value = 1 - v,
+          label: l10n.fontSize,
+          value: config.fontSize.value,
+          min: 80,
+          max: 200,
+          divisions: 24,
+          display: '${config.fontSize.value.round()}',
+          onChanged: (v) {
+            config.fontSize.value = v;
+            onChanged();
+          },
           readerTheme: readerTheme,
         ),
         const SizedBox(height: 8),
-        themeSelector(readerTheme: readerTheme, l10n: l10n, config: config),
-        const SizedBox(height: 12),
-        fontScaleTile(readerTheme: readerTheme, l10n: l10n, config: config),
-        const SizedBox(height: 8),
-        bgColorPicker(readerTheme: readerTheme, l10n: l10n, config: config),
+        themeSelector(
+          readerTheme: readerTheme,
+          l10n: l10n,
+          config: config,
+          onChanged: onChanged,
+        ),
       ],
     );
   }

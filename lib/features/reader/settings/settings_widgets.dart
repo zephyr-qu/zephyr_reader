@@ -124,6 +124,7 @@ Widget themeSelector({
   required ReaderThemeExtension readerTheme,
   required AppLocalizations l10n,
   required ReaderConfig config,
+  VoidCallback? onChanged,
 }) {
   final accentColor = readerTheme.accentColor;
   final themes = [
@@ -141,7 +142,10 @@ Widget themeSelector({
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 2),
             child: GestureDetector(
-              onTap: () => config.theme.value = t.$1,
+              onTap: () {
+                config.theme.value = t.$1;
+                onChanged?.call();
+              },
               child: AnimatedContainer(
                 duration: AnimTokens.medium,
                 padding: const EdgeInsets.symmetric(vertical: 7),

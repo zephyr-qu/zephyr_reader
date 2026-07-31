@@ -160,8 +160,9 @@ class ReadiumReaderShell extends HookWidget {
                     link.title ?? 'Chapter ${index + 1}',
                     style: TextStyle(
                       color: isCurrent ? Colors.blue : Colors.white,
-                      fontWeight:
-                          isCurrent ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isCurrent
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                   ),
                   onTap: () {
