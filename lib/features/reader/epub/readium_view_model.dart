@@ -36,6 +36,8 @@ class ReadiumViewModel {
   final isTtsPlaying = signal<bool>(false);
   final readingMode = signal<ReadingMode>(ReadingMode.pagination);
   final isHighlighted = signal<bool>(false);
+  final bookmarks = signal<List<Map<String, dynamic>>>([]);
+  final isBookmarked = signal<bool>(false);
   Locator? _currentLocator;
   Locator? _initialLocator;
   Publication? _publication;
@@ -95,6 +97,7 @@ class ReadiumViewModel {
         progress.value = _initialLocator?.locations?.totalProgression ?? 0.0;
       });
 
+      unawaited(_loadBookmarks());
       return pub;
     } catch (e) {
       if (generation == _openGeneration) {
@@ -150,6 +153,7 @@ class ReadiumViewModel {
       currentChapterHref.value = locator.href;
     }
     _scheduleSave();
+    _updateBookmarkState();
   }
 
   /// Navigate to a TOC link.
@@ -415,5 +419,101 @@ class ReadiumViewModel {
     } catch (_) {
       return null;
     }
+  }
+
+  // ==================== Bookmarks ====================
+
+  static const _bookmarkPrefix = 'readium_bookmarks_';
+
+  Future<void> addBookmark() async {
+    final locator = _currentLocator;
+    if (locator == null || _closing) return;
+    final entry = <String, dynamic>{
+      'locatorJson': jsonEncode(locator.toJson()),
+      'chapterTitle': _tocTitleForHref(locator.href),
+      'createdAt': DateTime.now().millisecondsSinceEpoch,
+    };
+    final list = [...bookmarks.value, entry];
+    bookmarks.value = list;
+    _updateBookmarkState();
+    await _persistBookmarks(list);
+  }
+
+  Future<void> removeBookmark() async {
+    final locator = _currentLocator;
+    if (locator == null || _closing) return;
+    final key = _bookmarkKey(locator);
+    final list =
+        bookmarks.value.where((b) => b['locatorJson'] != key).toList();
+    if (list.length == bookmarks.value.length) return;
+    bookmarks.value = list;
+    _updateBookmarkState();
+    await _persistBookmarks(list);
+  }
+
+  Future<void> goToBookmark(Map<String, dynamic> entry) async {
+    try {
+      final map =
+          jsonDecode(entry['locatorJson'] as String) as Map<String, dynamic>;
+      final locator = Locator.fromJson(map);
+      if (locator != null) await reader.goToLocator(locator);
+    } catch (e) {
+      error.value = e.toString();
+    }
+  }
+
+  Future<void> deleteBookmarkByEntry(Map<String, dynamic> entry) async {
+    final locatorJson = entry['locatorJson'] as String?;
+    if (locatorJson == null) return;
+    final list = bookmarks.value
+        .where((b) => b['locatorJson'] != locatorJson)
+        .toList();
+    if (list.length == bookmarks.value.length) return;
+    bookmarks.value = list;
+    _updateBookmarkState();
+    await _persistBookmarks(list);
+  }
+
+  bool get isCurrentLocatorBookmarked {
+    final locator = _currentLocator;
+    if (locator == null) return false;
+    final key = jsonEncode(locator.toJson());
+    return bookmarks.value.any((b) => b['locatorJson'] == key);
+  }
+
+  void _updateBookmarkState() {
+    isBookmarked.value = isCurrentLocatorBookmarked;
+  }
+
+  Future<void> _loadBookmarks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = prefs.getString(_bookmarkPrefix + bookId);
+    if (jsonStr == null) return;
+    try {
+      final list =
+          (jsonDecode(jsonStr) as List).cast<Map<String, dynamic>>();
+      bookmarks.value = list;
+      _updateBookmarkState();
+    } catch (_) {}
+  }
+
+  Future<void> _persistBookmarks(List<Map<String, dynamic>> list) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _bookmarkPrefix + bookId,
+      jsonEncode(list),
+    );
+  }
+
+  String _bookmarkKey(Locator locator) {
+    final href = locator.href;
+    final prog = locator.locations?.totalProgression ?? 0;
+    return '$href|${prog.toStringAsFixed(4)}';
+  }
+  String _tocTitleForHref(String href) {
+    for (final link in tocLinks.value) {
+      if (link.href == href) return link.title ?? '';
+    }
+    return '';
   }
 }

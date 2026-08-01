@@ -83,10 +83,16 @@ void main() {
       () => vm.readingMode,
     ).thenReturn(signal<ReadingMode>(ReadingMode.pagination));
     when(() => vm.initialLocator).thenReturn(initialLocator);
-    when(() => vm.onViewportReady()).thenAnswer((_) async {});
+    when(() => vm.onViewportReady()).thenAnswer((_) async {
+      return;
+    });
     when(() => vm.onLocatorChanged(any())).thenReturn(null);
-    when(() => vm.goLeft()).thenAnswer((_) async {});
-    when(() => vm.goRight()).thenAnswer((_) async {});
+    when(() => vm.goLeft()).thenAnswer((_) async {
+      return;
+    });
+    when(() => vm.goRight()).thenAnswer((_) async {
+      return;
+    });
 
     await tester.pumpWidget(
       MaterialApp(
@@ -151,10 +157,16 @@ void main() {
       () => vm.readingMode,
     ).thenReturn(signal<ReadingMode>(ReadingMode.scroll));
     when(() => vm.initialLocator).thenReturn(null);
-    when(() => vm.onViewportReady()).thenAnswer((_) async {});
+    when(() => vm.onViewportReady()).thenAnswer((_) async {
+      return;
+    });
     when(() => vm.onLocatorChanged(any())).thenReturn(null);
-    when(() => vm.goLeft()).thenAnswer((_) async {});
-    when(() => vm.goRight()).thenAnswer((_) async {});
+    when(() => vm.goLeft()).thenAnswer((_) async {
+      return;
+    });
+    when(() => vm.goRight()).thenAnswer((_) async {
+      return;
+    });
 
     await tester.pumpWidget(
       MaterialApp(
@@ -190,9 +202,13 @@ void main() {
       () => vm.readingMode,
     ).thenReturn(signal<ReadingMode>(ReadingMode.scroll));
     when(() => vm.initialLocator).thenReturn(null);
-    when(() => vm.onViewportReady()).thenAnswer((_) async {});
+    when(() => vm.onViewportReady()).thenAnswer((_) async {
+      return;
+    });
     when(() => vm.onLocatorChanged(any())).thenReturn(null);
-    when(() => vm.advanceFromScrollBoundary()).thenAnswer((_) async {});
+    when(() => vm.advanceFromScrollBoundary()).thenAnswer((_) async {
+      return;
+    });
 
     await tester.pumpWidget(
       MaterialApp(

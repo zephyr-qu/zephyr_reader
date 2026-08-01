@@ -4,6 +4,7 @@ import 'package:flureadium/flureadium.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 
 import 'package:zephyr_reader/core/reading/config/reader_config.dart';
@@ -55,6 +56,9 @@ class ReadiumReaderShell extends HookWidget {
     final ReadingMode readingMode =
         useSignalValue(vm.readingMode) as ReadingMode;
     final String? errorMessage = useSignalValue(vm.error) as String?;
+    final bool isBookmarked = useSignalValue(vm.isBookmarked) as bool;
+    final List<Map<String, dynamic>> bookmarks =
+        useSignalValue(vm.bookmarks) as List<Map<String, dynamic>>;
 
     final scaffoldKey = useRef(GlobalKey<ScaffoldState>());
     final chromeVisible = useState(true);
@@ -69,6 +73,30 @@ class ReadiumReaderShell extends HookWidget {
     final String progressText = progress > 0 || statusText == 'ready'
         ? '${(progress * 100).toStringAsFixed(0)}%'
         : statusText;
+
+    void showBookmarkList() {
+      final baseTheme = Theme.of(context);
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => Theme(
+          data: baseTheme.copyWith(extensions: [readerTheme]),
+          child: _BookmarkListSheet(
+            bookmarks: bookmarks,
+            readerTheme: readerTheme,
+            onSelect: (entry) {
+              Navigator.pop(context);
+              chromeVisible.value = false;
+              unawaited(vm.goToBookmark(entry));
+            },
+            onDelete: (entry) {
+              unawaited(vm.deleteBookmarkByEntry(entry));
+            },
+          ),
+        ),
+      );
+    }
 
     void showSettings(ReaderPanelType panelType) {
       final ttsVm = getIt<TtsSettingsViewModel>();
@@ -141,6 +169,11 @@ class ReadiumReaderShell extends HookWidget {
                   progress: progressText,
                   readerTheme: readerTheme,
                   onClose: () => Navigator.maybePop(context),
+                  isBookmarked: isBookmarked,
+                  onToggleBookmark: () => unawaited(
+                    isBookmarked ? vm.removeBookmark() : vm.addBookmark(),
+                  ),
+                  onShowBookmarkList: showBookmarkList,
                 ),
               ),
             if (chromeVisible.value)
@@ -258,5 +291,157 @@ class ReadiumReaderShell extends HookWidget {
     final leftUri = Uri.tryParse(left);
     final rightUri = Uri.tryParse(right);
     return (leftUri?.path ?? left) == (rightUri?.path ?? right);
+  }
+}
+
+class _BookmarkListSheet extends StatelessWidget {
+  final List<Map<String, dynamic>> bookmarks;
+  final ReaderThemeExtension readerTheme;
+  final ValueChanged<Map<String, dynamic>> onSelect;
+  final ValueChanged<Map<String, dynamic>> onDelete;
+
+  const _BookmarkListSheet({
+    required this.bookmarks,
+    required this.readerTheme,
+    required this.onSelect,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: readerTheme.surfaceColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+      ),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.6,
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 8, bottom: 4),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: readerTheme.textColor.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '书签 (${bookmarks.length})',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: readerTheme.textColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Bookmark list
+            if (bookmarks.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(32),
+                child: Text(
+                  '暂无书签，点击顶部工具栏的书签图标添加',
+                  style: TextStyle(
+                    color: readerTheme.textColor.withValues(alpha: 0.5),
+                    fontSize: 14,
+                  ),
+                ),
+              )
+            else
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: bookmarks.length,
+                  padding: const EdgeInsets.only(bottom: 16),
+                  itemBuilder: (context, index) {
+                    final entry = bookmarks[index];
+                    final chapterTitle =
+                        entry['chapterTitle'] as String? ?? '未知章节';
+                    final createdAt = entry['createdAt'] as int?;
+                    final dateStr = createdAt != null
+                        ? _formatTimestamp(createdAt)
+                        : '';
+
+                    return Dismissible(
+                      key: ValueKey(entry['locatorJson']),
+                      direction: DismissDirection.endToStart,
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        color: Colors.red.withValues(alpha: 0.8),
+                        child: const Icon(
+                          PhosphorIconsLight.trash,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
+                      onDismissed: (_) => onDelete(entry),
+                      child: ListTile(
+                        leading: Icon(
+                          PhosphorIconsLight.bookmarkSimple,
+                          color: readerTheme.accentColor,
+                          size: 20,
+                        ),
+                        title: Text(
+                          chapterTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: readerTheme.textColor,
+                            fontSize: 14,
+                          ),
+                        ),
+                        subtitle: dateStr.isNotEmpty
+                            ? Text(
+                                dateStr,
+                                style: TextStyle(
+                                  color: readerTheme.textColor.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                  fontSize: 12,
+                                ),
+                              )
+                            : null,
+                        onTap: () => onSelect(entry),
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static String _formatTimestamp(int millis) {
+    final date = DateTime.fromMillisecondsSinceEpoch(millis);
+    final now = DateTime.now();
+    if (date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day) {
+      return '今天 '
+          '${date.hour.toString().padLeft(2, '0')}'
+          ':${date.minute.toString().padLeft(2, '0')}';
+    }
+    return '${date.year}-'
+        '${date.month.toString().padLeft(2, '0')}-'
+        '${date.day.toString().padLeft(2, '0')}';
   }
 }
