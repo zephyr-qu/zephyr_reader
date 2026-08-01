@@ -6,36 +6,31 @@ import 'package:zephyr_reader/features/reader/settings/assist_panel.dart';
 import 'package:zephyr_reader/features/reader/settings/display_panel.dart';
 import 'package:zephyr_reader/features/reader/settings/reader_panel_type.dart';
 import 'package:zephyr_reader/features/reader/settings/settings_widgets.dart';
+import 'package:zephyr_reader/features/reader/settings/typesetting_panel.dart';
 
 /// Reader settings bottom sheet (adapted for Readium MVP).
 class ReaderSettingsOverlay extends StatelessWidget {
   final ReaderPanelType panelType;
   final ReaderConfig config;
-  final bool isTtsPlaying;
-  final bool isTtsPaused;
+  final ReadingMode readingMode;
   final ValueChanged<ReadingMode> onReadingModeChanged;
-  final ValueChanged<double> onFontSizeChanged;
-  final ValueChanged<double> onLineHeightChanged;
-  final ValueChanged<double> onPageMarginChanged;
+  final bool isTtsPlaying;
   final VoidCallback onTtsToggle;
   final VoidCallback onClose;
-  final VoidCallback onChanged;
+  final VoidCallback onPreferencesChanged;
   final TtsSettingsViewModel ttsVm;
 
   const ReaderSettingsOverlay({
     super.key,
     required this.panelType,
     required this.config,
-    required this.isTtsPlaying,
-    required this.isTtsPaused,
+    required this.readingMode,
     required this.onReadingModeChanged,
-    required this.onFontSizeChanged,
-    required this.onLineHeightChanged,
-    required this.onPageMarginChanged,
+    required this.isTtsPlaying,
     required this.onTtsToggle,
     required this.onClose,
     required this.ttsVm,
-    required this.onChanged,
+    required this.onPreferencesChanged,
   });
 
   @override
@@ -61,20 +56,22 @@ class ReaderSettingsOverlay extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                 children: [
                   switch (panelType) {
+                    ReaderPanelType.typesetting => TypesettingPanel(
+                      config: config,
+                      readingMode: readingMode,
+                      onReadingModeChanged: onReadingModeChanged,
+                      onChanged: onPreferencesChanged,
+                    ),
                     ReaderPanelType.display => DisplayPanel(
                       config: config,
-                      onChanged: onChanged,
+                      onChanged: onPreferencesChanged,
                     ),
                     ReaderPanelType.assist => AssistPanel(
                       config: config,
                       ttsVm: ttsVm,
                       isTtsPlaying: isTtsPlaying,
-                      isTtsPaused: isTtsPaused,
                       onTtsToggle: onTtsToggle,
-                      onChanged: onChanged,
                     ),
-                    // Typesetting removed for MVP
-                    _ => const SizedBox.shrink(),
                   },
                 ],
               ),

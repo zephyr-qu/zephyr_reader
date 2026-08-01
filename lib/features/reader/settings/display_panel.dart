@@ -5,7 +5,7 @@ import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/features/reader/settings/settings_widgets.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
-/// Display settings panel (Readium MVP — theme + font size only).
+/// Display settings panel (Readium MVP — theme only).
 class DisplayPanel extends StatelessWidget {
   final ReaderConfig config;
   final VoidCallback onChanged;
@@ -29,20 +29,6 @@ class DisplayPanel extends StatelessWidget {
           title: l10n.appearanceSection,
           mutedColor: readerTheme.mutedColor,
         ),
-        sliderTile(
-          label: l10n.fontSize,
-          value: config.fontSize.value,
-          min: 80,
-          max: 200,
-          divisions: 24,
-          display: '${config.fontSize.value.round()}',
-          onChanged: (v) {
-            config.fontSize.value = v;
-            onChanged();
-          },
-          readerTheme: readerTheme,
-        ),
-        const SizedBox(height: 8),
         themeSelector(
           readerTheme: readerTheme,
           l10n: l10n,
