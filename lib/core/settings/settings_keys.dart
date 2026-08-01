@@ -40,7 +40,10 @@ abstract final class SettingsKeys {
 
   /// 阅读器字号
   static const readerFontSize = 'reader_font_size';
-  /// 页边距
+
+  /// 字体族
+  static const readerFontFamily = 'reader_font_family';
+
   static const readerPadding = 'reader_padding';
 
   /// 阅读背景色预设索引
