@@ -1,7 +1,7 @@
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/src/rust/api/note.dart' as note_api;
-import 'package:zephyr_reader/features/learning_notes/domain/note_with_book.dart';
+import 'package:zephyr_reader/src/rust/domain/note/models.dart';
 
 
 /// 学习笔记 ViewModel。
