@@ -5,16 +5,16 @@ use crate::common::AppError;
 use crate::domain::bookmark::models::Bookmark;
 
 const SQL_UPSERT_BOOKMARK: &str = "\
-INSERT INTO bookmarks (id, book_id, chapter_index, chapter_id, char_offset, title, created_at) \
-VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7) \
+INSERT INTO bookmarks (id, book_id, chapter_index, chapter_id, char_offset, locator_json, title, created_at) \
+VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8) \
 ON CONFLICT(id) DO UPDATE SET \
 book_id = excluded.book_id, \
 chapter_index = excluded.chapter_index, \
 chapter_id = excluded.chapter_id, \
 char_offset = excluded.char_offset, \
+locator_json = excluded.locator_json, \
 title = excluded.title, \
 created_at = excluded.created_at";
-
 /// 书签仓储
 #[frb(opaque)]
 pub struct BookmarkRepository;
@@ -27,6 +27,7 @@ impl BookmarkRepository {
             .bind(bookmark.chapter_index)
             .bind(&bookmark.chapter_id)
             .bind(bookmark.char_offset)
+            .bind(&bookmark.locator_json)
             .bind(&bookmark.title)
             .bind(bookmark.created_at)
             .execute(pool)
@@ -78,6 +79,7 @@ impl BookmarkRepository {
                 .bind(bookmark.chapter_index)
                 .bind(&bookmark.chapter_id)
                 .bind(bookmark.char_offset)
+                .bind(&bookmark.locator_json)
                 .bind(&bookmark.title)
                 .bind(bookmark.created_at)
                 .execute(&mut *tx)

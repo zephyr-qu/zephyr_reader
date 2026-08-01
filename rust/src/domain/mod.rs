@@ -16,6 +16,4 @@ pub mod search;
 pub mod sessions;
 pub mod stats;
 pub mod vocab;
-pub mod engine_position;
-
 pub(crate) use crate::common::AppError;

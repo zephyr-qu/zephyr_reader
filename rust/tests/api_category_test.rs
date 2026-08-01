@@ -12,7 +12,7 @@ use rust_lib_zephyr_reader::api::category;
 async fn test_create_and_list_categories() {
     common::init_test_storage().await;
 
-    let cat = category::create_category("TestCat".to_string(), "#FF0000".to_string(), 0, None)
+    let cat = category::wo("TestCat".to_string(), "#FF0000".to_string(), 0, None)
         .await
         .expect("failed to create category");
 

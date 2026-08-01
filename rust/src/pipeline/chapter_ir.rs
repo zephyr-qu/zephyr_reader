@@ -21,13 +21,11 @@ use lru::LruCache;
 use parking_lot::Mutex;
 
 use crate::common::AppError;
-use crate::common::security::validate_file_path;
 use crate::domain::book::BookFormat;
 use crate::domain::book::book_repo::BookRepository;
 use crate::domain::chapter::chapter_repo::ChapterRepository;
 use crate::infra::kv_store::{KvStore, ScrollIrCache};
 use crate::infra::manager::storage_pool;
-use crate::parser::provider::ChapterContentProvider;
 use crate::parser::registry;
 use crate::pipeline::ReaderChapterIr;
 
@@ -162,93 +160,8 @@ pub async fn get_chapter_bounds(
 
 // ==================== Provider 缓存 ====================
 
-type CacheKey = (String, i32, BookFormat);
-
-static PROVIDER_CACHE: LazyLock<Mutex<LruCache<CacheKey, Arc<dyn ChapterContentProvider>>>> =
-    LazyLock::new(|| Mutex::new(LruCache::new(NonZeroUsize::new(16).unwrap())));
-
 /// 从 LRU 缓存获取或创建 Provider。
-async fn get_or_create_provider(
-    validated_path: &str,
-    chapter_index: i32,
-    format: &BookFormat,
-) -> Result<Arc<dyn ChapterContentProvider>, AppError> {
-    let cache_key = (validated_path.to_string(), chapter_index, *format);
-    {
-        let mut cache = PROVIDER_CACHE.lock();
-        if let Some(cached) = cache.get(&cache_key) {
-            return Ok(cached.clone());
-        }
-    }
 
-    let p: Arc<dyn ChapterContentProvider> = match format {
-        BookFormat::Txt => {
-            let path = validated_path.to_string();
-            let provider = tokio::task::spawn_blocking(move || {
-                crate::parser::txt::TxtContentProvider::open(&path)
-            })
-            .await
-            .map_err(|e| AppError::TaskPanic {
-                task_name: "txt provider".into(),
-                details: e.to_string(),
-            })??;
-            Arc::new(provider)
-        }
-        BookFormat::Epub => {
-            let (start_idx, end_idx) = get_chapter_bounds(validated_path, chapter_index).await?;
-            if start_idx == 0 && end_idx == 0 {
-                return Err(AppError::StaleBookData {
-                    message: "Chapter bounds missing. Please re-import this book.".into(),
-                });
-            }
-            let path = validated_path.to_string();
-            let provider = tokio::task::spawn_blocking(move || {
-                crate::parser::epub::provider::EpubContentProvider::open_from_bounds(
-                    &path, start_idx, end_idx,
-                )
-            })
-            .await
-            .map_err(|e| AppError::TaskPanic {
-                task_name: "epub provider".into(),
-                details: e.to_string(),
-            })??;
-            Arc::new(provider)
-        }
-    };
-
-    let mut cache = PROVIDER_CACHE.lock();
-    if !cache.contains(&cache_key) {
-        cache.put(cache_key, p.clone());
-    }
-    Ok(p)
-}
-
-// ==================== 章节原始文本 ====================
-
-/// 获取指定章节的原始文本内容。
-pub(crate) async fn get_chapter(file_path: String, chapter_index: i32) -> Result<String, AppError> {
-    let validated_path = validate_file_path(&file_path)?;
-    let format = format_from_file_path(&validated_path)?;
-
-    if matches!(format, BookFormat::Txt | BookFormat::Epub) {
-        let provider = get_or_create_provider(&validated_path, chapter_index, &format).await?;
-        let content_len = provider.content_length();
-
-        let text = if format == BookFormat::Epub {
-            provider.read_text_range(0, content_len)?
-        } else {
-            let (cs, ce) = get_chapter_bounds(&validated_path, chapter_index).await?;
-            let start = cs.max(0) as u64;
-            let end = (ce.max(0) as u64).min(content_len);
-            provider.read_text_range(start, end)?
-        };
-        Ok(text)
-    } else {
-        Err(AppError::UnsupportedFormat {
-            format: format!("unsupported format for chapter read: {:?}", format),
-        })
-    }
-}
 
 // ==================== IR 加载（含 redb 缓存） ====================
 
