@@ -35,7 +35,7 @@ class ReadiumViewModel {
   final currentChapterHref = signal<String>('');
   final isTtsPlaying = signal<bool>(false);
   final readingMode = signal<ReadingMode>(ReadingMode.pagination);
-
+  final isHighlighted = signal<bool>(false);
   Locator? _currentLocator;
   Locator? _initialLocator;
   Publication? _publication;
@@ -316,6 +316,35 @@ class ReadiumViewModel {
     if (_ttsEnabled) await reader.stop();
     _ttsEnabled = false;
     isTtsPlaying.value = false;
+  }
+
+  // ==================== Highlights ====================
+
+  /// Toggle highlight on the current locator position.
+  Future<void> toggleHighlight() async {
+    if (!_viewportReady || _closing) return;
+    try {
+      if (isHighlighted.value) {
+        await reader.applyDecorations('user-highlights', []);
+        isHighlighted.value = false;
+      } else {
+        final locator = _currentLocator;
+        if (locator == null) return;
+        await reader.applyDecorations('user-highlights', [
+          ReaderDecoration(
+            id: 'highlight-${DateTime.now().millisecondsSinceEpoch}',
+            locator: locator,
+            style: ReaderDecorationStyle(
+              style: DecorationStyle.highlight,
+              tint: const Color(0xFFFFEB3B),
+            ),
+          ),
+        ]);
+        isHighlighted.value = true;
+      }
+    } catch (e) {
+      error.value = e.toString();
+    }
   }
 
   // ==================== Position Persistence ====================
