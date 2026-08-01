@@ -9,7 +9,6 @@ import 'package:zephyr_reader/features/bookshelf/page/category_management_page.d
 import 'package:zephyr_reader/features/bookshelf/page/wifi_transfer_page.dart';
 import 'package:zephyr_reader/features/home/page/home_page.dart';
 import 'package:zephyr_reader/features/home/page/splash_page.dart';
-import 'package:zephyr_reader/features/learning_notes/page/learning_notes_page.dart';
 import 'package:zephyr_reader/features/main_layout.dart';
 import 'package:zephyr_reader/features/profile/page/about/about_page.dart';
 import 'package:zephyr_reader/features/profile/page/dictionary/dictionary_settings_page.dart';
@@ -208,13 +207,6 @@ final router = GoRouter(
       name: AppRoute.vocabulary.name,
       path: AppRoute.vocabulary.path,
       builder: (_, _) => const VocabularyPage(),
-    ),
-
-    // 学习与笔记
-    GoRoute(
-      name: AppRoute.learningNotes.name,
-      path: AppRoute.learningNotes.path,
-      builder: (_, _) => const LearningNotesPage(),
     ),
 
     // 阅读会话历史

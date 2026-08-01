@@ -10,7 +10,6 @@ use crate::domain::book::book_repo::BookRepository;
 use crate::domain::book::{Book, BookFormat, BookStatus, BookshelfBook};
 use crate::domain::category::category_repo::CategoryRepository;
 use crate::domain::chapter::chapter_repo::ChapterRepository;
-use crate::domain::note::note_repo::NoteRepository;
 use crate::domain::progress::progress_repo::ProgressRepository;
 use crate::domain::sessions::session_repo::SessionRepository;
 use crate::domain::vocab::vocab_repo::VocabRepository;
@@ -29,7 +28,6 @@ pub async fn get_book_detail(book_id: &str) -> Result<BookDetail, AppError> {
             entity: "book".into(),
         })?;
     let progress = ProgressRepository::find_by_book(&pool, book_id).await?;
-    let note_stats = NoteRepository::find_note_stats(&pool, book_id).await?;
     let chapters = ChapterRepository::find_by_book(&pool, book_id).await?;
     let categories = CategoryRepository::list_by_book(&pool, book_id).await?;
     let session_count = SessionRepository::count_by_book(&pool, book_id).await?;
@@ -38,7 +36,6 @@ pub async fn get_book_detail(book_id: &str) -> Result<BookDetail, AppError> {
     Ok(BookDetail {
         book,
         progress,
-        note_stats,
         chapters,
         categories,
         session_count,

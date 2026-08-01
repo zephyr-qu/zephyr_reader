@@ -10,7 +10,6 @@ pub mod chapter;
 pub mod chapter_detect;
 pub mod cover;
 pub mod dictionary;
-pub mod note;
 pub mod progress;
 pub mod search;
 pub mod sessions;
