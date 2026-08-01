@@ -458,7 +458,6 @@ Widget ttsTile({
   required ReaderThemeExtension readerTheme,
   required AppLocalizations l10n,
   required bool isTtsPlaying,
-  required bool isTtsPaused,
   required VoidCallback onTtsToggle,
 }) {
   final textColor = readerTheme.textColor;
@@ -467,11 +466,11 @@ Widget ttsTile({
     child: Row(
       children: [
         Icon(
-          isTtsPlaying || isTtsPaused
+          isTtsPlaying
               ? PhosphorIconsRegular.speakerHigh
               : PhosphorIconsRegular.speakerNone,
           size: 15,
-          color: isTtsPlaying || isTtsPaused
+          color: isTtsPlaying
               ? readerTheme.ttsActiveColor
               : readerTheme.mutedColor,
         ),
@@ -491,7 +490,7 @@ Widget ttsTile({
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
           child: Text(
-            isTtsPlaying || isTtsPaused ? '停止' : '播放',
+            isTtsPlaying ? '暂停' : '播放',
             style: const TextStyle(fontSize: 13),
           ),
         ),

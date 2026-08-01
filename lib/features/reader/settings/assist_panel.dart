@@ -8,19 +8,15 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 class AssistPanel extends StatelessWidget {
   final ReaderConfig config;
-  final VoidCallback onChanged;
   final TtsSettingsViewModel ttsVm;
   final bool isTtsPlaying;
-  final bool isTtsPaused;
   final VoidCallback onTtsToggle;
 
   const AssistPanel({
     super.key,
     required this.config,
-    required this.onChanged,
     required this.ttsVm,
     required this.isTtsPlaying,
-    required this.isTtsPaused,
     required this.onTtsToggle,
   });
 
@@ -41,7 +37,6 @@ class AssistPanel extends StatelessWidget {
           readerTheme: readerTheme,
           l10n: l10n,
           isTtsPlaying: isTtsPlaying,
-          isTtsPaused: isTtsPaused,
           onTtsToggle: onTtsToggle,
         ),
         _ttsSpeedSlider(readerTheme, l10n),
