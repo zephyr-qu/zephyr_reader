@@ -52,7 +52,6 @@ class ReadiumReaderShell extends HookWidget {
     final List<Link> tocLinks = useSignalValue(vm.tocLinks) as List<Link>;
     final String currentHref = useSignalValue(vm.currentChapterHref) as String;
     final bool isTtsPlaying = useSignalValue(vm.isTtsPlaying) as bool;
-    final bool isHighlighted = useSignalValue(vm.isHighlighted) as bool;
     final ReadingMode readingMode =
         useSignalValue(vm.readingMode) as ReadingMode;
     final String? errorMessage = useSignalValue(vm.error) as String?;
@@ -157,9 +156,7 @@ class ReadiumReaderShell extends HookWidget {
                       showSettings(ReaderPanelType.typesetting),
                   onToggleDisplay: () => showSettings(ReaderPanelType.display),
                   onToggleAssist: () => showSettings(ReaderPanelType.assist),
-                  onToggleHighlight: () => unawaited(vm.toggleHighlight()),
                   isTtsPlaying: isTtsPlaying,
-                  isHighlighted: isHighlighted,
                 ),
               ),
             if (errorMessage != null)
