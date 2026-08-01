@@ -437,10 +437,10 @@ packages:
     dependency: "direct main"
     description:
       name: flureadium
-      sha256: f65a12499db2ce90b0a9a2de2196eec8a8eaec802a1722c8c6a99cdf7d9dadbb
+      sha256: "8512f4ab88a46cbc7b54132270cafb49981782cae9fd05c5538a846ebfb20869"
       url: "https://pub.flutter-io.cn"
     source: hosted
-    version: "0.13.2"
+    version: "0.13.3"
   flureadium_platform_interface:
     dependency: transitive
     description:

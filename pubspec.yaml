@@ -63,7 +63,7 @@ dependencies:
   async: ^2.13.0
   phosphoricons_flutter: 1.0.0
   shimmer: ^3.0.0
-  flureadium: ^0.16.0
+  flureadium: ^0.13.2
 
   # --- Error Reporting ---
 dev_dependencies:
