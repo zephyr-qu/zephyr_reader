@@ -7,7 +7,7 @@ import 'package:zephyr_reader/features/learning_notes/page/widgets/note_list_wid
 import 'package:zephyr_reader/features/learning_notes/page/widgets/stat_dashboard_widget.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/features/profile/page/widgets/settings_app_bar.dart';
-import 'package:zephyr_reader/features/learning_notes/domain/note_with_book.dart';
+import 'package:zephyr_reader/src/rust/domain/note/models.dart';
 
 
 /// 学习笔记页面。
