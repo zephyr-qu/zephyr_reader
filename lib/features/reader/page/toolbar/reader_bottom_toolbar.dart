@@ -3,16 +3,16 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
-/// 阅读器底部工具栏。
+/// 阅读器底部四按钮工具栏。
+///
+/// 章节 | 文字排版 | 外观主题 | 阅读辅助
 class ReaderBottomToolbar extends StatelessWidget {
   final ReaderThemeExtension readerTheme;
   final VoidCallback onShowCatalog;
   final VoidCallback onToggleTypesetting;
   final VoidCallback onToggleDisplay;
   final VoidCallback onToggleAssist;
-  final VoidCallback onToggleHighlight;
   final bool isTtsPlaying;
-  final bool isHighlighted;
 
   const ReaderBottomToolbar({
     super.key,
@@ -21,9 +21,7 @@ class ReaderBottomToolbar extends StatelessWidget {
     required this.onToggleTypesetting,
     required this.onToggleDisplay,
     required this.onToggleAssist,
-    required this.onToggleHighlight,
     required this.isTtsPlaying,
-    this.isHighlighted = false,
   });
 
   @override
@@ -55,16 +53,6 @@ class ReaderBottomToolbar extends StatelessWidget {
                 label: l10n.appearanceSection,
                 color: readerTheme.textColor,
                 onTap: onToggleDisplay,
-              ),
-              _ToolbarButton(
-                icon: isHighlighted
-                    ? PhosphorIconsFill.highlighter
-                    : PhosphorIconsLight.highlighter,
-                label: '高亮',
-                color: isHighlighted
-                    ? readerTheme.accentColor
-                    : readerTheme.textColor,
-                onTap: onToggleHighlight,
               ),
               _ToolbarButton(
                 icon: PhosphorIconsLight.waveform,
