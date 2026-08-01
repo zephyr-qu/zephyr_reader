@@ -245,21 +245,33 @@ class ReadiumViewModel {
 
   Future<void> _applyPreferences() async {
     final theme = config.theme.value;
-    Color bg;
-    Color text;
+    // Background from preset in light theme, otherwise theme-derived.
+    final Color bg;
+    if (theme == ReaderTheme.light) {
+      final idx = config.readerBgColorIndex.value.clamp(0, ReaderBgColors.presets.length - 1);
+      bg = ReaderBgColors.presets[idx];
+    } else {
+      switch (theme) {
+        case ReaderTheme.dark:
+          bg = const Color(0xFF1A1A1A);
+        case ReaderTheme.sepia:
+          bg = const Color(0xFFF5E6D3);
+        case ReaderTheme.light:
+          bg = const Color(0xFFFFFFFF);
+      }
+    }
+    final Color text;
     switch (theme) {
       case ReaderTheme.dark:
-        bg = const Color(0xFF1A1A1A);
         text = const Color(0xFFCCCCCC);
       case ReaderTheme.sepia:
-        bg = const Color(0xFFF5E6D3);
         text = const Color(0xFF4A3B2F);
       case ReaderTheme.light:
-        bg = const Color(0xFFFFFFFF);
         text = const Color(0xFF1A1A1A);
     }
+    final fontFamily = config.fontFamily.value;
     final prefs = EPUBPreferences(
-      fontFamily: 'System',
+      fontFamily: fontFamily,
       // Migrate old built-in dp values (< 50) to Readium percentage scale (80–200).
       fontSize: (() {
         final v = config.fontSize.value.round();

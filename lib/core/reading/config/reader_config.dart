@@ -33,7 +33,6 @@ enum ReaderTheme {
   }
 }
 
-/// 阅读器配置
 @Singleton()
 class ReaderBgColors {
   static const darkBackground = Color(0xFF0A0A0A);
@@ -49,8 +48,7 @@ class ReaderBgColors {
 @Singleton()
 /// 阅读器配置
 ///
-/// 管理阅读页的所有用户可调参数，包括主题、字体、布局、翻页等。
-/// 使用 PersistedSignal 实现自动持久化，支持重置为默认值。
+/// 管理阅读页参数，使用 PersistedSignal 自动持久化。
 class ReaderConfig {
   final PreferencesService prefs;
 
@@ -63,6 +61,13 @@ class ReaderConfig {
     ReaderTheme.light,
     ReaderTheme.fromId,
     debounce: Duration.zero,
+  );
+
+  /// 字体族
+  late final fontFamily = persistedString(
+    prefs,
+    SettingsKeys.readerFontFamily,
+    'System',
   );
 
   /// 字体大小（Readium 百分比，100 = 不缩放）
@@ -112,6 +117,7 @@ class ReaderConfig {
   void resetToDefault() {
     theme.reset();
     fontSize.reset();
+    fontFamily.reset();
     padding.reset();
     readerBgColorIndex.reset();
     autoScroll.reset();
@@ -122,6 +128,7 @@ class ReaderConfig {
   void dispose() {
     theme.dispose();
     fontSize.dispose();
+    fontFamily.dispose();
     padding.dispose();
     readerBgColorIndex.dispose();
     autoScrollSpeed.dispose();
