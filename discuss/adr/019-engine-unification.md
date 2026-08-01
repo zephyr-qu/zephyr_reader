@@ -1,6 +1,6 @@
 # ADR-019：阅读器引擎统一 — 双引擎共用一个阅读入口
 
-- **状态**：已通过
+- **状态**：已被 [ADR-020](./020-epub-readium-mvp.md) 取代（保留为历史设计）
 - **日期**：2026-07-19（初稿）/ 2026-07-22（重写为 Phase R1 方案）
 - **关联**：[ADR-006](./006-rust-flutter-division.md)、[DOMAIN_MODEL.md](../DOMAIN_MODEL.md)、[ROADMAP.md](../ROADMAP.md)、[READING_BOUNDARIES.md](../READING_BOUNDARIES.md)
 - **取代**：本 ADR 早期草稿（大型 `ReaderEngine` 接口方案已废弃）

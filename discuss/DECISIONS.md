@@ -21,6 +21,9 @@
 | [014](./adr/014-api-path-unification.md) | 分页 API 路径统一 | **已接受** | 2026-07-03 |
 | [015](./adr/015-css-style-whitelist-pruning.md) | CSS 样式白名单裁剪 | **已接受** | 2026-07 |
 | [016](./adr/016-flutter-pagination-engine-proposed.md) | 分页装箱迁 Flutter | **Accepted** | 2026-07-12 |
+| [018](./adr/018-layout-plan-truth.md) | LayoutPlan 是分页与渲染唯一边界 | **已接受** | 2026-07-16 |
+| [019](./adr/019-engine-unification.md) | Readium 双引擎统一接入 | **已被 020 取代** | 2026-07-22 |
+| [020](./adr/020-epub-readium-mvp.md) | 当前路线收敛为 EPUB Readium MVP | **已接受** | 2026-07-31 |
 
 ## 问卷归档
 

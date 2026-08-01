@@ -1,6 +1,6 @@
 # 阅读核心路线图（与边界 v1.1 绑定）
 
-> **当前阶段 = Phase R1**（Readium 双引擎统一接入）
+> **当前阶段 = EPUB Readium MVP**（ADR-020）
 > **Phase 0-12** 已完成 ✅
 > **Phase 13** ✅ 已完成
 
@@ -420,70 +420,42 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 
 ---
 
-## Phase R1 — Readium 正式接入（15 阶段计划） 🔄 当前进行中
+## EPUB Readium MVP 🔄 当前进行中
 
-**目标**：统一阅读入口、页面壳层和产品功能；正文排版由 Builtin / Readium 两个 Adapter 分别实现。
-Readium 首期只接 EPUB，不接 PDF 或漫画。
-PoC 阶段已取消，正式按 R1-R15 15 阶段实施。
+**目标**：用单一 Readium 链路交付可真机验证的 EPUB 阅读 MVP。
+TXT/Builtin、双引擎 seam 和跨引擎位置映射退出当前路线。
 
-**讨论**：`discuss/adr/019-engine-unification.md`
-
-**工作量估算**：约 95-105h（约 2.5-3 周满负荷）
+**决策**：[ADR-020](./adr/020-epub-readium-mvp.md)（取代 ADR-019 作为当前实施路线）
 
 ### 执行顺序
 
 ```
-R1  Docs ──→ R2  Core Models ──→ R3  Persistence
-                                       ├── R4  Builtin Adapter
-                                       └── R5  Readium Adapter
-                                                │
-                                      R6  Position Bridge
-                                                │
-                             R7  Policy + R8  SessionFactory
-                                        │
-                                  R9  Unified Page
-                                   ├── R10 TOC & Progress
-                                   ├── R11 Preferences
-                                   ├── R12 Bookmarks & Annotations
-                                   └── R13 TTS/Search/Vocab
-                                        │
-                                  R14 Cleanup PoC
-                                        │
-                                  R15 Verification & Signoff
+M1 路线与边界对齐
+ → M2 open/viewport/close 生命周期
+ → M3 阅读页 UI 接入
+ → M4 目录/进度/设置/TTS
+ → M5 Android+iOS 真机回归与收口
 ```
 
 ### 任务清单
 
-| # | 阶段 | 工作量 | 说明 | 状态 |
-|---|------|--------|------|------|
-| **R1** | 冻结正式架构 | ~2h | ADR-019 Accepted，文档对齐，声明 ReadingBackend seam | ⏳ 待开始 |
-| **R2** | 多引擎核心模型 | ~5h | lib/core/reading/ 下纯 Dart seam 文件 | ⏳ 待开始 |
-| **R3** | 引擎位置持久化 | ~8h | reading_engine_positions 表 + FRB API + EnginePositionHintRepository | ⏳ 待开始 |
-| **R4** | Builtin Adapter | ~10h | 包装 ReaderVM/PaginationEngine → ReadingBackend | ⏳ 待开始 |
-| **R5** | Readium Adapter | ~14h | Flureadium 生命周期+viewport+状态机 | ⏳ 待开始 |
-| **R6** | 位置桥 | ~8h | Locator ↔ ReadingPosition 映射，含边界测试 | ⏳ 待开始 |
-| **R7** | 引擎策略与回退 | ~3h | ReadingBackendPolicy + 每书覆盖 | ⏳ 待开始 |
-| **R8** | SessionFactory | ~5h | 带 scope 的 scoped ReadingSession | ⏳ 待开始 |
-| **R9** | 统一阅读页面 | ~12h | UnifiedReaderShell，基于 ReaderChromeShell + 删除重复壳层 | ⏳ 待开始 |
-| **R10** | 目录与进度 | ~5h | ReadingChapter 统一 + 节流持久化 | ⏳ 待开始 |
-| **R11** | 排版设置映射 | ~3h | ReadingPreferences → EPUBPreferences | ⏳ 待开始 |
-| **R12** | 书签与批注 | ~6h | 统一书签 + decoration 桥 | ⏳ 待开始 |
-| **R13** | TTS/搜索/生词 | ~3h | 应用层功能 Readium 适配 | ⏳ 待开始 |
-| **R14** | 清理 PoC | ~2h | 删除 PoC 文件和路由（零结果门禁） | ⏳ 待开始 |
-| **R15** | 全量验证 | ~12h | 契约测试 + 真机 20+ 用例 + 门禁 | ⏳ 待开始 |
-|
-**合计：约 95-105h**
+| # | 项 | 验收重点 | 状态 |
+|---|---|---|---|
+| **M1** | 文档路线更正 | ADR、边界、领域模型、Roadmap 一致 | 🔄 进行中 |
+| **M2** | Readium 核心链路 | viewport ready 后再应用设置/发布 ready；关闭幂等 | 🔄 进行中 |
+| **M3** | 渲染页 UI | 返回、目录、工具栏显隐、上/下页、错误可见 | 🔄 进行中 |
+| **M4** | 功能接入 | Locator 恢复/节流保存、字号、主题、目录跳转、基础 TTS | 🔄 进行中 |
+| **M5** | 真机收口 | 纯文本/含图/复杂 CSS EPUB；快速退出/重试/后台恢复 | ⏳ 待开始 |
 
-### 关键原则
+### 当前原则
 
 | 原则 | 说明 |
-|------|------|
-| charOffset 为领域真理 | Readium Locator 仅为 Adapter 私有位置加速提示 |
-| 三小接口 | ReadingBackend / ReadingSnapshot / ReadingViewportAdapter |
-| 能力显式暴露 | ReadingCapabilities 列出引擎支持/不支持的能力，禁止空实现 |
-| UI 零引擎感知 | UI 不 import flureadium，不判断具体引擎类型 |
-| 灰度和回滚 | Feature flag 可完整关闭 Readium；删除 Adapter 不断裂 UI |
-| 允许删除 | 如维护成本超过收益可删除 ReadiumReadingAdapter |
+|---|---|
+| EPUB only | 非 EPUB 在阅读入口显式拒绝，不静默回退 |
+| Locator 恢复 | MVP 按 `bookId` 保存 Locator，不保存页码 |
+| Ready 门槛 | 原生 viewport `onReady` 前不导航、不应用 preference、不发布 ready |
+| 单一状态源 | ViewModel 统一接收 locator/status/error 并驱动 Flutter 壳层 |
+| 真机为准 | Platform View 的渲染、旋转、后台与 TTS 必须由 Android/iOS 回归确认 |
 ---
 ## Phase 14 — 阅读中增强（规划中）
 
