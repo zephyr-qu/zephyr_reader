@@ -1,7 +1,32 @@
 # 阅读核心 — 领域模型
 
-> Phase 0 产出；Phase R1 更新（2026-07-22）。实现渐进，**语义**以此为准。  
+> Phase 0 产出；EPUB Readium MVP 更新（2026-07-31）。实现渐进，**语义**以此为准。
 > 术语见 [glossary.md](./glossary.md)；边界见 [READING_BOUNDARIES.md](./READING_BOUNDARIES.md)。
+
+> **当前路线覆盖**：[ADR-020](./adr/020-epub-readium-mvp.md) 取代 ADR-019
+> 作为当前实施路线。下文 IR/Builtin/ReadingBackend 模型保留为历史与未来参考，
+> 不是当前 MVP 验收面。
+
+## 0. 当前 MVP 模型
+
+```mermaid
+flowchart LR
+    Book["EPUB Book"] --> Publication["Readium Publication"]
+    Publication --> Viewport["ReadiumReaderWidget"]
+    Viewport --> Locator["Current Locator"]
+    Locator --> Progress["UI Progress"]
+    Locator --> Storage["SharedPreferences by bookId"]
+    Settings["ReaderConfig"] --> Preferences["EPUBPreferences"]
+    Preferences --> Viewport
+```
+
+| 概念 | 当前语义 |
+|---|---|
+| `Publication` | EPUB 打开产物，提供 metadata、TOC 和 reading order |
+| `ReadiumReaderWidget` | 唯一正文渲染视口；`onReady` 是生命周期门槛 |
+| `Locator` | MVP 导航、进度与恢复坐标；不存页码 |
+| `ReaderConfig` | Flutter 侧用户设置，viewport ready 后映射为 `EPUBPreferences` |
+| `ReadiumViewModel` | publication、viewport 事件、Locator 保存和 UI 状态的单一协调者 |
 
 ---
 
@@ -166,6 +191,16 @@ class EnginePositionHint {
 
 ## 3. 不变量（违反即 bug）
 
+### EPUB Readium MVP（当前）
+
+1. **M1**：只有 EPUB 可进入阅读视口；非 EPUB 必须显式拒绝。
+2. **M2**：原生 viewport `onReady` 前不得应用设置、导航或发布 ready。
+3. **M3**：进度和恢复使用 Locator，不持久化页码。
+4. **M4**：关闭必须幂等；退出后事件不得回写 UI。
+5. **M5**：打开失败必须可见且可重试；不得发布 ready。
+
+### 双引擎模型（已暂停）
+
 > I1-I7 保留不变。新增 Phase R1 不变量：
 
 > **I1**：持久化只用 `ReadingPosition`，不用 `pageIndex`。
@@ -182,7 +217,7 @@ class EnginePositionHint {
 10. **I10**：Readium Locator 与当前出版物指纹不匹配时必须丢弃（不用于恢复）。
 ---
 
-## 4. 现状 vs 目标（2026-07-22 更新）
+## 4. 双引擎历史现状（2026-07-22，已暂停）
 
 | 目标实体 | 现状 | 状态 |
 |----------|------|------|
@@ -201,7 +236,7 @@ class EnginePositionHint {
 
 ---
 
-## 5. 北极星（Phase R1）
+## 5. 北极星（EPUB Readium MVP）
 
-> **进度领域真理不变（charOffset）；Builtin 继续服务 TXT + EPUB；Readium 渐进补齐 EPUB 渲染；UI 零引擎感知。**
-> **进度存 charOffset；渲染统一吃 IR；plain 为搜索/TTS 锚点；staging 预取必须命中、零可见 loading。**
+> **EPUB 文件由 Readium 原生视口渲染；Flutter 只负责壳层、设置和状态。**
+> **viewport ready 后才应用 preference；Locator 负责导航/进度/恢复；错误可见、关闭幂等。**
