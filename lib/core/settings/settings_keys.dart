@@ -40,13 +40,6 @@ abstract final class SettingsKeys {
 
   /// 阅读器字号
   static const readerFontSize = 'reader_font_size';
-
-  /// 行间距
-  static const readerLineHeight = 'reader_line_height';
-
-  /// 段落间距
-  static const readerParagraphSpacing = 'reader_paragraph_spacing';
-
   /// 页边距
   static const readerPadding = 'reader_padding';
 
@@ -58,36 +51,6 @@ abstract final class SettingsKeys {
 
   /// 自动翻页速度（秒）
   static const readerAutoScrollSpeed = 'reader_auto_scroll_speed';
-
-  /// 字间距
-  static const readerLetterSpacing = 'reader_letter_spacing';
-
-  /// 标点挤压
-  static const readerPunctuationSqueeze = 'reader_punctuation_squeeze';
-
-  /// 中西文基线对齐
-  static const readerBaselineAlign = 'reader_baseline_align';
-
-  /// 首行缩进
-  static const readerFirstLineIndent = 'reader_first_line_indent';
-
-  /// 语言类型
-  static const readerLanguage = 'reader_language';
-
-  /// 中西文自动间距比例
-  static const readerAutoSpaceRatio = 'reader_auto_space_ratio';
-
-  /// 翻页点击区域布局
-  static const readerTapLayout = 'reader_tap_layout';
-
-  /// 是否跟随系统字体缩放
-  static const readerFollowSystemFontScale = 'reader_follow_system_font_scale';
-
-  /// 文字对齐方式
-  static const readerTextAlign = 'reader_text_align';
-
-  /// pagination 翻页皮肤（slide / curl）
-  static const readerPaginationSkin = 'reader_pagination_skin';
 
   // ==================== 书架 ====================
 

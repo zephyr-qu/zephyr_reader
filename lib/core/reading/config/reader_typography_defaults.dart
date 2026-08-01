@@ -12,11 +12,6 @@ class ReaderTypographyDefaults {
   static const double minPadding = 8.0;
   static const double maxPadding = 40.0;
 
-  /// 中文长篇阅读推荐 1.8（约 32px @ 18sp），与 Rust `line_spacing` 对齐。
-  static const double lineHeight = 1.8;
-  static const double paragraphSpacing = 16.0;
   static const double padding = 20.0;
-  static const double letterSpacing = 0.0;
-  static const double autoSpaceRatio = 0.25;
   static const int readerBgColorIndex = 1; // 羊皮纸 #F5F0E8
 }
