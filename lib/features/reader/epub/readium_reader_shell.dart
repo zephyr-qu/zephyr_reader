@@ -15,7 +15,7 @@ import 'package:zephyr_reader/features/reader/page/toolbar/reader_bottom_toolbar
 import 'package:zephyr_reader/features/reader/page/toolbar/reader_toolbar.dart';
 import 'package:zephyr_reader/features/reader/settings/reader_panel_type.dart';
 import 'package:zephyr_reader/features/reader/settings/reader_settings_overlay.dart';
-
+import 'package:zephyr_reader/src/rust/domain/bookmark/models.dart';
 import 'readium_reader_content.dart';
 import 'readium_view_model.dart';
 
@@ -57,8 +57,8 @@ class ReadiumReaderShell extends HookWidget {
         useSignalValue(vm.readingMode) as ReadingMode;
     final String? errorMessage = useSignalValue(vm.error) as String?;
     final bool isBookmarked = useSignalValue(vm.isBookmarked) as bool;
-    final List<Map<String, dynamic>> bookmarks =
-        useSignalValue(vm.bookmarks) as List<Map<String, dynamic>>;
+    final List<Bookmark> bookmarks =
+        useSignalValue(vm.bookmarks) as List<Bookmark>;
 
     final scaffoldKey = useRef(GlobalKey<ScaffoldState>());
     final chromeVisible = useState(true);
@@ -295,11 +295,10 @@ class ReadiumReaderShell extends HookWidget {
 }
 
 class _BookmarkListSheet extends StatelessWidget {
-  final List<Map<String, dynamic>> bookmarks;
+  final List<Bookmark> bookmarks;
   final ReaderThemeExtension readerTheme;
-  final ValueChanged<Map<String, dynamic>> onSelect;
-  final ValueChanged<Map<String, dynamic>> onDelete;
-
+  final ValueChanged<Bookmark> onSelect;
+  final ValueChanged<Bookmark> onDelete;
   const _BookmarkListSheet({
     required this.bookmarks,
     required this.readerTheme,
@@ -371,16 +370,12 @@ class _BookmarkListSheet extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 16),
                   itemBuilder: (context, index) {
                     final entry = bookmarks[index];
-                    final chapterTitle =
-                        entry['chapterTitle'] as String? ?? '未知章节';
-                    final createdAt = entry['createdAt'] as int?;
-                    final dateStr = createdAt != null
-                        ? _formatTimestamp(createdAt)
-                        : '';
+                    final chapterTitle = entry.title;
+                    final createdAt = entry.createdAt;
+                    final dateStr = _formatTimestamp(createdAt);
 
                     return Dismissible(
-                      key: ValueKey(entry['locatorJson']),
-                      direction: DismissDirection.endToStart,
+                      key: ValueKey(entry.id),
                       background: Container(
                         alignment: Alignment.centerRight,
                         padding: const EdgeInsets.only(right: 20),
@@ -430,8 +425,7 @@ class _BookmarkListSheet extends StatelessWidget {
     );
   }
 
-  static String _formatTimestamp(int millis) {
-    final date = DateTime.fromMillisecondsSinceEpoch(millis);
+  static String _formatTimestamp(DateTime date) {
     final now = DateTime.now();
     if (date.year == now.year &&
         date.month == now.month &&

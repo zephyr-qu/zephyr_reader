@@ -21,6 +21,7 @@ pub async fn create_bookmark(
     chapter_index: i32,
     char_offset: i32,
     title: String,
+    locator_json: Option<String>,
 ) -> Result<Bookmark, AppError> {
     tracing::info!(
         "[bookmark] create_bookmark: book_id={}, title={}",
@@ -32,6 +33,7 @@ pub async fn create_bookmark(
         chapter_index as i64,
         None,
         char_offset as i64,
+        locator_json,
         &title,
     );
     let pool = storage_pool()?;
