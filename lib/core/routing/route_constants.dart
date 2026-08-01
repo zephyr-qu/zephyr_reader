@@ -15,7 +15,6 @@ enum AppRoute {
   categoryManagement('/bookshelf/categories'),
   bookSearch('/search/book'),
   vocabulary('/vocabulary'),
-  learningNotes('/learning-notes'),
   readingSessions('/statistics/sessions'),
   dataManagement('/settings/data-management'),
   ttsSettings('/settings/tts'),

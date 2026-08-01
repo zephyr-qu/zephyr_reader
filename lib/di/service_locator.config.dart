@@ -45,8 +45,6 @@ import 'package:zephyr_reader/features/profile/application/theme_brightness_view
     as _i583;
 import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart'
     as _i136;
-import 'package:zephyr_reader/features/search/application/search_view_model.dart'
-    as _i1;
 
 extension GetItInjectableX on _i174.GetIt {
   // initializes the registration of main-scope dependencies inside of GetIt
@@ -74,7 +72,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i361.Dio>(() => networkModule.dio);
     gh.lazySingleton<_i339.BookImportService>(() => _i339.BookImportService());
     gh.lazySingleton<_i415.WebDavSyncService>(() => _i415.WebDavSyncService());
-    gh.lazySingleton<_i1.SearchViewModel>(() => _i1.SearchViewModel());
     gh.lazySingleton<_i790.BookshelfViewModel>(
       () => _i790.BookshelfViewModel(
         gh<_i985.PreferencesService>(),

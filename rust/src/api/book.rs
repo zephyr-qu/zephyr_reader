@@ -12,7 +12,6 @@ use crate::domain::book::service;
 use crate::domain::book::{Book, BookStatus, BookshelfBook};
 use crate::domain::category::Category;
 use crate::domain::chapter::Chapter;
-use crate::domain::note::NoteStats;
 use crate::domain::progress::models::ReadingProgress;
 use crate::infra::manager::storage_pool;
 use crate::parser::epub::EpubMetadata;
@@ -22,7 +21,6 @@ use crate::parser::epub::EpubMetadata;
 pub struct BookDetail {
     pub book: Book,
     pub progress: Option<ReadingProgress>,
-    pub note_stats: NoteStats,
     pub chapters: Vec<Chapter>,
     pub categories: Vec<Category>,
     pub session_count: i32,

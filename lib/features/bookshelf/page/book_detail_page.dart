@@ -1,6 +1,3 @@
-import 'dart:io';
-
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
@@ -17,13 +14,11 @@ import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_actions
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_bottom_actions.dart';
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_hero.dart';
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_info_section.dart';
-import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_note_stats.dart';
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_progress_card.dart';
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_toc_section.dart';
 import 'package:zephyr_reader/features/bookshelf/page/detail/book_detail_desc_section.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 import 'package:zephyr_reader/src/rust/api/book.dart' as book_api;
-import 'package:zephyr_reader/src/rust/api/note.dart' as note_api;
 import 'package:zephyr_reader/src/rust/domain/book/models.dart';
 
 
@@ -87,11 +82,6 @@ class BookDetailPage extends HookWidget {
                       progress: progress,
                       sessionCount: detail.sessionCount,
                     ),
-                  BookDetailNoteStats(
-                    highlightCount: detail.noteStats.highlightCount,
-                    annotationCount: detail.noteStats.annotationCount,
-                    vocabCount: detail.vocabCount,
-                  ),
                   if (book.description != null)
                     BookDetailDescSection(description: book.description!),
                   BookDetailTocSection(
@@ -113,8 +103,7 @@ class BookDetailPage extends HookWidget {
                   ),
                   BookDetailBottomActions(
                     onEditMetadata: () => _onEditMetadata(context, vm, book),
-                    onExportNotes: () =>
-                        _onExportNotes(context, vm, book, l10n),
+                    onExportNotes: () {},
                     onDeleteBook: () async {
                       Logging.debug(
                         '[DetailPage] onDeleteBook start, bookId=${book.bookId}',
@@ -178,52 +167,4 @@ class BookDetailPage extends HookWidget {
     vm.applyEditedBook(updated);
   }
 
-  Future<void> _onExportNotes(
-    BuildContext context,
-    BookDetailViewModel vm,
-    Book book,
-    AppLocalizations l10n,
-  ) async {
-    try {
-      final notes = await note_api.listNotesByBook(bookId: book.bookId);
-      if (notes.isEmpty) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(l10n.noNotes)));
-        }
-        return;
-      }
-      final markdown = note_api.renderNotesToString(
-        notes: notes,
-        bookTitle: book.title,
-        format: 'markdown',
-      );
-      final dirPath = await FilePicker.getDirectoryPath(
-        dialogTitle: l10n.exportNotes,
-      );
-      if (dirPath == null) return;
-      final safeName = book.title
-          .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
-          .replaceAll(RegExp(r'\s+'), ' ')
-          .trim();
-      final filePath = '$dirPath/${safeName}_读书笔记.md';
-      await File(filePath).writeAsString(markdown);
-      Logging.debug('[DetailPage] Notes exported to $filePath');
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${l10n.exportNotes} ${l10n.success}: $filePath'),
-          ),
-        );
-      }
-    } catch (e) {
-      Logging.error('Export notes failed: $e');
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${l10n.exportNotes} ${l10n.failed}: $e')),
-        );
-      }
-    }
-  }
 }

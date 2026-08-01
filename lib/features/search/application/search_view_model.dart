@@ -3,11 +3,9 @@ import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/features/search/page/search_results.dart';
 import 'package:zephyr_reader/src/rust/api/book.dart' as book_api;
-import 'package:zephyr_reader/src/rust/api/note.dart' as note_api;
 import 'package:zephyr_reader/src/rust/api/vocab.dart' as vocab_api;
 import 'package:zephyr_reader/src/rust/api/search.dart';
 import 'package:zephyr_reader/src/rust/domain/book/models.dart';
-import 'package:zephyr_reader/src/rust/domain/note/models.dart';
 import 'package:zephyr_reader/src/rust/domain/search/models.dart';
 import 'package:zephyr_reader/src/rust/domain/vocab/models.dart';
 
@@ -47,12 +45,6 @@ class SearchViewModel {
         Logging.error('searchAllBooks failed', exception: e, stackTrace: stack);
         return <SearchResult>[];
       });
-      final noteFuture = note_api
-          .searchNotes(query: query)
-          .catchError((Object e, StackTrace stack) {
-        Logging.error('searchNotes failed', exception: e, stackTrace: stack);
-        return <Note>[];
-      });
 
       final allBooksResult = await allBooksFuture;
       final bookMap = {for (final b in allBooksResult) b.bookId: b};
@@ -61,13 +53,11 @@ class SearchViewModel {
         titleHitsFuture,
         ftsFuture,
         vocabHitsFuture,
-        noteFuture,
       ]);
 
       final matchedBooks = results[0] as List<Book>;
       final contentSearchResults = results[1] as List<SearchResult>;
       final vocabList = results[2] as List<Vocab>;
-      final noteResults = results[3] as List<Note>;
 
       // 构造聚合结果（在异步线程完成，不阻塞 UI）
       final seenBooks = <String>{};
@@ -90,12 +80,7 @@ class SearchViewModel {
         }
       }
 
-      final noteItems = noteResults.map((note) {
-        final book =
-            bookMap[note.bookId] ??
-            allBooksResult.firstWhere((b) => b.bookId == note.bookId);
-        return NoteSearchItem(note: note, book: book);
-      }).toList();
+      const noteItems = <NoteSearchItem>[];
 
       final vocabItems = vocabList
           .map(

@@ -6,7 +6,6 @@ pub mod bookmark;
 pub mod category;
 pub mod cover;
 pub mod dictionary;
-pub mod note;
 pub mod search;
 pub mod session;
 pub mod stats;
