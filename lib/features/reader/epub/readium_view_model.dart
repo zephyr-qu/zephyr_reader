@@ -195,6 +195,17 @@ class ReadiumViewModel {
 
   Future<void> goRight() => _navigatePage(reader.goRight);
 
+  /// Skip to the previous reading-order resource (previous chapter).
+  Future<void> skipToPrevious() async {
+    if (!_viewportReady || _closing || _navigationInProgress) return;
+    _navigationInProgress = true;
+    try {
+      await reader.skipToPrevious();
+    } finally {
+      _navigationInProgress = false;
+    }
+  }
+
   /// Continue into the next reading-order resource after an upward scroll
   /// attempt at the end of the current resource.
   Future<void> advanceFromScrollBoundary() async {
@@ -318,6 +329,36 @@ class ReadiumViewModel {
     isTtsPlaying.value = false;
   }
 
+  /// Skip to next TTS utterance (sentence).
+  Future<void> ttsNext() async {
+    if (!_viewportReady || !_ttsEnabled) return;
+    try {
+      await reader.next();
+    } catch (e) {
+      error.value = e.toString();
+    }
+  }
+
+  /// Skip to previous TTS utterance (sentence).
+  Future<void> ttsPrevious() async {
+    if (!_viewportReady || !_ttsEnabled) return;
+    try {
+      await reader.previous();
+    } catch (e) {
+      error.value = e.toString();
+    }
+  }
+
+  /// Resume TTS playback after pause.
+  Future<void> ttsResume() async {
+    if (!_viewportReady || !_ttsEnabled) return;
+    try {
+      await reader.resume();
+      isTtsPlaying.value = true;
+    } catch (e) {
+      error.value = e.toString();
+    }
+  }
   // ==================== Highlights ====================
 
   /// Toggle highlight on the current locator position.
