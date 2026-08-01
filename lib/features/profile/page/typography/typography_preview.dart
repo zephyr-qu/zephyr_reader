@@ -44,11 +44,9 @@ class TypographyPreview extends HookWidget {
     final l10n = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     final double fontSize = useSignalValue(config.fontSize.signal);
-    final double lineHeight = useSignalValue(config.lineHeight.signal);
-    final double paragraphSpacing = useSignalValue(
-      config.paragraphSpacing.signal,
-    );
-    final double letterSpacing = useSignalValue(config.letterSpacing.signal);
+    final double lineHeight = 1.8;
+    final double paragraphSpacing = 16.0;
+    final double letterSpacing = 0.0;
     final double margin = useSignalValue(config.padding.signal);
     final fontId = 'system'; // MVP: font selection removed
     return Container(
