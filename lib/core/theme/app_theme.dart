@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
-import 'package:zephyr_reader/core/theme/theme_extension.dart';
 
 // ==================== 排版常量（7 档，无 color，const 零开销） ====================
 
@@ -39,7 +38,7 @@ const _caption = TextStyle(fontSize: 11, fontWeight: FontWeight.w400);
 ///
 /// 构建基于 Material 3 的亮色/深色 [ThemeData]，支持自定义主色。
 /// 提供统一的 AppBar、卡片、按钮、输入框等组件主题配置，
-/// 并注入自定义 [AppThemeExtension] 和 [ReaderThemeExtension]。
+/// 并注入自定义 [ReaderThemeExtension]。
 class AppThemes {
   AppThemes._();
 
@@ -287,17 +286,6 @@ class AppThemes {
         overlayColor: primary.withValues(alpha: 0.1),
       ),
 
-      extensions: [
-        AppThemeExtension(
-          primaryContainer: DesignTokens.primaryContainer,
-          secondaryContainer: DesignTokens.secondary,
-          surfaceVariant: surf,
-          shadow: DesignTokens.cardShadow,
-          dividerSubtle: DesignTokens.dividerSubtle,
-          overlayLight: textPri.withValues(alpha: 0.05),
-          overlayMedium: textPri.withValues(alpha: 0.08),
-        ),
-      ],
     );
   }
 
