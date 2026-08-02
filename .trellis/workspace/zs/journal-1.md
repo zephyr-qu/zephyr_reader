@@ -271,3 +271,21 @@ IK5│- 待用户启动：R1（文档冻结）→ R2（核心模型）→ ...
 **不做**：行距/字间距/段间距——flureadium 0.13.3 的 EPUBPreferences 不支持（3be5b7ec 已裁），加了就是假控件。
 
 全绿：dart analyze 0 / flutter test 22。
+
+### REDUNDANCY_REPORT_V2 全量清理完成（2026-08-02）✅
+
+REDUNDANCY_REPORT_V2 的 A/B/C/D 四类清理项全部执行完毕，5 个 commit，共删 ~8,000 行 + 15 个依赖 + 60KB 资产。
+
+- **A 死文件**（4e85e5c5）：GoReadingEmptyState / SelectionChip / AppThemeExtension（含 app_theme.dart extensions 块 + import + 注释）
+- **D1 翻译链**（28f0ddd7）：DictionaryConfig/DictionaryModule/DictionaryService/2 Translator 整链删；DI 经 build_runner 重新生成（dictionary_module 带 @module）；translation.* 8 key 删
+- **D2 WiFi 传书**（28f0ddd7）：service/page/html 资产 + AppRoute.wifiTransfer + DI + 菜单项删；**发现并修复**：bookshelf 菜单 'settings' 项原无 switch case（死项），_showSettingsSheet 误挂在 wifi case → 移到 settings case 恢复功能
+- **C2 SettingsKeys**（28f0ddd7）：dictMddPath/currentFont/wifiTransferPort + translation.* 共 11 个死 key
+- **B 依赖**（7127804a）：15 个未用依赖（runtime 10 + dev 5）；shimmer/flutter_widget_from_html/ffigen 仅注释/生成物提及，无真实 import
+- **C1 l10n 死键**（dce633b5）：269 个死 key（en/zh 各 594→325），词边界脚本 + 二次人工核对；gen-l10n 重新生成
+- **D3 wordlist**（168e7800）：4 个 JSON（60KB）删
+
+**踩坑**：①route_constants 枚举最后一项删后需改 `;` 结尾；②bookshelf_page 多处 replace 误删闭合括号 → analyze 报错逐步修复；③python3 heredoc 输出乱码但操作成功（Windows 终端编码）；④appName/gridView/share 等"看似活跃"key 实为死（UI 硬编码或换用其他 key）。
+
+**发现的结构问题（已顺带修复）**：bookshelf 'settings' 菜单项点击无效（switch 无该 case）——已把 _showSettingsSheet 从 wifi case 移到 settings case。
+
+全绿：dart analyze 0 / flutter test 22 / cargo clippy 0 / cargo test 102。
