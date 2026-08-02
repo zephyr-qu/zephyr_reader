@@ -14,4 +14,11 @@ class ReaderTypographyDefaults {
 
   static const double padding = 20.0;
   static const int readerBgColorIndex = 1; // 羊皮纸 #F5F0E8
+
+  /// 默认字重（400 = 常规）。
+  static const double fontWeight = 400.0;
+
+  /// 字重可调范围（Readium 支持 100–900）。
+  static const double minFontWeight = 300.0;
+  static const double maxFontWeight = 700.0;
 }

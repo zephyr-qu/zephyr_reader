@@ -380,6 +380,18 @@ abstract class AppLocalizations {
   /// **'字体大小'**
   String get fontSize;
 
+  /// No description provided for @fontFamily.
+  ///
+  /// In zh, this message translates to:
+  /// **'字体'**
+  String get fontFamily;
+
+  /// No description provided for @fontWeight.
+  ///
+  /// In zh, this message translates to:
+  /// **'字重'**
+  String get fontWeight;
+
   /// No description provided for @followSystemFontScale.
   ///
   /// In zh, this message translates to:

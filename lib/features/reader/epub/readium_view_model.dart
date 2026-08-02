@@ -119,6 +119,7 @@ class ReadiumViewModel {
       _viewportReady = false;
       _closing = false;
       _navigationInProgress = false;
+      readingMode.value = config.readingMode.value;
       _sessionStartedAt = null;
       _sessionChapterIndex = null;
       _sessionStartOffset = 0;
@@ -314,6 +315,7 @@ class ReadiumViewModel {
   Future<void> setReadingMode(ReadingMode mode) async {
     if (readingMode.value == mode) return;
     readingMode.value = mode;
+    config.readingMode.value = mode;
     await applyPreferences();
   }
 
@@ -360,7 +362,7 @@ class ReadiumViewModel {
         final v = config.fontSize.value.round();
         return v < 50 ? 100 : v;
       })(),
-      fontWeight: null,
+      fontWeight: config.fontWeight.value,
       verticalScroll: readingMode.value == ReadingMode.scroll,
       backgroundColor: bg,
       textColor: text,

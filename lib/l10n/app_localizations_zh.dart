@@ -154,6 +154,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fontSize => '字体大小';
 
   @override
+  String get fontFamily => '字体';
+
+  @override
+  String get fontWeight => '字重';
+
+  @override
   String get followSystemFontScale => '跟随系统';
 
   @override

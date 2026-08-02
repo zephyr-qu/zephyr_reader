@@ -48,6 +48,8 @@
   "pageTurnMode": "翻页",
   "paginationMode": "分页",
   "fontSize": "字体大小",
+  "fontFamily": "字体",
+  "fontWeight": "字重",
   "followSystemFontScale": "跟随系统",
   "lineHeight": "行间距",
   "letterSpacing": "字间距",

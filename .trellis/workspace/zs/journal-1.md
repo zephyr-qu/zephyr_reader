@@ -252,3 +252,22 @@ IK5│- 待用户启动：R1（文档冻结）→ R2（核心模型）→ ...
 - FRB codegen 重新生成；api_stats_test.rs 重写为 3 个测试（fill 补零形状 / fill 包含会话聚合数据 / global）
 - **踩坑**：聚合测试原用 `days_with_fill` 断言被并行测试遮蔽（fill 按日期折叠一天一行）→ 改为直接 sqlx 查 reading_stats 表断言，稳定 4/4
 - 全绿：cargo test 102 / clippy 0 / dart analyze 0 / flutter test 18
+
+### 排版与字体设置页补全（2026-08-02）✅
+
+用户指出：应用设置页「排版与字体」（profile → typography_settings_page）是空的——只有实时预览卡片，零控件（注释 "font service removed"，fontId 硬编码 'system'）。
+
+**新增/修改：**
+
+- **ReaderConfig 新字段**：`fontWeight`（persistedDouble，300-700，默认 400，Readium 支持）+ `readingMode`（persistedEnum 分页/滚动，此前只在 VM 内是瞬态信号）
+- **ReadiumViewModel**：open() 时从 config 种子 readingMode；setReadingMode 持久化到 config；_applyPreferences 的 fontWeight 从 null 改为 config.fontWeight.value（真正作用于 Readium）
+- **typography_settings_page.dart 重建**：字体选择（System/Serif/Noto Serif SC，复用 FontTile）+ 字号 slider（80-200%）+ 字重 slider（300-700）+ 页边距 slider（8-40）+ 阅读模式（分页/滚动）——全部映射同一份 ReaderConfig 持久化信号，与阅读器底部面板共享
+- **typography_preview.dart**：fontId 硬编码 → 真实 config（fontFamily 映射打包的 Noto Serif SC、fontWeight、fontSize、padding），预览随设置实时变化
+- **l10n**：新增 fontFamily（字体）/fontWeight（字重）键 + gen-l10n 重新生成
+- **测试**：新增 typography_settings_page_test（4 个：渲染全部分区 / 字体选择 / 阅读模式 / 字号 slider）；reader VM 测试补 readingMode/fontWeight stub（12 个全过）
+
+**踩坑**：①设置页 ListView 懒加载，测试 600px 视口只渲染预览卡 → 用 tall viewport（physicalSize 1080×2800）一次性渲染所有分区；②flutter_animate 预览动画遗留定时器 → pumpAndSettle；③persistedString/fontWeight 150ms debounce 定时器 → 交互后 pump 300ms；④pi-lens 的 config.readingMode 未定义提示是旧索引假阳性（dart analyze 通过）。
+
+**不做**：行距/字间距/段间距——flureadium 0.13.3 的 EPUBPreferences 不支持（3be5b7ec 已裁），加了就是假控件。
+
+全绿：dart analyze 0 / flutter test 22。

@@ -48,6 +48,8 @@
   "pageTurnMode": "Flip",
   "paginationMode": "Pages",
   "fontSize": "Font Size",
+  "fontFamily": "Font Family",
+  "fontWeight": "Font Weight",
   "followSystemFontScale": "Follow System",
   "lineHeight": "Line Height",
   "letterSpacing": "Letter Spacing",

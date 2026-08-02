@@ -84,6 +84,22 @@ class ReaderConfig {
     ReaderTypographyDefaults.padding,
   );
 
+  /// 字重（Readium 支持 100–900，400 = 常规）
+  late final fontWeight = persistedDouble(
+    prefs,
+    SettingsKeys.readerFontWeight,
+    ReaderTypographyDefaults.fontWeight,
+  );
+
+  /// 阅读模式（分页 / 滚动）
+  late final readingMode = persistedEnum(
+    prefs,
+    SettingsKeys.readerReadingMode,
+    ReadingMode.pagination,
+    (s) => ReadingMode.values.asNameMap()[s] ?? ReadingMode.pagination,
+    debounce: Duration.zero,
+  );
+
   /// 阅读背景色预设索引
   late final readerBgColorIndex = persistedInt(
     prefs,
@@ -119,6 +135,8 @@ class ReaderConfig {
     fontSize.reset();
     fontFamily.reset();
     padding.reset();
+    fontWeight.reset();
+    readingMode.reset();
     readerBgColorIndex.reset();
     autoScroll.reset();
     autoScrollSpeed.reset();
@@ -130,6 +148,8 @@ class ReaderConfig {
     fontSize.dispose();
     fontFamily.dispose();
     padding.dispose();
+    fontWeight.dispose();
+    readingMode.dispose();
     readerBgColorIndex.dispose();
     autoScrollSpeed.dispose();
     brightnessOverlay.dispose();

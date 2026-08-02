@@ -44,6 +44,12 @@ abstract final class SettingsKeys {
   /// 字体族
   static const readerFontFamily = 'reader_font_family';
 
+  /// 字重
+  static const readerFontWeight = 'reader_font_weight';
+
+  /// 阅读模式（分页/滚动）
+  static const readerReadingMode = 'reader_reading_mode';
+
   static const readerPadding = 'reader_padding';
 
   /// 阅读背景色预设索引

@@ -154,6 +154,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fontSize => 'Font Size';
 
   @override
+  String get fontFamily => 'Font Family';
+
+  @override
+  String get fontWeight => 'Font Weight';
+
+  @override
   String get followSystemFontScale => 'Follow System';
 
   @override

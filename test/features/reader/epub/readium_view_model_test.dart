@@ -55,6 +55,12 @@ void main() {
     final bgIndex = _MockPersistedSignal<int>();
     when(() => config.readerBgColorIndex).thenReturn(bgIndex);
     when(() => bgIndex.value).thenReturn(0);
+    final fontWeight = _MockPersistedSignal<double>();
+    final readingMode = _MockPersistedSignal<ReadingMode>();
+    when(() => config.fontWeight).thenReturn(fontWeight);
+    when(() => fontWeight.value).thenReturn(400.0);
+    when(() => config.readingMode).thenReturn(readingMode);
+    when(() => readingMode.value).thenReturn(ReadingMode.pagination);
     when(
       () => reader.openPublication(any()),
     ).thenAnswer((_) async => publication);
@@ -107,6 +113,9 @@ void main() {
   test('closes a publication that finishes opening after page exit', () async {
     final reader = _MockFlureadium();
     final config = _MockReaderConfig();
+    final readingMode = _MockPersistedSignal<ReadingMode>();
+    when(() => config.readingMode).thenReturn(readingMode);
+    when(() => readingMode.value).thenReturn(ReadingMode.pagination);
     final openCompleter = Completer<Publication>();
     final publication = Publication(
       metadata: Metadata(
@@ -166,6 +175,12 @@ void main() {
     final bgIndex = _MockPersistedSignal<int>();
     when(() => config.readerBgColorIndex).thenReturn(bgIndex);
     when(() => bgIndex.value).thenReturn(0);
+    final fontWeight = _MockPersistedSignal<double>();
+    final readingMode = _MockPersistedSignal<ReadingMode>();
+    when(() => config.fontWeight).thenReturn(fontWeight);
+    when(() => fontWeight.value).thenReturn(400.0);
+    when(() => config.readingMode).thenReturn(readingMode);
+    when(() => readingMode.value).thenReturn(ReadingMode.pagination);
     when(
       () => reader.openPublication(any()),
     ).thenAnswer((_) async => publication);
@@ -228,6 +243,12 @@ void main() {
     final bgIndex = _MockPersistedSignal<int>();
     when(() => config.readerBgColorIndex).thenReturn(bgIndex);
     when(() => bgIndex.value).thenReturn(0);
+    final fontWeight = _MockPersistedSignal<double>();
+    final readingMode = _MockPersistedSignal<ReadingMode>();
+    when(() => config.fontWeight).thenReturn(fontWeight);
+    when(() => fontWeight.value).thenReturn(400.0);
+    when(() => config.readingMode).thenReturn(readingMode);
+    when(() => readingMode.value).thenReturn(ReadingMode.pagination);
       when(
         () => reader.openPublication(any()),
       ).thenAnswer((_) async => publication);
@@ -283,6 +304,12 @@ void main() {
     final bgIndex = _MockPersistedSignal<int>();
     when(() => config.readerBgColorIndex).thenReturn(bgIndex);
     when(() => bgIndex.value).thenReturn(0);
+    final fontWeight = _MockPersistedSignal<double>();
+    final readingMode = _MockPersistedSignal<ReadingMode>();
+    when(() => config.fontWeight).thenReturn(fontWeight);
+    when(() => fontWeight.value).thenReturn(400.0);
+    when(() => config.readingMode).thenReturn(readingMode);
+    when(() => readingMode.value).thenReturn(ReadingMode.pagination);
     when(
       () => reader.openPublication(any()),
     ).thenAnswer((_) async => publication);
@@ -327,6 +354,9 @@ void main() {
   test('pagination never advances through the scroll boundary hook', () async {
     final reader = _MockFlureadium();
     final config = _MockReaderConfig();
+    final readingMode = _MockPersistedSignal<ReadingMode>();
+    when(() => config.readingMode).thenReturn(readingMode);
+    when(() => readingMode.value).thenReturn(ReadingMode.pagination);
     final publication = Publication(
       metadata: Metadata(
         localizedTitle: LocalizedString.fromString('Test Book'),
@@ -400,6 +430,12 @@ void main() {
     when(() => fontFamily.value).thenReturn('System');
     when(() => config.readerBgColorIndex).thenReturn(bgIndex);
     when(() => bgIndex.value).thenReturn(0);
+    final fontWeight = _MockPersistedSignal<double>();
+    final readingMode = _MockPersistedSignal<ReadingMode>();
+    when(() => config.fontWeight).thenReturn(fontWeight);
+    when(() => fontWeight.value).thenReturn(400.0);
+    when(() => config.readingMode).thenReturn(readingMode);
+    when(() => readingMode.value).thenReturn(ReadingMode.pagination);
     when(
       () => reader.openPublication(any()),
     ).thenAnswer((_) async => publication);
@@ -485,6 +521,12 @@ void main() {
     when(() => fontFamily.value).thenReturn('System');
     when(() => config.readerBgColorIndex).thenReturn(bgIndex);
     when(() => bgIndex.value).thenReturn(0);
+    final fontWeight = _MockPersistedSignal<double>();
+    final readingMode = _MockPersistedSignal<ReadingMode>();
+    when(() => config.fontWeight).thenReturn(fontWeight);
+    when(() => fontWeight.value).thenReturn(400.0);
+    when(() => config.readingMode).thenReturn(readingMode);
+    when(() => readingMode.value).thenReturn(ReadingMode.pagination);
     when(
       () => reader.openPublication(any()),
     ).thenAnswer((_) async => publication);
@@ -551,6 +593,12 @@ void main() {
     when(() => fontFamily.value).thenReturn('System');
     when(() => config.readerBgColorIndex).thenReturn(bgIndex);
     when(() => bgIndex.value).thenReturn(0);
+    final fontWeight = _MockPersistedSignal<double>();
+    final readingMode = _MockPersistedSignal<ReadingMode>();
+    when(() => config.fontWeight).thenReturn(fontWeight);
+    when(() => fontWeight.value).thenReturn(400.0);
+    when(() => config.readingMode).thenReturn(readingMode);
+    when(() => readingMode.value).thenReturn(ReadingMode.pagination);
     when(
       () => reader.openPublication(any()),
     ).thenAnswer((_) async => publication);
@@ -626,6 +674,12 @@ void main() {
     when(() => fontFamily.value).thenReturn('System');
     when(() => config.readerBgColorIndex).thenReturn(bgIndex);
     when(() => bgIndex.value).thenReturn(0);
+    final fontWeight = _MockPersistedSignal<double>();
+    final readingMode = _MockPersistedSignal<ReadingMode>();
+    when(() => config.fontWeight).thenReturn(fontWeight);
+    when(() => fontWeight.value).thenReturn(400.0);
+    when(() => config.readingMode).thenReturn(readingMode);
+    when(() => readingMode.value).thenReturn(ReadingMode.pagination);
     when(
       () => reader.openPublication(any()),
     ).thenAnswer((_) async => publication);
@@ -695,6 +749,12 @@ void main() {
     when(() => fontFamily.value).thenReturn('System');
     when(() => config.readerBgColorIndex).thenReturn(bgIndex);
     when(() => bgIndex.value).thenReturn(0);
+    final fontWeight = _MockPersistedSignal<double>();
+    final readingMode = _MockPersistedSignal<ReadingMode>();
+    when(() => config.fontWeight).thenReturn(fontWeight);
+    when(() => fontWeight.value).thenReturn(400.0);
+    when(() => config.readingMode).thenReturn(readingMode);
+    when(() => readingMode.value).thenReturn(ReadingMode.pagination);
     when(
       () => reader.openPublication(any()),
     ).thenAnswer((_) async => publication);
@@ -766,6 +826,12 @@ void main() {
     when(() => fontFamily.value).thenReturn('System');
     when(() => config.readerBgColorIndex).thenReturn(bgIndex);
     when(() => bgIndex.value).thenReturn(0);
+    final fontWeight = _MockPersistedSignal<double>();
+    final readingMode = _MockPersistedSignal<ReadingMode>();
+    when(() => config.fontWeight).thenReturn(fontWeight);
+    when(() => fontWeight.value).thenReturn(400.0);
+    when(() => config.readingMode).thenReturn(readingMode);
+    when(() => readingMode.value).thenReturn(ReadingMode.pagination);
     when(
       () => reader.openPublication(any()),
     ).thenAnswer((_) async => publication);
