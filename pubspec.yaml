@@ -91,7 +91,7 @@ flutter:
   assets:
     - .env
     - assets/dictionary.mdx
-    - assets/html/
+
 
   fonts:
     - family: Noto Serif SC

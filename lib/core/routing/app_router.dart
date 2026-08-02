@@ -6,7 +6,6 @@ import 'package:zephyr_reader/core/routing/route_constants.dart';
 import 'package:zephyr_reader/features/bookshelf/page/book_detail_page.dart';
 import 'package:zephyr_reader/features/bookshelf/page/bookshelf_page.dart';
 import 'package:zephyr_reader/features/bookshelf/page/category_management_page.dart';
-import 'package:zephyr_reader/features/bookshelf/page/wifi_transfer_page.dart';
 import 'package:zephyr_reader/features/home/page/home_page.dart';
 import 'package:zephyr_reader/features/home/page/splash_page.dart';
 import 'package:zephyr_reader/features/main_layout.dart';
@@ -188,13 +187,6 @@ final router = GoRouter(
       name: AppRoute.readingSessions.name,
       path: AppRoute.readingSessions.path,
       builder: (_, _) => const ReadingSessionsPage(),
-    ),
-
-    // WiFi 传书
-    GoRoute(
-      name: AppRoute.wifiTransfer.name,
-      path: AppRoute.wifiTransfer.path,
-      builder: (_, _) => const WifiTransferPage(),
     ),
 
     // Splash 页面（独立页面，不使用 MainLayout）

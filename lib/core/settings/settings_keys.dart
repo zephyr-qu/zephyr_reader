@@ -80,11 +80,6 @@ abstract final class SettingsKeys {
   /// 上次备份大小
   static const lastBackupSize = 'last_backup_size';
 
-  // ==================== Wi-Fi 传输 ====================
-
-  /// Wi-Fi 传输端口
-  static const wifiTransferPort = 'wifi_transfer_port';
-
   // ==================== TTS ====================
 
   static const ttsSpeed = 'tts_speed';
@@ -103,14 +98,6 @@ abstract final class SettingsKeys {
   /// 词典 MDX 文件路径
   static const dictMdxPath = 'dict_mdx_path';
 
-  /// 词典 MDD 资源文件路径
-  static const dictMddPath = 'dict_mdd_path';
-
-  // ==================== 字体 ====================
-
-  /// 当前字体 ID
-  static const currentFont = 'custom_font.current';
-
   // ==================== 其他 ====================
 
   /// 通知
@@ -118,27 +105,4 @@ abstract final class SettingsKeys {
 
   /// 启动检查更新
   static const otherStartupCheck = 'other.startup_check';
-
-  // ==================== 自动翻译 ====================
-
-  /// 翻译服务提供商 ("openai" | "custom")
-  static const translationProvider = 'translation.provider';
-
-  /// API 端点地址
-  static const translationApiUrl = 'translation.api_url';
-
-  /// API 密钥
-  static const translationApiKey = 'translation.api_key';
-
-  /// 模型名（仅 OpenAI）
-  static const translationModel = 'translation.model';
-
-  /// 目标语言
-  static const translationTargetLang = 'translation.target_lang';
-
-  /// 源语言 ("auto" | "zh" | "en")
-  static const translationSourceLang = 'translation.source_lang';
-
-  /// 超时秒数
-  static const translationTimeout = 'translation.timeout';
 }

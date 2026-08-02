@@ -15,7 +15,6 @@ import 'package:injectable/injectable.dart' as _i526;
 import 'package:zephyr_reader/core/local/file_storage.dart' as _i772;
 import 'package:zephyr_reader/core/local/preferences_service.dart' as _i985;
 import 'package:zephyr_reader/core/network/network_module.dart' as _i510;
-import 'package:zephyr_reader/core/network/wifi_transfer_service.dart' as _i82;
 import 'package:zephyr_reader/core/reading/config/reader_config.dart' as _i1067;
 import 'package:zephyr_reader/core/theme/theme_manager.dart' as _i182;
 import 'package:zephyr_reader/di/app_module.dart' as _i431;
@@ -31,12 +30,6 @@ import 'package:zephyr_reader/features/data/application/data_management_view_mod
     as _i965;
 import 'package:zephyr_reader/features/data/application/services/webdav_sync_service.dart'
     as _i415;
-import 'package:zephyr_reader/features/dictionary/dictionary_config.dart'
-    as _i123;
-import 'package:zephyr_reader/features/dictionary/dictionary_module.dart'
-    as _i909;
-import 'package:zephyr_reader/features/dictionary/dictionary_service.dart'
-    as _i888;
 import 'package:zephyr_reader/features/profile/application/dictionary_settings_view_model.dart'
     as _i236;
 import 'package:zephyr_reader/features/profile/application/other_settings_view_model.dart'
@@ -55,7 +48,6 @@ extension GetItInjectableX on _i174.GetIt {
     final gh = _i526.GetItHelper(this, environment, environmentFilter);
     final appModule = _$AppModule();
     final networkModule = _$NetworkModule();
-    final dictionaryModule = _$DictionaryModule();
     await gh.factoryAsync<_i985.PreferencesService>(
       () => appModule.providePreferencesService(),
       preResolve: true,
@@ -90,9 +82,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i136.TtsSettingsViewModel>(
       () => _i136.TtsSettingsViewModel(gh<_i985.PreferencesService>()),
     );
-    gh.singleton<_i82.WifiTransferService>(
-      () => _i82.WifiTransferService(gh<_i985.PreferencesService>()),
-    );
     gh.lazySingleton<_i1022.BackupViewModel>(
       () => _i1022.BackupViewModel(gh<_i985.PreferencesService>()),
     );
@@ -102,15 +91,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.singleton<_i182.ThemeManager>(
       () => _i182.ThemeManager(gh<_i985.PreferencesService>()),
     );
-    gh.singleton<_i123.DictionaryConfig>(
-      () => _i123.DictionaryConfig(gh<_i985.PreferencesService>()),
-    );
-    gh.lazySingleton<_i888.DictionaryService>(
-      () => dictionaryModule.dictionaryService(
-        gh<_i123.DictionaryConfig>(),
-        gh<_i361.Dio>(),
-      ),
-    );
     return this;
   }
 }
@@ -118,5 +98,3 @@ extension GetItInjectableX on _i174.GetIt {
 class _$AppModule extends _i431.AppModule {}
 
 class _$NetworkModule extends _i510.NetworkModule {}
-
-class _$DictionaryModule extends _i909.DictionaryModule {}

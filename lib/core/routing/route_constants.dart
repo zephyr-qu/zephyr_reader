@@ -18,9 +18,7 @@ enum AppRoute {
   dictionarySettings('/settings/dictionary'),
   typographySettings('/settings/typography'),
   themeBrightness('/settings/theme'),
-  otherSettings('/settings/other'),
-  wifiTransfer('/wifi-transfer');
-
+  otherSettings('/settings/other');
   /// Path pattern string (e.g. `/books/:id`).
   final String path;
 

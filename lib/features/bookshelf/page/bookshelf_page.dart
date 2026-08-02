@@ -115,13 +115,12 @@ class BookshelfPage extends HookWidget {
                     _showImportDialog(context, vm);
                   case 'scan':
                     _showScanDialog(context, vm);
-                  case 'wifi':
-                    context.push(AppRoute.wifiTransfer.path);
-                    _showSettingsSheet(context, vm);
                   case 'batch':
                     batchMode.value = true;
                   case 'categories':
                     context.push(AppRoute.categoryManagement.path);
+                  case 'settings':
+                    _showSettingsSheet(context, vm);
                 }
               },
               itemBuilder: (context) => [
@@ -141,15 +140,6 @@ class BookshelfPage extends HookWidget {
                     color: DesignTokens.warmAccent,
                   ),
                 ),
-                PopupMenuItem(
-                  value: 'wifi',
-                  child: MenuRow(
-                    icon: PhosphorIconsFill.wifiHigh,
-                    label: l10n.wifiPageTitle,
-                    color: DesignTokens.warmAccent,
-                  ),
-                ),
-                const PopupMenuDivider(),
                 PopupMenuItem(
                   value: 'batch',
                   child: MenuRow(
