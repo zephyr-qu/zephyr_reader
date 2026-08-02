@@ -98,12 +98,6 @@ abstract class AppLocalizations {
     Locale('en'),
   ];
 
-  /// No description provided for @appName.
-  ///
-  /// In zh, this message translates to:
-  /// **'Zephyr Reader'**
-  String get appName;
-
   /// No description provided for @tabHome.
   ///
   /// In zh, this message translates to:
@@ -188,23 +182,11 @@ abstract class AppLocalizations {
   /// **'已读完'**
   String get finished;
 
-  /// No description provided for @gridView.
-  ///
-  /// In zh, this message translates to:
-  /// **'网格视图'**
-  String get gridView;
-
   /// No description provided for @listView.
   ///
   /// In zh, this message translates to:
   /// **'列表视图'**
   String get listView;
-
-  /// No description provided for @noBooks.
-  ///
-  /// In zh, this message translates to:
-  /// **'暂无书籍'**
-  String get noBooks;
 
   /// No description provided for @bookDetail.
   ///
@@ -242,12 +224,6 @@ abstract class AppLocalizations {
   /// **'文件大小'**
   String get fileSize;
 
-  /// No description provided for @totalPages.
-  ///
-  /// In zh, this message translates to:
-  /// **'总页数'**
-  String get totalPages;
-
   /// No description provided for @readingProgress.
   ///
   /// In zh, this message translates to:
@@ -259,18 +235,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'阅读时长'**
   String get readingTime;
-
-  /// No description provided for @readingCount.
-  ///
-  /// In zh, this message translates to:
-  /// **'阅读次数'**
-  String get readingCount;
-
-  /// No description provided for @estimatedRemaining.
-  ///
-  /// In zh, this message translates to:
-  /// **'预计剩余'**
-  String get estimatedRemaining;
 
   /// No description provided for @estimatedTime.
   ///
@@ -296,29 +260,11 @@ abstract class AppLocalizations {
   /// **'从头开始'**
   String get readFromBeginning;
 
-  /// No description provided for @notesCount.
-  ///
-  /// In zh, this message translates to:
-  /// **'笔记数'**
-  String get notesCount;
-
-  /// No description provided for @highlightsCount.
-  ///
-  /// In zh, this message translates to:
-  /// **'高亮数'**
-  String get highlightsCount;
-
   /// No description provided for @edit.
   ///
   /// In zh, this message translates to:
   /// **'编辑'**
   String get edit;
-
-  /// No description provided for @share.
-  ///
-  /// In zh, this message translates to:
-  /// **'分享'**
-  String get share;
 
   /// No description provided for @exportNotes.
   ///
@@ -338,12 +284,6 @@ abstract class AppLocalizations {
   /// **'删除'**
   String get delete;
 
-  /// No description provided for @confirmDelete.
-  ///
-  /// In zh, this message translates to:
-  /// **'确认删除'**
-  String get confirmDelete;
-
   /// No description provided for @cancel.
   ///
   /// In zh, this message translates to:
@@ -361,12 +301,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'滚动'**
   String get scrollMode;
-
-  /// No description provided for @pageTurnMode.
-  ///
-  /// In zh, this message translates to:
-  /// **'翻页'**
-  String get pageTurnMode;
 
   /// No description provided for @paginationMode.
   ///
@@ -392,12 +326,6 @@ abstract class AppLocalizations {
   /// **'字重'**
   String get fontWeight;
 
-  /// No description provided for @followSystemFontScale.
-  ///
-  /// In zh, this message translates to:
-  /// **'跟随系统'**
-  String get followSystemFontScale;
-
   /// No description provided for @lineHeight.
   ///
   /// In zh, this message translates to:
@@ -421,12 +349,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'页边距'**
   String get pageMargin;
-
-  /// No description provided for @readingBackground.
-  ///
-  /// In zh, this message translates to:
-  /// **'阅读背景'**
-  String get readingBackground;
 
   /// No description provided for @brightness.
   ///
@@ -452,24 +374,6 @@ abstract class AppLocalizations {
   /// **'字体'**
   String get font;
 
-  /// No description provided for @defaultFont.
-  ///
-  /// In zh, this message translates to:
-  /// **'系统默认'**
-  String get defaultFont;
-
-  /// No description provided for @chapterN.
-  ///
-  /// In zh, this message translates to:
-  /// **'第 {n} 章'**
-  String chapterN(Object n);
-
-  /// No description provided for @pageInfo.
-  ///
-  /// In zh, this message translates to:
-  /// **'{current}/{total}'**
-  String pageInfo(Object current, Object total);
-
   /// No description provided for @bookmarks.
   ///
   /// In zh, this message translates to:
@@ -482,95 +386,11 @@ abstract class AppLocalizations {
   /// **'添加书签'**
   String get addBookmark;
 
-  /// No description provided for @noBookmarks.
-  ///
-  /// In zh, this message translates to:
-  /// **'暂无书签'**
-  String get noBookmarks;
-
-  /// No description provided for @noResults.
-  ///
-  /// In zh, this message translates to:
-  /// **'无结果'**
-  String get noResults;
-
-  /// No description provided for @ttsPlay.
-  ///
-  /// In zh, this message translates to:
-  /// **'朗读'**
-  String get ttsPlay;
-
-  /// No description provided for @ttsPause.
-  ///
-  /// In zh, this message translates to:
-  /// **'暂停'**
-  String get ttsPause;
-
-  /// No description provided for @ttsStop.
-  ///
-  /// In zh, this message translates to:
-  /// **'停止'**
-  String get ttsStop;
-
   /// No description provided for @ttsSpeed.
   ///
   /// In zh, this message translates to:
   /// **'语速'**
   String get ttsSpeed;
-
-  /// No description provided for @selectionCopy.
-  ///
-  /// In zh, this message translates to:
-  /// **'复制'**
-  String get selectionCopy;
-
-  /// No description provided for @selectionHighlight.
-  ///
-  /// In zh, this message translates to:
-  /// **'高亮'**
-  String get selectionHighlight;
-
-  /// No description provided for @selectionNote.
-  ///
-  /// In zh, this message translates to:
-  /// **'笔记'**
-  String get selectionNote;
-
-  /// No description provided for @selectionDictionary.
-  ///
-  /// In zh, this message translates to:
-  /// **'查词'**
-  String get selectionDictionary;
-
-  /// No description provided for @highlightYellow.
-  ///
-  /// In zh, this message translates to:
-  /// **'黄色'**
-  String get highlightYellow;
-
-  /// No description provided for @highlightGreen.
-  ///
-  /// In zh, this message translates to:
-  /// **'绿色'**
-  String get highlightGreen;
-
-  /// No description provided for @highlightBlue.
-  ///
-  /// In zh, this message translates to:
-  /// **'蓝色'**
-  String get highlightBlue;
-
-  /// No description provided for @highlightPink.
-  ///
-  /// In zh, this message translates to:
-  /// **'粉色'**
-  String get highlightPink;
-
-  /// No description provided for @highlightPurple.
-  ///
-  /// In zh, this message translates to:
-  /// **'紫色'**
-  String get highlightPurple;
 
   /// No description provided for @dictionary.
   ///
@@ -578,71 +398,11 @@ abstract class AppLocalizations {
   /// **'词典管理'**
   String get dictionary;
 
-  /// No description provided for @lookupWord.
-  ///
-  /// In zh, this message translates to:
-  /// **'查词'**
-  String get lookupWord;
-
-  /// No description provided for @noDefinition.
-  ///
-  /// In zh, this message translates to:
-  /// **'未找到释义'**
-  String get noDefinition;
-
   /// No description provided for @wordCount.
   ///
   /// In zh, this message translates to:
   /// **'词数'**
   String get wordCount;
-
-  /// No description provided for @learning.
-  ///
-  /// In zh, this message translates to:
-  /// **'学习中'**
-  String get learning;
-
-  /// No description provided for @known.
-  ///
-  /// In zh, this message translates to:
-  /// **'已掌握'**
-  String get known;
-
-  /// No description provided for @newWord.
-  ///
-  /// In zh, this message translates to:
-  /// **'新词'**
-  String get newWord;
-
-  /// No description provided for @noWords.
-  ///
-  /// In zh, this message translates to:
-  /// **'暂无生词'**
-  String get noWords;
-
-  /// No description provided for @statusUnlearned.
-  ///
-  /// In zh, this message translates to:
-  /// **'未学'**
-  String get statusUnlearned;
-
-  /// No description provided for @statusLearning.
-  ///
-  /// In zh, this message translates to:
-  /// **'学习中'**
-  String get statusLearning;
-
-  /// No description provided for @statusMastered.
-  ///
-  /// In zh, this message translates to:
-  /// **'已掌握'**
-  String get statusMastered;
-
-  /// No description provided for @fromBook.
-  ///
-  /// In zh, this message translates to:
-  /// **'来自'**
-  String get fromBook;
 
   /// No description provided for @statistics.
   ///
@@ -650,47 +410,11 @@ abstract class AppLocalizations {
   /// **'阅读统计'**
   String get statistics;
 
-  /// No description provided for @annualReport.
-  ///
-  /// In zh, this message translates to:
-  /// **'年度阅览报告'**
-  String get annualReport;
-
-  /// No description provided for @readingOverview.
-  ///
-  /// In zh, this message translates to:
-  /// **'阅读概览'**
-  String get readingOverview;
-
-  /// No description provided for @weeklyOverview.
-  ///
-  /// In zh, this message translates to:
-  /// **'本周总览'**
-  String get weeklyOverview;
-
-  /// No description provided for @readingDuration.
-  ///
-  /// In zh, this message translates to:
-  /// **'阅读时长'**
-  String get readingDuration;
-
   /// No description provided for @readingWords.
   ///
   /// In zh, this message translates to:
   /// **'阅读字数'**
   String get readingWords;
-
-  /// No description provided for @readingDays.
-  ///
-  /// In zh, this message translates to:
-  /// **'阅读天数'**
-  String get readingDays;
-
-  /// No description provided for @consecutiveDays.
-  ///
-  /// In zh, this message translates to:
-  /// **'连续阅读天数'**
-  String get consecutiveDays;
 
   /// No description provided for @booksCompleted.
   ///
@@ -698,47 +422,11 @@ abstract class AppLocalizations {
   /// **'读完书籍'**
   String get booksCompleted;
 
-  /// No description provided for @readingSpeed.
-  ///
-  /// In zh, this message translates to:
-  /// **'平均阅读速度'**
-  String get readingSpeed;
-
-  /// No description provided for @wordsPerMinute.
-  ///
-  /// In zh, this message translates to:
-  /// **'字/分钟'**
-  String get wordsPerMinute;
-
-  /// No description provided for @readingFootprint.
-  ///
-  /// In zh, this message translates to:
-  /// **'阅读足迹'**
-  String get readingFootprint;
-
-  /// No description provided for @daysActive.
-  ///
-  /// In zh, this message translates to:
-  /// **'天活跃'**
-  String get daysActive;
-
   /// No description provided for @readingTrend.
   ///
   /// In zh, this message translates to:
   /// **'本周阅读趋势'**
   String get readingTrend;
-
-  /// No description provided for @readingRhythm.
-  ///
-  /// In zh, this message translates to:
-  /// **'阅读节奏'**
-  String get readingRhythm;
-
-  /// No description provided for @recentDays.
-  ///
-  /// In zh, this message translates to:
-  /// **'近 {days} 天'**
-  String recentDays(Object days);
 
   /// No description provided for @sessions.
   ///
@@ -751,78 +439,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'设置'**
   String get settings;
-
-  /// No description provided for @appSettings.
-  ///
-  /// In zh, this message translates to:
-  /// **'应用设置'**
-  String get appSettings;
-
-  /// No description provided for @readingSettings.
-  ///
-  /// In zh, this message translates to:
-  /// **'阅读设置'**
-  String get readingSettings;
-
-  /// No description provided for @themeSettings.
-  ///
-  /// In zh, this message translates to:
-  /// **'主题设置'**
-  String get themeSettings;
-
-  /// No description provided for @appearance.
-  ///
-  /// In zh, this message translates to:
-  /// **'阅读外观'**
-  String get appearance;
-
-  /// No description provided for @readerBgColor.
-  ///
-  /// In zh, this message translates to:
-  /// **'阅读背景色'**
-  String get readerBgColor;
-
-  /// No description provided for @fontSettings.
-  ///
-  /// In zh, this message translates to:
-  /// **'字体设置'**
-  String get fontSettings;
-
-  /// No description provided for @pageSettings.
-  ///
-  /// In zh, this message translates to:
-  /// **'翻页设置'**
-  String get pageSettings;
-
-  /// No description provided for @screenSettings.
-  ///
-  /// In zh, this message translates to:
-  /// **'屏幕设置'**
-  String get screenSettings;
-
-  /// No description provided for @keepScreenOn.
-  ///
-  /// In zh, this message translates to:
-  /// **'保持屏幕常亮'**
-  String get keepScreenOn;
-
-  /// No description provided for @showBattery.
-  ///
-  /// In zh, this message translates to:
-  /// **'显示电量'**
-  String get showBattery;
-
-  /// No description provided for @showTime.
-  ///
-  /// In zh, this message translates to:
-  /// **'显示时间'**
-  String get showTime;
-
-  /// No description provided for @clickZone.
-  ///
-  /// In zh, this message translates to:
-  /// **'点击区域'**
-  String get clickZone;
 
   /// No description provided for @language.
   ///
@@ -848,65 +464,17 @@ abstract class AppLocalizations {
   /// **'English'**
   String get english;
 
-  /// No description provided for @region.
-  ///
-  /// In zh, this message translates to:
-  /// **'地区'**
-  String get region;
-
-  /// No description provided for @syncSettings.
-  ///
-  /// In zh, this message translates to:
-  /// **'同步设置'**
-  String get syncSettings;
-
-  /// No description provided for @manualSync.
-  ///
-  /// In zh, this message translates to:
-  /// **'手动同步'**
-  String get manualSync;
-
-  /// No description provided for @daily.
-  ///
-  /// In zh, this message translates to:
-  /// **'每天一次'**
-  String get daily;
-
-  /// No description provided for @weekly.
-  ///
-  /// In zh, this message translates to:
-  /// **'每周一次'**
-  String get weekly;
-
   /// No description provided for @backup.
   ///
   /// In zh, this message translates to:
   /// **'备份数据'**
   String get backup;
 
-  /// No description provided for @restore.
-  ///
-  /// In zh, this message translates to:
-  /// **'恢复数据'**
-  String get restore;
-
-  /// No description provided for @storageManagement.
-  ///
-  /// In zh, this message translates to:
-  /// **'存储管理'**
-  String get storageManagement;
-
   /// No description provided for @clearCache.
   ///
   /// In zh, this message translates to:
   /// **'清理缓存'**
   String get clearCache;
-
-  /// No description provided for @cacheSize.
-  ///
-  /// In zh, this message translates to:
-  /// **'缓存大小'**
-  String get cacheSize;
 
   /// No description provided for @about.
   ///
@@ -937,12 +505,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'重置为默认值'**
   String get resetToDefault;
-
-  /// No description provided for @sync.
-  ///
-  /// In zh, this message translates to:
-  /// **'同步'**
-  String get sync;
 
   /// No description provided for @webdavConfig.
   ///
@@ -1046,18 +608,6 @@ abstract class AppLocalizations {
   /// **'测试连接'**
   String get testConnection;
 
-  /// No description provided for @syncNow.
-  ///
-  /// In zh, this message translates to:
-  /// **'立即同步'**
-  String get syncNow;
-
-  /// No description provided for @syncHistory.
-  ///
-  /// In zh, this message translates to:
-  /// **'同步历史'**
-  String get syncHistory;
-
   /// No description provided for @syncSuccess.
   ///
   /// In zh, this message translates to:
@@ -1087,30 +637,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'清理缓存失败：{error}'**
   String dataClearFailed(Object error);
-
-  /// No description provided for @lastSync.
-  ///
-  /// In zh, this message translates to:
-  /// **'上次同步'**
-  String get lastSync;
-
-  /// No description provided for @conflictResolution.
-  ///
-  /// In zh, this message translates to:
-  /// **'冲突解决'**
-  String get conflictResolution;
-
-  /// No description provided for @useLocal.
-  ///
-  /// In zh, this message translates to:
-  /// **'使用本地版本'**
-  String get useLocal;
-
-  /// No description provided for @useRemote.
-  ///
-  /// In zh, this message translates to:
-  /// **'使用远程版本'**
-  String get useRemote;
 
   /// No description provided for @loading.
   ///
@@ -1148,18 +674,6 @@ abstract class AppLocalizations {
   /// **'确定'**
   String get confirm;
 
-  /// No description provided for @confirmAgain.
-  ///
-  /// In zh, this message translates to:
-  /// **'二次确认'**
-  String get confirmAgain;
-
-  /// No description provided for @continueAction.
-  ///
-  /// In zh, this message translates to:
-  /// **'继续'**
-  String get continueAction;
-
   /// No description provided for @success.
   ///
   /// In zh, this message translates to:
@@ -1171,18 +685,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'失败'**
   String get failed;
-
-  /// No description provided for @offline.
-  ///
-  /// In zh, this message translates to:
-  /// **'离线'**
-  String get offline;
-
-  /// No description provided for @empty.
-  ///
-  /// In zh, this message translates to:
-  /// **'暂无内容'**
-  String get empty;
 
   /// No description provided for @unknownError.
   ///
@@ -1388,12 +890,6 @@ abstract class AppLocalizations {
   /// **'默认排序'**
   String get defaultSort;
 
-  /// No description provided for @selectSortMethod.
-  ///
-  /// In zh, this message translates to:
-  /// **'选择排序方式'**
-  String get selectSortMethod;
-
   /// No description provided for @moveCategory.
   ///
   /// In zh, this message translates to:
@@ -1417,18 +913,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'已选 {count} 本'**
   String selectedBooksCount(Object count);
-
-  /// No description provided for @bookInfo.
-  ///
-  /// In zh, this message translates to:
-  /// **'书籍信息'**
-  String get bookInfo;
-
-  /// No description provided for @chapterCountLabel.
-  ///
-  /// In zh, this message translates to:
-  /// **'章节数'**
-  String get chapterCountLabel;
 
   /// No description provided for @totalChars.
   ///
@@ -1454,23 +938,11 @@ abstract class AppLocalizations {
   /// **'收起'**
   String get collapse;
 
-  /// No description provided for @viewAllChapters.
-  ///
-  /// In zh, this message translates to:
-  /// **'查看全部 {count} 章'**
-  String viewAllChapters(Object count);
-
   /// No description provided for @category.
   ///
   /// In zh, this message translates to:
   /// **'分类'**
   String get category;
-
-  /// No description provided for @weeklyReadingTime.
-  ///
-  /// In zh, this message translates to:
-  /// **'本周阅读时长'**
-  String get weeklyReadingTime;
 
   /// No description provided for @dangerZone.
   ///
@@ -1502,48 +974,6 @@ abstract class AppLocalizations {
   /// **'加载失败'**
   String get loadFailed;
 
-  /// No description provided for @saveHighlightFailed.
-  ///
-  /// In zh, this message translates to:
-  /// **'保存高亮失败'**
-  String get saveHighlightFailed;
-
-  /// No description provided for @saveAnnotationFailed.
-  ///
-  /// In zh, this message translates to:
-  /// **'保存笔记失败'**
-  String get saveAnnotationFailed;
-
-  /// No description provided for @deleteHighlightFailed.
-  ///
-  /// In zh, this message translates to:
-  /// **'删除高亮失败'**
-  String get deleteHighlightFailed;
-
-  /// No description provided for @updateNoteFailed.
-  ///
-  /// In zh, this message translates to:
-  /// **'更新笔记失败'**
-  String get updateNoteFailed;
-
-  /// No description provided for @chapterLoadFailed.
-  ///
-  /// In zh, this message translates to:
-  /// **'章节加载失败：{error}'**
-  String chapterLoadFailed(Object error);
-
-  /// No description provided for @epubRichTextSkipped.
-  ///
-  /// In zh, this message translates to:
-  /// **'本章内容较大，已以纯文本显示（图片与样式暂不可用）'**
-  String get epubRichTextSkipped;
-
-  /// No description provided for @contentEmpty.
-  ///
-  /// In zh, this message translates to:
-  /// **'内容为空'**
-  String get contentEmpty;
-
   /// No description provided for @appearanceSection.
   ///
   /// In zh, this message translates to:
@@ -1574,48 +1004,6 @@ abstract class AppLocalizations {
   /// **'下一个'**
   String get next;
 
-  /// No description provided for @currentlyReading.
-  ///
-  /// In zh, this message translates to:
-  /// **'正在阅读'**
-  String get currentlyReading;
-
-  /// No description provided for @pasteTranslationHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'粘贴或输入当前章节的译文内容：'**
-  String get pasteTranslationHint;
-
-  /// No description provided for @pasteTranslationPlaceholder.
-  ///
-  /// In zh, this message translates to:
-  /// **'在此粘贴译文文本…'**
-  String get pasteTranslationPlaceholder;
-
-  /// No description provided for @addNote.
-  ///
-  /// In zh, this message translates to:
-  /// **'添加笔记'**
-  String get addNote;
-
-  /// No description provided for @noteHintText.
-  ///
-  /// In zh, this message translates to:
-  /// **'输入你的笔记内容…'**
-  String get noteHintText;
-
-  /// No description provided for @editNote.
-  ///
-  /// In zh, this message translates to:
-  /// **'编辑笔记'**
-  String get editNote;
-
-  /// No description provided for @deleteHighlight.
-  ///
-  /// In zh, this message translates to:
-  /// **'删除高亮'**
-  String get deleteHighlight;
-
   /// No description provided for @profileDisplayName.
   ///
   /// In zh, this message translates to:
@@ -1627,24 +1015,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'阅读是一种生活态度'**
   String get profileTagline;
-
-  /// No description provided for @consecutiveDaysLabel.
-  ///
-  /// In zh, this message translates to:
-  /// **'连续天数'**
-  String get consecutiveDaysLabel;
-
-  /// No description provided for @sectionStudyMgmt.
-  ///
-  /// In zh, this message translates to:
-  /// **'学习与管理'**
-  String get sectionStudyMgmt;
-
-  /// No description provided for @sectionReadingExp.
-  ///
-  /// In zh, this message translates to:
-  /// **'阅读体验'**
-  String get sectionReadingExp;
 
   /// No description provided for @sectionSystem.
   ///
@@ -1669,12 +1039,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'显示与外观'**
   String get sectionDisplayAppearance;
-
-  /// No description provided for @learningNotes.
-  ///
-  /// In zh, this message translates to:
-  /// **'阅读笔记'**
-  String get learningNotes;
 
   /// No description provided for @readingSessions.
   ///
@@ -1712,41 +1076,11 @@ abstract class AppLocalizations {
   /// **'其他设置'**
   String get otherSettings;
 
-  /// No description provided for @synced.
-  ///
-  /// In zh, this message translates to:
-  /// **'已同步'**
-  String get synced;
-
   /// No description provided for @appVersionDisplay.
   ///
   /// In zh, this message translates to:
   /// **'Zephyr Reader v{version}'**
   String appVersionDisplay(Object version);
-
-  /// No description provided for @appIntroduction.
-  ///
-  /// In zh, this message translates to:
-  /// **'应用介绍'**
-  String get appIntroduction;
-
-  /// No description provided for @coreFeatures.
-  ///
-  /// In zh, this message translates to:
-  /// **'核心特性'**
-  String get coreFeatures;
-
-  /// No description provided for @techStack.
-  ///
-  /// In zh, this message translates to:
-  /// **'技术栈'**
-  String get techStack;
-
-  /// No description provided for @moreInfo.
-  ///
-  /// In zh, this message translates to:
-  /// **'更多信息'**
-  String get moreInfo;
 
   /// No description provided for @checkUpdate.
   ///
@@ -1766,96 +1100,6 @@ abstract class AppLocalizations {
   /// **'问题反馈'**
   String get feedback;
 
-  /// No description provided for @alreadyLatestVersion.
-  ///
-  /// In zh, this message translates to:
-  /// **'已是最新版本'**
-  String get alreadyLatestVersion;
-
-  /// No description provided for @cannotOpenLink.
-  ///
-  /// In zh, this message translates to:
-  /// **'无法打开链接'**
-  String get cannotOpenLink;
-
-  /// No description provided for @aboutFeature1.
-  ///
-  /// In zh, this message translates to:
-  /// **'纯离线使用，无需网络'**
-  String get aboutFeature1;
-
-  /// No description provided for @aboutFeature2.
-  ///
-  /// In zh, this message translates to:
-  /// **'支持 EPUB、TXT 格式'**
-  String get aboutFeature2;
-
-  /// No description provided for @aboutFeature3.
-  ///
-  /// In zh, this message translates to:
-  /// **'智能排版引擎'**
-  String get aboutFeature3;
-
-  /// No description provided for @aboutFeature6.
-  ///
-  /// In zh, this message translates to:
-  /// **'WebDAV 多端同步'**
-  String get aboutFeature6;
-
-  /// No description provided for @copyrightFooter.
-  ///
-  /// In zh, this message translates to:
-  /// **'© 2026 Zephyr Reader'**
-  String get copyrightFooter;
-
-  /// No description provided for @madeWithFooter.
-  ///
-  /// In zh, this message translates to:
-  /// **'用 Flutter · Rust · ❤ 构建'**
-  String get madeWithFooter;
-
-  /// No description provided for @errorFileNotFound.
-  ///
-  /// In zh, this message translates to:
-  /// **'文件未找到'**
-  String get errorFileNotFound;
-
-  /// No description provided for @errorFileReadError.
-  ///
-  /// In zh, this message translates to:
-  /// **'文件读取失败'**
-  String get errorFileReadError;
-
-  /// No description provided for @errorUnsupportedFormat.
-  ///
-  /// In zh, this message translates to:
-  /// **'不支持的格式'**
-  String get errorUnsupportedFormat;
-
-  /// No description provided for @errorEpubParse.
-  ///
-  /// In zh, this message translates to:
-  /// **'EPUB 解析错误'**
-  String get errorEpubParse;
-
-  /// No description provided for @errorDatabase.
-  ///
-  /// In zh, this message translates to:
-  /// **'数据库错误'**
-  String get errorDatabase;
-
-  /// No description provided for @errorInternal.
-  ///
-  /// In zh, this message translates to:
-  /// **'内部错误'**
-  String get errorInternal;
-
-  /// No description provided for @errorTaskPanic.
-  ///
-  /// In zh, this message translates to:
-  /// **'任务失败：{task}'**
-  String errorTaskPanic(Object task);
-
   /// No description provided for @selectDictionaryFile.
   ///
   /// In zh, this message translates to:
@@ -1868,47 +1112,11 @@ abstract class AppLocalizations {
   /// **'请选择一个 .mdx 词典文件…'**
   String get selectMdxDescription;
 
-  /// No description provided for @invalidMdxFile.
-  ///
-  /// In zh, this message translates to:
-  /// **'请选择有效的 .mdx 文件'**
-  String get invalidMdxFile;
-
   /// No description provided for @dictionaryLoadFailed.
   ///
   /// In zh, this message translates to:
   /// **'词典加载失败，请检查文件'**
   String get dictionaryLoadFailed;
-
-  /// No description provided for @pronunciation.
-  ///
-  /// In zh, this message translates to:
-  /// **'发音'**
-  String get pronunciation;
-
-  /// No description provided for @noExactMatch.
-  ///
-  /// In zh, this message translates to:
-  /// **'未找到精确匹配。您是不是要找：'**
-  String get noExactMatch;
-
-  /// No description provided for @wordSegmentation.
-  ///
-  /// In zh, this message translates to:
-  /// **'分词：'**
-  String get wordSegmentation;
-
-  /// No description provided for @selectFile.
-  ///
-  /// In zh, this message translates to:
-  /// **'选择文件'**
-  String get selectFile;
-
-  /// No description provided for @dictionaryConfigHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'请选择一个 .mdx 格式的词典文件。如果有同名的 .mdd 资源文件（音频/图片），放在同一目录下会自动加载。'**
-  String get dictionaryConfigHint;
 
   /// No description provided for @categoryManagement.
   ///
@@ -2060,12 +1268,6 @@ abstract class AppLocalizations {
   /// **'未知'**
   String get unknownVersion;
 
-  /// No description provided for @prev.
-  ///
-  /// In zh, this message translates to:
-  /// **'上一个'**
-  String get prev;
-
   /// No description provided for @readAloud.
   ///
   /// In zh, this message translates to:
@@ -2095,30 +1297,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'护眼'**
   String get readerThemeSepia;
-
-  /// No description provided for @readerFontSizeSmall.
-  ///
-  /// In zh, this message translates to:
-  /// **'小'**
-  String get readerFontSizeSmall;
-
-  /// No description provided for @readerFontSizeMedium.
-  ///
-  /// In zh, this message translates to:
-  /// **'中'**
-  String get readerFontSizeMedium;
-
-  /// No description provided for @readerFontSizeLarge.
-  ///
-  /// In zh, this message translates to:
-  /// **'大'**
-  String get readerFontSizeLarge;
-
-  /// No description provided for @readerFontSizeXLarge.
-  ///
-  /// In zh, this message translates to:
-  /// **'特大'**
-  String get readerFontSizeXLarge;
 
   /// No description provided for @sortLastRead.
   ///
@@ -2210,41 +1388,11 @@ abstract class AppLocalizations {
   /// **'目录（{count} 章）'**
   String tocTitle(Object count);
 
-  /// No description provided for @totalChapters.
-  ///
-  /// In zh, this message translates to:
-  /// **'共 {count} 章'**
-  String totalChapters(Object count);
-
   /// No description provided for @isbn.
   ///
   /// In zh, this message translates to:
   /// **'ISBN'**
   String get isbn;
-
-  /// No description provided for @bookIntro.
-  ///
-  /// In zh, this message translates to:
-  /// **'内容简介'**
-  String get bookIntro;
-
-  /// No description provided for @timePresetSunsetToSunrise.
-  ///
-  /// In zh, this message translates to:
-  /// **'日落到日出'**
-  String get timePresetSunsetToSunrise;
-
-  /// No description provided for @timePresetEveningToMorning.
-  ///
-  /// In zh, this message translates to:
-  /// **'傍晚到早晨'**
-  String get timePresetEveningToMorning;
-
-  /// No description provided for @timePresetCustom.
-  ///
-  /// In zh, this message translates to:
-  /// **'自定义'**
-  String get timePresetCustom;
 
   /// No description provided for @appTheme.
   ///
@@ -2258,53 +1406,17 @@ abstract class AppLocalizations {
   /// **'自动主题'**
   String get autoTheme;
 
-  /// No description provided for @autoThemeDesc.
-  ///
-  /// In zh, this message translates to:
-  /// **'根据时间段自动切换深浅主题'**
-  String get autoThemeDesc;
-
-  /// No description provided for @autoThemeSchedule.
-  ///
-  /// In zh, this message translates to:
-  /// **'定时设置'**
-  String get autoThemeSchedule;
-
   /// No description provided for @bookFormat.
   ///
   /// In zh, this message translates to:
   /// **'格式'**
   String get bookFormat;
 
-  /// No description provided for @bookIntroLabel.
-  ///
-  /// In zh, this message translates to:
-  /// **'内容简介'**
-  String get bookIntroLabel;
-
   /// No description provided for @sortDialogTitle.
   ///
   /// In zh, this message translates to:
   /// **'选择排序方式'**
   String get sortDialogTitle;
-
-  /// No description provided for @tapLayoutRightHanded.
-  ///
-  /// In zh, this message translates to:
-  /// **'右手模式'**
-  String get tapLayoutRightHanded;
-
-  /// No description provided for @tapLayoutLeftHanded.
-  ///
-  /// In zh, this message translates to:
-  /// **'左手模式'**
-  String get tapLayoutLeftHanded;
-
-  /// No description provided for @tapLayout.
-  ///
-  /// In zh, this message translates to:
-  /// **'翻页点击区域'**
-  String get tapLayout;
 
   /// No description provided for @timeJustNow.
   ///
@@ -2377,54 +1489,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'阅读热力图'**
   String get readingHeatmap;
-
-  /// No description provided for @weekdayMon.
-  ///
-  /// In zh, this message translates to:
-  /// **'一'**
-  String get weekdayMon;
-
-  /// No description provided for @weekdayTue.
-  ///
-  /// In zh, this message translates to:
-  /// **'二'**
-  String get weekdayTue;
-
-  /// No description provided for @weekdayWed.
-  ///
-  /// In zh, this message translates to:
-  /// **'三'**
-  String get weekdayWed;
-
-  /// No description provided for @weekdayThu.
-  ///
-  /// In zh, this message translates to:
-  /// **'四'**
-  String get weekdayThu;
-
-  /// No description provided for @weekdayFri.
-  ///
-  /// In zh, this message translates to:
-  /// **'五'**
-  String get weekdayFri;
-
-  /// No description provided for @weekdaySat.
-  ///
-  /// In zh, this message translates to:
-  /// **'六'**
-  String get weekdaySat;
-
-  /// No description provided for @weekdaySun.
-  ///
-  /// In zh, this message translates to:
-  /// **'日'**
-  String get weekdaySun;
-
-  /// No description provided for @statusIgnored.
-  ///
-  /// In zh, this message translates to:
-  /// **'已忽略'**
-  String get statusIgnored;
 
   /// No description provided for @noSessions.
   ///
@@ -2510,66 +1574,6 @@ abstract class AppLocalizations {
   /// **'次会话'**
   String get sessionsCount;
 
-  /// No description provided for @wifiPageTitle.
-  ///
-  /// In zh, this message translates to:
-  /// **'WiFi 传书'**
-  String get wifiPageTitle;
-
-  /// No description provided for @wifiServerRunning.
-  ///
-  /// In zh, this message translates to:
-  /// **'服务器运行中'**
-  String get wifiServerRunning;
-
-  /// No description provided for @wifiServerStopped.
-  ///
-  /// In zh, this message translates to:
-  /// **'服务器已停止'**
-  String get wifiServerStopped;
-
-  /// No description provided for @wifiStartServer.
-  ///
-  /// In zh, this message translates to:
-  /// **'启动服务器'**
-  String get wifiStartServer;
-
-  /// No description provided for @wifiStopServer.
-  ///
-  /// In zh, this message translates to:
-  /// **'停止服务器'**
-  String get wifiStopServer;
-
-  /// No description provided for @wifiCopyLink.
-  ///
-  /// In zh, this message translates to:
-  /// **'复制链接'**
-  String get wifiCopyLink;
-
-  /// No description provided for @wifiLinkCopied.
-  ///
-  /// In zh, this message translates to:
-  /// **'链接已复制'**
-  String get wifiLinkCopied;
-
-  /// No description provided for @wifiInstruction.
-  ///
-  /// In zh, this message translates to:
-  /// **'连接与电脑相同的 Wi-Fi 网络，在浏览器中打开上方地址即可传输文件。'**
-  String get wifiInstruction;
-
-  /// No description provided for @wifiFileUploaded.
-  ///
-  /// In zh, this message translates to:
-  /// **'已上传：{filename}'**
-  String wifiFileUploaded(Object filename);
-
-  /// No description provided for @wifiServerStarted.
-  ///
-  /// In zh, this message translates to:
-  /// **'服务器已启动'**
-  String get wifiServerStarted;
-
   /// No description provided for @batchDeleteConfirm.
   ///
   /// In zh, this message translates to:
@@ -2587,12 +1591,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'添加分类'**
   String get addCategory;
-
-  /// No description provided for @editCategoryName.
-  ///
-  /// In zh, this message translates to:
-  /// **'编辑分类名称'**
-  String get editCategoryName;
 
   /// No description provided for @deleteCategory.
   ///
@@ -2612,12 +1610,6 @@ abstract class AppLocalizations {
   /// **'请输入分类名称'**
   String get categoryNameRequired;
 
-  /// No description provided for @categoryAlreadyExists.
-  ///
-  /// In zh, this message translates to:
-  /// **'分类名称已存在'**
-  String get categoryAlreadyExists;
-
   /// No description provided for @noCategories.
   ///
   /// In zh, this message translates to:
@@ -2629,24 +1621,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'点击右上角添加分类'**
   String get addCategoryHint;
-
-  /// No description provided for @wifiTransferLog.
-  ///
-  /// In zh, this message translates to:
-  /// **'传输记录'**
-  String get wifiTransferLog;
-
-  /// No description provided for @wifiWaitUpload.
-  ///
-  /// In zh, this message translates to:
-  /// **'等待文件上传…'**
-  String get wifiWaitUpload;
-
-  /// No description provided for @wifiStartServerPrompt.
-  ///
-  /// In zh, this message translates to:
-  /// **'启动服务器开始传输'**
-  String get wifiStartServerPrompt;
 
   /// No description provided for @backupSuccess.
   ///
@@ -2672,12 +1646,6 @@ abstract class AppLocalizations {
   /// **'恢复失败：{error}'**
   String restoreFailed(Object error);
 
-  /// No description provided for @resultSummary.
-  ///
-  /// In zh, this message translates to:
-  /// **'找到 {count} 条结果 · 耗时 {duration}ms'**
-  String resultSummary(Object count, Object duration);
-
   /// No description provided for @clear.
   ///
   /// In zh, this message translates to:
@@ -2702,47 +1670,17 @@ abstract class AppLocalizations {
   /// **'选择一个 .db 备份文件恢复数据'**
   String get restoreSubtitle;
 
-  /// No description provided for @currentDataStats.
-  ///
-  /// In zh, this message translates to:
-  /// **'当前数据统计'**
-  String get currentDataStats;
-
-  /// No description provided for @backingUp.
-  ///
-  /// In zh, this message translates to:
-  /// **'备份中…'**
-  String get backingUp;
-
   /// No description provided for @restoring.
   ///
   /// In zh, this message translates to:
   /// **'恢复中…'**
   String get restoring;
 
-  /// No description provided for @operationFailed.
-  ///
-  /// In zh, this message translates to:
-  /// **'操作失败：{error}'**
-  String operationFailed(Object error);
-
-  /// No description provided for @lastBackup.
-  ///
-  /// In zh, this message translates to:
-  /// **'上次备份：{time}'**
-  String lastBackup(Object time);
-
   /// No description provided for @neverBackedUp.
   ///
   /// In zh, this message translates to:
   /// **'尚未进行过备份'**
   String get neverBackedUp;
-
-  /// No description provided for @dataSummary.
-  ///
-  /// In zh, this message translates to:
-  /// **'数据量：{books} 本书 · {notes} 条笔记'**
-  String dataSummary(Object books, Object notes);
 
   /// No description provided for @timeDaysAgo.
   ///
@@ -2804,96 +1742,6 @@ abstract class AppLocalizations {
   /// **'书签'**
   String get restoreStatBookmarks;
 
-  /// No description provided for @allBooks.
-  ///
-  /// In zh, this message translates to:
-  /// **'全部书籍'**
-  String get allBooks;
-
-  /// No description provided for @allWordLists.
-  ///
-  /// In zh, this message translates to:
-  /// **'全部词库'**
-  String get allWordLists;
-
-  /// No description provided for @export.
-  ///
-  /// In zh, this message translates to:
-  /// **'导出'**
-  String get export;
-
-  /// No description provided for @exportLearningData.
-  ///
-  /// In zh, this message translates to:
-  /// **'导出学习数据'**
-  String get exportLearningData;
-
-  /// No description provided for @exportNotesMarkdownDesc.
-  ///
-  /// In zh, this message translates to:
-  /// **'导出所有笔记为 Markdown 文档'**
-  String get exportNotesMarkdownDesc;
-
-  /// No description provided for @goReading.
-  ///
-  /// In zh, this message translates to:
-  /// **'去阅读'**
-  String get goReading;
-
-  /// No description provided for @noNotes.
-  ///
-  /// In zh, this message translates to:
-  /// **'暂无笔记'**
-  String get noNotes;
-
-  /// No description provided for @noteEmptyHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'在阅读中做笔记后，它们会出现在这里'**
-  String get noteEmptyHint;
-
-  /// No description provided for @notebook.
-  ///
-  /// In zh, this message translates to:
-  /// **'笔记本'**
-  String get notebook;
-
-  /// No description provided for @notesMarkdown.
-  ///
-  /// In zh, this message translates to:
-  /// **'笔记 (Markdown)'**
-  String get notesMarkdown;
-
-  /// No description provided for @wordListCet4.
-  ///
-  /// In zh, this message translates to:
-  /// **'CET-4'**
-  String get wordListCet4;
-
-  /// No description provided for @wordListCet6.
-  ///
-  /// In zh, this message translates to:
-  /// **'CET-6'**
-  String get wordListCet6;
-
-  /// No description provided for @wordListIelts.
-  ///
-  /// In zh, this message translates to:
-  /// **'IELTS'**
-  String get wordListIelts;
-
-  /// No description provided for @wordListToefl.
-  ///
-  /// In zh, this message translates to:
-  /// **'TOEFL'**
-  String get wordListToefl;
-
-  /// No description provided for @confirmDeleteWord.
-  ///
-  /// In zh, this message translates to:
-  /// **'确定要删除「{word}」吗？'**
-  String confirmDeleteWord(Object word);
-
   /// No description provided for @secondsUnit.
   ///
   /// In zh, this message translates to:
@@ -2948,66 +1796,6 @@ abstract class AppLocalizations {
   /// **'实时预览'**
   String get livePreview;
 
-  /// No description provided for @fontSelection.
-  ///
-  /// In zh, this message translates to:
-  /// **'字体选择'**
-  String get fontSelection;
-
-  /// No description provided for @typographyParams.
-  ///
-  /// In zh, this message translates to:
-  /// **'排版参数'**
-  String get typographyParams;
-
-  /// No description provided for @advancedTypography.
-  ///
-  /// In zh, this message translates to:
-  /// **'高级排版'**
-  String get advancedTypography;
-
-  /// No description provided for @cjkOptimization.
-  ///
-  /// In zh, this message translates to:
-  /// **'CJK 优化'**
-  String get cjkOptimization;
-
-  /// No description provided for @punctuationSqueeze.
-  ///
-  /// In zh, this message translates to:
-  /// **'标点挤压'**
-  String get punctuationSqueeze;
-
-  /// No description provided for @punctuationSqueezeDesc.
-  ///
-  /// In zh, this message translates to:
-  /// **'减少中文标点符号周围的空白'**
-  String get punctuationSqueezeDesc;
-
-  /// No description provided for @baselineAlign.
-  ///
-  /// In zh, this message translates to:
-  /// **'中西文基线对齐'**
-  String get baselineAlign;
-
-  /// No description provided for @baselineAlignDesc.
-  ///
-  /// In zh, this message translates to:
-  /// **'强制统一行高，避免混排时文字跳动'**
-  String get baselineAlignDesc;
-
-  /// No description provided for @firstLineIndent.
-  ///
-  /// In zh, this message translates to:
-  /// **'首行缩进'**
-  String get firstLineIndent;
-
-  /// No description provided for @firstLineIndentDesc.
-  ///
-  /// In zh, this message translates to:
-  /// **'每个段落缩进 2 个字符'**
-  String get firstLineIndentDesc;
-
   /// No description provided for @autoScroll.
   ///
   /// In zh, this message translates to:
@@ -3019,108 +1807,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'翻页间隔'**
   String get autoScrollSpeed;
-
-  /// No description provided for @ttsPreviewStop.
-  ///
-  /// In zh, this message translates to:
-  /// **'停止试听'**
-  String get ttsPreviewStop;
-
-  /// No description provided for @ttsPreviewPlay.
-  ///
-  /// In zh, this message translates to:
-  /// **'试听当前配置'**
-  String get ttsPreviewPlay;
-
-  /// No description provided for @ttsAutoRefresh.
-  ///
-  /// In zh, this message translates to:
-  /// **'修改后自动刷新'**
-  String get ttsAutoRefresh;
-
-  /// No description provided for @enableHyphenation.
-  ///
-  /// In zh, this message translates to:
-  /// **'英文连字符断词'**
-  String get enableHyphenation;
-
-  /// No description provided for @autoSpaceRatio.
-  ///
-  /// In zh, this message translates to:
-  /// **'中西文间距'**
-  String get autoSpaceRatio;
-
-  /// No description provided for @autoSpaceRatioDesc.
-  ///
-  /// In zh, this message translates to:
-  /// **'中文和英文之间的视觉间隔比例'**
-  String get autoSpaceRatioDesc;
-
-  /// No description provided for @enableHyphenationDesc.
-  ///
-  /// In zh, this message translates to:
-  /// **'英文单词在行末以连字符断开'**
-  String get enableHyphenationDesc;
-
-  /// No description provided for @typesetLanguage.
-  ///
-  /// In zh, this message translates to:
-  /// **'语言类型'**
-  String get typesetLanguage;
-
-  /// No description provided for @typesetLanguageAuto.
-  ///
-  /// In zh, this message translates to:
-  /// **'自动检测'**
-  String get typesetLanguageAuto;
-
-  /// No description provided for @typesetLanguageChinese.
-  ///
-  /// In zh, this message translates to:
-  /// **'中文'**
-  String get typesetLanguageChinese;
-
-  /// No description provided for @typesetLanguageEnglish.
-  ///
-  /// In zh, this message translates to:
-  /// **'英文'**
-  String get typesetLanguageEnglish;
-
-  /// No description provided for @typesetLanguageMixed.
-  ///
-  /// In zh, this message translates to:
-  /// **'中英混合'**
-  String get typesetLanguageMixed;
-
-  /// No description provided for @ttsVoiceEngine.
-  ///
-  /// In zh, this message translates to:
-  /// **'语音引擎'**
-  String get ttsVoiceEngine;
-
-  /// No description provided for @ttsEngine.
-  ///
-  /// In zh, this message translates to:
-  /// **'TTS 引擎'**
-  String get ttsEngine;
-
-  /// No description provided for @systemDefault.
-  ///
-  /// In zh, this message translates to:
-  /// **'系统默认'**
-  String get systemDefault;
-
-  /// No description provided for @ttsEnglishVoice.
-  ///
-  /// In zh, this message translates to:
-  /// **'英文语音'**
-  String get ttsEnglishVoice;
-
-  /// No description provided for @ttsChineseVoice.
-  ///
-  /// In zh, this message translates to:
-  /// **'中文语音'**
-  String get ttsChineseVoice;
 
   /// No description provided for @ttsPlaybackParams.
   ///
@@ -3140,23 +1826,11 @@ abstract class AppLocalizations {
   /// **'句间停顿'**
   String get ttsPauseBetween;
 
-  /// No description provided for @zephyrExclusive.
-  ///
-  /// In zh, this message translates to:
-  /// **'Zephyr 专属'**
-  String get zephyrExclusive;
-
   /// No description provided for @ttsOriginalOnly.
   ///
   /// In zh, this message translates to:
   /// **'仅朗读原文'**
   String get ttsOriginalOnly;
-
-  /// No description provided for @ttsOriginalOnlyDesc.
-  ///
-  /// In zh, this message translates to:
-  /// **'跳过译文段落，适合听力训练'**
-  String get ttsOriginalOnlyDesc;
 
   /// No description provided for @ttsSwitchInterval.
   ///
@@ -3326,191 +2000,11 @@ abstract class AppLocalizations {
   /// **'确认清除'**
   String get confirmClear;
 
-  /// No description provided for @translationApi.
-  ///
-  /// In zh, this message translates to:
-  /// **'自动翻译'**
-  String get translationApi;
-
-  /// No description provided for @translationProvider.
-  ///
-  /// In zh, this message translates to:
-  /// **'翻译服务'**
-  String get translationProvider;
-
-  /// No description provided for @translationApiUrl.
-  ///
-  /// In zh, this message translates to:
-  /// **'API 地址'**
-  String get translationApiUrl;
-
-  /// No description provided for @translationApiKey.
-  ///
-  /// In zh, this message translates to:
-  /// **'API 密钥'**
-  String get translationApiKey;
-
-  /// No description provided for @translationModel.
-  ///
-  /// In zh, this message translates to:
-  /// **'模型'**
-  String get translationModel;
-
-  /// No description provided for @translationSourceLang.
-  ///
-  /// In zh, this message translates to:
-  /// **'源语言'**
-  String get translationSourceLang;
-
-  /// No description provided for @translationTargetLang.
-  ///
-  /// In zh, this message translates to:
-  /// **'目标语言'**
-  String get translationTargetLang;
-
-  /// No description provided for @translationAutoDetect.
-  ///
-  /// In zh, this message translates to:
-  /// **'自动检测'**
-  String get translationAutoDetect;
-
-  /// No description provided for @translationTimeout.
-  ///
-  /// In zh, this message translates to:
-  /// **'超时（秒）'**
-  String get translationTimeout;
-
-  /// No description provided for @translationTest.
-  ///
-  /// In zh, this message translates to:
-  /// **'测试连接'**
-  String get translationTest;
-
-  /// No description provided for @translationTranslateWithApi.
-  ///
-  /// In zh, this message translates to:
-  /// **'使用API翻译'**
-  String get translationTranslateWithApi;
-
-  /// No description provided for @translationTestSuccess.
-  ///
-  /// In zh, this message translates to:
-  /// **'连接测试成功'**
-  String get translationTestSuccess;
-
-  /// No description provided for @translationTestFailed.
-  ///
-  /// In zh, this message translates to:
-  /// **'连接测试失败：{error}'**
-  String translationTestFailed(Object error);
-
-  /// No description provided for @translationApiNotConfigured.
-  ///
-  /// In zh, this message translates to:
-  /// **'未配置自动翻译'**
-  String get translationApiNotConfigured;
-
-  /// No description provided for @translating.
-  ///
-  /// In zh, this message translates to:
-  /// **'正在翻译…'**
-  String get translating;
-
-  /// No description provided for @translationFailed.
-  ///
-  /// In zh, this message translates to:
-  /// **'翻译失败：{error}'**
-  String translationFailed(Object error);
-
-  /// No description provided for @translationRetry.
-  ///
-  /// In zh, this message translates to:
-  /// **'重试'**
-  String get translationRetry;
-
-  /// No description provided for @translationManualPaste.
-  ///
-  /// In zh, this message translates to:
-  /// **'手动粘贴'**
-  String get translationManualPaste;
-
   /// No description provided for @readingMode.
   ///
   /// In zh, this message translates to:
   /// **'阅读模式'**
   String get readingMode;
-
-  /// No description provided for @themeSwitch.
-  ///
-  /// In zh, this message translates to:
-  /// **'主题切换'**
-  String get themeSwitch;
-
-  /// No description provided for @bookmarkManage.
-  ///
-  /// In zh, this message translates to:
-  /// **'书签管理'**
-  String get bookmarkManage;
-
-  /// No description provided for @clearAll.
-  ///
-  /// In zh, this message translates to:
-  /// **'清空所有'**
-  String get clearAll;
-
-  /// No description provided for @deleteSelected.
-  ///
-  /// In zh, this message translates to:
-  /// **'删除选中'**
-  String get deleteSelected;
-
-  /// No description provided for @sortByTime.
-  ///
-  /// In zh, this message translates to:
-  /// **'按时间排序'**
-  String get sortByTime;
-
-  /// No description provided for @sortByChapter.
-  ///
-  /// In zh, this message translates to:
-  /// **'按章节排序'**
-  String get sortByChapter;
-
-  /// No description provided for @sortByPosition.
-  ///
-  /// In zh, this message translates to:
-  /// **'按位置排序'**
-  String get sortByPosition;
-
-  /// 书签总数统计
-  ///
-  /// In zh, this message translates to:
-  /// **'共 {count} 个书签'**
-  String totalBookmarks(int count);
-
-  /// 本书书签总数
-  ///
-  /// In zh, this message translates to:
-  /// **'本书总计 {count} 个'**
-  String bookTotalBookmarks(int count);
-
-  /// No description provided for @reload.
-  ///
-  /// In zh, this message translates to:
-  /// **'重新加载'**
-  String get reload;
-
-  /// No description provided for @noBookmarksFound.
-  ///
-  /// In zh, this message translates to:
-  /// **'未找到相关书签'**
-  String get noBookmarksFound;
-
-  /// No description provided for @addBookmarkHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'阅读时点击右上角添加书签'**
-  String get addBookmarkHint;
 
   /// No description provided for @deleteBookmark.
   ///
@@ -3518,101 +2012,17 @@ abstract class AppLocalizations {
   /// **'删除书签'**
   String get deleteBookmark;
 
-  /// 确认删除单个书签
-  ///
-  /// In zh, this message translates to:
-  /// **'确定要删除\"{title}\"吗？'**
-  String confirmDeleteBookmark(String title);
-
-  /// No description provided for @confirmDeleteBookmarkSimple.
-  ///
-  /// In zh, this message translates to:
-  /// **'确定要删除此书签吗？'**
-  String get confirmDeleteBookmarkSimple;
-
-  /// No description provided for @batchDelete.
-  ///
-  /// In zh, this message translates to:
-  /// **'批量删除'**
-  String get batchDelete;
-
-  /// 确认批量删除书签
-  ///
-  /// In zh, this message translates to:
-  /// **'确定要删除选中的 {count} 个书签吗？'**
-  String confirmBatchDelete(int count);
-
-  /// 删除书签成功提示
-  ///
-  /// In zh, this message translates to:
-  /// **'已删除 {count} 个书签'**
-  String deletedBookmarks(int count);
-
-  /// No description provided for @clearAllBookmarks.
-  ///
-  /// In zh, this message translates to:
-  /// **'清空书签'**
-  String get clearAllBookmarks;
-
-  /// No description provided for @confirmAddBookmark.
-  ///
-  /// In zh, this message translates to:
-  /// **'确定要在这里添加书签吗？'**
-  String get confirmAddBookmark;
-
-  /// No description provided for @bookmarkAdded.
-  ///
-  /// In zh, this message translates to:
-  /// **'书签已添加'**
-  String get bookmarkAdded;
-
   /// No description provided for @add.
   ///
   /// In zh, this message translates to:
   /// **'添加'**
   String get add;
 
-  /// No description provided for @bookmarkDeleted.
-  ///
-  /// In zh, this message translates to:
-  /// **'书签已删除'**
-  String get bookmarkDeleted;
-
-  /// No description provided for @jumpTo.
-  ///
-  /// In zh, this message translates to:
-  /// **'跳转'**
-  String get jumpTo;
-
   /// No description provided for @charOffset.
   ///
   /// In zh, this message translates to:
   /// **'偏移'**
   String get charOffset;
-
-  /// No description provided for @notesAndHighlights.
-  ///
-  /// In zh, this message translates to:
-  /// **'笔记与标注'**
-  String get notesAndHighlights;
-
-  /// No description provided for @refreshTooltip.
-  ///
-  /// In zh, this message translates to:
-  /// **'刷新'**
-  String get refreshTooltip;
-
-  /// No description provided for @confirmClearAllBookmarks.
-  ///
-  /// In zh, this message translates to:
-  /// **'确定要清空本书的所有书签吗？此操作不可恢复'**
-  String get confirmClearAllBookmarks;
-
-  /// No description provided for @clearedAllBookmarks.
-  ///
-  /// In zh, this message translates to:
-  /// **'已清空所有书签'**
-  String get clearedAllBookmarks;
 
   /// No description provided for @themePreviewSampleText.
   ///
@@ -3625,30 +2035,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'文字对齐'**
   String get textAlign;
-
-  /// No description provided for @textAlignJustify.
-  ///
-  /// In zh, this message translates to:
-  /// **'两端对齐'**
-  String get textAlignJustify;
-
-  /// No description provided for @textAlignStart.
-  ///
-  /// In zh, this message translates to:
-  /// **'左对齐'**
-  String get textAlignStart;
-
-  /// No description provided for @textAlignCenter.
-  ///
-  /// In zh, this message translates to:
-  /// **'居中'**
-  String get textAlignCenter;
-
-  /// No description provided for @textAlignEnd.
-  ///
-  /// In zh, this message translates to:
-  /// **'右对齐'**
-  String get textAlignEnd;
 
   /// No description provided for @aboutFeatureLookup.
   ///
