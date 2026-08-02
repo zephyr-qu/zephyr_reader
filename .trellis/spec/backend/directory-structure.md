@@ -8,15 +8,16 @@
 
 The Rust backend follows a three-layer architecture:
 
-1. **`api/`** — FRB thin wrapper layer (FFI boundary)
+1. **`api/`** — FRB thin wrapper layer (FFI boundary, delegates to domain services)
 2. **`domain/`** — Business logic layer (flat module structure)
-3. **`infra/`** — Infrastructure layer (storage pool, etc.)
+3. **`infra/`** — Infrastructure layer (storage pool, FRB init)
 
 Plus supporting modules:
 
-- **`parser/`** — File format parsers (EPUB, TXT)
-- **`pipeline/`** — Content processing pipeline (IR, projection)
+- **`parser/`** — File format parsers (EPUB only; TXT support removed 2026-08)
 - **`common/`** — Shared types, error definitions, security utilities
+
+> 2026-08 update: `note/`, `vocabulary/`, `bilingual/`, `search/`, `wordlist/`, `pipeline/`, and the TXT parser were removed in the Readium-only cleanup. The doc below reflects the current tree.
 
 ---
 
@@ -26,145 +27,93 @@ Plus supporting modules:
 rust/src/
 ├── api/                      # FRB thin wrapper — FFI boundary
 │   ├── mod.rs
-│   ├── session.rs            → domain::sessions::service
-│   ├── bookmark.rs           → domain::bookmark::service
+│   ├── backup.rs             → domain::backup::service
 │   ├── book.rs               → domain::book::service
-│   ├── note.rs               → domain::note::service
+│   ├── bookmark.rs           → domain::bookmark::service
 │   ├── category.rs           → domain::category::service
-│   ├── chapter.rs            → domain::chapter::service
 │   ├── cover.rs              → domain::cover::service
-│   ├── progress.rs           → domain::progress::service
-│   ├── vocab.rs              → domain::vocabulary::service
-│   ├── bilingual.rs          → domain::bilingual::service
 │   ├── dictionary.rs         → domain::dictionary::service
-│   ├── stats.rs              → domain::stats::service
-│   ├── reader.rs             → pipeline/orchestration (already thin)
-│   ├── backup.rs             → domain::backup::service (already thin)
-│   └── search.rs             → domain::search::engine (already thin)
+│   ├── engine_position.rs    → domain::engine_positions::service
+│   ├── progress.rs           → domain::progress::service
+│   ├── session.rs            → domain::sessions::service
+│   └── stats.rs              → domain::stats::service
 │
 ├── domain/                   # Flat business logic modules
 │   ├── mod.rs
-│   ├── sessions/             # Reading sessions
-│   │   ├── mod.rs            → pub mod {models, service, session_repo}
-│   │   ├── models.rs          # ReadingSession, data types
-│   │   ├── service.rs         # Business logic, delegates to repo
-│   │   └── session_repo.rs    # SQL queries (sqlx)
-│   ├── bookmark/             # Bookmarks
-│   │   ├── mod.rs
-│   │   ├── models.rs
-│   │   ├── service.rs
-│   │   └── bookmark_repo.rs
 │   ├── book/                 # Book management
 │   │   ├── mod.rs
 │   │   ├── models.rs
 │   │   ├── service.rs         # BookDetail aggregation, cascade delete, parse
 │   │   └── book_repo.rs
-│   ├── note/                 # Notes & highlights
+│   ├── bookmark/             # Bookmarks (positions in Readium locators)
 │   │   ├── mod.rs
 │   │   ├── models.rs
-│   │   ├── service.rs         # CRUD + render_txt/markdown/html export
-│   │   └── note_repo.rs
+│   │   └── bookmark_repo.rs
 │   ├── category/             # Book categories
 │   │   ├── mod.rs
 │   │   ├── models.rs
-│   │   ├── service.rs
 │   │   └── category_repo.rs
 │   ├── chapter/              # Book chapters
 │   │   ├── mod.rs
 │   │   ├── models.rs
-│   │   ├── service.rs
 │   │   └── chapter_repo.rs
 │   ├── cover/                # Cover extraction
 │   │   ├── mod.rs
 │   │   ├── models.rs
 │   │   ├── service.rs         # extract + save-to-DB + cleanup-on-failure
-│   │   └── cover_extractor.rs
-│   ├── progress/             # Reading progress
-│   │   ├── mod.rs
-│   │   ├── models.rs
-│   │   ├── service.rs
-│   │   └── progress_repo.rs
-│   ├── vocabulary/           # Vocabulary management
-│   │   ├── mod.rs
-│   │   ├── models.rs
-│   │   ├── service.rs
-│   │   └── vocab_repo.rs
-│   ├── stats/                # Reading statistics
-│   │   ├── mod.rs
-│   │   ├── models.rs
-│   │   ├── service.rs
-│   │   └── stats_repo.rs
-│   ├── bilingual/            # Bilingual alignment
-│   │   ├── mod.rs
-│   │   ├── models.rs
-│   │   ├── service.rs
-│   │   └── aligner.rs
-│   ├── dictionary/           # Dictionary & MDict engine
-│   │   ├── mod.rs
-│   │   ├── models.rs
-│   │   ├── service.rs         # CRUD + MDict engine lifecycle
-│   │   ├── dictionary_repo.rs
-│   │   └── mdict_engine.rs
-│   ├── backup/               # Data backup
-│   │   ├── mod.rs
-│   │   ├── models.rs
-│   │   └── service.rs
-│   ├── search/               # FTS5 search engine
-│   │   ├── mod.rs
 │   │   └── engine.rs
-│   └── wordlist/             # Built-in word lists
+│   ├── dictionary/           # Dictionary & MDict engine (active: lookup/suggest)
+│   │   ├── mod.rs
+│   │   ├── models.rs
+│   │   ├── service.rs
+│   │   ├── dictionary_repo.rs
+│   │   └── engine.rs
+│   ├── engine_positions/     # Readium Locator JSON hints (per-book, overwrite)
+│   │   ├── mod.rs
+│   │   ├── models.rs
+│   │   └── engine_position_repo.rs
+│   ├── progress/             # Reading progress (logical projection)
+│   │   ├── mod.rs
+│   │   ├── models.rs
+│   │   └── progress_repo.rs
+│   ├── sessions/             # Reading sessions
+│   │   ├── mod.rs
+│   │   ├── models.rs
+│   │   ├── service.rs         # Business logic, delegates to repo
+│   │   └── session_repo.rs
+│   └── stats/                # Reading statistics (aggregated from sessions)
 │       ├── mod.rs
-│       ├── wordlists.rs
-│       └── vocab_scanner.rs
+│       ├── models.rs
+│       └── stats_repo.rs
 │
 ├── parser/                   # File format parsers
-│   ├── epub/                 # EPUB parser
-│   └── txt/                  # TXT parser
-│
-├── pipeline/                 # Content processing
-│   └── ...
-│
-├── common/                   # Shared types & utilities
 │   ├── mod.rs
-│   ├── AppError
-│   └── security.rs
+│   ├── registry.rs
+│   ├── types.rs
+│   └── epub/                 # EPUB parser (entry extraction, TOC, assets)
+│       ├── mod.rs
+│       ├── archive_reader.rs
+│       ├── asset_registry.rs
+│       ├── entry_extractor.rs
+│       ├── parse.rs
+│       └── toc.rs
 │
 ├── infra/                    # Infrastructure
-│   └── manager.rs            # storage_pool, async_storage!
+│   ├── mod.rs
+│   ├── init.rs               # FRB init / runtime bootstrap
+│   └── manager.rs            # Storage pool management
 │
-└── frb_generated.rs          # Auto-generated by flutter_rust_bridge_codegen
+├── common/                   # Shared types
+│   ├── mod.rs
+│   ├── error.rs              # AppError (all FFI errors map to variants)
+│   └── security.rs
+│
+└── frb_generated.rs          # FRB codegen output (do not edit by hand)
 ```
 
----
+## Invariants
 
-## Layering Contract
-
-| Layer | Responsibility | Allowed Dependencies | Forbidden |
-| ------- | --------------- | --------------------- | ----------- |
-| `api/` | `#[frb]` annotations, param unwrap/validate, delegate to service | domain models, domain service | `const SQL_*`, `#[frb(opaque)]` struct with repo, direct repo calls, `async_storage!` |
-| `domain/*/service.rs` | Business rules, construction orchestration, validation | domain repos, domain models, `infra::manager` | `#[frb]`, `#[frb(opaque)]` |
-| `domain/*/*_repo.rs` | SQL queries, DB operations | domain models, `sqlx` | `#[frb]` for non-opaque access |
-| `domain/*/models.rs` | Data types, enums | `serde`, `chrono`, `uuid` | Business logic |
-
-**Flutter Rust Bridge (FRB) configuration** (`flutter_rust_bridge.yaml`):
-
-- `rust_input` must list all domain model paths that provide FRB-visible types
-- Paths use crate-relative syntax: `crate::domain::book::models`
-- Internal implementation types (like `SearchEngine`) should NOT be in `rust_input`
-
----
-
-## Naming Conventions
-
-- **Files**: `snake_case.rs` for all Rust files
-- **Domain modules**: Singular noun (`book`, `category`, `note`), NOT nested (`reader/bookmark` → `bookmark`)
-- **Service functions**: Same name as API function but with borrowed params
-- **FRB types**: `#[frb(dart_metadata = ("freezed"))]` for Dart freezed classes
-
----
-
-## Key Decisions
-
-- **Flat domain structure** (not nested `domain/reader/sessions/`): Simpler imports and reduced nesting
-- **Each domain module has**: `mod.rs`, `models.rs`, `service.rs`, `*_repo.rs`
-- **`flutter_rust_bridge.yaml` module paths must match actual module tree**: After Phase 7-9 refactoring, the old `domain::library::*`, `domain::reader::*`, `domain::profile::*`, `domain::language::*` paths were replaced with flat paths
+- FFI-exported functions are `pub fn xxx(...) -> Result<T, AppError>`; no panic crosses the FFI boundary.
+- `reading_stats` is written ONLY by `create_session` aggregation — no direct write entry (per ADR / invariant).
+- `engine_positions` is an engine-private position hint (Locator JSON), not part of the domain persistence model (per ADR-019).
+- FRB generated files (`frb_generated.rs`, `lib/src/rust/`) must never be hand-edited; regenerate via `flutter_rust_bridge_codegen generate`.
