@@ -38,6 +38,7 @@ static TEST_STORAGE: OnceLock<TempDir> = OnceLock::new();
 /// 在第一个测试文件中被调用时创建临时目录并初始化存储引擎。
 /// 后续调用直接返回，不会重复初始化。
 #[allow(dead_code)]
+#[allow(clippy::collapsible_if)]
 pub async fn init_test_storage() {
     if TEST_STORAGE.get().is_some() {
         return;
@@ -53,16 +54,6 @@ pub async fn init_test_storage() {
     }
 
     TEST_STORAGE.get_or_init(|| temp_dir);
-}
-
-/// 初始化搜索引擎（全局只初始化一次）
-#[allow(dead_code)]
-pub async fn init_test_search_engine() {
-    if let Err(e) = rust_lib_zephyr_reader::api::search::init_search_engine().await {
-        if !e.to_string().contains("already initialized") {
-            panic!("failed to init search engine: {e}");
-        }
-    }
 }
 
 /// 创建（或更新）一个最小测试书籍，标准默认字段
@@ -83,6 +74,3 @@ pub async fn ensure_test_book(book_id: &str) {
     };
     book::upsert_book(b).await.unwrap();
 }
-
-pub mod epub_local;
-pub mod reading_chain;

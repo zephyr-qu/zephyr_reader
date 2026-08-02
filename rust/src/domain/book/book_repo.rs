@@ -374,7 +374,16 @@ impl BookRepository {
             .bind(id)
             .execute(pool)
             .await?;
+        Ok(())
+    }
 
+    /// 记录书籍被打开（最近阅读排序依据）
+    pub async fn update_last_opened(pool: &SqlitePool, id: &str) -> Result<(), AppError> {
+        sqlx::query("UPDATE books SET last_opened_at = ? WHERE id = ?")
+            .bind(chrono::Utc::now())
+            .bind(id)
+            .execute(pool)
+            .await?;
         Ok(())
     }
 

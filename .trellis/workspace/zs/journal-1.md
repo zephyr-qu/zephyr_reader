@@ -171,3 +171,84 @@ yRh│- 关键决策：Rust DB 表持久化、基于 ReaderChromeShell 合并、
 QvD│- 旧任务结构 R1-1~R1-8 标记为已删除/取代
 dsX│- 新任务结构 R01-R15 已创建为 pending 状态
 IK5│- 待用户启动：R1（文档冻结）→ R2（核心模型）→ ...
+
+### R10 前置：阅读进度 + 阅读会话接入（2026-08-02）✅
+
+用户要求优先接入阅读会话与阅读进度（原先均为零调用/零写入）。
+
+**Rust 侧：**
+
+- 重建 `api/progress.rs`（e30fec01 曾删除）：`upsert_progress` + `get_progress`，注册到 api/mod.rs
+- `StatsRepository::aggregate_session`：会话结束时按 (book_id, date) 增量聚合 reading_stats（遵守不变量）
+- `create_session` 现在会同时聚合每日统计 → 统计页/主页图表不再恒 0
+- 新增集成测试：create_session 两次会话的时长/字符数/会话数/last_session_id 断言
+- 修复 `flutter_rust_bridge.yaml` 残留的已删模块（note/vocab/wordlist/search）→ FRB codegen 恢复可运行
+
+**Dart 侧（ReadiumViewModel + ReaderShell）：**
+
+- 进度双写：SharedPreferences Locator（恢复精度）保留 + 新增 Rust `reading_progress`（书架进度/统计）
+- Locator→进度映射：href→flattenToc 下标；charOffset = totalProgression × total_chars（未知时退回页码位置）
+- 阅读会话按章节分段：进入章节开启、章节切换 finalize、close/flush finalize；`ReadingSession` 由 `createSession` 记录
+- `flush()` + AppLifecycleListener：后台/被杀时强制结束会话并保存，恢复后开启新会话（会话边界语义）
+- 持久化调用全部尽力而为（失败静默），不中断阅读流程；注入点 `persistProgress`/`sessionRecorder` 供测试
+
+**测试与门禁：**
+
+- 新增 3 个 VM 行为测试（章节切换结束会话、close 写进度、flush 幂等）
+- 修复 4 个预存在失败：测试缺少 fontFamily/readerBgColorIndex stub（fc1410b9 引入 config 读取时未同步）
+- 全绿：dart analyze --fatal-infos / flutter test 15 / cargo clippy -D warnings / cargo test 101
+
+**已知限制（后续 R10 处理）：**
+
+- 阅读进度表 `reading_time_seconds` 由节流保存累计，粒度约 2s
+- 进程被杀瞬间（无 flush 机会）最多丢失 2s 进度
+- charOffset 为估算值（totalProgression × 全书字符数），非精确字符位置
+- `find_by_date_range`/GlobalStats 今日统计存在 sqlx DateTime 编码类型不匹配（TEST_FINDINGS.md 已记录）
+
+### R10 追加：Locator 全量迁移 Rust（2026-08-02）✅
+
+用户要求：SharedPreferences 的 Locator JSON 恢复不能全迁移到 Rust 吗？
+
+**架构依据（ADR-019）**：Locator 本就是"引擎私有位置存储，不进入领域持久化模型；只能作为快速恢复提示；与 EPUB 指纹不匹配时必须丢弃"。R3 迁移已建 `reading_engine_positions` 表（注释即"存储 Readium Locator JSON"），但 repo/API 从未实现（零代码引用该表）。
+
+**实现：**
+
+- 新建 `rust/src/domain/engine_positions/`（EnginePositionHint 模型 + EnginePositionHintRepository，每本书一行整体覆盖写）
+- 新建 `rust/src/api/engine_position.rs`：`save_engine_position` / `get_engine_position`
+- FRB codegen 重新生成（yaml 增加 engine_positions::models）
+- ReadiumViewModel 移除 SharedPreferences 读写（`_positionPrefix`、setString/getString 全删），阅读流程零 SharedPreferences
+- 保存：逻辑位置 upsert_progress + Locator JSON → EnginePositionHint（engine_kind='readium'，fingerprint=publication.metadata.identifier，两处独立 try 互不阻塞——恢复提示比逻辑投影更重要）
+- 恢复：open() 先 await 元数据再读 hint；fingerprint 不匹配 → 丢弃 → 退回目录首章
+- 注入点：enginePositionSaver / enginePositionLoader（命名参数签名，顶层默认函数）
+
+**测试：**
+
+- Rust：3 个集成测试（roundtrip / 覆盖写 / 未知书 None）
+- Dart：3 个新测试（close 存 hint 且 opaque 可反解回 Locator、指纹匹配恢复、指纹不匹配丢弃退回目录首章）
+- 全绿：cargo test 104 / clippy 0 / dart analyze 0 / flutter test 18
+
+**注意**：编辑 readium_view_model.dart 时 replace 锚点漂移误删过 Bookmarks+会话跟踪段（191 行），已恢复；教训：大范围替换前先 read 拿新鲜锚点。
+
+### 接线补齐：touch_book + 书签位置 + 读完标记（2026-08-02）✅
+
+用户拍板做 P0/P1/P2a，P2b（死 API 清理）先讲解待确认。
+
+- **P0 touch_book**：books.last_opened_at 全库无写入方 → 新增 `BookRepository::update_last_opened` + `touch_book` FRB API；ReadiumViewModel.open() 成功后 `unawaited(_touchBook())`（静默失败）。修复书架"最近阅读"排序选项 + service 默认排序。注意：首页"最近阅读"条实际走 reading_progress.last_read_at（上一轮已接好），books.last_opened_at 驱动书架 lastRead 排序——测试断言的是后者（list_bookshelf_books sortBy=last_opened_at）。新增集成测试。
+- **P1 书签位置**：addBookmark 的 chapterIndex/charOffset 从硬编码 0 改为 `_chapterIndexForHref`/`_charOffsetFor`。
+- **P2a 读完自动标状态**：进度保存时 isCompleted 首次为 true（transition + `_lastIsCompleted` 种子防重复/防已读完书重标）→ `updateBookStatus(BookStatus.completed)`。种子来自 _loadBookMetadata 的 detail.progress.isCompleted。
+
+全绿：cargo test 105 / clippy 0 / dart analyze 0 / flutter test 18。
+
+**P2b 待确认**：stats 4 个零调用 API（get_today_reading_stats / get_reading_stats_by_range / get_reading_stats_by_days / update_daily_stats）——讲解后由用户决定是否删。
+
+### P2b：stats 死 API 清理完成（2026-08-02）✅
+
+用户确认删除 4 个零调用 stats API。
+
+- 删除：`get_today_reading_stats` / `get_reading_stats_by_range` / `get_reading_stats_by_days` / `update_daily_stats`
+- 删除对应 repo 方法：`find_by_today` / `find_by_range` / `find_by_days` / `update_by_daily`（`SQL_UPSERT_READING_STATS` 保留给 aggregate_session）
+- 保留：`get_global_reading_stats` + `get_reading_stats_by_days_with_fill`（唯一存活读接口）
+- **update_daily_stats 删除的意义**：它是唯一"直接写 reading_stats"的入口，违反不变量（只在会话结束时由 sessions 聚合）——删除后不变量才真正成立（唯一写入路径 = create_session）
+- FRB codegen 重新生成；api_stats_test.rs 重写为 3 个测试（fill 补零形状 / fill 包含会话聚合数据 / global）
+- **踩坑**：聚合测试原用 `days_with_fill` 断言被并行测试遮蔽（fill 按日期折叠一天一行）→ 改为直接 sqlx 查 reading_stats 表断言，稳定 4/4
+- 全绿：cargo test 102 / clippy 0 / dart analyze 0 / flutter test 18

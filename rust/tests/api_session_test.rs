@@ -6,6 +6,7 @@ mod common;
 
 use rust_lib_zephyr_reader::api::session;
 use rust_lib_zephyr_reader::domain::sessions::models::ReadingSession;
+use rust_lib_zephyr_reader::domain::stats::models::ReadingStats;
 
 #[tokio::test]
 async fn test_create_and_list_session() {
@@ -153,7 +154,7 @@ async fn test_clear_sessions_by_book() {
         .unwrap();
 
     // 清除
-    session::clear_sessions_by_book("session-clear-book".to_string())
+    session::delete_sessions_by_book("session-clear-book".to_string())
         .await
         .unwrap();
 
@@ -162,4 +163,48 @@ async fn test_clear_sessions_by_book() {
         .await
         .unwrap();
     assert!(sessions.is_empty(), "清除后会话列表应为空");
+}
+
+#[tokio::test]
+async fn test_create_session_aggregates_daily_stats() {
+    common::init_logger();
+    common::init_test_storage().await;
+    common::ensure_test_book("session-stats-book").await;
+
+    // 同一天内两次会话（跨章节）：时长与字符数应增量聚合到 reading_stats。
+    // 注意：不能用 get_reading_stats_by_days_with_fill 断言——它按日期折叠（一天一行，
+    // 与书无关），并行测试的其他书会遮蔽本行。直接查 reading_stats 表验证聚合结果。
+    let now = chrono::Utc::now();
+    let started_at = now.timestamp();
+    let s1 = session::create_session("session-stats-book".to_string(), 0, 1000, 2000, started_at)
+        .await
+        .unwrap();
+    let s2 = session::create_session(
+        "session-stats-book".to_string(),
+        1,
+        2000,
+        2500,
+        started_at + 300,
+    )
+    .await
+    .unwrap();
+
+    let pool = rust_lib_zephyr_reader::infra::manager::storage_pool().unwrap();
+    let row: ReadingStats =
+        sqlx::query_as("SELECT * FROM reading_stats WHERE book_id = 'session-stats-book'")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        row.reading_time_seconds,
+        s1.duration_seconds + s2.duration_seconds,
+        "两次会话时长应累加",
+    );
+    assert_eq!(row.characters_read, 1500, "字符数应累加（1000 + 500）");
+    assert_eq!(row.session_count, 2);
+    assert_eq!(
+        row.last_session_id.as_deref(),
+        Some(s2.id.as_str()),
+        "last_session_id 应记录最后一次聚合的会话",
+    );
 }

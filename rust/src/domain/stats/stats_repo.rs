@@ -4,9 +4,8 @@ use flutter_rust_bridge::frb;
 //
 // 公有类型/函数：
 //   - StatsRepository — 阅读统计仓储结构体
-//   - find_by_today() / find_by_range() / find_by_days() — 按日查询
 //   - find_by_global() — 全局统计汇总
-//   - update_by_daily() — 更新每日统计
+//   - aggregate_session() — 会话结束时的每日统计增量聚合（唯一写入路径）
 //   - find_by_days_with_fill() — 最近 N 天含补零
 //
 // 私有函数：
@@ -17,7 +16,7 @@ use std::collections::HashSet;
 
 use crate::domain::AppError;
 use crate::domain::stats::models::{AggregatedStats, GlobalStats, ReadingStats};
-use chrono::{NaiveDate, Utc};
+use chrono::Utc;
 use sqlx::SqlitePool;
 
 /// 不变量：`reading_stats` 仅在阅读会话结束时由 `reading_sessions` 增量聚合更新，
@@ -71,34 +70,6 @@ async fn calculate_consecutive_reading_days(pool: &SqlitePool) -> Result<i64, Ap
 pub struct StatsRepository;
 
 impl StatsRepository {
-    /// 获取今日统计
-    pub async fn find_by_today(pool: &SqlitePool) -> Result<Vec<ReadingStats>, AppError> {
-        let today = Utc::now().date_naive().to_string();
-        Ok(
-            sqlx::query_as::<_, ReadingStats>("SELECT * FROM reading_stats WHERE date = ?")
-                .bind(&today)
-                .fetch_all(pool)
-                .await?,
-        )
-    }
-
-    /// 按日期范围获取统计（参数改为强类型 NaiveDate）
-    pub async fn find_by_range(
-        pool: &SqlitePool,
-        start_date: NaiveDate,
-        end_date: NaiveDate,
-    ) -> Result<Vec<ReadingStats>, AppError> {
-        let start = start_date.to_string();
-        let end = end_date.to_string();
-        Ok(sqlx::query_as::<_, ReadingStats>(
-            "SELECT * FROM reading_stats WHERE date >= ? AND date <= ? ORDER BY date",
-        )
-        .bind(&start)
-        .bind(&end)
-        .fetch_all(pool)
-        .await?)
-    }
-
     /// 获取全局统计汇总
     /// 将 7 次独立查询合并为 1 次聚合查询 + 1 次连续天数查询
     pub async fn find_by_global(pool: &SqlitePool) -> Result<GlobalStats, AppError> {
@@ -148,8 +119,44 @@ impl StatsRepository {
         })
     }
 
-    /// 更新每日统计
-    pub async fn update_by_daily(pool: &SqlitePool, stats: &ReadingStats) -> Result<(), AppError> {
+    /// 聚合单个阅读会话到每日统计（阅读会话结束时调用）
+    ///
+    /// 不变量：`reading_stats` 仅在阅读会话结束时由 `reading_sessions` 增量聚合更新。
+    /// 按 (book_id, date) 读取现有累计值并叠加本次会话的时长与阅读字符数。
+    pub async fn aggregate_session(
+        pool: &SqlitePool,
+        session: &crate::domain::sessions::models::ReadingSession,
+    ) -> Result<(), AppError> {
+        let date = session.started_at.date_naive().to_string();
+        let characters = (session.end_char_offset - session.start_char_offset).max(0);
+
+        let existing: Option<ReadingStats> = sqlx::query_as::<_, ReadingStats>(
+            "SELECT * FROM reading_stats WHERE book_id = ? AND date = ?",
+        )
+        .bind(&session.book_id)
+        .bind(&date)
+        .fetch_optional(pool)
+        .await?;
+
+        let stats = match existing {
+            Some(prev) => ReadingStats {
+                book_id: prev.book_id,
+                date: prev.date,
+                reading_time_seconds: prev.reading_time_seconds + session.duration_seconds,
+                characters_read: prev.characters_read + characters,
+                session_count: prev.session_count + 1,
+                last_session_id: Some(session.id.clone()),
+            },
+            None => ReadingStats {
+                book_id: session.book_id.clone(),
+                date,
+                reading_time_seconds: session.duration_seconds,
+                characters_read: characters,
+                session_count: 1,
+                last_session_id: Some(session.id.clone()),
+            },
+        };
+
         sqlx::query(SQL_UPSERT_READING_STATS)
             .bind(&stats.book_id)
             .bind(&stats.date)
@@ -160,30 +167,6 @@ impl StatsRepository {
             .execute(pool)
             .await?;
         Ok(())
-    }
-    /// 获取最近 N 天的统计数据（包含今天）
-    ///
-    /// # Arguments
-    /// * `days` - 天数，例如 7 表示最近 7 天（包含今天）
-    ///
-    /// # Returns
-    /// 按日期倒序排列（最新的在前面）的统计列表
-    pub async fn find_by_days(pool: &SqlitePool, days: i32) -> Result<Vec<ReadingStats>, AppError> {
-        let today = Utc::now().date_naive();
-        let start_date = today - chrono::Duration::days((days - 1) as i64);
-
-        let start = start_date.to_string();
-        let end = today.to_string();
-
-        Ok(sqlx::query_as::<_, ReadingStats>(
-            "SELECT * FROM reading_stats
-         WHERE date >= ? AND date <= ?
-         ORDER BY date DESC",
-        )
-        .bind(&start)
-        .bind(&end)
-        .fetch_all(pool)
-        .await?)
     }
 
     /// 获取最近 N 天的统计数据（包含今天），缺失的日期补 0

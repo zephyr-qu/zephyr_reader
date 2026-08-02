@@ -1,8 +1,6 @@
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/src/rust/api/stats.dart' as stats_api;
-import 'package:zephyr_reader/src/rust/api/vocab.dart' as vocab_api;
 import 'package:zephyr_reader/src/rust/domain/stats/models.dart';
-import 'package:zephyr_reader/src/rust/domain/vocab/models.dart';
 
 
 /// 统计时段枚举
@@ -17,16 +15,6 @@ class ReadingStatsViewModel {
 
   /// 近 N 天阅读记录
   final dailyRecords = asyncSignal<List<ReadingStats>>(AsyncState.loading());
-
-  final vocabStats = signal(
-    const VocabStats(
-      totalWords: 0,
-      unstartedCount: 0,
-      learningCount: 0,
-      masteredCount: 0,
-      ignoredCount: 0,
-    ),
-  );
 
   /// 按时段加载统计数据（全局统计、每日阅读记录、生词统计）。
   Future<void> loadData({
@@ -46,17 +34,12 @@ class ReadingStatsViewModel {
     } catch (e) {
       globalStats.value = AsyncState<GlobalStats?>.error(e);
     }
-    // 每日阅读 + 生词统计
+    // 每日阅读统计
     try {
       dailyRecords.value = AsyncState<List<ReadingStats>>.loading();
-      final results = await Future.wait([
-        stats_api.getReadingStatsByDaysWithFill(days: days),
-        vocab_api.getVocabularyStats(),
-      ]);
       dailyRecords.value = AsyncState<List<ReadingStats>>.data(
-        results[0] as List<ReadingStats>,
+        await stats_api.getReadingStatsByDaysWithFill(days: days),
       );
-      vocabStats.value = results[1] as VocabStats;
     } catch (e) {
       dailyRecords.value = AsyncState<List<ReadingStats>>.error(e);
     }

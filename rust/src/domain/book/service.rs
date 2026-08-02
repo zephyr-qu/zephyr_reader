@@ -7,16 +7,15 @@ use crate::api::book::BookDetail;
 use crate::common::AppError;
 use crate::common::security::validate_file_path;
 use crate::domain::book::book_repo::BookRepository;
-use crate::domain::book::{Book, BookFormat, BookStatus, BookshelfBook};
+use crate::domain::book::{BookStatus, BookshelfBook};
 use crate::domain::category::category_repo::CategoryRepository;
 use crate::domain::chapter::chapter_repo::ChapterRepository;
 use crate::domain::progress::progress_repo::ProgressRepository;
 use crate::domain::sessions::session_repo::SessionRepository;
-use crate::domain::vocab::vocab_repo::VocabRepository;
 use crate::infra::manager::storage_pool;
 use crate::parser::registry::parser_for_file;
-use crate::pipeline::chapter_ir::IrCacheRepository;
-use std::path::Path;
+
+
 
 /// 获取书籍详情（聚合查询）
 pub async fn get_book_detail(book_id: &str) -> Result<BookDetail, AppError> {
@@ -31,7 +30,7 @@ pub async fn get_book_detail(book_id: &str) -> Result<BookDetail, AppError> {
     let chapters = ChapterRepository::find_by_book(&pool, book_id).await?;
     let categories = CategoryRepository::list_by_book(&pool, book_id).await?;
     let session_count = SessionRepository::count_by_book(&pool, book_id).await?;
-    let vocab_count = VocabRepository::count_by_book(&pool, book_id).await?;
+
 
     Ok(BookDetail {
         book,
@@ -39,7 +38,6 @@ pub async fn get_book_detail(book_id: &str) -> Result<BookDetail, AppError> {
         chapters,
         categories,
         session_count,
-        vocab_count,
     })
 }
 
@@ -65,17 +63,11 @@ pub async fn list_bookshelf_books(
     }
 }
 
-/// 级联删除书籍（含封面文件删除、缓存失效）
+/// 级联删除书籍（含封面文件删除）
 ///
-/// 注意：搜索索引清理由调用方负责（search::delete_by_book）
+/// 级联删除书籍（含封面文件删除）
 pub async fn delete_book(book_id: &str, covers_dir: &str) -> Result<(), AppError> {
     let pool = storage_pool()?;
-
-    // 先查 file_path（级联删除后 book 行消失）
-    let file_path = match BookRepository::find_by_id(&pool, book_id).await {
-        Ok(Some(book)) => Some(book.file_path),
-        _ => None,
-    };
 
     // 删除封面文件
     if let Ok(Some(cover_path)) = BookRepository::find_cover_path(&pool, book_id).await {
@@ -94,58 +86,8 @@ pub async fn delete_book(book_id: &str, covers_dir: &str) -> Result<(), AppError
             reason: e.to_string(),
         })?;
 
-    // 失效 IR 缓存
-    if let Some(ref fp) = file_path {
-        let kv = crate::infra::ensure_storage()?.kv();
-        let cache_repo = IrCacheRepository::new(kv);
-        if let Err(e) = cache_repo.invalidate_book_cache(fp) {
-            tracing::warn!("[book] failed to clear ir cache for '{}': {}", fp, e);
-        }
-    } else {
-        tracing::warn!(
-            "[book] book '{}' not found — cannot invalidate IR cache",
-            book_id
-        );
-    }
-
     Ok(())
 }
-
-/// 创建外部导入的书籍（如来自网页搜索）
-pub async fn create_web_book(
-    title: &str,
-    author: &str,
-    file_path: &str,
-    chapter_count: i64,
-    total_characters: i64,
-    cover_path: Option<&str>,
-    description: Option<&str>,
-) -> Result<Book, AppError> {
-    let cover = cover_path
-        .and_then(|s| Path::new(s).file_name())
-        .map(|f| f.to_string_lossy().into_owned());
-    let book = Book::new(
-        file_path.to_string(),
-        0,
-        title.to_string(),
-        BookFormat::Txt,
-        chapter_count,
-        total_characters,
-        None,
-        None,
-        Some(author.to_string()),
-        cover,
-        description.map(|s| s.to_string()),
-        None,
-        None,
-        None,
-    );
-    let pool = storage_pool()?;
-    BookRepository::save(&pool, &book).await?;
-    BookRepository::save_metadata(&pool, &book).await?;
-    Ok(book)
-}
-
 /// 批量更新书籍阅读状态
 pub async fn batch_update_book_status(
     book_ids: &[String],

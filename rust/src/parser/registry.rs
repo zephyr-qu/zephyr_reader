@@ -16,10 +16,13 @@ use crate::domain::book::BookFormat;
 use crate::parser::Parser;
 
 /// 根据 BookFormat 返回对应的 Parser
-pub fn parser_for_format(format: BookFormat) -> Parser {
+pub fn parser_for_format(format: BookFormat) -> Result<Parser, AppError> {
     match format {
-        BookFormat::Txt => Parser::Txt(crate::parser::txt::TxtParser),
-        BookFormat::Epub => Parser::Epub(crate::parser::epub::EpubParser),
+        BookFormat::Epub => Ok(Parser::Epub(crate::parser::epub::EpubParser)),
+        // 单引擎（EPUB only）决策：TXT 无解析器
+        BookFormat::Txt => Err(AppError::UnsupportedFormat {
+            format: "TXT is not supported in single-engine (EPUB-only) mode".into(),
+        }),
     }
 }
 
@@ -32,7 +35,6 @@ pub fn format_from_extension(ext: &str) -> Result<BookFormat, AppError> {
             buf[i] = b.to_ascii_lowercase();
         }
         match &buf[..bytes.len()] {
-            b"txt" | b"text" => Ok(BookFormat::Txt),
             b"epub" => Ok(BookFormat::Epub),
             _ => Err(AppError::UnsupportedFormat {
                 format: format!("Unknown format: {}", ext),
@@ -54,7 +56,7 @@ pub fn parser_for_file(path: &str) -> Result<Parser, AppError> {
             format: "Cannot identify file extension".to_string(),
         })?;
     let format = format_from_extension(ext)?;
-    Ok(parser_for_format(format))
+    parser_for_format(format)
 }
 
 #[cfg(test)]
@@ -63,18 +65,15 @@ mod tests {
 
     #[test]
     fn test_parser_for_format() {
-        assert!(matches!(parser_for_format(BookFormat::Txt), Parser::Txt(_)));
         assert!(matches!(
             parser_for_format(BookFormat::Epub),
-            Parser::Epub(_)
+            Ok(Parser::Epub(_))
         ));
+        assert!(parser_for_format(BookFormat::Txt).is_err());
     }
 
     #[test]
     fn test_format_from_extension() {
-        assert!(matches!(format_from_extension("txt"), Ok(BookFormat::Txt)));
-        assert!(matches!(format_from_extension("text"), Ok(BookFormat::Txt)));
-        assert!(matches!(format_from_extension("TXT"), Ok(BookFormat::Txt)));
         assert!(matches!(
             format_from_extension("epub"),
             Ok(BookFormat::Epub)
@@ -83,6 +82,8 @@ mod tests {
             format_from_extension("EPUB"),
             Ok(BookFormat::Epub)
         ));
+        assert!(format_from_extension("txt").is_err());
+        assert!(format_from_extension("text").is_err());
         assert!(format_from_extension("pdf").is_err());
         assert!(format_from_extension("md").is_err());
         assert!(format_from_extension("unknown").is_err());
@@ -90,8 +91,11 @@ mod tests {
 
     #[test]
     fn test_parser_for_file() {
-        assert!(matches!(parser_for_file("book.txt"), Ok(Parser::Txt(_))));
-        assert!(matches!(parser_for_file("book.epub"), Ok(Parser::Epub(_))));
+        assert!(matches!(
+            parser_for_file("book.epub"),
+            Ok(Parser::Epub(_))
+        ));
+        assert!(parser_for_file("book.txt").is_err());
         assert!(parser_for_file("book.pdf").is_err());
         assert!(parser_for_file("book.md").is_err());
         assert!(parser_for_file("book.unknown").is_err());
@@ -100,15 +104,13 @@ mod tests {
 
     #[test]
     fn test_parser_name() {
-        let parser = parser_for_format(BookFormat::Txt);
-        assert_eq!(parser.name(), "TXT Parser");
-        let parser = parser_for_format(BookFormat::Epub);
+        let parser = parser_for_format(BookFormat::Epub).unwrap();
         assert_eq!(parser.name(), "EPUB Parser");
     }
 
     #[test]
     fn test_supported_formats() {
-        let parser = parser_for_format(BookFormat::Txt);
-        assert!(parser.supported_formats().contains(&"txt"));
+        let parser = parser_for_format(BookFormat::Epub).unwrap();
+        assert!(parser.supported_formats().contains(&"epub"));
     }
 }

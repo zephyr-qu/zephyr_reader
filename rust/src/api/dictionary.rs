@@ -5,7 +5,7 @@ use flutter_rust_bridge::frb;
 use crate::common::AppError;
 use crate::domain::dictionary::dictionary_repo::DictionaryRepository;
 use crate::domain::dictionary::service;
-use crate::domain::dictionary::{DictSearchResult, models::Dictionary};
+use crate::domain::dictionary::{models::Dictionary, DictSearchResult};
 use crate::infra::manager::storage_pool;
 
 // ==================== 词典数据 CRUD ====================

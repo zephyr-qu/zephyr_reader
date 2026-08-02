@@ -3,7 +3,6 @@
 //           封面路径、spine 等元数据信息。
 //
 // 公有类型/函数：
-//   - get_epub_metadata() — 获取 EPUB 元数据（快速预览）
 //   - get_metadata_first() — 从 MetadataItem 列表获取指定属性的第一个值
 //
 // 私有函数：
@@ -16,10 +15,7 @@
 //! 文件 I/O 委托给 archive_reader 模块
 
 use super::archive_reader::EpubFile;
-use crate::domain::AppError;
-use crate::parser::epub::{EpubMetadata, EpubTocItem};
 use epub::doc::{MetadataItem, SpineItem};
-
 /// 辅助函数：从 MetadataItem Vec 中获取指定类型的第一个值
 /// epub 2.x 使用 property/value 而不是 name/content
 /// 注意：epub 2.x 中 MetadataItem.value 是 String 类型，不是 Vec<String>
@@ -175,46 +171,3 @@ fn flatten_toc(
     }
 }
 
-/// 获取 EPUB 元数据（快速预览，不读取章节内容）
-///
-/// 用于 Flutter 侧快速获取 EPUB 文件的基本信息，
-/// 无需完整解析即可显示书名、作者、封面、目录等。
-///
-/// # 参数
-/// * `file_path` - EPUB 文件路径
-///
-/// # 返回值
-/// * `Ok(EpubMetadata)` - 元数据
-/// * `Err(AppError)` - 解析失败
-pub fn get_epub_metadata(file_path: &str) -> Result<EpubMetadata, AppError> {
-    let epub_file = EpubFile::open(file_path)?;
-
-    let title = epub_file.title();
-    let author = epub_file.author();
-    let cover_path = epub_file.cover_path();
-    let toc = epub_file
-        .toc()
-        .into_iter()
-        .map(|(label, href, level)| EpubTocItem { label, href, level })
-        .collect();
-    let spine = epub_file.spine();
-
-    Ok(EpubMetadata {
-        title,
-        author,
-        cover_path,
-        toc,
-        spine,
-    })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_get_epub_metadata_not_found() {
-        let result = get_epub_metadata("non_existent.epub");
-        assert!(result.is_err());
-    }
-}

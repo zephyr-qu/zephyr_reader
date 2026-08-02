@@ -158,12 +158,6 @@ abstract class AppLocalizations {
   /// **'书架'**
   String get bookshelf;
 
-  /// No description provided for @searchBooks.
-  ///
-  /// In zh, this message translates to:
-  /// **'搜索书籍'**
-  String get searchBooks;
-
   /// No description provided for @importBook.
   ///
   /// In zh, this message translates to:
@@ -313,12 +307,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'高亮数'**
   String get highlightsCount;
-
-  /// No description provided for @vocabularyCount.
-  ///
-  /// In zh, this message translates to:
-  /// **'生词数'**
-  String get vocabularyCount;
 
   /// No description provided for @edit.
   ///
@@ -488,12 +476,6 @@ abstract class AppLocalizations {
   /// **'暂无书签'**
   String get noBookmarks;
 
-  /// No description provided for @searchInPage.
-  ///
-  /// In zh, this message translates to:
-  /// **'页面内查找'**
-  String get searchInPage;
-
   /// No description provided for @noResults.
   ///
   /// In zh, this message translates to:
@@ -548,12 +530,6 @@ abstract class AppLocalizations {
   /// **'查词'**
   String get selectionDictionary;
 
-  /// No description provided for @selectionVocabulary.
-  ///
-  /// In zh, this message translates to:
-  /// **'生词本'**
-  String get selectionVocabulary;
-
   /// No description provided for @highlightYellow.
   ///
   /// In zh, this message translates to:
@@ -596,29 +572,11 @@ abstract class AppLocalizations {
   /// **'查词'**
   String get lookupWord;
 
-  /// No description provided for @addToVocabulary.
-  ///
-  /// In zh, this message translates to:
-  /// **'加入生词本'**
-  String get addToVocabulary;
-
   /// No description provided for @noDefinition.
   ///
   /// In zh, this message translates to:
   /// **'未找到释义'**
   String get noDefinition;
-
-  /// No description provided for @vocabulary.
-  ///
-  /// In zh, this message translates to:
-  /// **'生词本'**
-  String get vocabulary;
-
-  /// No description provided for @vocabularyBook.
-  ///
-  /// In zh, this message translates to:
-  /// **'生词本'**
-  String get vocabularyBook;
 
   /// No description provided for @wordCount.
   ///
@@ -643,12 +601,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'新词'**
   String get newWord;
-
-  /// No description provided for @searchWords.
-  ///
-  /// In zh, this message translates to:
-  /// **'搜索单词'**
-  String get searchWords;
 
   /// No description provided for @noWords.
   ///
@@ -1328,12 +1280,6 @@ abstract class AppLocalizations {
   /// **'批量管理'**
   String get batchManage;
 
-  /// No description provided for @globalSearch.
-  ///
-  /// In zh, this message translates to:
-  /// **'全局搜索'**
-  String get globalSearch;
-
   /// No description provided for @editCategory.
   ///
   /// In zh, this message translates to:
@@ -1838,12 +1784,6 @@ abstract class AppLocalizations {
   /// **'智能排版引擎'**
   String get aboutFeature3;
 
-  /// No description provided for @aboutFeature5.
-  ///
-  /// In zh, this message translates to:
-  /// **'生词本与学习记录'**
-  String get aboutFeature5;
-
   /// No description provided for @aboutFeature6.
   ///
   /// In zh, this message translates to:
@@ -2125,18 +2065,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'阅读辅助'**
   String get readingAssist;
-
-  /// No description provided for @addedToVocabulary.
-  ///
-  /// In zh, this message translates to:
-  /// **'已加入生词本：{word}'**
-  String addedToVocabulary(Object word);
-
-  /// No description provided for @addToVocabFailed.
-  ///
-  /// In zh, this message translates to:
-  /// **'加入生词本失败：{error}'**
-  String addToVocabFailed(Object error);
 
   /// No description provided for @readerThemeLight.
   ///
@@ -2480,12 +2408,6 @@ abstract class AppLocalizations {
   /// **'日'**
   String get weekdaySun;
 
-  /// No description provided for @vocabStats.
-  ///
-  /// In zh, this message translates to:
-  /// **'生词统计'**
-  String get vocabStats;
-
   /// No description provided for @statusIgnored.
   ///
   /// In zh, this message translates to:
@@ -2738,78 +2660,6 @@ abstract class AppLocalizations {
   /// **'恢复失败：{error}'**
   String restoreFailed(Object error);
 
-  /// No description provided for @searchGroupBooks.
-  ///
-  /// In zh, this message translates to:
-  /// **'书籍'**
-  String get searchGroupBooks;
-
-  /// No description provided for @searchGroupNotes.
-  ///
-  /// In zh, this message translates to:
-  /// **'笔记'**
-  String get searchGroupNotes;
-
-  /// No description provided for @searchGroupVocab.
-  ///
-  /// In zh, this message translates to:
-  /// **'生词'**
-  String get searchGroupVocab;
-
-  /// No description provided for @searchNoResults.
-  ///
-  /// In zh, this message translates to:
-  /// **'未找到相关结果'**
-  String get searchNoResults;
-
-  /// No description provided for @bookSearchHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'搜索书籍内容…'**
-  String get bookSearchHint;
-
-  /// No description provided for @bookSearchHintAll.
-  ///
-  /// In zh, this message translates to:
-  /// **'搜索所有书籍内容…'**
-  String get bookSearchHintAll;
-
-  /// No description provided for @searchHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'搜索书籍、笔记、生词…'**
-  String get searchHint;
-
-  /// No description provided for @searchHistory.
-  ///
-  /// In zh, this message translates to:
-  /// **'搜索历史'**
-  String get searchHistory;
-
-  /// No description provided for @searchFailed.
-  ///
-  /// In zh, this message translates to:
-  /// **'搜索失败'**
-  String get searchFailed;
-
-  /// No description provided for @searchEnterKeyword.
-  ///
-  /// In zh, this message translates to:
-  /// **'请输入搜索关键词'**
-  String get searchEnterKeyword;
-
-  /// No description provided for @searchTryOtherKeywords.
-  ///
-  /// In zh, this message translates to:
-  /// **'尝试其他关键词'**
-  String get searchTryOtherKeywords;
-
-  /// No description provided for @searchError.
-  ///
-  /// In zh, this message translates to:
-  /// **'搜索出错'**
-  String get searchError;
-
   /// No description provided for @resultSummary.
   ///
   /// In zh, this message translates to:
@@ -2942,12 +2792,6 @@ abstract class AppLocalizations {
   /// **'书签'**
   String get restoreStatBookmarks;
 
-  /// No description provided for @restoreStatVocabulary.
-  ///
-  /// In zh, this message translates to:
-  /// **'生词'**
-  String get restoreStatVocabulary;
-
   /// No description provided for @allBooks.
   ///
   /// In zh, this message translates to:
@@ -2977,12 +2821,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'导出所有笔记为 Markdown 文档'**
   String get exportNotesMarkdownDesc;
-
-  /// No description provided for @exportVocabCsvDesc.
-  ///
-  /// In zh, this message translates to:
-  /// **'导出所有生词为表格文件'**
-  String get exportVocabCsvDesc;
 
   /// No description provided for @goReading.
   ///
@@ -3014,24 +2852,6 @@ abstract class AppLocalizations {
   /// **'笔记 (Markdown)'**
   String get notesMarkdown;
 
-  /// No description provided for @totalVocabCount.
-  ///
-  /// In zh, this message translates to:
-  /// **'生词总数'**
-  String get totalVocabCount;
-
-  /// No description provided for @vocabEmptyHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'在阅读中添加生词后，它们会出现在这里'**
-  String get vocabEmptyHint;
-
-  /// No description provided for @vocabListCsv.
-  ///
-  /// In zh, this message translates to:
-  /// **'生词表 (CSV)'**
-  String get vocabListCsv;
-
   /// No description provided for @wordListCet4.
   ///
   /// In zh, this message translates to:
@@ -3061,48 +2881,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'确定要删除「{word}」吗？'**
   String confirmDeleteWord(Object word);
-
-  /// No description provided for @vocabPageEmptyHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'去阅读时点击单词即可加入生词本'**
-  String get vocabPageEmptyHint;
-
-  /// No description provided for @vocabFilterEmptyHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'没有符合条件的生词'**
-  String get vocabFilterEmptyHint;
-
-  /// No description provided for @vocabStatsAll.
-  ///
-  /// In zh, this message translates to:
-  /// **'全部 {count}'**
-  String vocabStatsAll(Object count);
-
-  /// No description provided for @vocabStatsUnstarted.
-  ///
-  /// In zh, this message translates to:
-  /// **'未学 {count}'**
-  String vocabStatsUnstarted(Object count);
-
-  /// No description provided for @vocabStatsLearning.
-  ///
-  /// In zh, this message translates to:
-  /// **'学习中 {count}'**
-  String vocabStatsLearning(Object count);
-
-  /// No description provided for @vocabStatsMastered.
-  ///
-  /// In zh, this message translates to:
-  /// **'已掌握 {count}'**
-  String vocabStatsMastered(Object count);
-
-  /// No description provided for @vocabStatsIgnored.
-  ///
-  /// In zh, this message translates to:
-  /// **'已忽略 {count}'**
-  String vocabStatsIgnored(Object count);
 
   /// No description provided for @secondsUnit.
   ///
@@ -3661,12 +3439,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'书签管理'**
   String get bookmarkManage;
-
-  /// No description provided for @searchBookmarkHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'搜索书签...'**
-  String get searchBookmarkHint;
 
   /// No description provided for @clearAll.
   ///

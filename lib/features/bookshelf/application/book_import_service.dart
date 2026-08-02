@@ -44,7 +44,7 @@ class BookImportService {
     String folderPath, {
     void Function(int done, int total)? onProgress,
   }) async {
-    final extensions = {'.txt', '.epub'};
+    final extensions = {'.epub'}; // 单引擎（EPUB only）：TXT 已下线
     final dir = Directory(folderPath);
     final files = await dir
         .list(recursive: true)

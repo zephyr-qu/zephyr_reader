@@ -64,8 +64,18 @@ class ReadiumReaderShell extends HookWidget {
     final chromeVisible = useState(true);
 
     // Lifecycle — clean up ViewModel resources
+    // Lifecycle — flush on background, clean up ViewModel resources on exit
     useEffect(() {
+      final lifecycle = AppLifecycleListener(
+        onStateChange: (state) {
+          if (state == AppLifecycleState.paused ||
+              state == AppLifecycleState.detached) {
+            unawaited(vm.flush());
+          }
+        },
+      );
       return () {
+        lifecycle.dispose();
         unawaited(vm.close());
       };
     }, []);

@@ -3,8 +3,8 @@
 use flutter_rust_bridge::frb;
 
 use crate::common::AppError;
-use crate::domain::category::Category;
 use crate::domain::category::category_repo::CategoryRepository;
+use crate::domain::category::Category;
 use crate::infra::manager::storage_pool;
 
 /// 获取所有分类列表

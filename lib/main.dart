@@ -6,7 +6,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:zephyr_reader/app.dart';
 import 'package:zephyr_reader/core/app_config.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
-import 'package:zephyr_reader/src/rust/api/search.dart';
 import 'package:zephyr_reader/src/rust/infra/init.dart';
 import 'package:zephyr_reader/src/rust/frb_generated.dart';
 
@@ -23,11 +22,6 @@ Future<void> main() async {
       await Logging.init();
       await initStorage(dataDir: '${appDir.path}/zephyr_reader/data');
 
-      try {
-        await initSearchEngine();
-      } catch (e) {
-        Logging.error('搜索索引初始化失败', exception: e);
-      }
       await AppConfig.instance.init(
         coverDir: '${appDir.path}/zephyr_reader/covers',
       );

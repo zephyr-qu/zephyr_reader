@@ -18,12 +18,9 @@ import 'package:zephyr_reader/features/profile/page/theme/theme_brightness_page.
 import 'package:zephyr_reader/features/profile/page/tts/tts_settings_page.dart';
 import 'package:zephyr_reader/features/profile/page/typography/typography_settings_page.dart';
 import 'package:zephyr_reader/features/reader/page/reader_page.dart';
-import 'package:zephyr_reader/features/search/page/book_search_page.dart';
-import 'package:zephyr_reader/features/search/page/search_page.dart';
 import 'package:zephyr_reader/features/statistics/page/reading_sessions_page.dart';
 import 'package:zephyr_reader/features/statistics/page/statistics_page.dart';
 import 'package:zephyr_reader/features/data/page/data_management_page.dart';
-import 'package:zephyr_reader/features/vocabulary/page/vocabulary_page.dart';
 
 /// 解析深度链接 URI，返回重定向路径
 String? _resolveDeepLink(Uri uri) {
@@ -38,8 +35,6 @@ String? _resolveDeepLink(Uri uri) {
       }
     }
     if (path == '/bookshelf') return AppRoute.bookshelf.path;
-    if (path == '/vocabulary') return AppRoute.vocabulary.path;
-    if (path == '/search') return AppRoute.search.path;
     return AppRoute.home.path;
   }
   return null;
@@ -176,12 +171,6 @@ final router = GoRouter(
       },
     ),
 
-    // 搜索路由（独立页面，不使用 MainLayout）
-    GoRoute(
-      name: AppRoute.search.name,
-      path: AppRoute.search.path,
-      builder: (_, _) => SearchPage(),
-    ),
 
     // 同步相关路由
     GoRoute(
@@ -190,24 +179,9 @@ final router = GoRouter(
       builder: (_, _) => const DataManagementPage(),
     ),
 
-    // 全书搜索
-    GoRoute(
-      name: AppRoute.bookSearch.name,
-      path: AppRoute.bookSearch.path,
-      builder: (_, state) {
-        final bookId = state.uri.queryParameters['bookId'] ?? '';
-        return BookSearchPage(bookId: bookId);
-      },
-    ),
 
     // 笔记管理
 
-    // 生词本
-    GoRoute(
-      name: AppRoute.vocabulary.name,
-      path: AppRoute.vocabulary.path,
-      builder: (_, _) => const VocabularyPage(),
-    ),
 
     // 阅读会话历史
     GoRoute(

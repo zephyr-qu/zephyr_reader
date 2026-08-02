@@ -1,25 +1,22 @@
 // ============================================================
-// 文件作用：解析器模块，管理 EPUB、TXT 格式解析的 Parser 枚举统一封装。
+// 文件作用：解析器模块，管理 EPUB 格式解析的 Parser 枚举统一封装。
 //
 // 公有类型/函数：
-//   - Parser — 解析器枚举（Txt / Epub）
+//   - Parser — 解析器枚举（Epub）
 //   - Parser::name() — 获取解析器名称
 //   - Parser::supported_formats() — 获取支持的格式列表
 //   - Parser::parse() — 解析文件
-//   - Parser::extract_metadata() — 提取元数据
 //   - get_cover_registry() — 获取封面提取器注册表
 //
 // 子模块：
-//   - bilingual, engine, epub, provider, registry, txt
+//   - epub, registry, types
 // ============================================================
 
 //! 解析器模块
-//! 管理 EPUB、TXT 格式解析
+//! 管理 EPUB 格式解析（单引擎：Readium + 内置 EPUB 解析用于导入/封面/目录）
 
 pub mod epub;
-pub mod provider;
 pub mod registry;
-pub mod txt;
 pub mod types;
 
 /// 获取封面提取器注册表。

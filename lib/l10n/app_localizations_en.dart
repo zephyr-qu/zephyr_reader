@@ -39,9 +39,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bookshelf => 'Bookshelf';
 
   @override
-  String get searchBooks => 'Search books';
-
-  @override
   String get importBook => 'Import';
 
   @override
@@ -119,9 +116,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get highlightsCount => 'Highlights';
-
-  @override
-  String get vocabularyCount => 'Words';
 
   @override
   String get edit => 'Edit';
@@ -212,9 +206,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noBookmarks => 'No bookmarks';
 
   @override
-  String get searchInPage => 'Search in Page';
-
-  @override
   String get noResults => 'No results';
 
   @override
@@ -242,9 +233,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get selectionDictionary => 'Define';
 
   @override
-  String get selectionVocabulary => 'Vocabulary';
-
-  @override
   String get highlightYellow => 'Yellow';
 
   @override
@@ -266,16 +254,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lookupWord => 'Look Up';
 
   @override
-  String get addToVocabulary => 'Add to Vocabulary';
-
-  @override
   String get noDefinition => 'No definition found';
-
-  @override
-  String get vocabulary => 'Vocabulary';
-
-  @override
-  String get vocabularyBook => 'Vocabulary';
 
   @override
   String get wordCount => 'Words';
@@ -288,9 +267,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get newWord => 'New';
-
-  @override
-  String get searchWords => 'Search words';
 
   @override
   String get noWords => 'No words yet';
@@ -638,9 +614,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get batchManage => 'Batch Manage';
 
   @override
-  String get globalSearch => 'Global Search';
-
-  @override
   String get editCategory => 'Edit Category';
 
   @override
@@ -916,9 +889,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aboutFeature3 => 'Smart typesetting engine';
 
   @override
-  String get aboutFeature5 => 'Vocabulary book & learning records';
-
-  @override
   String get aboutFeature6 => 'WebDAV multi-device sync';
 
   @override
@@ -1066,16 +1036,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get readingAssist => 'Reading Assist';
-
-  @override
-  String addedToVocabulary(Object word) {
-    return 'Added to vocabulary: $word';
-  }
-
-  @override
-  String addToVocabFailed(Object error) {
-    return 'Failed to add to vocabulary: $error';
-  }
 
   @override
   String get readerThemeLight => 'Day';
@@ -1264,9 +1224,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weekdaySun => 'Sun';
 
   @override
-  String get vocabStats => 'Vocabulary';
-
-  @override
   String get statusIgnored => 'Ignored';
 
   @override
@@ -1408,42 +1365,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get searchGroupBooks => 'Books';
-
-  @override
-  String get searchGroupNotes => 'Notes';
-
-  @override
-  String get searchGroupVocab => 'Vocabulary';
-
-  @override
-  String get searchNoResults => 'No results found';
-
-  @override
-  String get bookSearchHint => 'Search book content…';
-
-  @override
-  String get bookSearchHintAll => 'Search all books…';
-
-  @override
-  String get searchHint => 'Search books, notes, vocabulary…';
-
-  @override
-  String get searchHistory => 'Search history';
-
-  @override
-  String get searchFailed => 'Search failed';
-
-  @override
-  String get searchEnterKeyword => 'Enter a keyword to search';
-
-  @override
-  String get searchTryOtherKeywords => 'Try other keywords';
-
-  @override
-  String get searchError => 'Search error';
-
-  @override
   String resultSummary(Object count, Object duration) {
     return '$count results · ${duration}ms';
   }
@@ -1523,9 +1444,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get restoreStatBookmarks => 'Bookmarks';
 
   @override
-  String get restoreStatVocabulary => 'Vocabulary';
-
-  @override
   String get allBooks => 'All Books';
 
   @override
@@ -1540,9 +1458,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exportNotesMarkdownDesc =>
       'Export all notes as Markdown documents';
-
-  @override
-  String get exportVocabCsvDesc => 'Export all vocabulary as a CSV file';
 
   @override
   String get goReading => 'Go Reading';
@@ -1561,16 +1476,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notesMarkdown => 'Notes (Markdown)';
 
   @override
-  String get totalVocabCount => 'Vocabulary Total';
-
-  @override
-  String get vocabEmptyHint =>
-      'Add vocabulary while reading, and they will appear here.';
-
-  @override
-  String get vocabListCsv => 'Vocabulary (CSV)';
-
-  @override
   String get wordListCet4 => 'CET-4';
 
   @override
@@ -1585,38 +1490,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String confirmDeleteWord(Object word) {
     return 'Are you sure you want to delete \"$word\"?';
-  }
-
-  @override
-  String get vocabPageEmptyHint =>
-      'Tap words while reading to add them to your vocabulary book.';
-
-  @override
-  String get vocabFilterEmptyHint => 'No words match your filter.';
-
-  @override
-  String vocabStatsAll(Object count) {
-    return 'All $count';
-  }
-
-  @override
-  String vocabStatsUnstarted(Object count) {
-    return 'Unlearned $count';
-  }
-
-  @override
-  String vocabStatsLearning(Object count) {
-    return 'Learning $count';
-  }
-
-  @override
-  String vocabStatsMastered(Object count) {
-    return 'Mastered $count';
-  }
-
-  @override
-  String vocabStatsIgnored(Object count) {
-    return 'Ignored $count';
   }
 
   @override
@@ -1913,9 +1786,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bookmarkManage => 'Bookmark Management';
-
-  @override
-  String get searchBookmarkHint => 'Search bookmarks...';
 
   @override
   String get clearAll => 'Clear All';

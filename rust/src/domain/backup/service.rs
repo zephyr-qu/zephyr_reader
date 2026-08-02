@@ -120,9 +120,6 @@ async fn count_stats(pool: &sqlx::SqlitePool) -> Result<BackupStats, AppError> {
         reading_progress: count(pool, "SELECT COUNT(*) FROM reading_progress")
             .await
             .unwrap_or(0),
-        vocabulary_words: count(pool, "SELECT COUNT(*) FROM vocabulary_words")
-            .await
-            .unwrap_or(0),
         categories: count(pool, "SELECT COUNT(*) FROM categories")
             .await
             .unwrap_or(0),
@@ -361,7 +358,6 @@ mod tests {
                 bookmarks: 3,
                 reading_sessions: 20,
                 reading_progress: 10,
-                vocabulary_words: 50,
                 categories: 3,
             },
         };

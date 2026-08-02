@@ -39,9 +39,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get bookshelf => '书架';
 
   @override
-  String get searchBooks => '搜索书籍';
-
-  @override
   String get importBook => '导入书籍';
 
   @override
@@ -119,9 +116,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get highlightsCount => '高亮数';
-
-  @override
-  String get vocabularyCount => '生词数';
 
   @override
   String get edit => '编辑';
@@ -212,9 +206,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noBookmarks => '暂无书签';
 
   @override
-  String get searchInPage => '页面内查找';
-
-  @override
   String get noResults => '无结果';
 
   @override
@@ -242,9 +233,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get selectionDictionary => '查词';
 
   @override
-  String get selectionVocabulary => '生词本';
-
-  @override
   String get highlightYellow => '黄色';
 
   @override
@@ -266,16 +254,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get lookupWord => '查词';
 
   @override
-  String get addToVocabulary => '加入生词本';
-
-  @override
   String get noDefinition => '未找到释义';
-
-  @override
-  String get vocabulary => '生词本';
-
-  @override
-  String get vocabularyBook => '生词本';
 
   @override
   String get wordCount => '词数';
@@ -288,9 +267,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get newWord => '新词';
-
-  @override
-  String get searchWords => '搜索单词';
 
   @override
   String get noWords => '暂无生词';
@@ -636,9 +612,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get batchManage => '批量管理';
 
   @override
-  String get globalSearch => '全局搜索';
-
-  @override
   String get editCategory => '编辑分类';
 
   @override
@@ -911,9 +884,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aboutFeature3 => '智能排版引擎';
 
   @override
-  String get aboutFeature5 => '生词本与学习记录';
-
-  @override
   String get aboutFeature6 => 'WebDAV 多端同步';
 
   @override
@@ -1057,16 +1027,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get readingAssist => '阅读辅助';
-
-  @override
-  String addedToVocabulary(Object word) {
-    return '已加入生词本：$word';
-  }
-
-  @override
-  String addToVocabFailed(Object error) {
-    return '加入生词本失败：$error';
-  }
 
   @override
   String get readerThemeLight => '白天';
@@ -1254,9 +1214,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get weekdaySun => '日';
 
   @override
-  String get vocabStats => '生词统计';
-
-  @override
   String get statusIgnored => '已忽略';
 
   @override
@@ -1397,42 +1354,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get searchGroupBooks => '书籍';
-
-  @override
-  String get searchGroupNotes => '笔记';
-
-  @override
-  String get searchGroupVocab => '生词';
-
-  @override
-  String get searchNoResults => '未找到相关结果';
-
-  @override
-  String get bookSearchHint => '搜索书籍内容…';
-
-  @override
-  String get bookSearchHintAll => '搜索所有书籍内容…';
-
-  @override
-  String get searchHint => '搜索书籍、笔记、生词…';
-
-  @override
-  String get searchHistory => '搜索历史';
-
-  @override
-  String get searchFailed => '搜索失败';
-
-  @override
-  String get searchEnterKeyword => '请输入搜索关键词';
-
-  @override
-  String get searchTryOtherKeywords => '尝试其他关键词';
-
-  @override
-  String get searchError => '搜索出错';
-
-  @override
   String resultSummary(Object count, Object duration) {
     return '找到 $count 条结果 · 耗时 ${duration}ms';
   }
@@ -1511,9 +1432,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get restoreStatBookmarks => '书签';
 
   @override
-  String get restoreStatVocabulary => '生词';
-
-  @override
   String get allBooks => '全部书籍';
 
   @override
@@ -1527,9 +1445,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get exportNotesMarkdownDesc => '导出所有笔记为 Markdown 文档';
-
-  @override
-  String get exportVocabCsvDesc => '导出所有生词为表格文件';
 
   @override
   String get goReading => '去阅读';
@@ -1547,15 +1462,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notesMarkdown => '笔记 (Markdown)';
 
   @override
-  String get totalVocabCount => '生词总数';
-
-  @override
-  String get vocabEmptyHint => '在阅读中添加生词后，它们会出现在这里';
-
-  @override
-  String get vocabListCsv => '生词表 (CSV)';
-
-  @override
   String get wordListCet4 => 'CET-4';
 
   @override
@@ -1570,37 +1476,6 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String confirmDeleteWord(Object word) {
     return '确定要删除「$word」吗？';
-  }
-
-  @override
-  String get vocabPageEmptyHint => '去阅读时点击单词即可加入生词本';
-
-  @override
-  String get vocabFilterEmptyHint => '没有符合条件的生词';
-
-  @override
-  String vocabStatsAll(Object count) {
-    return '全部 $count';
-  }
-
-  @override
-  String vocabStatsUnstarted(Object count) {
-    return '未学 $count';
-  }
-
-  @override
-  String vocabStatsLearning(Object count) {
-    return '学习中 $count';
-  }
-
-  @override
-  String vocabStatsMastered(Object count) {
-    return '已掌握 $count';
-  }
-
-  @override
-  String vocabStatsIgnored(Object count) {
-    return '已忽略 $count';
   }
 
   @override
@@ -1886,9 +1761,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get bookmarkManage => '书签管理';
-
-  @override
-  String get searchBookmarkHint => '搜索书签...';
 
   @override
   String get clearAll => '清空所有';

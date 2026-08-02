@@ -7,14 +7,11 @@ rust_input: >-
   crate::domain::chapter::models,
   crate::domain::cover::models,
   crate::domain::bookmark::models,
+  crate::domain::engine_positions::models,
   crate::domain::progress::models,
   crate::domain::sessions::models,
-  crate::domain::note::models,
   crate::domain::stats::models,
-  crate::domain::vocab::models,
-  crate::domain::dictionary::models,
-  crate::domain::wordlist,
-  crate::domain::search::models
+  crate::domain::dictionary::models
 rust_root: rust/
 dart_output: lib/src/rust
 c_output: rust_builder/cargokit/build_output/include

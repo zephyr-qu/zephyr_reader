@@ -4,8 +4,8 @@ use flutter_rust_bridge::frb;
 
 use crate::common::AppError;
 use crate::domain::sessions::models::ReadingSession;
-
 use crate::domain::sessions::session_repo::SessionRepository;
+use crate::domain::stats::stats_repo::StatsRepository;
 use crate::infra::manager::storage_pool;
 use chrono::{DateTime, NaiveDate};
 /// 获取书籍的所有阅读会话
@@ -74,7 +74,10 @@ pub async fn create_session(
         started,
     );
     let pool = storage_pool()?;
-    SessionRepository::save(&pool, &session).await
+    SessionRepository::save(&pool, &session).await?;
+    // 不变量：reading_stats 仅在会话结束时由 reading_sessions 增量聚合更新。
+    StatsRepository::aggregate_session(&pool, &session).await?;
+    Ok(session)
 }
 
 /// 新增或更新会话

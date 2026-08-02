@@ -3,13 +3,37 @@ import 'dart:convert';
 
 import 'package:flureadium/flureadium.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/reading/config/reader_config.dart';
 import 'package:zephyr_reader/core/reading/config/reader_typography_defaults.dart';
+import 'package:zephyr_reader/src/rust/api/book.dart' as book_api;
 import 'package:zephyr_reader/src/rust/api/bookmark.dart' as bookmark_api;
+import 'package:zephyr_reader/src/rust/api/engine_position.dart' as engine_position_api;
+import 'package:zephyr_reader/src/rust/api/progress.dart' as progress_api;
+import 'package:zephyr_reader/src/rust/api/session.dart' as session_api;
+import 'package:zephyr_reader/src/rust/domain/book/models.dart';
 import 'package:zephyr_reader/src/rust/domain/bookmark/models.dart';
-/// Readium EPUB reader ViewModel (MVP).
+import 'package:zephyr_reader/src/rust/domain/engine_positions/models.dart';
+import 'package:zephyr_reader/src/rust/domain/progress/models.dart';
+
+/// 会话记录回调（默认走 FRB `session_api.createSession`，测试可注入）。
+typedef SessionRecorder = Future<void> Function({
+  required String bookId,
+  required int chapterIndex,
+  required int startCharOffset,
+  required int endCharOffset,
+  required int startedAt,
+});
+
+Future<void> _defaultPersistProgress(ReadingProgress progress) =>
+    progress_api.upsertProgress(progress: progress);
+
+Future<void> _defaultSaveEnginePosition({required EnginePositionHint hint}) =>
+    engine_position_api.saveEnginePosition(hint: hint);
+
+Future<EnginePositionHint?> _defaultLoadEnginePosition({required String bookId}) =>
+    engine_position_api.getEnginePosition(bookId: bookId);
+
 ///
 /// Wraps [Flureadium] directly, exposes reading state via signals.
 class ReadiumViewModel {
@@ -17,6 +41,11 @@ class ReadiumViewModel {
   final ReaderConfig config;
   final String bookId;
   final int initialChapterIndex;
+  final Future<void> Function(ReadingProgress progress) persistProgress;
+  final SessionRecorder recordSession;
+  final Future<void> Function({required EnginePositionHint hint}) saveEnginePosition;
+  final Future<EnginePositionHint?> Function({required String bookId})
+      loadEnginePosition;
   Timer? _saveTimer;
   Future<void>? _closeFuture;
   bool _viewportReady = false;
@@ -24,7 +53,16 @@ class ReadiumViewModel {
   bool _navigationInProgress = false;
   int _openGeneration = 0;
 
-  static const _positionPrefix = 'readium_position_';
+  // ==================== Progress / Session persistence ====================
+  int _totalChars = 0;
+  int _accumulatedReadingSeconds = 0;
+  DateTime _lastReadingTick = DateTime.now();
+  DateTime? _sessionStartedAt;
+  int? _sessionChapterIndex;
+  int _sessionStartOffset = 0;
+  int _sessionLastOffset = 0;
+  String _publicationFingerprint = '';
+  bool _lastIsCompleted = false;
 
   // ==================== Signals ====================
 
@@ -52,7 +90,18 @@ class ReadiumViewModel {
     required this.bookId,
     this.initialChapterIndex = 0,
     Flureadium? reader,
-  }) : reader = reader ?? Flureadium();
+    Future<void> Function(ReadingProgress progress)? persistProgress,
+    SessionRecorder? sessionRecorder,
+    Future<void> Function({required EnginePositionHint hint})? enginePositionSaver,
+    Future<EnginePositionHint?> Function({required String bookId})?
+        enginePositionLoader,
+  })  : reader = reader ?? Flureadium(),
+        persistProgress = persistProgress ?? _defaultPersistProgress,
+        recordSession = sessionRecorder ?? session_api.createSession,
+        saveEnginePosition =
+            enginePositionSaver ?? _defaultSaveEnginePosition,
+        loadEnginePosition =
+            enginePositionLoader ?? _defaultLoadEnginePosition;
 
   /// Open an EPUB file.
   Future<Publication> open(String path) async {
@@ -70,6 +119,12 @@ class ReadiumViewModel {
       _viewportReady = false;
       _closing = false;
       _navigationInProgress = false;
+      _sessionStartedAt = null;
+      _sessionChapterIndex = null;
+      _sessionStartOffset = 0;
+      _sessionLastOffset = 0;
+      _accumulatedReadingSeconds = 0;
+      _lastReadingTick = DateTime.now();
 
       final pub = await reader.openPublication(uriPath);
       if (generation != _openGeneration) {
@@ -77,7 +132,10 @@ class ReadiumViewModel {
         throw StateError('Open cancelled');
       }
       _publication = pub;
+      _publicationFingerprint = pub.metadata.identifier ?? '';
       final links = flattenToc(pub.tableOfContents);
+      await _loadBookMetadata();
+      unawaited(_touchBook());
       _initialLocator = await _loadSavedPosition();
       if (generation != _openGeneration) {
         await reader.closePublication();
@@ -89,7 +147,6 @@ class ReadiumViewModel {
         _initialLocator = pub.locatorFromLink(links[chapterIndex]);
       }
       _currentLocator = _initialLocator;
-
       batch(() {
         title.value = pub.metadata.title;
         tocLinks.value = links;
@@ -152,6 +209,7 @@ class ReadiumViewModel {
     if (locator.href.isNotEmpty) {
       currentChapterHref.value = locator.href;
     }
+    _trackSession(locator);
     _scheduleSave();
     _updateBookmarkState();
   }
@@ -170,6 +228,15 @@ class ReadiumViewModel {
   /// Close the current publication.
   Future<void> close() => _closeFuture ??= _close();
 
+  /// 应用进入后台/被中断时调用：结束当前会话并保存进度，但不关闭出版刊物。
+  ///
+  /// 之后继续阅读会开启新的会话（后台 = 阅读暂停 = 会话边界）。
+  Future<void> flush() async {
+    if (_closing || !_viewportReady) return;
+    _saveTimer?.cancel();
+    await _finalizeSession();
+    await _savePositionNow();
+  }
   Future<void> _close() async {
     _closing = true;
     _openGeneration += 1;
@@ -177,6 +244,7 @@ class ReadiumViewModel {
     _viewportReady = false;
     _saveTimer?.cancel();
     try {
+      await _finalizeSession();
       await _savePositionNow();
       await _statusSub?.cancel();
       _statusSub = null;
@@ -374,19 +442,81 @@ class ReadiumViewModel {
   Future<void> _savePositionNow() async {
     final locator = _currentLocator;
     if (locator == null) return;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _positionPrefix + bookId,
-      jsonEncode(locator.toJson()),
-    );
+    _accumulateReadingSeconds();
+    await _saveReadingProgress();
   }
 
-  Future<Locator?> _loadSavedPosition() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonStr = prefs.getString(_positionPrefix + bookId);
-    if (jsonStr == null) return null;
+  /// 进度写入 Rust `reading_progress` 表（尽力而为，失败静默）。
+  Future<void> _saveReadingProgress() async {
+    final locator = _currentLocator;
+    if (locator == null) return;
+    final totalProgression = locator.locations?.totalProgression ?? 0.0;
+    final isCompleted = totalProgression >= 0.999;
     try {
-      final map = jsonDecode(jsonStr) as Map<String, dynamic>;
+      final progress = ReadingProgress(
+        bookId: bookId,
+        chapterIndex: _chapterIndexForHref(locator.href),
+        chunkIndex: 0,
+        chapterId: locator.href,
+        charOffset: _charOffsetFor(locator),
+        progress: totalProgression,
+        readingTimeSeconds: _accumulatedReadingSeconds,
+        lastReadAt: DateTime.now().toUtc(),
+        isCompleted: isCompleted,
+      );
+      await persistProgress(progress);
+      // 读完自动标记书架状态（一次性转换，避免重复写）。
+      if (isCompleted && !_lastIsCompleted) {
+        _lastIsCompleted = true;
+        try {
+          await book_api.updateBookStatus(
+            bookId: bookId,
+            status: BookStatus.completed,
+          );
+        } catch (_) {
+          // 静默失败：状态标记是尽力而为，不中断阅读流程。
+        }
+      }
+    } catch (_) {
+      // 静默失败：逻辑进度是尽力而为，不中断阅读流程。
+    }
+    // ADR-019：完整 Locator 作为引擎私有恢复提示，存 reading_engine_positions。
+    // 与逻辑进度相互独立 —— 恢复提示失败不应阻塞进度，反之亦然。
+    try {
+      await saveEnginePosition(
+        hint: EnginePositionHint(
+          bookId: bookId,
+          engineKind: 'readium',
+          publicationFingerprint: _publicationFingerprint,
+          opaquePosition: jsonEncode(locator.toJson()),
+          updatedAt: DateTime.now().toUtc(),
+        ),
+      );
+    } catch (_) {
+      // 静默失败：恢复提示是尽力而为，不中断阅读流程。
+    }
+  }
+
+  void _accumulateReadingSeconds() {
+    final now = DateTime.now();
+    final elapsed = now.difference(_lastReadingTick).inSeconds;
+    if (elapsed > 0) {
+      _accumulatedReadingSeconds += elapsed;
+      _lastReadingTick = now;
+    }
+  }
+  Future<Locator?> _loadSavedPosition() async {
+    try {
+      final hint = await loadEnginePosition(bookId: bookId);
+      if (hint == null) return null;
+      final opaque = hint.opaquePosition;
+      if (opaque.isEmpty) return null;
+      // ADR-019：Locator 与当前 EPUB 指纹不匹配时必须丢弃。
+      if (hint.publicationFingerprint.isNotEmpty &&
+          hint.publicationFingerprint != _publicationFingerprint) {
+        return null;
+      }
+      final map = jsonDecode(opaque) as Map<String, dynamic>;
       return Locator.fromJson(map);
     } catch (_) {
       return null;
@@ -402,8 +532,8 @@ class ReadiumViewModel {
     try {
       final bookmark = await bookmark_api.createBookmark(
         bookId: bookId,
-        chapterIndex: 0,
-        charOffset: 0,
+        chapterIndex: _chapterIndexForHref(locator.href),
+        charOffset: _charOffsetFor(locator),
         title: title,
         locatorJson: jsonEncode(locator.toJson()),
       );
@@ -418,13 +548,12 @@ class ReadiumViewModel {
     final locator = _currentLocator;
     if (locator == null || _closing) return;
     final key = jsonEncode(locator.toJson());
-    final match = bookmarks.value.where(
-      (b) => b.locatorJson == key,
-    );
+    final match = bookmarks.value.where((b) => b.locatorJson == key);
     if (match.isEmpty) return;
     try {
       await bookmark_api.deleteBookmark(bookmarkId: match.first.id);
-      bookmarks.value = bookmarks.value.where((b) => b.locatorJson != key).toList();
+      bookmarks.value =
+          bookmarks.value.where((b) => b.locatorJson != key).toList();
       _updateBookmarkState();
     } catch (e) {
       error.value = e.toString();
@@ -478,5 +607,103 @@ class ReadiumViewModel {
       if (link.href == href) return link.title ?? '';
     }
     return '';
+  }
+
+  // ==================== Reading session tracking ====================
+
+  /// 按章节分段记录阅读会话：进入章节时开启，章节切换/关闭时结束。
+  void _trackSession(Locator locator) {
+    if (!_viewportReady || _closing) return;
+    final chapterIndex = _chapterIndexForHref(locator.href);
+    final offset = _charOffsetFor(locator);
+    if (_sessionStartedAt == null || _sessionChapterIndex == null) {
+      _sessionStartedAt = DateTime.now();
+      _sessionChapterIndex = chapterIndex;
+      _sessionStartOffset = offset;
+      _sessionLastOffset = offset;
+    } else if (chapterIndex != _sessionChapterIndex) {
+      unawaited(_finalizeSession());
+      _sessionStartedAt = DateTime.now();
+      _sessionChapterIndex = chapterIndex;
+      _sessionStartOffset = offset;
+      _sessionLastOffset = offset;
+    } else if (offset > _sessionLastOffset) {
+      _sessionLastOffset = offset;
+    }
+  }
+
+  /// 结束当前章节会话并写入 Rust `reading_sessions`（尽力而为，失败静默）。
+  Future<void> _finalizeSession() async {
+    final startedAt = _sessionStartedAt;
+    final chapterIndex = _sessionChapterIndex;
+    if (startedAt == null || chapterIndex == null) return;
+    _sessionStartedAt = null;
+    _sessionChapterIndex = null;
+    final startOffset = _sessionStartOffset;
+    final endOffset = _sessionLastOffset;
+    try {
+      await recordSession(
+        bookId: bookId,
+        chapterIndex: chapterIndex,
+        startCharOffset: startOffset,
+        endCharOffset: endOffset,
+        startedAt: startedAt.millisecondsSinceEpoch ~/ 1000,
+      );
+    } catch (_) {
+      // 静默失败：会话记录是尽力而为，不中断阅读流程。
+    }
+  }
+
+  /// href → 扁平目录索引（Readium 语义：flattenToc 下标）。
+  int _chapterIndexForHref(String href) {
+    if (href.isEmpty) return _sessionChapterIndex ?? 0;
+    final path = _hrefPath(href);
+    for (var i = 0; i < tocLinks.value.length; i++) {
+      final linkHref = tocLinks.value[i].href;
+      if (_hrefPath(linkHref) == path) return i;
+    }
+    // 资源不在目录中（如附录）：沿用当前会话章节，避免误拆会话。
+    return _sessionChapterIndex ?? 0;
+  }
+
+  static String _hrefPath(String href) {
+    final uri = Uri.tryParse(href);
+    return uri?.path ?? href;
+  }
+
+  /// Locator → 逻辑字符偏移。
+  ///
+  /// Readium 不提供全局字符偏移，用 totalProgression × 全书字符数估算；
+  /// 全书字符数未知（加载失败/测试环境）时退回出版页码位置。
+  int _charOffsetFor(Locator locator) {
+    final totalProgression = locator.locations?.totalProgression ?? 0.0;
+    if (_totalChars > 0 && totalProgression > 0) {
+      return (totalProgression * _totalChars)
+          .round()
+          .clamp(0, _totalChars)
+          .toInt();
+    }
+    return locator.locations?.position ?? 0;
+  }
+
+  /// 预载书籍元数据（总字符数 + 既有进度累计时长）。
+  Future<void> _loadBookMetadata() async {
+    try {
+      final detail = await book_api.getBookDetail(bookId: bookId);
+      _totalChars = detail.book.totalCharacters;
+      _accumulatedReadingSeconds = detail.progress?.readingTimeSeconds ?? 0;
+      _lastIsCompleted = detail.progress?.isCompleted ?? false;
+    } catch (_) {
+      // 元数据加载失败不影响阅读；进度估算退化为页码位置。
+    }
+  }
+
+  /// 记录打开时间（最近阅读/书架排序依据，尽力而为）。
+  Future<void> _touchBook() async {
+    try {
+      await book_api.touchBook(bookId: bookId);
+    } catch (_) {
+      // 静默失败：最近阅读标记不中断阅读流程。
+    }
   }
 }

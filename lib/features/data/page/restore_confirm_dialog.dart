@@ -56,11 +56,6 @@ Future<bool?> showRestoreConfirmDialog(
                   l10n.restoreStatBookmarks,
                   '${manifest.stats.bookmarks}',
                 ),
-                _statRow(
-                  ctx,
-                  l10n.restoreStatVocabulary,
-                  '${manifest.stats.vocabularyWords}',
-                ),
               ],
             ),
           ),

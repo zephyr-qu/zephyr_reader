@@ -23,12 +23,6 @@ class ProfileMenuSections extends StatelessWidget {
         label: l10n.sectionReadingData,
         items: [
           _SectionItem(
-            icon: PhosphorIconsRegular.bookmarkSimple,
-            title: l10n.vocabularyBook,
-            semantic: MenuItemSemantic.education,
-            onTap: () => context.push(AppRoute.vocabulary.path),
-          ),
-          _SectionItem(
             icon: PhosphorIconsRegular.clockCounterClockwise,
             title: l10n.readingSessions,
             semantic: MenuItemSemantic.reading,

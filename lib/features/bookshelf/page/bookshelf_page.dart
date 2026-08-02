@@ -117,9 +117,6 @@ class BookshelfPage extends HookWidget {
                     _showScanDialog(context, vm);
                   case 'wifi':
                     context.push(AppRoute.wifiTransfer.path);
-                  case 'search':
-                    context.push(AppRoute.search.path);
-                  case 'settings':
                     _showSettingsSheet(context, vm);
                   case 'batch':
                     batchMode.value = true;
@@ -158,13 +155,6 @@ class BookshelfPage extends HookWidget {
                   child: MenuRow(
                     icon: PhosphorIconsFill.checkSquare,
                     label: l10n.batchManage,
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 'search',
-                  child: MenuRow(
-                    icon: PhosphorIconsFill.magnifyingGlassPlus,
-                    label: l10n.globalSearch,
                   ),
                 ),
                 PopupMenuItem(

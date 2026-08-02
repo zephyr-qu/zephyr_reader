@@ -1,10 +1,10 @@
 // ============================================================
-// 文件作用：存储管理器 — SQLite + redb KV 统一管理
+// 文件作用：存储管理器 — SQLite 统一管理
 //
 // 公有类型/函数：
-//   - StorageManager — SQLite + redb 统一存储管理器
+//   - StorageManager — SQLite 统一存储管理器
 //   - new() — 初始化连接池并运行迁移
-//   - pool() / kv() / data_dir() / close() — 生命周期管理
+//   - pool() / data_dir() / close() — 生命周期管理
 //   - export_db() / restore_from_backup() / hot_swap_db() — 备份/还原
 //   - init_storage() — FFI 入口，创建 StorageManager 并注入全局单例
 //   - storage() / ensure_storage() / storage_pool() — 全局单例访问
@@ -13,7 +13,7 @@
 //! 存储管理器 — SQLite 连接池 + 迁移 + 导出 + 全局单例
 
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+
 use std::sync::OnceLock;
 
 use parking_lot::Mutex;
@@ -22,7 +22,6 @@ use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 
 use crate::common::AppError;
 
-use super::kv_store::KvStore;
 
 // ==================== 全局单例 ====================
 
@@ -50,12 +49,11 @@ pub fn storage_pool() -> Result<SqlitePool, AppError> {
 // ==================== StorageManager ====================
 
 /// 存储管理器
-/// 统一管理 SQLite (sqlx) 和 KV (redb) 存储
+/// 统一管理 SQLite (sqlx) 存储
 pub struct StorageManager {
     /// SQLx 连接池（Mutex 支持还原时热替换）
     pool: Mutex<Option<SqlitePool>>,
-    /// KV 存储（用于排版缓存等）
-    kv: Arc<KvStore>,
+
     /// 数据目录路径
     data_dir: PathBuf,
 }
@@ -63,7 +61,7 @@ pub struct StorageManager {
 impl StorageManager {
     /// 创建新的存储管理器
     ///
-    /// 初始化 SQLite 连接池并运行迁移，同时初始化 KV 存储（redb）。
+/// 初始化 SQLite 连接池并运行迁移。
     /// # 参数
     /// `data_dir` - 数据库文件和 KV 缓存的存放目录
     pub async fn new(data_dir: impl AsRef<Path>) -> Result<Self, AppError> {
@@ -83,14 +81,8 @@ impl StorageManager {
                 reason: format!("DB migration failed: {e}"),
             })?;
 
-        let kv_path = data_dir.join("cache");
-        let kv = KvStore::new(&kv_path).map_err(|e| AppError::DatabaseError {
-            reason: format!("KV init failed: {e}"),
-        })?;
-
         Ok(Self {
             pool: Mutex::new(Some(pool)),
-            kv: Arc::new(kv),
             data_dir,
         })
     }
@@ -127,10 +119,6 @@ impl StorageManager {
             .ok_or(AppError::StorageNotInitialized)
     }
 
-    /// 获取 KV 存储引用
-    pub fn kv(&self) -> Arc<KvStore> {
-        Arc::clone(&self.kv)
-    }
 
     /// 获取数据目录路径
     pub fn data_dir(&self) -> &Path {
@@ -139,7 +127,6 @@ impl StorageManager {
 
     /// 关闭当前连接池
     pub async fn close(&self) -> Result<(), AppError> {
-        self.kv.flush()?;
         let pool = self.pool.lock().take();
         if let Some(pool) = pool {
             pool.close().await;
@@ -150,8 +137,6 @@ impl StorageManager {
     /// 从备份文件还原数据库并热替换连接池
     pub async fn restore_from_backup(&self, backup_path: impl AsRef<Path>) -> Result<(), AppError> {
         let backup_path = backup_path.as_ref();
-
-        self.kv.flush()?;
 
         // 关闭旧连接池（先提取再 await，避免 MutexGuard 跨 await）
         let old_pool = self.pool.lock().take();
@@ -196,7 +181,6 @@ impl StorageManager {
     ///
     /// 调用者需自行保证 db_path 已被替换为目标文件（含 migration 跑过）。
     pub async fn hot_swap_db(&self) -> Result<(), AppError> {
-        self.kv.flush()?;
         let old_pool = self.pool.lock().take();
         if let Some(old) = old_pool {
             old.close().await;
@@ -210,11 +194,9 @@ impl StorageManager {
 
     /// 导出数据库文件
     ///
-    /// 先刷 KV 缓存、执行 WAL checkpoint，再复制 db 文件到目标路径。
+/// 先执行 WAL checkpoint，再复制 db 文件到目标路径。
     pub async fn export_db(&self, dest_path: impl AsRef<Path>) -> Result<(), AppError> {
         let dest_path = dest_path.as_ref();
-
-        self.kv.flush()?;
 
         let pool = self.pool()?;
 

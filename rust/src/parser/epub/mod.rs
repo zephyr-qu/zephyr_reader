@@ -1,79 +1,27 @@
 // ============================================================
-// 文件作用：EPUB 解析模块，负责 EPUB 文件的解压、结构解析、文本提取、按需内容提供。
+// 文件作用：EPUB 解析模块，负责 EPUB 文件的解压、结构解析与元数据提取。
 //
 // 公有类型/函数：
 //   - EpubParser — EPUB 文件解析器（FRB opaque struct）
-//   - EpubParser::new() / parse() / extract_metadata()
-//   - EpubAssetRegistry — 图片 asset 注册表
-//   - get_chapter_content_ir() — 获取 EPUB 章节 IR
-//   - html_to_chapter_ir() — HTML 片段 → 章 IR
+//   - EpubParser::new() / parse()
 //   - parse_epub() — EPUB 文件解析入口
 //
 // 子模块：
-//   - asset_registry, content_ir, css, entry_extractor, image_size, parse, plain_text,
-//     processed_image, provider, rich_paragraph, rich_parser, rich_style, toc,
+//   - archive_reader, asset_registry, entry_extractor, parse, toc
 // ============================================================
 
 //! EPUB 解析模块
-//! 负责 EPUB 文件的解压、结构解析、文本提取、按需内容提供
+//! 负责 EPUB 文件的解压、结构解析与元数据提取
 
 pub mod archive_reader;
 pub mod asset_registry;
-pub mod content_ir;
-pub mod css;
 pub mod entry_extractor;
-pub mod image_size;
 pub mod parse;
-pub mod plain_text;
-pub mod processed_image;
-pub mod provider;
-pub mod rich_paragraph;
-pub mod rich_parser;
-pub mod rich_style;
 pub mod toc;
 
-pub use asset_registry::{
-    EpubAssetEntry, EpubAssetRegistry, canonicalize_chapter_image_assets, normalize_asset_id,
-    resolve_relative_href,
-};
-pub use content_ir::{get_chapter_content_ir, html_to_chapter_ir};
-/// EPUB 元数据
-/// 包含书籍标题、作者、封面、目录等信息
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[frb(non_opaque)]
-pub struct EpubMetadata {
-    /// 书籍标题
-    pub title: String,
-    /// 作者
-    pub author: String,
-    /// 封面图片路径
-    pub cover_path: Option<String>,
-    /// 目录列表
-    pub toc: Vec<EpubTocItem>,
-    /// 阅读顺序（spine 中的章节 ID 列表）
-    pub spine: Vec<String>,
-}
-
-/// EPUB 目录项
-/// 表示目录中的一个条目
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[frb(non_opaque)]
-pub struct EpubTocItem {
-    /// 显示标签
-    pub label: String,
-    /// 链接地址（href）
-    pub href: String,
-    /// 层级深度（从 0 开始）
-    pub level: i32,
-}
-
-use std::path::Path;
-
 use flutter_rust_bridge::frb;
-use serde::{Deserialize, Serialize};
 
 use crate::domain::AppError;
-use crate::parser::BookMetadata;
 use crate::parser::types::ParseResult;
 
 pub use parse::parse_epub;
@@ -118,52 +66,6 @@ impl EpubParser {
             .map_err(|e| AppError::InternalError {
                 reason: format!("EPUB parse task failed: {}", e),
             })?
-    }
-
-    /// 提取 EPUB 文件元数据
-    ///
-    /// 快速获取 EPUB 文件的基本元数据（书名、作者、封面、出版商等），
-    /// 无需完整解析章节内容。
-    ///
-    /// # 参数
-    ///
-    /// * `file_path` - EPUB 文件路径
-    ///
-    /// # 返回值
-    ///
-    /// * `Ok(BookMetadata)` - 书籍元数据
-    /// * `Err(AppError)` - 提取失败
-    pub async fn extract_metadata(&self, file_path: &str) -> Result<BookMetadata, AppError> {
-        let fp = file_path.to_string();
-        tokio::task::spawn_blocking(move || -> Result<BookMetadata, AppError> {
-            if !Path::new(&fp).exists() {
-                return Err(AppError::FileNotFound { path: fp });
-            }
-
-            let epub_file = archive_reader::EpubFile::open(&fp)?;
-
-            let publisher = epub_file.publisher();
-            let translator = epub_file.translator();
-            let isbn = epub_file.identifier();
-
-            Ok(BookMetadata {
-                title: epub_file.title(),
-                author: epub_file.author(),
-                description: None,
-                cover_path: epub_file.cover_path(),
-                publisher,
-                translator,
-                isbn,
-                publish_year: None,
-                language: None,
-                chapter_count: epub_file.spine().len() as i64,
-                total_characters: 0,
-            })
-        })
-        .await
-        .map_err(|e| AppError::InternalError {
-            reason: format!("EPUB metadata extraction failed: {}", e),
-        })?
     }
 }
 

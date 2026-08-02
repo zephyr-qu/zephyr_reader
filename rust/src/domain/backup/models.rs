@@ -25,6 +25,5 @@ pub struct BackupStats {
     pub bookmarks: i64,
     pub reading_sessions: i64,
     pub reading_progress: i64,
-    pub vocabulary_words: i64,
     pub categories: i64,
 }

@@ -28,7 +28,7 @@ pub fn init_app() {
 
 /// 初始化全局存储实例
 ///
-/// 创建 StorageManager（SQLite 连接池 + redb KV），注入全局单例。
+/// 创建 StorageManager（SQLite 连接池），注入全局单例。
 /// 首次调用创建数据目录并初始化；重复调用直接返回成功（幂等）。
 #[frb]
 pub async fn init_storage(data_dir: String) -> Result<(), AppError> {

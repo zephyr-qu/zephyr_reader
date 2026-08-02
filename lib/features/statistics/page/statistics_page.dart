@@ -9,10 +9,8 @@ import 'package:zephyr_reader/features/statistics/application/reading_stats_view
 import 'package:zephyr_reader/features/statistics/page/widgets/reading_trend_chart.dart';
 import 'package:zephyr_reader/features/statistics/page/widgets/streak_card.dart';
 import 'package:zephyr_reader/features/statistics/page/widgets/today_reading_card.dart';
-import 'package:zephyr_reader/features/statistics/page/widgets/vocab_stats_section.dart';
 import 'package:zephyr_reader/features/statistics/page/widgets/reading_heatmap.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/src/rust/domain/vocab/models.dart';
 
 
 /// 阅读统计页面。
@@ -32,19 +30,16 @@ class StatisticsPage extends HookWidget {
       vm.dailyRecords,
     );
     final periodSignal = useSignal(StatisticsPeriod.today);
-    final goalMinSignal = useSignal(60);
     final StatisticsPeriod period = useSignalValue(periodSignal);
-    final int goalMin = useSignalValue(goalMinSignal);
-    final VocabStats vs = useSignalValue(vm.vocabStats);
     useEffect(() {
-      vm.loadData(period: period, goalMinutes: goalMin);
+      vm.loadData(period: period, goalMinutes: 60);
       return null;
-    }, [period, goalMin]);
+    }, [period]);
 
     final todayMin = gs.value != null
         ? gs.value!.todayReadingTimeSeconds.toInt() ~/ 60
         : 0;
-    final pct = goalMin > 0 ? (todayMin / goalMin).clamp(0.0, 1.0) : 0.0;
+    final pct = todayMin / 60 >= 1 ? 1.0 : todayMin / 60;
 
     return Scaffold(
       appBar: AppBar(
@@ -75,7 +70,7 @@ class StatisticsPage extends HookWidget {
                 child: TodayReadingCard(
                   minutes: todayMin,
                   progress: pct,
-                  goalMinutes: goalMin,
+                  goalMinutes: 60,
                 ),
               ),
               const SizedBox(width: 10),
@@ -95,13 +90,6 @@ class StatisticsPage extends HookWidget {
           ReadingHeatmap(
             records: records.value ?? [],
           ).animate().fadeIn(duration: 400.ms, delay: 400.ms),
-          const SizedBox(height: 28),
-          VocabStatsSection(
-            vocabUnstarted: vs.unstartedCount,
-            vocabLearning: vs.learningCount,
-            vocabMastered: vs.masteredCount,
-            vocabIgnored: vs.ignoredCount,
-          ).animate().fadeIn(duration: 400.ms, delay: 300.ms),
         ],
       ),
     );

@@ -14,4 +14,4 @@ pub mod domain;
 mod frb_generated;
 pub mod infra;
 pub mod parser;
-pub mod pipeline;
+
