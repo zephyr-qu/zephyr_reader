@@ -2,7 +2,12 @@
 name: trellis-implement
 description: |
   Code implementation expert. Understands Trellis specs and requirements, then implements features. No git commit allowed.
-tools: read, write, edit, bash, find, grep
+tools: read, write, edit, bash, find, grep, replace, undo_last_replace, read_symbol, read_enclosing, module_report, ffgrep, fffind, ls, lsp_diagnostics, symbol_search
+thinking: low
+inheritProjectContext: true
+inheritSkills: true
+timeoutMs: 900000
+turnBudget: {"maxTurns": 30, "graceTurns": 3}
 ---
 
 ## Required: Load Trellis Context First

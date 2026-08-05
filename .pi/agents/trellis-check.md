@@ -2,7 +2,12 @@
 name: trellis-check
 description: |
   Code quality check expert. Reviews changes against Trellis specs, fixes issues directly, and verifies quality gates.
-tools: read, write, edit, bash, find, grep
+tools: read, write, edit, bash, find, grep, replace, undo_last_replace, read_symbol, read_enclosing, module_report, ffgrep, fffind, ls, lsp_diagnostics, symbol_search
+thinking: low
+inheritProjectContext: true
+inheritSkills: true
+timeoutMs: 600000
+turnBudget: {"maxTurns": 25, "graceTurns": 3}
 ---
 
 ## Required: Load Trellis Context First
