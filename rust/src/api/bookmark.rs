@@ -64,28 +64,12 @@ pub async fn delete_bookmarks(bookmark_ids: Vec<String>) -> Result<(), AppError>
     BookmarkRepository::delete_by_ids(&pool, &bookmark_ids).await
 }
 
-/// 根据 ID 获取书签
-#[frb]
-pub async fn get_bookmark(bookmark_id: String) -> Result<Option<Bookmark>, AppError> {
-    tracing::debug!("[bookmark] get_bookmark: bookmark_id={}", bookmark_id);
-    let pool = storage_pool()?;
-    BookmarkRepository::find_by_id(&pool, &bookmark_id).await
-}
-
 /// 清除书籍的所有书签
 #[frb]
 pub async fn delete_bookmarks_by_book(book_id: String) -> Result<(), AppError> {
     tracing::debug!("[bookmark] delete_bookmarks_by_book: book_id={}", book_id);
     let pool = storage_pool()?;
     BookmarkRepository::delete_by_book(&pool, &book_id).await
-}
-
-/// 批量导入书签
-#[frb]
-pub async fn import_bookmarks(bookmarks: Vec<Bookmark>) -> Result<(), AppError> {
-    tracing::info!("[bookmark] import_bookmarks: count={}", bookmarks.len());
-    let pool = storage_pool()?;
-    BookmarkRepository::import_bookmarks(&pool, &bookmarks).await
 }
 
 /// 获取书签数量统计

@@ -5,7 +5,7 @@ use flutter_rust_bridge::frb;
 // 公有类型/函数：
 //   - ChapterRepository — 章节仓储结构体
 //   - save() — 批量保存章节（事务内）
-//   - find_by_book() / find_by_index() — 查询章节
+//   - find_by_book() — 查询章节
 //   - delete_by_book() — 删除指定书籍的所有章节
 // ============================================================
 
@@ -71,21 +71,6 @@ impl ChapterRepository {
         )
         .bind(book_id)
         .fetch_all(pool)
-        .await?)
-    }
-
-    /// 按索引查找章节
-    pub async fn find_by_index(
-        pool: &SqlitePool,
-        book_id: &str,
-        index: i32,
-    ) -> Result<Option<Chapter>, AppError> {
-        Ok(sqlx::query_as::<_, Chapter>(
-            "SELECT * FROM chapters WHERE book_id = ? AND chapter_index = ?",
-        )
-        .bind(book_id)
-        .bind(index)
-        .fetch_optional(pool)
         .await?)
     }
 

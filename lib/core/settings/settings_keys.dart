@@ -61,6 +61,12 @@ abstract final class SettingsKeys {
   /// 自动翻页速度（秒）
   static const readerAutoScrollSpeed = 'reader_auto_scroll_speed';
 
+  static const readerLineHeight = 'reader_line_height';
+  static const readerLetterSpacing = 'reader_letter_spacing';
+  static const readerParagraphSpacing = 'reader_paragraph_spacing';
+  static const readerParagraphIndent = 'reader_paragraph_indent';
+  static const readerTextAlign = 'reader_text_align';
+
   // ==================== 书架 ====================
 
   /// 显示阅读进度

@@ -6,6 +6,7 @@ import 'package:zephyr_reader/core/reading/config/reader_config.dart';
 import 'package:zephyr_reader/core/reading/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/profile/page/typography/typography_settings_page.dart';
+import 'package:zephyr_reader/features/profile/page/typography/typography_preview.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 void main() {
@@ -40,6 +41,30 @@ void main() {
     // 等待预览动画 + persisted 信号 debounce 结束
     await tester.pumpAndSettle();
   }
+
+  testWidgets('preview stays compact on a phone viewport', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await pumpPage(tester);
+
+    final previewHeight = tester.getSize(find.byType(TypographyPreview)).height;
+    expect(
+      previewHeight,
+      lessThan(844 * 0.4),
+      reason: '默认 100% 字号的预览不应占据接近整屏的高度',
+    );
+    expect(find.text('字体'), findsOneWidget);
+
+    config.fontSize.value = 200;
+    await tester.pumpAndSettle();
+    expect(
+      tester.getSize(find.byType(TypographyPreview)).height,
+      lessThan(844 * 0.65),
+      reason: '最大字号的预览仍应保留足够空间给设置项',
+    );
+  });
 
   testWidgets('renders all typography sections', (tester) async {
     useTallViewport(tester);

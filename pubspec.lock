@@ -121,6 +121,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.0.4"
+  cli_util:
+    dependency: transitive
+    description:
+      name: cli_util
+      sha256: ff6785f7e9e3c38ac98b2fb035701789de90154024a75b6cb926445e83197d1c
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.4.2"
   clock:
     dependency: transitive
     description:
@@ -209,14 +217,6 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.10.0"
-  diff_match_patch:
-    dependency: transitive
-    description:
-      name: diff_match_patch
-      sha256: "2efc9e6e8f449d0abe15be240e2c2a3bcd977c8d126cfd70598aee60af35c0a4"
-      url: "https://pub.flutter-io.cn"
-    source: hosted
-    version: "0.4.1"
   dio:
     dependency: "direct main"
     description:
@@ -265,6 +265,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.1.2"
+  ffigen:
+    dependency: "direct dev"
+    description:
+      name: ffigen
+      sha256: "56fc0be88937409839a59c133dfdee4165e80da324c9e39f59013060249ffb44"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "21.0.0"
   file:
     dependency: transitive
     description:
@@ -281,14 +289,6 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "12.0.0-beta.5"
-  fimber:
-    dependency: transitive
-    description:
-      name: fimber
-      sha256: "42fcfa33acd43556c1e7ebfc12c2b03893418bc04a07931368c3573e228af2f0"
-      url: "https://pub.flutter-io.cn"
-    source: hosted
-    version: "0.7.0"
   fixnum:
     dependency: transitive
     description:
@@ -305,22 +305,6 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.2.0"
-  flureadium:
-    dependency: "direct main"
-    description:
-      name: flureadium
-      sha256: "8512f4ab88a46cbc7b54132270cafb49981782cae9fd05c5538a846ebfb20869"
-      url: "https://pub.flutter-io.cn"
-    source: hosted
-    version: "0.13.3"
-  flureadium_platform_interface:
-    dependency: transitive
-    description:
-      name: flureadium_platform_interface
-      sha256: b35b862b2f96ee02412e8ea2869000bc7d2d0f54ba6ad427202c1f7ee7eafa75
-      url: "https://pub.flutter-io.cn"
-    source: hosted
-    version: "0.7.1"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -368,6 +352,22 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.0.35"
+  flutter_readium:
+    dependency: "direct main"
+    description:
+      name: flutter_readium
+      sha256: "1622c9d765bc6cb5232a518c637b7f76802ccd85f29203bf1ab2a4c9d990ae15"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.3.1"
+  flutter_readium_platform_interface:
+    dependency: transitive
+    description:
+      name: flutter_readium_platform_interface
+      sha256: b48177d444a30a05ab4820384bc5cb176d45d1a9d66edea0aa048dfd544e6a0d
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.3.1"
   flutter_rust_bridge:
     dependency: "direct main"
     description:
@@ -604,14 +604,6 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "4.12.0"
-  json_diff:
-    dependency: transitive
-    description:
-      name: json_diff
-      sha256: "10d82dd4455109bc4dd66335db2d34b4bdf4441dc8fdd6ad6fb914395b9f9e95"
-      url: "https://pub.flutter-io.cn"
-    source: hosted
-    version: "0.2.1"
   json_serializable:
     dependency: "direct dev"
     description:
@@ -716,6 +708,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.0.5"
+  native_toolchain_c:
+    dependency: transitive
+    description:
+      name: native_toolchain_c
+      sha256: f9c168717100ae6d9fee9ffb0be379bf1f8b26b0f6bcbd4fdddcd931993a6a72
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.19.2"
   objective_c:
     dependency: transitive
     description:
@@ -876,6 +876,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.5.0"
+  quiver:
+    dependency: transitive
+    description:
+      name: quiver
+      sha256: ea0b925899e64ecdfbf9c7becb60d5b50e706ade44a85b2363be2a22d88117d2
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "3.2.2"
   recase:
     dependency: transitive
     description:
@@ -899,14 +907,6 @@ packages:
       relative: true
     source: path
     version: "0.0.1"
-  rxdart:
-    dependency: transitive
-    description:
-      name: rxdart
-      sha256: "5c3004a4a8dbb94bd4bf5412a4def4acdaa12e12f269737a5751369e12d1a962"
-      url: "https://pub.flutter-io.cn"
-    source: hosted
-    version: "0.28.0"
   shared_preferences:
     dependency: "direct main"
     description:
@@ -1296,6 +1296,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "3.1.3"
+  yaml_edit:
+    dependency: transitive
+    description:
+      name: yaml_edit
+      sha256: "07c9e63ba42519745182b88ca12264a7ba2484d8239958778dfe4d44fe760488"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "2.2.4"
 sdks:
   dart: ">=3.12.1 <4.0.0"
   flutter: ">=3.44.0"

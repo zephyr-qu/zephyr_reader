@@ -1,6 +1,5 @@
 use crate::common::AppError;
 use crate::domain::sessions::models::ReadingSession;
-use chrono::NaiveDate;
 use flutter_rust_bridge::frb;
 use sqlx::SqlitePool;
 
@@ -50,26 +49,6 @@ impl SessionRepository {
         .bind(limit)
         .fetch_all(pool)
         .await?)
-    }
-
-    pub async fn find_by_date_range(
-        pool: &SqlitePool,
-        book_id: &str,
-        start: NaiveDate,
-        end: NaiveDate,
-    ) -> Result<Vec<ReadingSession>, AppError> {
-        let start_dt = start.and_hms_opt(0, 0, 0).unwrap();
-        let end_dt = end.and_hms_opt(23, 59, 59).unwrap();
-        Ok(
-            sqlx::query_as::<_, ReadingSession>(
-                "SELECT * FROM reading_sessions WHERE book_id = ? AND started_at BETWEEN ? AND ? ORDER BY started_at",
-            )
-            .bind(book_id)
-            .bind(start_dt)
-            .bind(end_dt)
-            .fetch_all(pool)
-            .await?,
-        )
     }
 
     pub async fn find_by_recent(

@@ -5,13 +5,6 @@ use flutter_rust_bridge::frb;
 use crate::common::AppError;
 use crate::domain::cover::service;
 
-/// 提取书籍封面
-#[frb]
-pub async fn extract_book_cover(file_path: String, output_dir: String) -> Result<String, AppError> {
-    tracing::info!("[cover] extract_book_cover: file_path={}", file_path);
-    service::extract_book_cover(&file_path, &output_dir).await
-}
-
 /// 提取书籍封面并保存路径到数据库
 #[frb]
 pub async fn extract_and_save_cover(
@@ -41,11 +34,5 @@ mod tests {
     #[test]
     fn test_does_not_support_pdf() {
         assert!(!supports_cover_extraction("test.pdf".to_string()));
-    }
-
-    #[tokio::test]
-    async fn test_extract_book_cover_file_not_found() {
-        let result = extract_book_cover("non_existent.epub".to_string(), "/tmp".to_string()).await;
-        assert!(result.is_err());
     }
 }

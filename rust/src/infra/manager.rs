@@ -5,7 +5,7 @@
 //   - StorageManager — SQLite 统一存储管理器
 //   - new() — 初始化连接池并运行迁移
 //   - pool() / data_dir() / close() — 生命周期管理
-//   - export_db() / restore_from_backup() / hot_swap_db() — 备份/还原
+//   - restore_from_backup() — 备份还原
 //   - init_storage() — FFI 入口，创建 StorageManager 并注入全局单例
 //   - storage() / ensure_storage() / storage_pool() — 全局单例访问
 // ============================================================
@@ -21,7 +21,6 @@ use sqlx::SqlitePool;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 
 use crate::common::AppError;
-
 
 // ==================== 全局单例 ====================
 
@@ -61,7 +60,7 @@ pub struct StorageManager {
 impl StorageManager {
     /// 创建新的存储管理器
     ///
-/// 初始化 SQLite 连接池并运行迁移。
+    /// 初始化 SQLite 连接池并运行迁移。
     /// # 参数
     /// `data_dir` - 数据库文件和 KV 缓存的存放目录
     pub async fn new(data_dir: impl AsRef<Path>) -> Result<Self, AppError> {
@@ -119,7 +118,6 @@ impl StorageManager {
             .ok_or(AppError::StorageNotInitialized)
     }
 
-
     /// 获取数据目录路径
     pub fn data_dir(&self) -> &Path {
         &self.data_dir
@@ -174,46 +172,6 @@ impl StorageManager {
         *self.pool.lock() = Some(restored_pool);
 
         tracing::info!("Database restored from {:?}", backup_path);
-        Ok(())
-    }
-
-    /// 原子地热替换运行中的 db 连接池
-    ///
-    /// 调用者需自行保证 db_path 已被替换为目标文件（含 migration 跑过）。
-    pub async fn hot_swap_db(&self) -> Result<(), AppError> {
-        let old_pool = self.pool.lock().take();
-        if let Some(old) = old_pool {
-            old.close().await;
-        }
-        let db_path = self.data_dir.join("reader.db");
-        let new_pool = Self::create_pool(&db_path).await?;
-        *self.pool.lock() = Some(new_pool);
-        tracing::info!("Storage pool hot-swapped");
-        Ok(())
-    }
-
-    /// 导出数据库文件
-    ///
-/// 先执行 WAL checkpoint，再复制 db 文件到目标路径。
-    pub async fn export_db(&self, dest_path: impl AsRef<Path>) -> Result<(), AppError> {
-        let dest_path = dest_path.as_ref();
-
-        let pool = self.pool()?;
-
-        sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
-            .execute(&pool)
-            .await
-            .map_err(|e| AppError::DatabaseError {
-                reason: format!("WAL checkpoint failed: {e}"),
-            })?;
-
-        let db_path = self.data_dir.join("reader.db");
-        std::fs::copy(&db_path, dest_path).map_err(|e| AppError::FileReadError {
-            path: db_path.display().to_string(),
-            details: format!("copy db: {e}"),
-        })?;
-
-        tracing::info!("Database exported to {:?}", dest_path);
         Ok(())
     }
 }

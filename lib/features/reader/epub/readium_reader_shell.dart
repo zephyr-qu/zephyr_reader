@@ -1,16 +1,16 @@
 import 'dart:async';
 
-import 'package:flureadium/flureadium.dart';
+import 'package:flutter_readium/flutter_readium.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 
 import 'package:zephyr_reader/core/reading/config/reader_config.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart';
+import 'package:zephyr_reader/features/reader/page/toolbar/reader_bookmark_sheet.dart';
 import 'package:zephyr_reader/features/reader/page/toolbar/reader_bottom_toolbar.dart';
 import 'package:zephyr_reader/features/reader/page/toolbar/reader_toolbar.dart';
 import 'package:zephyr_reader/features/reader/settings/reader_panel_type.dart';
@@ -35,6 +35,7 @@ class ReadiumReaderShell extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final ReaderConfig config = useMemoized(() => getIt<ReaderConfig>());
+    final ttsVm = useMemoized(() => getIt<TtsSettingsViewModel>());
     final ReaderTheme selectedTheme =
         useSignalValue(config.theme.signal) as ReaderTheme;
     final readerTheme = ReaderThemeExtension.resolve(selectedTheme);
@@ -42,6 +43,7 @@ class ReadiumReaderShell extends HookWidget {
       () => ReadiumViewModel(
         config: config,
         bookId: bookId,
+        ttsSettings: ttsVm,
         initialChapterIndex: initialChapterIndex,
       ),
       [bookId, initialChapterIndex],
@@ -57,8 +59,6 @@ class ReadiumReaderShell extends HookWidget {
         useSignalValue(vm.readingMode) as ReadingMode;
     final String? errorMessage = useSignalValue(vm.error) as String?;
     final bool isBookmarked = useSignalValue(vm.isBookmarked) as bool;
-    final List<Bookmark> bookmarks =
-        useSignalValue(vm.bookmarks) as List<Bookmark>;
 
     final scaffoldKey = useRef(GlobalKey<ScaffoldState>());
     final chromeVisible = useState(true);
@@ -90,26 +90,38 @@ class ReadiumReaderShell extends HookWidget {
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
-        builder: (_) => Theme(
-          data: baseTheme.copyWith(extensions: [readerTheme]),
-          child: _BookmarkListSheet(
-            bookmarks: bookmarks,
-            readerTheme: readerTheme,
-            onSelect: (entry) {
-              Navigator.pop(context);
-              chromeVisible.value = false;
-              unawaited(vm.goToBookmark(entry));
-            },
-            onDelete: (entry) {
-              unawaited(vm.deleteBookmarkByEntry(entry));
-            },
-          ),
+        builder: (sheetContext) => HookBuilder(
+          builder: (_) {
+            final sheetBookmarks =
+                useSignalValue(vm.bookmarks) as List<Bookmark>;
+            final sheetIsBookmarked = useSignalValue(vm.isBookmarked) as bool;
+            return Theme(
+              data: baseTheme.copyWith(extensions: [readerTheme]),
+              child: ReaderBookmarkSheet(
+                bookmarks: sheetBookmarks,
+                readerTheme: readerTheme,
+                isCurrentPageBookmarked: sheetIsBookmarked,
+                onToggleCurrent: () async {
+                  if (vm.isBookmarked.value) {
+                    await vm.removeBookmark();
+                  } else {
+                    await vm.addBookmark();
+                  }
+                },
+                onSelect: (entry) {
+                  Navigator.pop(sheetContext);
+                  chromeVisible.value = false;
+                  unawaited(vm.goToBookmark(entry));
+                },
+                onDelete: vm.deleteBookmarkByEntry,
+              ),
+            );
+          },
         ),
       );
     }
 
     void showSettings(ReaderPanelType panelType) {
-      final ttsVm = getIt<TtsSettingsViewModel>();
       final baseTheme = Theme.of(context);
       showModalBottomSheet<void>(
         context: context,
@@ -126,7 +138,10 @@ class ReadiumReaderShell extends HookWidget {
             onTtsToggle: () => unawaited(vm.toggleTts()),
             onClose: () => Navigator.pop(context),
             ttsVm: ttsVm,
-            onPreferencesChanged: () => unawaited(vm.applyPreferences()),
+            onPreferencesChanged: () {
+              unawaited(vm.applyPreferences());
+              unawaited(vm.applyTtsPreferences());
+            },
           ),
         ),
       );
@@ -163,9 +178,7 @@ class ReadiumReaderShell extends HookWidget {
                 child: ReadiumReaderContent(
                   vm: vm,
                   filePath: filePath,
-                  onViewportTap: () {
-                    chromeVisible.value = !chromeVisible.value;
-                  },
+                  shouldShowControls: chromeVisible,
                 ),
               ),
             ),
@@ -179,11 +192,6 @@ class ReadiumReaderShell extends HookWidget {
                   progress: progressText,
                   readerTheme: readerTheme,
                   onClose: () => Navigator.maybePop(context),
-                  isBookmarked: isBookmarked,
-                  onToggleBookmark: () => unawaited(
-                    isBookmarked ? vm.removeBookmark() : vm.addBookmark(),
-                  ),
-                  onShowBookmarkList: showBookmarkList,
                 ),
               ),
             if (chromeVisible.value)
@@ -195,10 +203,12 @@ class ReadiumReaderShell extends HookWidget {
                   readerTheme: readerTheme,
                   onShowCatalog: () =>
                       scaffoldKey.value.currentState?.openDrawer(),
+                  onShowBookmarks: showBookmarkList,
                   onToggleTypesetting: () =>
                       showSettings(ReaderPanelType.typesetting),
                   onToggleDisplay: () => showSettings(ReaderPanelType.display),
                   onToggleAssist: () => showSettings(ReaderPanelType.assist),
+                  isBookmarked: isBookmarked,
                   isTtsPlaying: isTtsPlaying,
                 ),
               ),
@@ -301,151 +311,5 @@ class ReadiumReaderShell extends HookWidget {
     final leftUri = Uri.tryParse(left);
     final rightUri = Uri.tryParse(right);
     return (leftUri?.path ?? left) == (rightUri?.path ?? right);
-  }
-}
-
-class _BookmarkListSheet extends StatelessWidget {
-  final List<Bookmark> bookmarks;
-  final ReaderThemeExtension readerTheme;
-  final ValueChanged<Bookmark> onSelect;
-  final ValueChanged<Bookmark> onDelete;
-  const _BookmarkListSheet({
-    required this.bookmarks,
-    required this.readerTheme,
-    required this.onSelect,
-    required this.onDelete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: readerTheme.surfaceColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-      ),
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.6,
-      ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle bar
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(top: 8, bottom: 4),
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: readerTheme.textColor.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '书签 (${bookmarks.length})',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: readerTheme.textColor,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Bookmark list
-            if (bookmarks.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(32),
-                child: Text(
-                  '暂无书签，点击顶部工具栏的书签图标添加',
-                  style: TextStyle(
-                    color: readerTheme.textColor.withValues(alpha: 0.5),
-                    fontSize: 14,
-                  ),
-                ),
-              )
-            else
-              Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: bookmarks.length,
-                  padding: const EdgeInsets.only(bottom: 16),
-                  itemBuilder: (context, index) {
-                    final entry = bookmarks[index];
-                    final chapterTitle = entry.title;
-                    final createdAt = entry.createdAt;
-                    final dateStr = _formatTimestamp(createdAt);
-
-                    return Dismissible(
-                      key: ValueKey(entry.id),
-                      background: Container(
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 20),
-                        color: Colors.red.withValues(alpha: 0.8),
-                        child: const Icon(
-                          PhosphorIconsLight.trash,
-                          color: Colors.white,
-                          size: 22,
-                        ),
-                      ),
-                      onDismissed: (_) => onDelete(entry),
-                      child: ListTile(
-                        leading: Icon(
-                          PhosphorIconsLight.bookmarkSimple,
-                          color: readerTheme.accentColor,
-                          size: 20,
-                        ),
-                        title: Text(
-                          chapterTitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: readerTheme.textColor,
-                            fontSize: 14,
-                          ),
-                        ),
-                        subtitle: dateStr.isNotEmpty
-                            ? Text(
-                                dateStr,
-                                style: TextStyle(
-                                  color: readerTheme.textColor.withValues(
-                                    alpha: 0.5,
-                                  ),
-                                  fontSize: 12,
-                                ),
-                              )
-                            : null,
-                        onTap: () => onSelect(entry),
-                      ),
-                    );
-                  },
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  static String _formatTimestamp(DateTime date) {
-    final now = DateTime.now();
-    if (date.year == now.year &&
-        date.month == now.month &&
-        date.day == now.day) {
-      return '今天 '
-          '${date.hour.toString().padLeft(2, '0')}'
-          ':${date.minute.toString().padLeft(2, '0')}';
-    }
-    return '${date.year}-'
-        '${date.month.toString().padLeft(2, '0')}-'
-        '${date.day.toString().padLeft(2, '0')}';
   }
 }

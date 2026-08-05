@@ -5,7 +5,7 @@ use flutter_rust_bridge::frb;
 // 公有类型/函数：
 //   - DictionaryRepository — 词典仓储结构体
 //   - save() — 保存或更新词典配置
-//   - find_all() / find_by_id() — 查询词典
+//   - find_all() — 查询词典
 //   - delete() — 删除词典
 // ============================================================
 
@@ -51,16 +51,6 @@ impl DictionaryRepository {
         Ok(
             sqlx::query_as::<_, Dictionary>("SELECT * FROM dictionaries ORDER BY added_at DESC")
                 .fetch_all(pool)
-                .await?,
-        )
-    }
-
-    /// 按 ID 查找词典
-    pub async fn find_by_id(pool: &SqlitePool, id: &str) -> Result<Option<Dictionary>, AppError> {
-        Ok(
-            sqlx::query_as::<_, Dictionary>("SELECT * FROM dictionaries WHERE id = ?")
-                .bind(id)
-                .fetch_optional(pool)
                 .await?,
         )
     }

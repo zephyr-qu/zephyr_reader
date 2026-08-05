@@ -2,13 +2,13 @@
 
 - **状态**：已通过
 - **日期**：2026-07-31
-- **取代**：[ADR-019](./019-engine-unification.md) 作为当前实施路线
+- **取代**：[ADR-019](../archived/adr/019-engine-unification.md) 作为当前实施路线
 - **保留**：ADR-019 作为未来重新评估双引擎时的历史设计
 
 ## 背景
 
 双引擎统一方案需要同时维护 Builtin、Readium、位置桥、能力模型和统一壳层，
-超出当前 MVP 的验证目标。当前分支已经删除 Builtin 阅读 UI，并以 flureadium
+超出当前 MVP 的验证目标。当前分支已经删除 Builtin 阅读 UI，并以 flutter_readium
 直接承载 EPUB 正文。继续让路线文档声称“双引擎正在接入”会造成实现、测试和验收标准分叉。
 
 ## 决策
@@ -19,7 +19,7 @@
 2. 正文只由封装后的 `ReadiumReaderWidget` 渲染，不恢复 Builtin 渲染链。
 3. 页面保留一套 Readium 壳层，接入目录、翻页、进度、排版设置、主题和基础 TTS。
 4. MVP 位置恢复使用按 `bookId` 保存的 Readium Locator；不保存页码。
-5. 原生 viewport `onReady` 是应用设置、订阅状态和发布 ready 的硬门槛。
+5. 原生 reader status `ready` 是应用设置、订阅状态和发布 ready 的硬门槛。
 6. 打开、重试和关闭必须具备明确状态；关闭必须幂等，退出后不得回写 UI。
 
 ## 当前 Must

@@ -1,6 +1,6 @@
 # Readium 能力评估矩阵
 
-> 基于 flureadium 0.13.2 API 分析和 feature/readium-poc 分支 PoC 代码分析
+> **历史能力矩阵**：基于早期 `flureadium 0.13.2` API 分析，仅用于选型追溯。当前依赖为 `flutter_readium`，当前范围以 ADR-020/021 为准。
 > 状态标记：✅ 已确认 | ⚠️ 部分支持 | ❌ 不支持 | ? 需真机验证
 
 ## 基础能力

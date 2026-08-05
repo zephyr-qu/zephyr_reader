@@ -1,6 +1,6 @@
 # Readium Locator 映射报告
 
-> 基于 flureadium 0.13.2 / flureadium_platform_interface 0.7.1 源码分析
+> **历史映射报告**：基于早期 `flureadium` 源码分析，记录跨引擎迁移阶段的假设。当前路线不包含 Builtin↔Readium 跨引擎切换，当前 Locator 契约以 ADR-020/017 为准。
 
 ## Locator 完整结构
 

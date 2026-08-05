@@ -21,4 +21,21 @@ class ReaderTypographyDefaults {
   /// 字重可调范围（Readium 支持 100–900）。
   static const double minFontWeight = 300.0;
   static const double maxFontWeight = 700.0;
+
+  /// Readium line-height multiplier.
+  static const double lineHeight = 1.4;
+
+  /// Readium letter spacing in em units.
+  static const double letterSpacing = 0.0;
+
+  /// Readium paragraph spacing in em units.
+  static const double paragraphSpacing = 0.0;
+
+  /// Readium paragraph indent in em units.
+  static const double paragraphIndent = 0.0;
+
+  static const double minLetterSpacing = -0.05;
+  static const double maxLetterSpacing = 0.2;
+  static const double maxParagraphSpacing = 2.0;
+  static const double maxParagraphIndent = 2.0;
 }

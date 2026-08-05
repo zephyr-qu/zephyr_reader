@@ -1,34 +1,82 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flureadium/flureadium.dart';
+
+// Readium test fixtures require non-const localized metadata constructors.
+// ignore_for_file: prefer_const_literals_to_create_immutables
+
+import 'package:flutter_readium/flutter_readium.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:zephyr_reader/core/reading/config/reader_config.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
+import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart';
 import 'package:zephyr_reader/features/reader/epub/readium_view_model.dart';
 import 'package:zephyr_reader/src/rust/domain/engine_positions/models.dart';
 import 'package:zephyr_reader/src/rust/domain/progress/models.dart';
 
-class _MockFlureadium extends Mock implements Flureadium {}
+class _MockFlutterReadium extends Mock implements FlutterReadium {
+  @override
+  Stream<Locator> get onTextLocatorChanged => const Stream.empty();
+
+  /// Captures [FlutterReadium.setDefaultPreferences] calls — open() presets
+  /// the native layout mode (scroll vs pagination) before the view is created.
+  final defaultPreferencesCalls = <EPUBPreferences>[];
+
+  @override
+  void setDefaultPreferences(EPUBPreferences preferences) {
+    defaultPreferencesCalls.add(preferences);
+  }
+}
 
 class _MockReaderConfig extends Mock implements ReaderConfig {}
+
+class _MockTtsSettingsViewModel extends Mock implements TtsSettingsViewModel {}
 
 class _MockPersistedSignal<T> extends Mock implements PersistedSignal<T> {}
 
 class _FakeEpubPreferences extends Fake implements EPUBPreferences {}
 
-class _FakeNavigationConfig extends Fake implements ReaderNavigationConfig {}
+void _stubAdvancedTypography(_MockReaderConfig config) {
+  final lineHeight = _MockPersistedSignal<double>();
+  when(() => lineHeight.value).thenReturn(1.4);
+  when(() => config.lineHeight).thenReturn(lineHeight);
+
+  final letterSpacing = _MockPersistedSignal<double>();
+  when(() => letterSpacing.value).thenReturn(0.0);
+  when(() => config.letterSpacing).thenReturn(letterSpacing);
+
+  final paragraphSpacing = _MockPersistedSignal<double>();
+  when(() => paragraphSpacing.value).thenReturn(0.0);
+  when(() => config.paragraphSpacing).thenReturn(paragraphSpacing);
+
+  final paragraphIndent = _MockPersistedSignal<double>();
+  when(() => paragraphIndent.value).thenReturn(0.0);
+  when(() => config.paragraphIndent).thenReturn(paragraphIndent);
+
+  final textAlign = _MockPersistedSignal<ReaderTextAlign>();
+  when(() => textAlign.value).thenReturn(ReaderTextAlign.auto);
+  when(() => config.textAlign).thenReturn(textAlign);
+}
+
+Future<void> _mountViewport(ReadiumViewModel vm) async {
+  await vm.onViewportReady();
+  await Future<void>.delayed(Duration.zero);
+}
 
 void main() {
   setUpAll(() {
     registerFallbackValue(_FakeEpubPreferences());
-    registerFallbackValue(_FakeNavigationConfig());
+    registerFallbackValue(const TTSPreferences());
+    registerFallbackValue(
+      const Locator(href: 'fallback.xhtml', type: 'application/xhtml+xml'),
+    );
   });
 
-
   test('waits for the native viewport before applying preferences', () async {
-    final reader = _MockFlureadium();
+    final reader = _MockFlutterReadium();
     final config = _MockReaderConfig();
+    _stubAdvancedTypography(config);
+    final ttsSettings = _MockTtsSettingsViewModel();
     final theme = _MockPersistedSignal<ReaderTheme>();
     final fontSize = _MockPersistedSignal<double>();
     final padding = _MockPersistedSignal<double>();
@@ -62,19 +110,25 @@ void main() {
     when(() => config.readingMode).thenReturn(readingMode);
     when(() => readingMode.value).thenReturn(ReadingMode.pagination);
     when(
+      () => ttsSettings.toReadiumPreferences(),
+    ).thenReturn(const TTSPreferences(speed: 1.25, pitch: 0.9));
+    when(
       () => reader.openPublication(any()),
     ).thenAnswer((_) async => publication);
     when(
       () => reader.onReaderStatusChanged,
-    ).thenAnswer((_) => const Stream.empty());
+    ).thenAnswer((_) => Stream.value(ReadiumReaderStatus.ready));
     when(() => reader.onErrorEvent).thenAnswer((_) => const Stream.empty());
     when(() => reader.setEPUBPreferences(any())).thenAnswer((_) async {});
-    when(() => reader.setNavigationConfig(any())).thenAnswer((_) async {});
+    when(() => reader.ttsEnable(any())).thenAnswer((_) async {});
+    when(() => reader.ttsSetPreferences(any())).thenAnswer((_) async {});
+    when(() => reader.stop()).thenAnswer((_) async {});
     when(() => reader.closePublication()).thenAnswer((_) async {});
 
     final vm = ReadiumViewModel(
       config: config,
       bookId: 'book-1',
+      ttsSettings: ttsSettings,
       reader: reader,
     );
 
@@ -83,27 +137,35 @@ void main() {
     expect(vm.status.value, 'opening...');
     verifyNever(() => reader.setEPUBPreferences(any()));
 
-    await vm.onViewportReady();
+    await _mountViewport(vm);
 
     expect(vm.status.value, 'ready');
     final capturedPreferences =
         verify(() => reader.setEPUBPreferences(captureAny())).captured.single
             as EPUBPreferences;
-    expect(capturedPreferences.fontSize, 100);
+    expect(capturedPreferences.fontSize, 1.0);
+    expect(capturedPreferences.lineHeight, 1.4);
+    expect(capturedPreferences.letterSpacing, 0.0);
+    expect(capturedPreferences.paragraphSpacing, 0.0);
+    expect(capturedPreferences.paragraphIndent, 0.0);
+    expect(capturedPreferences.textAlign, isNull);
+    await vm.toggleTts();
+    final capturedTtsPreferences =
+        verify(() => reader.ttsEnable(captureAny())).captured.single
+            as TTSPreferences;
+    expect(capturedTtsPreferences.speed, 1.25);
+    expect(capturedTtsPreferences.pitch, 0.9);
+    await vm.applyTtsPreferences();
+    verify(() => reader.ttsSetPreferences(captureAny())).called(1);
     // ReaderConfig stores the legacy UI value where 20 is the default.
     // Readium expects a multiplier where 1.0 is the default margin.
     expect(capturedPreferences.pageMargins, 1.2);
-    expect(capturedPreferences.verticalScroll, isFalse);
-    final navigationConfig =
-        verify(() => reader.setNavigationConfig(captureAny())).captured.single
-            as ReaderNavigationConfig;
-    expect(navigationConfig.enableSwipeNavigation, isFalse);
-
+    expect(capturedPreferences.scroll, isFalse);
     await vm.setReadingMode(ReadingMode.scroll);
     final scrollPreferences =
         verify(() => reader.setEPUBPreferences(captureAny())).captured.single
             as EPUBPreferences;
-    expect(scrollPreferences.verticalScroll, isTrue);
+    expect(scrollPreferences.scroll, isTrue);
 
     await vm.close();
     await vm.close();
@@ -111,8 +173,9 @@ void main() {
   });
 
   test('closes a publication that finishes opening after page exit', () async {
-    final reader = _MockFlureadium();
+    final reader = _MockFlutterReadium();
     final config = _MockReaderConfig();
+    _stubAdvancedTypography(config);
     final readingMode = _MockPersistedSignal<ReadingMode>();
     when(() => config.readingMode).thenReturn(readingMode);
     when(() => readingMode.value).thenReturn(ReadingMode.pagination);
@@ -148,8 +211,9 @@ void main() {
   });
 
   test('next page does not skip chapter when locator advances', () async {
-    final reader = _MockFlureadium();
+    final reader = _MockFlutterReadium();
     final config = _MockReaderConfig();
+    _stubAdvancedTypography(config);
     final theme = _MockPersistedSignal<ReaderTheme>();
     final fontSize = _MockPersistedSignal<double>();
     final padding = _MockPersistedSignal<double>();
@@ -186,38 +250,35 @@ void main() {
     ).thenAnswer((_) async => publication);
     when(
       () => reader.onReaderStatusChanged,
-    ).thenAnswer((_) => const Stream.empty());
+    ).thenAnswer((_) => Stream.value(ReadiumReaderStatus.ready));
     when(() => reader.onErrorEvent).thenAnswer((_) => const Stream.empty());
     when(() => reader.setEPUBPreferences(any())).thenAnswer((_) async {});
-    when(() => reader.setNavigationConfig(any())).thenAnswer((_) async {});
-    when(() => reader.goRight()).thenAnswer((_) async {
+    when(() => reader.goForward()).thenAnswer((_) async {
       scheduleMicrotask(
         () => vm.onLocatorChanged(
           const Locator(href: 'chapter.xhtml', type: 'application/xhtml+xml'),
         ),
       );
     });
-    when(() => reader.skipToNext()).thenAnswer((_) async {});
-
     vm = ReadiumViewModel(
       config: config,
       bookId: 'book-next-page',
       reader: reader,
     );
     await vm.open('book.epub');
-    await vm.onViewportReady();
+    await _mountViewport(vm);
 
     await vm.goRight();
 
-    verify(() => reader.goRight()).called(1);
-    verifyNever(() => reader.skipToNext());
+    verify(() => reader.goForward()).called(1);
   });
 
   test(
     'next page does not infer a chapter fallback from a missing locator event',
     () async {
-      final reader = _MockFlureadium();
+      final reader = _MockFlutterReadium();
       final config = _MockReaderConfig();
+      _stubAdvancedTypography(config);
       final theme = _MockPersistedSignal<ReaderTheme>();
       final fontSize = _MockPersistedSignal<double>();
       final padding = _MockPersistedSignal<double>();
@@ -236,30 +297,28 @@ void main() {
       when(() => config.fontSize).thenReturn(fontSize);
       when(() => fontSize.value).thenReturn(100);
       when(() => config.padding).thenReturn(padding);
-    when(() => padding.value).thenReturn(20);
-    final fontFamily = _MockPersistedSignal<String>();
-    when(() => config.fontFamily).thenReturn(fontFamily);
-    when(() => fontFamily.value).thenReturn('System');
-    final bgIndex = _MockPersistedSignal<int>();
-    when(() => config.readerBgColorIndex).thenReturn(bgIndex);
-    when(() => bgIndex.value).thenReturn(0);
-    final fontWeight = _MockPersistedSignal<double>();
-    final readingMode = _MockPersistedSignal<ReadingMode>();
-    when(() => config.fontWeight).thenReturn(fontWeight);
-    when(() => fontWeight.value).thenReturn(400.0);
-    when(() => config.readingMode).thenReturn(readingMode);
-    when(() => readingMode.value).thenReturn(ReadingMode.pagination);
+      when(() => padding.value).thenReturn(20);
+      final fontFamily = _MockPersistedSignal<String>();
+      when(() => config.fontFamily).thenReturn(fontFamily);
+      when(() => fontFamily.value).thenReturn('System');
+      final bgIndex = _MockPersistedSignal<int>();
+      when(() => config.readerBgColorIndex).thenReturn(bgIndex);
+      when(() => bgIndex.value).thenReturn(0);
+      final fontWeight = _MockPersistedSignal<double>();
+      final readingMode = _MockPersistedSignal<ReadingMode>();
+      when(() => config.fontWeight).thenReturn(fontWeight);
+      when(() => fontWeight.value).thenReturn(400.0);
+      when(() => config.readingMode).thenReturn(readingMode);
+      when(() => readingMode.value).thenReturn(ReadingMode.pagination);
       when(
         () => reader.openPublication(any()),
       ).thenAnswer((_) async => publication);
       when(
         () => reader.onReaderStatusChanged,
-      ).thenAnswer((_) => const Stream.empty());
+      ).thenAnswer((_) => Stream.value(ReadiumReaderStatus.ready));
       when(() => reader.onErrorEvent).thenAnswer((_) => const Stream.empty());
       when(() => reader.setEPUBPreferences(any())).thenAnswer((_) async {});
-      when(() => reader.setNavigationConfig(any())).thenAnswer((_) async {});
-      when(() => reader.goRight()).thenAnswer((_) async {});
-      when(() => reader.skipToNext()).thenAnswer((_) async {});
+      when(() => reader.goForward()).thenAnswer((_) async {});
 
       final vm = ReadiumViewModel(
         config: config,
@@ -267,132 +326,62 @@ void main() {
         reader: reader,
       );
       await vm.open('book.epub');
-      await vm.onViewportReady();
+      await _mountViewport(vm);
 
       await vm.goRight();
 
-      verify(() => reader.goRight()).called(1);
-      verifyNever(() => reader.skipToNext());
+      verify(() => reader.goForward()).called(1);
     },
   );
 
-  test('scroll boundary advances only after the resource end', () async {
-    final reader = _MockFlureadium();
-    final config = _MockReaderConfig();
-    final theme = _MockPersistedSignal<ReaderTheme>();
-    final fontSize = _MockPersistedSignal<double>();
-    final padding = _MockPersistedSignal<double>();
-    final publication = Publication(
-      metadata: Metadata(
-        localizedTitle: LocalizedString.fromString('Test Book'),
-      ),
-      readingOrder: [
-        const Link(href: 'chapter-1.xhtml', type: 'application/xhtml+xml'),
-        const Link(href: 'chapter-2.xhtml', type: 'application/xhtml+xml'),
-      ],
-    );
+  test('open presets default preferences matching the reading mode', () async {
+    Future<void> runCase(ReadingMode mode, bool expectScroll) async {
+      final reader = _MockFlutterReadium();
+      final config = _MockReaderConfig();
+      final readingMode = _MockPersistedSignal<ReadingMode>();
+      when(() => config.readingMode).thenReturn(readingMode);
+      when(() => readingMode.value).thenReturn(mode);
+      final publication = Publication(
+        metadata: Metadata(
+          localizedTitle: LocalizedString.fromString('Prefs Book'),
+        ),
+        readingOrder: const [
+          Link(href: 'chapter.xhtml', type: 'application/xhtml+xml'),
+        ],
+      );
+      when(
+        () => reader.openPublication(any()),
+      ).thenAnswer((_) async => publication);
+      when(() => reader.closePublication()).thenAnswer((_) async {});
 
-    when(() => config.theme).thenReturn(theme);
-    when(() => theme.value).thenReturn(ReaderTheme.light);
-    when(() => config.fontSize).thenReturn(fontSize);
-    when(() => fontSize.value).thenReturn(100);
-    when(() => config.padding).thenReturn(padding);
-    when(() => padding.value).thenReturn(20);
-    final fontFamily = _MockPersistedSignal<String>();
-    when(() => config.fontFamily).thenReturn(fontFamily);
-    when(() => fontFamily.value).thenReturn('System');
-    final bgIndex = _MockPersistedSignal<int>();
-    when(() => config.readerBgColorIndex).thenReturn(bgIndex);
-    when(() => bgIndex.value).thenReturn(0);
-    final fontWeight = _MockPersistedSignal<double>();
-    final readingMode = _MockPersistedSignal<ReadingMode>();
-    when(() => config.fontWeight).thenReturn(fontWeight);
-    when(() => fontWeight.value).thenReturn(400.0);
-    when(() => config.readingMode).thenReturn(readingMode);
-    when(() => readingMode.value).thenReturn(ReadingMode.pagination);
-    when(
-      () => reader.openPublication(any()),
-    ).thenAnswer((_) async => publication);
-    when(
-      () => reader.onReaderStatusChanged,
-    ).thenAnswer((_) => const Stream.empty());
-    when(() => reader.onErrorEvent).thenAnswer((_) => const Stream.empty());
-    when(() => reader.setEPUBPreferences(any())).thenAnswer((_) async {});
-    when(() => reader.setNavigationConfig(any())).thenAnswer((_) async {});
-    when(() => reader.skipToNext()).thenAnswer((_) async {});
+      final vm = ReadiumViewModel(
+        config: config,
+        bookId: 'book-prefs',
+        reader: reader,
+      );
+      await vm.open('book.epub');
 
-    final vm = ReadiumViewModel(
-      config: config,
-      bookId: 'book-scroll-boundary',
-      reader: reader,
-    );
-    await vm.open('book.epub');
-    await vm.onViewportReady();
-    await vm.setReadingMode(ReadingMode.scroll);
+      expect(
+        reader.defaultPreferencesCalls,
+        hasLength(1),
+        reason: 'open() 应通过 setDefaultPreferences 预置布局偏好',
+      );
+      expect(
+        reader.defaultPreferencesCalls.single.scroll,
+        expectScroll,
+        reason: '$mode 下预置 scroll 应匹配阅读模式',
+      );
+      await vm.close();
+    }
 
-    vm.onLocatorChanged(
-      const Locator(
-        href: 'chapter-1.xhtml',
-        type: 'application/xhtml+xml',
-        locations: Locations(progression: 0.8),
-      ),
-    );
-    await vm.advanceFromScrollBoundary();
-    verifyNever(() => reader.skipToNext());
-
-    vm.onLocatorChanged(
-      const Locator(
-        href: 'chapter-1.xhtml',
-        type: 'application/xhtml+xml',
-        locations: Locations(progression: 1),
-      ),
-    );
-    await vm.advanceFromScrollBoundary();
-    verify(() => reader.skipToNext()).called(1);
-  });
-
-  test('pagination never advances through the scroll boundary hook', () async {
-    final reader = _MockFlureadium();
-    final config = _MockReaderConfig();
-    final readingMode = _MockPersistedSignal<ReadingMode>();
-    when(() => config.readingMode).thenReturn(readingMode);
-    when(() => readingMode.value).thenReturn(ReadingMode.pagination);
-    final publication = Publication(
-      metadata: Metadata(
-        localizedTitle: LocalizedString.fromString('Test Book'),
-      ),
-      readingOrder: [
-        const Link(href: 'chapter-1.xhtml', type: 'application/xhtml+xml'),
-        const Link(href: 'chapter-2.xhtml', type: 'application/xhtml+xml'),
-      ],
-    );
-
-    when(
-      () => reader.openPublication(any()),
-    ).thenAnswer((_) async => publication);
-    when(() => reader.skipToNext()).thenAnswer((_) async {});
-
-    final vm = ReadiumViewModel(
-      config: config,
-      bookId: 'book-pagination-boundary',
-      reader: reader,
-    );
-    await vm.open('book.epub');
-    vm.onLocatorChanged(
-      const Locator(
-        href: 'chapter-1.xhtml',
-        type: 'application/xhtml+xml',
-        locations: Locations(progression: 1),
-      ),
-    );
-
-    await vm.advanceFromScrollBoundary();
-    verifyNever(() => reader.skipToNext());
+    await runCase(ReadingMode.scroll, true);
+    await runCase(ReadingMode.pagination, false);
   });
 
   test('finalizes reading sessions on chapter change and close', () async {
-    final reader = _MockFlureadium();
+    final reader = _MockFlutterReadium();
     final config = _MockReaderConfig();
+    _stubAdvancedTypography(config);
     final theme = _MockPersistedSignal<ReaderTheme>();
     final fontSize = _MockPersistedSignal<double>();
     final padding = _MockPersistedSignal<double>();
@@ -439,11 +428,11 @@ void main() {
     when(
       () => reader.openPublication(any()),
     ).thenAnswer((_) async => publication);
-    when(() => reader.onReaderStatusChanged)
-        .thenAnswer((_) => const Stream.empty());
+    when(
+      () => reader.onReaderStatusChanged,
+    ).thenAnswer((_) => Stream.value(ReadiumReaderStatus.ready));
     when(() => reader.onErrorEvent).thenAnswer((_) => const Stream.empty());
     when(() => reader.setEPUBPreferences(any())).thenAnswer((_) async {});
-    when(() => reader.setNavigationConfig(any())).thenAnswer((_) async {});
     when(() => reader.closePublication()).thenAnswer((_) async {});
 
     final recorded = <({int chapterIndex, int startOffset, int endOffset})>[];
@@ -451,25 +440,24 @@ void main() {
       config: config,
       bookId: 'book-sessions',
       reader: reader,
-      sessionRecorder: ({
-        required bookId,
-        required chapterIndex,
-        required startCharOffset,
-        required endCharOffset,
-        required startedAt,
-      }) async {
-        recorded.add(
-          (
-            chapterIndex: chapterIndex,
-            startOffset: startCharOffset,
-            endOffset: endCharOffset,
-          ),
-        );
-      },
+      sessionRecorder:
+          ({
+            required bookId,
+            required chapterIndex,
+            required startCharOffset,
+            required endCharOffset,
+            required startedAt,
+          }) async {
+            recorded.add((
+              chapterIndex: chapterIndex,
+              startOffset: startCharOffset,
+              endOffset: endCharOffset,
+            ));
+          },
     );
 
     await vm.open('book.epub');
-    await vm.onViewportReady();
+    await _mountViewport(vm);
     vm.onLocatorChanged(
       const Locator(
         href: 'chapter-1.xhtml',
@@ -495,8 +483,9 @@ void main() {
   });
 
   test('persists reading progress to the persistence layer on close', () async {
-    final reader = _MockFlureadium();
+    final reader = _MockFlutterReadium();
     final config = _MockReaderConfig();
+    _stubAdvancedTypography(config);
     final theme = _MockPersistedSignal<ReaderTheme>();
     final fontSize = _MockPersistedSignal<double>();
     final padding = _MockPersistedSignal<double>();
@@ -530,11 +519,11 @@ void main() {
     when(
       () => reader.openPublication(any()),
     ).thenAnswer((_) async => publication);
-    when(() => reader.onReaderStatusChanged)
-        .thenAnswer((_) => const Stream.empty());
+    when(
+      () => reader.onReaderStatusChanged,
+    ).thenAnswer((_) => Stream.value(ReadiumReaderStatus.ready));
     when(() => reader.onErrorEvent).thenAnswer((_) => const Stream.empty());
     when(() => reader.setEPUBPreferences(any())).thenAnswer((_) async {});
-    when(() => reader.setNavigationConfig(any())).thenAnswer((_) async {});
     when(() => reader.closePublication()).thenAnswer((_) async {});
 
     ReadingProgress? saved;
@@ -548,7 +537,7 @@ void main() {
     );
 
     await vm.open('book.epub');
-    await vm.onViewportReady();
+    await _mountViewport(vm);
     vm.onLocatorChanged(
       const Locator(
         href: 'chapter.xhtml',
@@ -567,8 +556,9 @@ void main() {
   });
 
   test('flush ends the session once without closing the publication', () async {
-    final reader = _MockFlureadium();
+    final reader = _MockFlutterReadium();
     final config = _MockReaderConfig();
+    _stubAdvancedTypography(config);
     final theme = _MockPersistedSignal<ReaderTheme>();
     final fontSize = _MockPersistedSignal<double>();
     final padding = _MockPersistedSignal<double>();
@@ -602,11 +592,11 @@ void main() {
     when(
       () => reader.openPublication(any()),
     ).thenAnswer((_) async => publication);
-    when(() => reader.onReaderStatusChanged)
-        .thenAnswer((_) => const Stream.empty());
+    when(
+      () => reader.onReaderStatusChanged,
+    ).thenAnswer((_) => Stream.value(ReadiumReaderStatus.ready));
     when(() => reader.onErrorEvent).thenAnswer((_) => const Stream.empty());
     when(() => reader.setEPUBPreferences(any())).thenAnswer((_) async {});
-    when(() => reader.setNavigationConfig(any())).thenAnswer((_) async {});
     when(() => reader.closePublication()).thenAnswer((_) async {});
 
     var sessionCount = 0;
@@ -614,19 +604,20 @@ void main() {
       config: config,
       bookId: 'book-flush',
       reader: reader,
-      sessionRecorder: ({
-        required bookId,
-        required chapterIndex,
-        required startCharOffset,
-        required endCharOffset,
-        required startedAt,
-      }) async {
-        sessionCount++;
-      },
+      sessionRecorder:
+          ({
+            required bookId,
+            required chapterIndex,
+            required startCharOffset,
+            required endCharOffset,
+            required startedAt,
+          }) async {
+            sessionCount++;
+          },
     );
 
     await vm.open('book.epub');
-    await vm.onViewportReady();
+    await _mountViewport(vm);
     vm.onLocatorChanged(
       const Locator(
         href: 'chapter.xhtml',
@@ -647,8 +638,9 @@ void main() {
   });
 
   test('persists the Locator as an engine position hint on close', () async {
-    final reader = _MockFlureadium();
+    final reader = _MockFlutterReadium();
     final config = _MockReaderConfig();
+    _stubAdvancedTypography(config);
     final theme = _MockPersistedSignal<ReaderTheme>();
     final fontSize = _MockPersistedSignal<double>();
     final padding = _MockPersistedSignal<double>();
@@ -683,11 +675,11 @@ void main() {
     when(
       () => reader.openPublication(any()),
     ).thenAnswer((_) async => publication);
-    when(() => reader.onReaderStatusChanged)
-        .thenAnswer((_) => const Stream.empty());
+    when(
+      () => reader.onReaderStatusChanged,
+    ).thenAnswer((_) => Stream.value(ReadiumReaderStatus.ready));
     when(() => reader.onErrorEvent).thenAnswer((_) => const Stream.empty());
     when(() => reader.setEPUBPreferences(any())).thenAnswer((_) async {});
-    when(() => reader.setNavigationConfig(any())).thenAnswer((_) async {});
     when(() => reader.closePublication()).thenAnswer((_) async {});
 
     EnginePositionHint? savedHint;
@@ -701,7 +693,7 @@ void main() {
     );
 
     await vm.open('book.epub');
-    await vm.onViewportReady();
+    await _mountViewport(vm);
     vm.onLocatorChanged(
       const Locator(
         href: 'chapter.xhtml',
@@ -722,8 +714,9 @@ void main() {
   });
 
   test('restores the saved Locator when the fingerprint matches', () async {
-    final reader = _MockFlureadium();
+    final reader = _MockFlutterReadium();
     final config = _MockReaderConfig();
+    _stubAdvancedTypography(config);
     final theme = _MockPersistedSignal<ReaderTheme>();
     final fontSize = _MockPersistedSignal<double>();
     final padding = _MockPersistedSignal<double>();
@@ -758,11 +751,11 @@ void main() {
     when(
       () => reader.openPublication(any()),
     ).thenAnswer((_) async => publication);
-    when(() => reader.onReaderStatusChanged)
-        .thenAnswer((_) => const Stream.empty());
+    when(
+      () => reader.onReaderStatusChanged,
+    ).thenAnswer((_) => Stream.value(ReadiumReaderStatus.ready));
     when(() => reader.onErrorEvent).thenAnswer((_) => const Stream.empty());
     when(() => reader.setEPUBPreferences(any())).thenAnswer((_) async {});
-    when(() => reader.setNavigationConfig(any())).thenAnswer((_) async {});
     when(() => reader.closePublication()).thenAnswer((_) async {});
 
     final stored = EnginePositionHint(
@@ -791,82 +784,86 @@ void main() {
     expect(vm.initialLocator?.locations?.position, 42);
   });
 
-  test('discards the saved Locator when the fingerprint does not match', () async {
-    final reader = _MockFlureadium();
-    final config = _MockReaderConfig();
-    final theme = _MockPersistedSignal<ReaderTheme>();
-    final fontSize = _MockPersistedSignal<double>();
-    final padding = _MockPersistedSignal<double>();
-    final fontFamily = _MockPersistedSignal<String>();
-    final bgIndex = _MockPersistedSignal<int>();
-    final publication = Publication(
-      metadata: Metadata(
-        localizedTitle: LocalizedString.fromString('Test Book'),
-        identifier: 'epub-fingerprint-1',
-      ),
-      readingOrder: [
-        const Link(href: 'chapter.xhtml', type: 'application/xhtml+xml'),
-      ],
-      tableOfContents: [
-        const Link(
-          href: 'chapter.xhtml',
-          type: 'application/xhtml+xml',
-          title: 'Chapter 1',
+  test(
+    'discards the saved Locator when the fingerprint does not match',
+    () async {
+      final reader = _MockFlutterReadium();
+      final config = _MockReaderConfig();
+      _stubAdvancedTypography(config);
+      final theme = _MockPersistedSignal<ReaderTheme>();
+      final fontSize = _MockPersistedSignal<double>();
+      final padding = _MockPersistedSignal<double>();
+      final fontFamily = _MockPersistedSignal<String>();
+      final bgIndex = _MockPersistedSignal<int>();
+      final publication = Publication(
+        metadata: Metadata(
+          localizedTitle: LocalizedString.fromString('Test Book'),
+          identifier: 'epub-fingerprint-1',
         ),
-      ],
-    );
+        readingOrder: [
+          const Link(href: 'chapter.xhtml', type: 'application/xhtml+xml'),
+        ],
+        tableOfContents: [
+          const Link(
+            href: 'chapter.xhtml',
+            type: 'application/xhtml+xml',
+            title: 'Chapter 1',
+          ),
+        ],
+      );
 
-    when(() => config.theme).thenReturn(theme);
-    when(() => theme.value).thenReturn(ReaderTheme.light);
-    when(() => config.fontSize).thenReturn(fontSize);
-    when(() => fontSize.value).thenReturn(100);
-    when(() => config.padding).thenReturn(padding);
-    when(() => padding.value).thenReturn(20);
-    when(() => config.fontFamily).thenReturn(fontFamily);
-    when(() => fontFamily.value).thenReturn('System');
-    when(() => config.readerBgColorIndex).thenReturn(bgIndex);
-    when(() => bgIndex.value).thenReturn(0);
-    final fontWeight = _MockPersistedSignal<double>();
-    final readingMode = _MockPersistedSignal<ReadingMode>();
-    when(() => config.fontWeight).thenReturn(fontWeight);
-    when(() => fontWeight.value).thenReturn(400.0);
-    when(() => config.readingMode).thenReturn(readingMode);
-    when(() => readingMode.value).thenReturn(ReadingMode.pagination);
-    when(
-      () => reader.openPublication(any()),
-    ).thenAnswer((_) async => publication);
-    when(() => reader.onReaderStatusChanged)
-        .thenAnswer((_) => const Stream.empty());
-    when(() => reader.onErrorEvent).thenAnswer((_) => const Stream.empty());
-    when(() => reader.setEPUBPreferences(any())).thenAnswer((_) async {});
-    when(() => reader.setNavigationConfig(any())).thenAnswer((_) async {});
-    when(() => reader.closePublication()).thenAnswer((_) async {});
+      when(() => config.theme).thenReturn(theme);
+      when(() => theme.value).thenReturn(ReaderTheme.light);
+      when(() => config.fontSize).thenReturn(fontSize);
+      when(() => fontSize.value).thenReturn(100);
+      when(() => config.padding).thenReturn(padding);
+      when(() => padding.value).thenReturn(20);
+      when(() => config.fontFamily).thenReturn(fontFamily);
+      when(() => fontFamily.value).thenReturn('System');
+      when(() => config.readerBgColorIndex).thenReturn(bgIndex);
+      when(() => bgIndex.value).thenReturn(0);
+      final fontWeight = _MockPersistedSignal<double>();
+      final readingMode = _MockPersistedSignal<ReadingMode>();
+      when(() => config.fontWeight).thenReturn(fontWeight);
+      when(() => fontWeight.value).thenReturn(400.0);
+      when(() => config.readingMode).thenReturn(readingMode);
+      when(() => readingMode.value).thenReturn(ReadingMode.pagination);
+      when(
+        () => reader.openPublication(any()),
+      ).thenAnswer((_) async => publication);
+      when(
+        () => reader.onReaderStatusChanged,
+      ).thenAnswer((_) => Stream.value(ReadiumReaderStatus.ready));
+      when(() => reader.onErrorEvent).thenAnswer((_) => const Stream.empty());
+      when(() => reader.setEPUBPreferences(any())).thenAnswer((_) async {});
+      when(() => reader.closePublication()).thenAnswer((_) async {});
 
-    final stored = EnginePositionHint(
-      bookId: 'book-locator-stale',
-      engineKind: 'readium',
-      publicationFingerprint: 'old-fingerprint',
-      opaquePosition: jsonEncode(
-        const Locator(
-          href: 'stale-chapter.xhtml',
-          type: 'application/xhtml+xml',
-        ).toJson(),
-      ),
-      updatedAt: DateTime.now().toUtc(),
-    );
-    final vm = ReadiumViewModel(
-      config: config,
-      bookId: 'book-locator-stale',
-      reader: reader,
-      enginePositionLoader: ({required bookId}) async => stored,
-    );
+      final stored = EnginePositionHint(
+        bookId: 'book-locator-stale',
+        engineKind: 'readium',
+        publicationFingerprint: 'old-fingerprint',
+        opaquePosition: jsonEncode(
+          const Locator(
+            href: 'stale-chapter.xhtml',
+            type: 'application/xhtml+xml',
+          ).toJson(),
+        ),
+        updatedAt: DateTime.now().toUtc(),
+      );
+      final vm = ReadiumViewModel(
+        config: config,
+        bookId: 'book-locator-stale',
+        reader: reader,
+        enginePositionLoader: ({required bookId}) async => stored,
+      );
 
-    await vm.open('book.epub');
+      await vm.open('book.epub');
 
-    expect(
-      vm.initialLocator?.href,
-      'chapter.xhtml',
-      reason: '指纹不匹配时丢弃旧 Locator，退回目录首章',
-    );
-  });
+      expect(
+        vm.initialLocator?.href,
+        'chapter.xhtml',
+        reason: '指纹不匹配时丢弃旧 Locator，退回目录首章',
+      );
+    },
+  );
 }

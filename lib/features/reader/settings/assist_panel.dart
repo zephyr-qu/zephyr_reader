@@ -11,6 +11,7 @@ class AssistPanel extends StatelessWidget {
   final TtsSettingsViewModel ttsVm;
   final bool isTtsPlaying;
   final VoidCallback onTtsToggle;
+  final VoidCallback onPreferencesChanged;
 
   const AssistPanel({
     super.key,
@@ -18,6 +19,7 @@ class AssistPanel extends StatelessWidget {
     required this.ttsVm,
     required this.isTtsPlaying,
     required this.onTtsToggle,
+    required this.onPreferencesChanged,
   });
 
   @override
@@ -69,7 +71,10 @@ class AssistPanel extends StatelessWidget {
       max: 2.0,
       divisions: 15,
       display: '${ttsVm.speed.value.toStringAsFixed(1)}x',
-      onChanged: (v) => ttsVm.speed.value = v,
+      onChanged: (v) {
+        ttsVm.speed.value = v;
+        onPreferencesChanged();
+      },
       readerTheme: readerTheme,
     );
   }
@@ -96,7 +101,10 @@ class AssistPanel extends StatelessWidget {
           ),
           Switch(
             value: ttsVm.autoPage.value,
-            onChanged: (v) => ttsVm.autoPage.value = v,
+            onChanged: (v) {
+              ttsVm.autoPage.value = v;
+              onPreferencesChanged();
+            },
             activeThumbColor: readerTheme.accentColor,
           ),
         ],
@@ -126,7 +134,10 @@ class AssistPanel extends StatelessWidget {
           ),
           Switch(
             value: ttsVm.originalOnly.value,
-            onChanged: (v) => ttsVm.originalOnly.value = v,
+            onChanged: (v) {
+              ttsVm.originalOnly.value = v;
+              onPreferencesChanged();
+            },
             activeThumbColor: readerTheme.accentColor,
           ),
         ],

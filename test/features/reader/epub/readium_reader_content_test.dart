@@ -1,6 +1,9 @@
 import 'dart:async';
 
-import 'package:flureadium/flureadium.dart';
+// Readium test fixtures require non-const localized metadata constructors.
+// ignore_for_file: prefer_const_literals_to_create_immutables
+
+import 'package:flutter_readium/flutter_readium.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -112,9 +115,6 @@ void main() {
     );
     expect(viewport.publication, same(publication));
     expect(viewport.initialLocator, same(initialLocator));
-    expect(viewport.onReady, isNotNull);
-    expect(viewport.onLocatorChanged, isNotNull);
-    expect(viewport.onTap, isNotNull);
     expect(
       tester.getSize(find.byType(ReadiumReaderWidget)),
       tester.getSize(find.byType(ReadiumReaderContent)),
@@ -124,13 +124,19 @@ void main() {
       const Size(400, 800),
     );
 
-    viewport.onReady!();
-    viewport.onLocatorChanged!(initialLocator);
-    viewport.onTap!();
+    final outerGesture = tester.widget<GestureDetector>(
+      find
+          .ancestor(
+            of: find.byType(ReadiumReaderWidget),
+            matching: find.byType(GestureDetector),
+          )
+          .first,
+    );
+    expect(outerGesture.onTap, isNotNull);
+    outerGesture.onTap!();
     await tester.pump();
 
     verify(() => vm.onViewportReady()).called(1);
-    verify(() => vm.onLocatorChanged(initialLocator)).called(1);
     expect(viewportTapCount, 1);
 
     await tester.fling(
@@ -139,6 +145,7 @@ void main() {
       1000,
     );
     await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
 
     verify(() => vm.goRight()).called(1);
   });
@@ -177,18 +184,33 @@ void main() {
     );
     await tester.pump();
 
+    final horizontalGesture = tester.widget<GestureDetector>(
+      find
+          .ancestor(
+            of: find.byType(ReadiumReaderWidget),
+            matching: find.byType(GestureDetector),
+          )
+          .first,
+    );
+    expect(
+      horizontalGesture.onHorizontalDragStart,
+      isNotNull,
+      reason: '滚动模式应拦截横划，避免原生视口用横划切章',
+    );
+
     await tester.fling(
       find.byType(ReadiumReaderWidget),
       const Offset(-180, 0),
       1000,
     );
     await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
 
     verifyNever(() => vm.goRight());
     verifyNever(() => vm.goLeft());
   });
 
-  testWidgets('scroll mode forwards an upward boundary attempt', (
+  testWidgets('scroll mode fling does not trigger chapter navigation', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(400, 800));
@@ -206,7 +228,10 @@ void main() {
       return;
     });
     when(() => vm.onLocatorChanged(any())).thenReturn(null);
-    when(() => vm.advanceFromScrollBoundary()).thenAnswer((_) async {
+    when(() => vm.goLeft()).thenAnswer((_) async {
+      return;
+    });
+    when(() => vm.goRight()).thenAnswer((_) async {
       return;
     });
 
@@ -219,13 +244,16 @@ void main() {
     );
     await tester.pump();
 
+    // 章节内滚动交由原生 WebView；Flutter 层垂直滑动不得拦截成跳章。
     await tester.fling(
       find.byType(ReadiumReaderWidget),
       const Offset(0, -180),
       1000,
     );
     await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
 
-    verify(() => vm.advanceFromScrollBoundary()).called(1);
+    verifyNever(() => vm.goLeft());
+    verifyNever(() => vm.goRight());
   });
 }

@@ -2,7 +2,7 @@ use flutter_rust_bridge::frb;
 use sqlx::SqlitePool;
 
 use crate::common::AppError;
-use crate::domain::progress::models::{BookWithProgress, ReadingProgress};
+use crate::domain::progress::models::ReadingProgress;
 
 const SQL_UPSERT_PROGRESS: &str = "\
 INSERT INTO reading_progress (book_id, chapter_index, chunk_index, chapter_id, char_offset, progress, reading_time_seconds, last_read_at, is_completed) \
@@ -49,30 +49,5 @@ impl ProgressRepository {
             .fetch_optional(pool)
             .await?,
         )
-    }
-
-    pub async fn list_all_with_progress(
-        pool: &SqlitePool,
-    ) -> Result<Vec<BookWithProgress>, AppError> {
-        use crate::domain::progress::models::BookWithProgressRow;
-        let rows = sqlx::query_as::<_, BookWithProgressRow>(
-            "SELECT b.*, rp.chapter_index AS progress_chapter_index, \
-             rp.char_offset AS progress_char_offset, rp.progress AS progress_percent, \
-             rp.last_read_at AS progress_last_read_at, \
-             rp.is_completed AS progress_is_completed \
-             FROM books b LEFT JOIN reading_progress rp ON b.id = rp.book_id \
-             ORDER BY COALESCE(rp.last_read_at, b.created_at) DESC",
-        )
-        .fetch_all(pool)
-        .await?;
-        Ok(rows.into_iter().map(BookWithProgress::from).collect())
-    }
-
-    pub async fn clear_by_book(pool: &SqlitePool, book_id: &str) -> Result<(), AppError> {
-        sqlx::query("DELETE FROM reading_progress WHERE book_id = ?")
-            .bind(book_id)
-            .execute(pool)
-            .await?;
-        Ok(())
     }
 }

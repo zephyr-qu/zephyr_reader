@@ -70,9 +70,3 @@ pub async fn init_storage(data_dir: String) -> Result<(), AppError> {
     tracing::info!("init_storage complete: data_dir={:?}", dir);
     Ok(())
 }
-
-/// FRB 连接测试
-#[frb]
-pub fn test_connection() -> Result<String, AppError> {
-    Ok("Rust reader engine connected successfully".to_string())
-}

@@ -1,5 +1,7 @@
 # 阅读器排版引擎优化与功能评估
 
+> **已终止路线**：本文讨论 Rust/Flutter 自研文本引擎和 TXT 排版。当前 EPUB Readium MVP 不执行本文待办；如需恢复，必须重新更新边界、路线和 ADR。
+
 ## 背景
 
 Rust 侧 `text/` 模块经多轮重构后已拆除，功能迁移到 Flutter `reader_engine` 模块。本文档评估 README 中列出的但尚未完备的功能，以及 Flutter 侧分页/装箱管线的优化机会。

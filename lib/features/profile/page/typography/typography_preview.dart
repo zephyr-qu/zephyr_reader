@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/reading/config/reader_config.dart';
+import 'package:zephyr_reader/core/reading/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/core/theme/anim_tokens.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
@@ -42,6 +43,10 @@ class TypographyPreview extends HookWidget {
     final double margin = useSignalValue(config.padding.signal);
     final family = previewFontFamily(fontFamily);
     final weight = previewFontWeight(fontWeight);
+    final scale = (fontSize / ReaderTypographyDefaults.fontSize).clamp(
+      0.8,
+      2.0,
+    );
 
     return Container(
       padding: EdgeInsets.fromLTRB(margin, 24, margin, 24),
@@ -85,9 +90,11 @@ class TypographyPreview extends HookWidget {
               children: [
                 Text(
                   '春风又绿江南岸，明月何时照我还。',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontFamily: family,
-                    fontSize: fontSize * 1.05,
+                    fontSize: 18 * scale,
                     fontWeight: weight,
                     height: lineHeight,
                     letterSpacing: letterSpacing,
@@ -97,9 +104,11 @@ class TypographyPreview extends HookWidget {
                 SizedBox(height: paragraphSpacing),
                 Text(
                   'The spring wind has greened the southern shore again.',
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontFamily: family,
-                    fontSize: fontSize * 0.9,
+                    fontSize: 16 * scale,
                     fontWeight: weight,
                     height: lineHeight,
                     letterSpacing: letterSpacing,

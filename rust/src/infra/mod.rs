@@ -8,7 +8,6 @@ pub mod init;
 pub mod manager;
 
 pub use init::init_app;
-pub use init::test_connection;
 pub use manager::StorageManager;
 
 // ==================== 宏 ====================

@@ -5,7 +5,6 @@
 use chrono::{DateTime, Utc};
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 /// 词典词条
 ///
@@ -48,30 +47,6 @@ pub struct Dictionary {
     pub word_count: i64,
     pub added_at: DateTime<Utc>,
 }
-impl Dictionary {
-    pub fn new(
-        name: &str,
-        file_path: &str,
-        dict_type: &str,
-        lang_from: Option<String>,
-        lang_to: Option<String>,
-        is_enabled: bool,
-        word_count: i64,
-    ) -> Self {
-        Self {
-            id: Uuid::new_v4().to_string(),
-            name: name.to_string(),
-            file_path: file_path.to_string(),
-            dict_type: dict_type.to_string(),
-            lang_from,
-            lang_to,
-            is_enabled,
-            word_count,
-            added_at: Utc::now(),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

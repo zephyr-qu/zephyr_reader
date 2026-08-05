@@ -71,6 +71,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
                       ttsVm: ttsVm,
                       isTtsPlaying: isTtsPlaying,
                       onTtsToggle: onTtsToggle,
+                      onPreferencesChanged: onPreferencesChanged,
                     ),
                   },
                 ],

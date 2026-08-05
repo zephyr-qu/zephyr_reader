@@ -344,6 +344,48 @@ abstract class AppLocalizations {
   /// **'段间距'**
   String get paragraphSpacing;
 
+  /// No description provided for @paragraphIndent.
+  ///
+  /// In zh, this message translates to:
+  /// **'首行缩进'**
+  String get paragraphIndent;
+
+  /// No description provided for @textAlignment.
+  ///
+  /// In zh, this message translates to:
+  /// **'文本对齐'**
+  String get textAlignment;
+
+  /// No description provided for @textAlignAuto.
+  ///
+  /// In zh, this message translates to:
+  /// **'跟随原书'**
+  String get textAlignAuto;
+
+  /// No description provided for @textAlignLeft.
+  ///
+  /// In zh, this message translates to:
+  /// **'左对齐'**
+  String get textAlignLeft;
+
+  /// No description provided for @textAlignCenter.
+  ///
+  /// In zh, this message translates to:
+  /// **'居中'**
+  String get textAlignCenter;
+
+  /// No description provided for @textAlignRight.
+  ///
+  /// In zh, this message translates to:
+  /// **'右对齐'**
+  String get textAlignRight;
+
+  /// No description provided for @textAlignJustify.
+  ///
+  /// In zh, this message translates to:
+  /// **'两端对齐'**
+  String get textAlignJustify;
+
   /// No description provided for @pageMargin.
   ///
   /// In zh, this message translates to:

@@ -136,6 +136,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get paragraphSpacing => 'Paragraph Spacing';
 
   @override
+  String get paragraphIndent => 'Paragraph Indent';
+
+  @override
+  String get textAlignment => 'Text Alignment';
+
+  @override
+  String get textAlignAuto => 'Publisher Default';
+
+  @override
+  String get textAlignLeft => 'Left';
+
+  @override
+  String get textAlignCenter => 'Center';
+
+  @override
+  String get textAlignRight => 'Right';
+
+  @override
+  String get textAlignJustify => 'Justified';
+
+  @override
   String get pageMargin => 'Page Margin';
 
   @override

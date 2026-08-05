@@ -7,7 +7,7 @@ import 'package:zephyr_reader/features/profile/page/tts/playback_section.dart';
 import 'package:zephyr_reader/features/profile/page/tts/behavior_section.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
-/// TTS settings page (MVP — Readium TTS integration pending Phase 6).
+/// TTS settings page.
 class TtsSettingsPage extends HookWidget {
   const TtsSettingsPage({super.key});
 

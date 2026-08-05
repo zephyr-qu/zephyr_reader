@@ -133,8 +133,9 @@ async fn test_book_list_all() {
             .expect("创建失败");
     }
 
-    // 获取所有书籍
-    let result = rust_lib_zephyr_reader::api::book::list_books().await;
+    // 通过当前书架主路径获取所有书籍
+    let result =
+        rust_lib_zephyr_reader::api::book::list_bookshelf_books(None, None, None, None).await;
     assert!(result.is_ok(), "获取书籍列表应该成功");
 
     let books = result.unwrap();
@@ -236,16 +237,15 @@ async fn test_bookmark_create_and_get() {
 
     assert!(result.is_ok(), "创建书签应该成功");
     let bookmark = result.unwrap();
-    let bookmark_id = bookmark.id.clone();
-
     assert_eq!(bookmark.book_id, book_id);
     assert_eq!(bookmark.title, "第一章标记");
     assert_eq!(bookmark.char_offset, 100);
 
-    // 获取书签
-    let result = rust_lib_zephyr_reader::api::bookmark::get_bookmark(bookmark_id.clone()).await;
-    assert!(result.is_ok());
-    assert!(result.unwrap().is_some(), "应该能找到书签");
+    // 通过当前书签列表主路径验证持久化
+    let bookmarks = rust_lib_zephyr_reader::api::bookmark::list_bookmarks_by_book(book_id)
+        .await
+        .expect("获取书签列表失败");
+    assert!(bookmarks.iter().any(|entry| entry.id == bookmark.id));
 
     println!("✓ 书签创建和获取测试通过");
 }
@@ -319,10 +319,14 @@ async fn test_bookmark_delete() {
     let result = rust_lib_zephyr_reader::api::bookmark::delete_bookmark(bookmark_id.clone()).await;
     assert!(result.is_ok(), "删除书签应该成功");
 
-    // 验证删除
-    let result = rust_lib_zephyr_reader::api::bookmark::get_bookmark(bookmark_id).await;
-    assert!(result.is_ok());
-    assert!(result.unwrap().is_none(), "删除后应该找不到书签");
+    // 通过当前书签列表主路径验证删除
+    let bookmarks = rust_lib_zephyr_reader::api::bookmark::list_bookmarks_by_book(book_id)
+        .await
+        .expect("获取书签列表失败");
+    assert!(
+        bookmarks.iter().all(|entry| entry.id != bookmark_id),
+        "删除后应该找不到书签"
+    );
 
     println!("✓ 书签删除测试通过");
 }
@@ -406,5 +410,4 @@ async fn test_book_and_bookmark_relation() {
 
     println!("✓ 书籍-书签关联删除测试通过");
 }
-
 

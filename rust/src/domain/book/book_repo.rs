@@ -4,7 +4,7 @@ use flutter_rust_bridge::frb;
 //
 // 公有类型/函数：
 //   - BookRepository — 书籍仓储结构体
-//   - list() / list_bookshelf() / list_titles() — 列表查询
+//   - list_bookshelf() / list_titles() — 列表查询
 //   - find_by_id() / find_by_file_path() / search() — 单书查询
 //   - save() / save_metadata() / delete_cascade() — 写入操作
 //   - count() / update_status() / update_pin() — 统计与状态更新
@@ -12,7 +12,7 @@ use flutter_rust_bridge::frb;
 
 use crate::domain::AppError;
 use crate::domain::book::{Book, BookStatus, BookTitle, BookshelfBook};
-use sqlx::{QueryBuilder, SqlitePool};
+use sqlx::SqlitePool;
 
 /// 书籍热字段 UPSERT
 const SQL_UPSERT_BOOK: &str = "\
@@ -92,22 +92,6 @@ impl BookRepository {
         tx.commit().await?;
         Ok(())
     }
-    /// 获取所有书籍列表（按添加时间倒序）
-    pub async fn list(pool: &SqlitePool) -> Result<Vec<Book>, AppError> {
-        Ok(
-            sqlx::query_as::<_, Book>("SELECT * FROM books ORDER BY added_at DESC")
-                .fetch_all(pool)
-                .await?,
-        )
-    }
-
-    /// 获取所有书籍列表（无排序，供 progress_repo 等内部使用）
-    pub async fn list_progress(pool: &SqlitePool) -> Result<Vec<Book>, AppError> {
-        Ok(sqlx::query_as::<_, Book>("SELECT * FROM books")
-            .fetch_all(pool)
-            .await?)
-    }
-
     /// 书架书籍列表（含阅读进度，单次 JOIN 查询）
     pub async fn list_bookshelf(
         pool: &SqlitePool,
@@ -266,19 +250,6 @@ impl BookRepository {
         .await?)
     }
 
-    /// 按阅读状态筛选
-    pub async fn list_by_status(
-        pool: &SqlitePool,
-        status: BookStatus,
-    ) -> Result<Vec<Book>, AppError> {
-        Ok(sqlx::query_as::<_, Book>(
-            "SELECT * FROM books WHERE status = ? ORDER BY last_opened_at DESC NULLS LAST",
-        )
-        .bind(status.as_ref())
-        .fetch_all(pool)
-        .await?)
-    }
-
     /// 按阅读状态筛选（书架版，含进度）
     pub async fn list_bookshelf_by_status(
         pool: &SqlitePool,
@@ -296,15 +267,6 @@ impl BookRepository {
         .await?)
     }
 
-    /// 获取所有置顶书籍
-    pub async fn list_pinned(pool: &SqlitePool) -> Result<Vec<Book>, AppError> {
-        Ok(sqlx::query_as::<_, Book>(
-            "SELECT * FROM books WHERE is_pinned = 1 ORDER BY last_opened_at DESC NULLS LAST",
-        )
-        .fetch_all(pool)
-        .await?)
-    }
-
     /// 获取最近阅读的书籍（关联 reading_progress 表）
     pub async fn list_recent(pool: &SqlitePool, limit: i64) -> Result<Vec<Book>, AppError> {
         Ok(sqlx::query_as::<_, Book>(
@@ -316,41 +278,6 @@ impl BookRepository {
         .bind(limit)
         .fetch_all(pool)
         .await?)
-    }
-
-    /// 分页列表（支持动态排序）
-    pub async fn list_paginated(
-        pool: &SqlitePool,
-        limit: i64,
-        offset: i64,
-        sort_by: &str,
-        sort_order: &str,
-    ) -> Result<Vec<Book>, AppError> {
-        let mut builder = QueryBuilder::<sqlx::Sqlite>::new("SELECT * FROM books ORDER BY ");
-
-        // 白名单校验
-        let sort_column = match sort_by {
-            "title" => "title",
-            "added_at" => "added_at",
-            "last_opened_at" => "last_opened_at",
-            "file_size" => "file_size",
-            _ => "added_at",
-        };
-        builder.push(sort_column);
-        builder.push(" ");
-
-        let order = if sort_order.eq_ignore_ascii_case("asc") {
-            "ASC"
-        } else {
-            "DESC"
-        };
-        builder.push(order);
-        builder.push(" LIMIT ");
-        builder.push_bind(limit);
-        builder.push(" OFFSET ");
-        builder.push_bind(offset);
-
-        Ok(builder.build_query_as::<Book>().fetch_all(pool).await?)
     }
 
     /// 更新阅读状态
@@ -395,20 +322,6 @@ impl BookRepository {
             .await?)
     }
 
-    /// 更新书籍标题
-    pub async fn update_title(
-        pool: &SqlitePool,
-        book_id: &str,
-        title: &str,
-    ) -> Result<(), AppError> {
-        sqlx::query("UPDATE books SET title = ? WHERE id = ?")
-            .bind(title)
-            .bind(book_id)
-            .execute(pool)
-            .await?;
-        Ok(())
-    }
-
     /// 查找书籍封面路径
     pub async fn find_cover_path(
         pool: &SqlitePool,
@@ -433,43 +346,6 @@ impl BookRepository {
             .bind(book_id)
             .execute(pool)
             .await?;
-        Ok(())
-    }
-
-    /// 批量更新书籍元数据（仅更新 Some 字段）
-    pub async fn update_metadata(
-        pool: &SqlitePool,
-        book_id: &str,
-        title: Option<&str>,
-        author: Option<&str>,
-        description: Option<&str>,
-    ) -> Result<(), AppError> {
-        let mut tx = pool.begin().await?;
-        if let Some(v) = title {
-            sqlx::query("UPDATE books SET title = ?1 WHERE id = ?2")
-                .bind(v)
-                .bind(book_id)
-                .execute(&mut *tx)
-                .await?;
-        }
-        if let Some(v) = author {
-            sqlx::query("UPDATE books SET author = ?1 WHERE id = ?2")
-                .bind(v)
-                .bind(book_id)
-                .execute(&mut *tx)
-                .await?;
-        }
-        if let Some(v) = description {
-            sqlx::query(
-                "INSERT INTO book_metadata (book_id, description) VALUES (?1, ?2) \
-                 ON CONFLICT(book_id) DO UPDATE SET description = excluded.description",
-            )
-            .bind(book_id)
-            .bind(v)
-            .execute(&mut *tx)
-            .await?;
-        }
-        tx.commit().await?;
         Ok(())
     }
 }

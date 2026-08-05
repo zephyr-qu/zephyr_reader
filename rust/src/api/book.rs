@@ -35,13 +35,6 @@ pub async fn get_book_detail(book_id: String) -> Result<BookDetail, AppError> {
     Ok(service::get_book_detail(&book_id).await?)
 }
 
-/// 获取所有书籍列表
-#[frb]
-pub async fn list_books() -> Result<Vec<Book>, AppError> {
-    let pool = storage_pool()?;
-    BookRepository::list(&pool).await
-}
-
 /// 获取书架展示用的书籍列表（含阅读进度），支持分类/状态筛选。
 #[frb]
 pub async fn list_bookshelf_books(
@@ -119,9 +112,6 @@ pub async fn get_book(book_id: String) -> Result<Option<Book>, AppError> {
     BookRepository::find_by_id(&pool, &book_id).await
 }
 
-/// 获取置顶书籍列表
-#[frb]
-
 /// 获取最近阅读的书籍
 #[frb]
 pub async fn list_recently_opened_books(limit: i32) -> Result<Vec<Book>, AppError> {
@@ -129,12 +119,6 @@ pub async fn list_recently_opened_books(limit: i32) -> Result<Vec<Book>, AppErro
     let pool = storage_pool()?;
     BookRepository::list_recent(&pool, limit as i64).await
 }
-
-/// 分页获取书籍列表
-#[frb]
-
-/// 获取书籍总数
-#[frb]
 
 /// 更新书籍状态
 #[frb]

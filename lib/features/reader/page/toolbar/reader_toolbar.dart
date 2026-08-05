@@ -2,15 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 
-/// 阅读器顶部工具栏：返回、书名、书签和阅读进度。
+/// 阅读器顶部工具栏：返回、书名和阅读进度。
 class ReaderToolbar extends StatelessWidget {
   final String title;
   final String progress;
   final ReaderThemeExtension readerTheme;
   final VoidCallback onClose;
-  final bool isBookmarked;
-  final VoidCallback? onToggleBookmark;
-  final VoidCallback? onShowBookmarkList;
 
   const ReaderToolbar({
     super.key,
@@ -18,9 +15,6 @@ class ReaderToolbar extends StatelessWidget {
     required this.progress,
     required this.readerTheme,
     required this.onClose,
-    this.isBookmarked = false,
-    this.onToggleBookmark,
-    this.onShowBookmarkList,
   });
 
   @override
@@ -74,27 +68,6 @@ class ReaderToolbar extends StatelessWidget {
                   ],
                 ),
               ),
-              if (onToggleBookmark != null)
-                GestureDetector(
-                  onLongPress: onShowBookmarkList,
-                  child: IconButton(
-                    tooltip: isBookmarked ? '移除书签' : '添加书签',
-                    constraints: const BoxConstraints(
-                      minWidth: 48,
-                      minHeight: 48,
-                    ),
-                    icon: Icon(
-                      isBookmarked
-                          ? PhosphorIconsFill.bookmarkSimple
-                          : PhosphorIconsLight.bookmarkSimple,
-                      size: 20,
-                      color: isBookmarked
-                          ? readerTheme.accentColor
-                          : readerTheme.textColor,
-                    ),
-                    onPressed: onToggleBookmark,
-                  ),
-                ),
               const SizedBox(width: 4),
             ],
           ),

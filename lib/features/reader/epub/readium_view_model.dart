@@ -1,14 +1,17 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flureadium/flureadium.dart';
+import 'package:flutter_readium/flutter_readium.dart';
 import 'package:flutter/material.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/reading/config/reader_config.dart';
 import 'package:zephyr_reader/core/reading/config/reader_typography_defaults.dart';
+import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart';
+import 'package:zephyr_reader/features/reader/epub/readium_bookmark_controller.dart';
+import 'package:zephyr_reader/features/reader/epub/readium_session_tracker.dart';
 import 'package:zephyr_reader/src/rust/api/book.dart' as book_api;
-import 'package:zephyr_reader/src/rust/api/bookmark.dart' as bookmark_api;
-import 'package:zephyr_reader/src/rust/api/engine_position.dart' as engine_position_api;
+import 'package:zephyr_reader/src/rust/api/engine_position.dart'
+    as engine_position_api;
 import 'package:zephyr_reader/src/rust/api/progress.dart' as progress_api;
 import 'package:zephyr_reader/src/rust/api/session.dart' as session_api;
 import 'package:zephyr_reader/src/rust/domain/book/models.dart';
@@ -16,36 +19,30 @@ import 'package:zephyr_reader/src/rust/domain/bookmark/models.dart';
 import 'package:zephyr_reader/src/rust/domain/engine_positions/models.dart';
 import 'package:zephyr_reader/src/rust/domain/progress/models.dart';
 
-/// 会话记录回调（默认走 FRB `session_api.createSession`，测试可注入）。
-typedef SessionRecorder = Future<void> Function({
-  required String bookId,
-  required int chapterIndex,
-  required int startCharOffset,
-  required int endCharOffset,
-  required int startedAt,
-});
-
 Future<void> _defaultPersistProgress(ReadingProgress progress) =>
     progress_api.upsertProgress(progress: progress);
 
 Future<void> _defaultSaveEnginePosition({required EnginePositionHint hint}) =>
     engine_position_api.saveEnginePosition(hint: hint);
 
-Future<EnginePositionHint?> _defaultLoadEnginePosition({required String bookId}) =>
-    engine_position_api.getEnginePosition(bookId: bookId);
+Future<EnginePositionHint?> _defaultLoadEnginePosition({
+  required String bookId,
+}) => engine_position_api.getEnginePosition(bookId: bookId);
 
 ///
-/// Wraps [Flureadium] directly, exposes reading state via signals.
+/// Wraps [FlutterReadium] directly, exposes reading state via signals.
 class ReadiumViewModel {
-  final Flureadium reader;
+  final FlutterReadium reader;
   final ReaderConfig config;
+  final TtsSettingsViewModel? ttsSettings;
   final String bookId;
   final int initialChapterIndex;
   final Future<void> Function(ReadingProgress progress) persistProgress;
   final SessionRecorder recordSession;
-  final Future<void> Function({required EnginePositionHint hint}) saveEnginePosition;
+  final Future<void> Function({required EnginePositionHint hint})
+  saveEnginePosition;
   final Future<EnginePositionHint?> Function({required String bookId})
-      loadEnginePosition;
+  loadEnginePosition;
   Timer? _saveTimer;
   Future<void>? _closeFuture;
   bool _viewportReady = false;
@@ -57,10 +54,6 @@ class ReadiumViewModel {
   int _totalChars = 0;
   int _accumulatedReadingSeconds = 0;
   DateTime _lastReadingTick = DateTime.now();
-  DateTime? _sessionStartedAt;
-  int? _sessionChapterIndex;
-  int _sessionStartOffset = 0;
-  int _sessionLastOffset = 0;
   String _publicationFingerprint = '';
   bool _lastIsCompleted = false;
 
@@ -83,25 +76,43 @@ class ReadiumViewModel {
   // ==================== Subscriptions ====================
 
   StreamSubscription<ReadiumReaderStatus>? _statusSub;
+  StreamSubscription<Locator>? _locatorSub;
   StreamSubscription<ReadiumError>? _errorSub;
+  late final ReadiumBookmarkController _bookmarkController;
+  late final ReadiumSessionTracker _sessionTracker;
 
   ReadiumViewModel({
     required this.config,
     required this.bookId,
+    this.ttsSettings,
     this.initialChapterIndex = 0,
-    Flureadium? reader,
+    FlutterReadium? reader,
     Future<void> Function(ReadingProgress progress)? persistProgress,
     SessionRecorder? sessionRecorder,
-    Future<void> Function({required EnginePositionHint hint})? enginePositionSaver,
+    Future<void> Function({required EnginePositionHint hint})?
+    enginePositionSaver,
     Future<EnginePositionHint?> Function({required String bookId})?
-        enginePositionLoader,
-  })  : reader = reader ?? Flureadium(),
-        persistProgress = persistProgress ?? _defaultPersistProgress,
-        recordSession = sessionRecorder ?? session_api.createSession,
-        saveEnginePosition =
-            enginePositionSaver ?? _defaultSaveEnginePosition,
-        loadEnginePosition =
-            enginePositionLoader ?? _defaultLoadEnginePosition;
+    enginePositionLoader,
+  }) : reader = reader ?? FlutterReadium(),
+       persistProgress = persistProgress ?? _defaultPersistProgress,
+       recordSession = sessionRecorder ?? session_api.createSession,
+       saveEnginePosition = enginePositionSaver ?? _defaultSaveEnginePosition,
+       loadEnginePosition = enginePositionLoader ?? _defaultLoadEnginePosition {
+    _bookmarkController = ReadiumBookmarkController(
+      bookId: bookId,
+      onError: (e) => error.value = e.toString(),
+      bookmarks: bookmarks,
+      isBookmarked: isBookmarked,
+    );
+    _sessionTracker = ReadiumSessionTracker(
+      bookId: bookId,
+      recordSession: recordSession,
+      chapterIndexForHref: _chapterIndexForHref,
+      charOffsetFor: _charOffsetFor,
+      isReady: () => _viewportReady,
+      isClosing: () => _closing,
+    );
+  }
 
   /// Open an EPUB file.
   Future<Publication> open(String path) async {
@@ -120,12 +131,15 @@ class ReadiumViewModel {
       _closing = false;
       _navigationInProgress = false;
       readingMode.value = config.readingMode.value;
-      _sessionStartedAt = null;
-      _sessionChapterIndex = null;
-      _sessionStartOffset = 0;
-      _sessionLastOffset = 0;
+      _sessionTracker.reset();
       _accumulatedReadingSeconds = 0;
       _lastReadingTick = DateTime.now();
+
+      // ADR-021 修订：预置默认偏好，让原生 WebView 首次创建即处于正确布局
+      // （scroll 或分页），消除"先分页后热切 scroll"的时序竞争。
+      reader.setDefaultPreferences(
+        EPUBPreferences(scroll: readingMode.value == ReadingMode.scroll),
+      );
 
       final pub = await reader.openPublication(uriPath);
       if (generation != _openGeneration) {
@@ -134,7 +148,7 @@ class ReadiumViewModel {
       }
       _publication = pub;
       _publicationFingerprint = pub.metadata.identifier ?? '';
-      final links = flattenToc(pub.tableOfContents);
+      final links = pub.tocFlattened;
       await _loadBookMetadata();
       unawaited(_touchBook());
       _initialLocator = await _loadSavedPosition();
@@ -169,14 +183,25 @@ class ReadiumViewModel {
   /// Position restored when constructing the native viewport.
   Locator? get initialLocator => _initialLocator;
 
-  /// Completes the open sequence after the native platform view is ready.
+  /// Progress within the currently rendered EPUB resource.
+  double? get currentResourceProgression =>
+      _currentLocator?.locations?.progression;
+
+  /// Subscribes to the native reader lifecycle after the platform widget is
+  /// mounted. The platform emits the first ready status once its channel is
+  /// usable, so preferences are applied only from that status callback.
   Future<void> onViewportReady() async {
     if (_publication == null || _viewportReady || _closing) return;
 
     await _statusSub?.cancel();
     _statusSub = reader.onReaderStatusChanged.listen((s) {
-      if (_viewportReady && !_closing) status.value = s.name;
+      if (_closing) return;
+      status.value = s.name;
+      if (s.isReady) unawaited(_markViewportReady());
     });
+
+    await _locatorSub?.cancel();
+    _locatorSub = reader.onTextLocatorChanged.listen(onLocatorChanged);
 
     await _errorSub?.cancel();
     _errorSub = reader.onErrorEvent.listen((e) {
@@ -184,14 +209,11 @@ class ReadiumViewModel {
       error.value = e.message;
       status.value = 'error';
     });
+  }
 
+  Future<void> _markViewportReady() async {
+    if (_viewportReady || _closing || _publication == null) return;
     try {
-      await reader.setNavigationConfig(
-        ReaderNavigationConfig(
-          enableEdgeTapNavigation: true,
-          enableSwipeNavigation: false,
-        ),
-      );
       await _applyPreferences();
       if (_closing || _publication == null) return;
       _viewportReady = true;
@@ -210,9 +232,9 @@ class ReadiumViewModel {
     if (locator.href.isNotEmpty) {
       currentChapterHref.value = locator.href;
     }
-    _trackSession(locator);
+    _sessionTracker.track(locator);
     _scheduleSave();
-    _updateBookmarkState();
+    _bookmarkController.updateForLocator(locator);
   }
 
   /// Navigate to a TOC link.
@@ -235,9 +257,10 @@ class ReadiumViewModel {
   Future<void> flush() async {
     if (_closing || !_viewportReady) return;
     _saveTimer?.cancel();
-    await _finalizeSession();
+    await _sessionTracker.finalize();
     await _savePositionNow();
   }
+
   Future<void> _close() async {
     _closing = true;
     _openGeneration += 1;
@@ -245,10 +268,12 @@ class ReadiumViewModel {
     _viewportReady = false;
     _saveTimer?.cancel();
     try {
-      await _finalizeSession();
+      await _sessionTracker.finalize();
       await _savePositionNow();
       await _statusSub?.cancel();
       _statusSub = null;
+      await _locatorSub?.cancel();
+      _locatorSub = null;
       await _errorSub?.cancel();
       _errorSub = null;
       if (_ttsEnabled) await stopTts();
@@ -264,48 +289,42 @@ class ReadiumViewModel {
 
   // ==================== Navigation ====================
 
-  Future<void> goLeft() => _navigatePage(reader.goLeft);
+  Future<void> goLeft() => _runNavigation(reader.goBackward);
 
-  Future<void> goRight() => _navigatePage(reader.goRight);
+  Future<void> goRight() => _runNavigation(reader.goForward);
 
   /// Skip to the previous reading-order resource (previous chapter).
   Future<void> skipToPrevious() async {
     if (!_viewportReady || _closing || _navigationInProgress) return;
-    _navigationInProgress = true;
-    try {
-      await reader.skipToPrevious();
-    } finally {
-      _navigationInProgress = false;
-    }
+    final publication = _publication;
+    final locator = _currentLocator;
+    if (publication == null || locator == null) return;
+
+    final currentPath = _hrefPath(locator.href);
+    final currentIndex = publication.readingOrder.indexWhere(
+      (link) => _hrefPath(link.href) == currentPath,
+    );
+    if (currentIndex <= 0) return;
+
+    final target = publication.locatorFromLink(
+      publication.readingOrder[currentIndex - 1],
+    );
+    if (target == null) return;
+
+    await _runNavigation(() => reader.goToLocator(target));
   }
 
-  /// Continue into the next reading-order resource after an upward scroll
-  /// attempt at the end of the current resource.
-  Future<void> advanceFromScrollBoundary() async {
-    if (readingMode.value != ReadingMode.scroll ||
-        !_viewportReady ||
-        _closing ||
-        _navigationInProgress) {
-      return;
-    }
-
-    final resourceProgression = _currentLocator?.locations?.progression;
-    if (resourceProgression == null || resourceProgression < 0.99) return;
-
-    _navigationInProgress = true;
-    try {
-      await reader.skipToNext();
-    } finally {
-      _navigationInProgress = false;
-    }
+  static String _hrefPath(String href) {
+    final path = Uri.tryParse(href)?.path ?? href;
+    return path.startsWith('/') ? path.substring(1) : path;
   }
 
-  Future<void> _navigatePage(Future<void> Function() pageNavigation) async {
+  Future<void> _runNavigation(Future<void> Function() navigation) async {
     if (!_viewportReady || _closing || _navigationInProgress) return;
 
     _navigationInProgress = true;
     try {
-      await pageNavigation();
+      await navigation();
     } finally {
       _navigationInProgress = false;
     }
@@ -333,7 +352,10 @@ class ReadiumViewModel {
     // Background from preset in light theme, otherwise theme-derived.
     final Color bg;
     if (theme == ReaderTheme.light) {
-      final idx = config.readerBgColorIndex.value.clamp(0, ReaderBgColors.presets.length - 1);
+      final idx = config.readerBgColorIndex.value.clamp(
+        0,
+        ReaderBgColors.presets.length - 1,
+      );
       bg = ReaderBgColors.presets[idx];
     } else {
       switch (theme) {
@@ -357,13 +379,24 @@ class ReadiumViewModel {
     final fontFamily = config.fontFamily.value;
     final prefs = EPUBPreferences(
       fontFamily: fontFamily,
-      // Migrate old built-in dp values (< 50) to Readium percentage scale (80–200).
+      // Migrate old built-in dp values (< 50) to Readium's ratio scale.
       fontSize: (() {
         final v = config.fontSize.value.round();
-        return v < 50 ? 100 : v;
+        return v < 50 ? 1.0 : v / 100.0;
       })(),
       fontWeight: config.fontWeight.value,
-      verticalScroll: readingMode.value == ReadingMode.scroll,
+      lineHeight: config.lineHeight.value,
+      letterSpacing: config.letterSpacing.value,
+      paragraphSpacing: config.paragraphSpacing.value,
+      paragraphIndent: config.paragraphIndent.value,
+      textAlign: switch (config.textAlign.value) {
+        ReaderTextAlign.auto => null,
+        ReaderTextAlign.left => TextAlign.left,
+        ReaderTextAlign.center => TextAlign.center,
+        ReaderTextAlign.right => TextAlign.right,
+        ReaderTextAlign.justify => TextAlign.justify,
+      },
+      scroll: readingMode.value == ReadingMode.scroll,
       backgroundColor: bg,
       textColor: text,
       pageMargins:
@@ -382,7 +415,7 @@ class ReadiumViewModel {
     if (!_viewportReady) return;
     try {
       if (!_ttsEnabled) {
-        await reader.ttsEnable(null);
+        await reader.ttsEnable(ttsSettings?.toReadiumPreferences());
         _ttsEnabled = true;
         isTtsPlaying.value = true;
       } else if (isTtsPlaying.value) {
@@ -392,6 +425,16 @@ class ReadiumViewModel {
         await reader.play(null);
         isTtsPlaying.value = true;
       }
+    } catch (e) {
+      error.value = e.toString();
+    }
+  }
+
+  /// Applies the currently persisted TTS preferences without restarting TTS.
+  Future<void> applyTtsPreferences() async {
+    if (!_viewportReady || !_ttsEnabled || ttsSettings == null) return;
+    try {
+      await reader.ttsSetPreferences(ttsSettings!.toReadiumPreferences());
     } catch (e) {
       error.value = e.toString();
     }
@@ -507,6 +550,7 @@ class ReadiumViewModel {
       _lastReadingTick = now;
     }
   }
+
   Future<Locator?> _loadSavedPosition() async {
     try {
       final hint = await loadEnginePosition(bookId: bookId);
@@ -530,78 +574,30 @@ class ReadiumViewModel {
   Future<void> addBookmark() async {
     final locator = _currentLocator;
     if (locator == null || _closing) return;
-    final title = _tocTitleForHref(locator.href);
-    try {
-      final bookmark = await bookmark_api.createBookmark(
-        bookId: bookId,
-        chapterIndex: _chapterIndexForHref(locator.href),
-        charOffset: _charOffsetFor(locator),
-        title: title,
-        locatorJson: jsonEncode(locator.toJson()),
-      );
-      bookmarks.value = [...bookmarks.value, bookmark];
-      _updateBookmarkState();
-    } catch (e) {
-      error.value = e.toString();
-    }
+    await _bookmarkController.add(
+      locator: locator,
+      chapterIndex: _chapterIndexForHref(locator.href),
+      charOffset: _charOffsetFor(locator),
+      title: _tocTitleForHref(locator.href),
+    );
   }
 
   Future<void> removeBookmark() async {
     final locator = _currentLocator;
     if (locator == null || _closing) return;
-    final key = jsonEncode(locator.toJson());
-    final match = bookmarks.value.where((b) => b.locatorJson == key);
-    if (match.isEmpty) return;
-    try {
-      await bookmark_api.deleteBookmark(bookmarkId: match.first.id);
-      bookmarks.value =
-          bookmarks.value.where((b) => b.locatorJson != key).toList();
-      _updateBookmarkState();
-    } catch (e) {
-      error.value = e.toString();
-    }
+    await _bookmarkController.removeCurrent(locator);
   }
 
   Future<void> goToBookmark(Bookmark entry) async {
-    final locatorJson = entry.locatorJson;
-    if (locatorJson == null) return;
-    try {
-      final map = jsonDecode(locatorJson) as Map<String, dynamic>;
-      final locator = Locator.fromJson(map);
-      if (locator != null) await reader.goToLocator(locator);
-    } catch (e) {
-      error.value = e.toString();
-    }
+    await _bookmarkController.goTo(entry, navigate: reader.goToLocator);
   }
 
   Future<void> deleteBookmarkByEntry(Bookmark entry) async {
-    try {
-      await bookmark_api.deleteBookmark(bookmarkId: entry.id);
-      bookmarks.value =
-          bookmarks.value.where((b) => b.id != entry.id).toList();
-      _updateBookmarkState();
-    } catch (e) {
-      error.value = e.toString();
-    }
-  }
-
-  bool get isCurrentLocatorBookmarked {
-    final locator = _currentLocator;
-    if (locator == null) return false;
-    final key = jsonEncode(locator.toJson());
-    return bookmarks.value.any((b) => b.locatorJson == key);
-  }
-
-  void _updateBookmarkState() {
-    isBookmarked.value = isCurrentLocatorBookmarked;
+    await _bookmarkController.delete(entry);
   }
 
   Future<void> _loadBookmarks() async {
-    try {
-      final list = await bookmark_api.listBookmarksByBook(bookId: bookId);
-      bookmarks.value = list;
-      _updateBookmarkState();
-    } catch (_) {}
+    await _bookmarkController.load();
   }
 
   String _tocTitleForHref(String href) {
@@ -611,66 +607,16 @@ class ReadiumViewModel {
     return '';
   }
 
-  // ==================== Reading session tracking ====================
-
-  /// 按章节分段记录阅读会话：进入章节时开启，章节切换/关闭时结束。
-  void _trackSession(Locator locator) {
-    if (!_viewportReady || _closing) return;
-    final chapterIndex = _chapterIndexForHref(locator.href);
-    final offset = _charOffsetFor(locator);
-    if (_sessionStartedAt == null || _sessionChapterIndex == null) {
-      _sessionStartedAt = DateTime.now();
-      _sessionChapterIndex = chapterIndex;
-      _sessionStartOffset = offset;
-      _sessionLastOffset = offset;
-    } else if (chapterIndex != _sessionChapterIndex) {
-      unawaited(_finalizeSession());
-      _sessionStartedAt = DateTime.now();
-      _sessionChapterIndex = chapterIndex;
-      _sessionStartOffset = offset;
-      _sessionLastOffset = offset;
-    } else if (offset > _sessionLastOffset) {
-      _sessionLastOffset = offset;
-    }
-  }
-
-  /// 结束当前章节会话并写入 Rust `reading_sessions`（尽力而为，失败静默）。
-  Future<void> _finalizeSession() async {
-    final startedAt = _sessionStartedAt;
-    final chapterIndex = _sessionChapterIndex;
-    if (startedAt == null || chapterIndex == null) return;
-    _sessionStartedAt = null;
-    _sessionChapterIndex = null;
-    final startOffset = _sessionStartOffset;
-    final endOffset = _sessionLastOffset;
-    try {
-      await recordSession(
-        bookId: bookId,
-        chapterIndex: chapterIndex,
-        startCharOffset: startOffset,
-        endCharOffset: endOffset,
-        startedAt: startedAt.millisecondsSinceEpoch ~/ 1000,
-      );
-    } catch (_) {
-      // 静默失败：会话记录是尽力而为，不中断阅读流程。
-    }
-  }
-
   /// href → 扁平目录索引（Readium 语义：flattenToc 下标）。
   int _chapterIndexForHref(String href) {
-    if (href.isEmpty) return _sessionChapterIndex ?? 0;
+    if (href.isEmpty) return _sessionTracker.currentChapterIndex ?? 0;
     final path = _hrefPath(href);
     for (var i = 0; i < tocLinks.value.length; i++) {
       final linkHref = tocLinks.value[i].href;
       if (_hrefPath(linkHref) == path) return i;
     }
     // 资源不在目录中（如附录）：沿用当前会话章节，避免误拆会话。
-    return _sessionChapterIndex ?? 0;
-  }
-
-  static String _hrefPath(String href) {
-    final uri = Uri.tryParse(href);
-    return uri?.path ?? href;
+    return _sessionTracker.currentChapterIndex ?? 0;
   }
 
   /// Locator → 逻辑字符偏移。

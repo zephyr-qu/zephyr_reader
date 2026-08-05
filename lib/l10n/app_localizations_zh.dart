@@ -136,6 +136,27 @@ class AppLocalizationsZh extends AppLocalizations {
   String get paragraphSpacing => '段间距';
 
   @override
+  String get paragraphIndent => '首行缩进';
+
+  @override
+  String get textAlignment => '文本对齐';
+
+  @override
+  String get textAlignAuto => '跟随原书';
+
+  @override
+  String get textAlignLeft => '左对齐';
+
+  @override
+  String get textAlignCenter => '居中';
+
+  @override
+  String get textAlignRight => '右对齐';
+
+  @override
+  String get textAlignJustify => '两端对齐';
+
+  @override
   String get pageMargin => '页边距';
 
   @override

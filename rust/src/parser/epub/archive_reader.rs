@@ -5,9 +5,8 @@
 // 公有类型/函数：
 //   - EpubFile — EPUB 文件句柄（带 LRU 缓存）
 //     - open() — 打开 EPUB 文件
-//     - read_resource() / read_chapter() / read_resource_bytes()
+//     - read_resource() / read_resource_bytes()
 //     - read_cover() — 读取封面图片
-//     - resources() / raw_metadata() — 资源/元数据访问器
 //
 // 私有函数：
 //   - find_resource_by_href_or_path() — 资源查找
@@ -200,11 +199,6 @@ impl EpubFile {
         Ok(decoded.into_owned())
     }
 
-    /// 读取章节内容（HTML）
-    pub fn read_chapter(&mut self, href: &str) -> Result<String, AppError> {
-        self.read_resource(href)
-    }
-
     /// 读取资源字节（不解码）
     pub fn read_resource_bytes(&mut self, href: &str) -> Option<Vec<u8>> {
         let href = href.split('#').next().unwrap_or(href).trim();
@@ -243,16 +237,6 @@ impl EpubFile {
         }
         self.cache.put(href.to_string(), content.clone());
         Some(content)
-    }
-
-    /// manifest 资源表（M1.4 asset 注册表输入）。
-    pub fn resources(&self) -> &HashMap<String, ResourceItem> {
-        &self.doc.resources
-    }
-
-    /// 获取原始 metadata（用于外部提取扩展字段）
-    pub fn raw_metadata(&self) -> &[epub::doc::MetadataItem] {
-        &self.doc.metadata
     }
 
     /// 读取封面图片

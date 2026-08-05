@@ -7,8 +7,8 @@ import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/features/reader/settings/settings_widgets.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
-/// Readium currently supports font size and page margins as live typography
-/// preferences. Keep unsupported legacy controls out of this panel.
+/// Exposes the typography preferences supported by the Readium bridge.
+/// Publisher-owned layout controls remain intentionally out of this panel.
 class TypesettingPanel extends StatefulWidget {
   final ReaderConfig config;
   final ReadingMode readingMode;
@@ -83,9 +83,115 @@ class _TypesettingPanelState extends State<TypesettingPanel> {
           },
           readerTheme: readerTheme,
         ),
+        sliderTile(
+          label: l10n.lineHeight,
+          value: widget.config.lineHeight.value,
+          min: 1.0,
+          max: 2.0,
+          divisions: 10,
+          display: '${widget.config.lineHeight.value.toStringAsFixed(1)}x',
+          onChanged: (value) {
+            widget.config.lineHeight.value = value;
+            widget.onChanged();
+          },
+          readerTheme: readerTheme,
+        ),
+        sliderTile(
+          label: l10n.letterSpacing,
+          value: widget.config.letterSpacing.value,
+          min: ReaderTypographyDefaults.minLetterSpacing,
+          max: ReaderTypographyDefaults.maxLetterSpacing,
+          divisions: 25,
+          display: '${widget.config.letterSpacing.value.toStringAsFixed(2)}em',
+          onChanged: (value) {
+            widget.config.letterSpacing.value = value;
+            widget.onChanged();
+          },
+          readerTheme: readerTheme,
+        ),
+        sliderTile(
+          label: l10n.paragraphSpacing,
+          value: widget.config.paragraphSpacing.value,
+          min: 0,
+          max: ReaderTypographyDefaults.maxParagraphSpacing,
+          divisions: 8,
+          display:
+              '${widget.config.paragraphSpacing.value.toStringAsFixed(1)}em',
+          onChanged: (value) {
+            widget.config.paragraphSpacing.value = value;
+            widget.onChanged();
+          },
+          readerTheme: readerTheme,
+        ),
+        sliderTile(
+          label: l10n.paragraphIndent,
+          value: widget.config.paragraphIndent.value,
+          min: 0,
+          max: ReaderTypographyDefaults.maxParagraphIndent,
+          divisions: 8,
+          display:
+              '${widget.config.paragraphIndent.value.toStringAsFixed(1)}em',
+          onChanged: (value) {
+            widget.config.paragraphIndent.value = value;
+            widget.onChanged();
+          },
+          readerTheme: readerTheme,
+        ),
+        const SizedBox(height: 4),
+        _buildTextAlignmentSelector(readerTheme, l10n),
         const SizedBox(height: 4),
         _buildReadingModeSelector(readerTheme, l10n),
       ],
+    );
+  }
+
+  Widget _buildTextAlignmentSelector(
+    ReaderThemeExtension readerTheme,
+    AppLocalizations l10n,
+  ) {
+    final labels = <ReaderTextAlign, String>{
+      ReaderTextAlign.auto: l10n.textAlignAuto,
+      ReaderTextAlign.left: l10n.textAlignLeft,
+      ReaderTextAlign.center: l10n.textAlignCenter,
+      ReaderTextAlign.right: l10n.textAlignRight,
+      ReaderTextAlign.justify: l10n.textAlignJustify,
+    };
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 72,
+            child: Text(
+              l10n.textAlignment,
+              style: TextStyle(color: readerTheme.textColor, fontSize: 13),
+            ),
+          ),
+          Expanded(
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<ReaderTextAlign>(
+                isExpanded: true,
+                value: widget.config.textAlign.value,
+                items: labels.entries
+                    .map(
+                      (entry) => DropdownMenuItem<ReaderTextAlign>(
+                        value: entry.key,
+                        child: Text(entry.value),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value == null) return;
+                  widget.config.textAlign.value = value;
+                  widget.onChanged();
+                },
+              ),
+            ),
+          ),
+          const SizedBox(width: 36),
+        ],
+      ),
     );
   }
 

@@ -1,10 +1,13 @@
-# 阅读核心路线图（与边界 v1.1 绑定）
+# 阅读核心路线图（与当前阅读边界绑定）
 
 > **当前阶段 = EPUB Readium MVP**（ADR-020）
-> **Phase 0-12** 已完成 ✅
-> **Phase 13** ✅ 已完成
+> **Phase 0-11、13** 为历史完成阶段；**Phase 12** 已随 TXT/Builtin 路线退出而终止
+> 当前承诺仅以“EPUB Readium MVP”及其后明确标注的范围为准
 
-**完整路线图（Phase 0-20）：**
+> Phase 0-13 保留用于记录技术演进，不代表相关功能仍存在。全文搜索、生词本、
+> 笔记、双语和 TXT/Builtin 等已删除能力，不因历史条目而重新进入待办。
+
+**路线图（历史阶段 + 当前实施路线）：**
 
 ---
 
@@ -12,8 +15,8 @@
 
 - [x] `READING_BOUNDARIES.md` v1.1
 - [x] ADR-001 ~ 006
-- [x] `DOMAIN_MODEL.md`、`TARGET_ARCHITECTURE.md`、`DECISIONS.md`
-- [x] `xinxi-round3.md`：R3-1、R3-2 确认
+- [x] `DOMAIN_MODEL.md`、`DECISIONS.md`
+- [x] 历史需求冲突已收敛为当前边界与 ADR
 
 **验收一句话**：进度存 charOffset；正文以 plain 为锚；分页目标吃 IR；staging 只负责换章快。
 
@@ -25,16 +28,16 @@
 
 | # | 任务 | 状态 | 验收 |
 | --- | ------ | ------ | ------ |
-| 1.1 | 合并 `loadChapterContent` / firstSpine / plain 并行 | ✅ | [PHASE1_EXIT.md](./PHASE1_EXIT.md) |
-| 1.2 | 全文 plain ready 后再 TTS / 搜索索引 | ✅ | finalize 后 `_postLoadTasks` |
+| 1.1 | 合并 `loadChapterContent` / firstSpine / plain 并行 | ✅ |
+| 1.2 | 全文 plain ready 后再 TTS / 搜索索引 | ✅ 历史 | 搜索子系统已于 2026-08-02 删除 |
 | 1.3 | 分页路径 gate EPUB rich | ✅ | `_needsRichContent` |
-| 1.4 | Orchestrator intent 文档化 | ✅ | [INTENTS.md](./INTENTS.md)（5 intent） |
+| 1.4 | Orchestrator intent 文档化 | ✅ | 历史契约已归档 |
 | 1.5 | pageTurn 皮肤（`PaginationSkin`） | ✅ | ADR-002 + `PageTurnShell` |
 | 1.6 | 分页 EPUB toast（可选） | ✅ | `epubRichSkipped` |
 
-**R4 追加**：主链 EPUB+TXT；[ADR-007](./adr/007-plaintext-segmentation-stability.md)；已合入 `master` @ `2eebb52`。
+**R4 追加**：主链 EPUB+TXT；历史决策见 [`archived/adr/007-plaintext-segmentation-stability.md`](archived/adr/007-plaintext-segmentation-stability.md)；已合入 `master` @ `2eebb52`。
 
-**退出标准**：[PHASE1_EXIT.md](./PHASE1_EXIT.md) 全绿 ✅
+**退出标准**：历史退出检查已完成；详细历史文件已移除，当前状态以本文和测试门禁为准。
 
 ---
 
@@ -51,13 +54,13 @@ EPUB 分页内联图 + 大图独占页；`BlockPaginator`；charOffset 兼容 AD
 | M4 | Flutter 块渲染 + 图片管道 | ✅ |
 | M5 | staging 回归 + S2/S3 | ✅ |
 
-**退出标准**：[PHASE2_EXIT.md](./PHASE2_EXIT.md) 全绿 ✅
+**退出标准**：历史退出检查已完成；当前状态以本文和测试门禁为准。
 
 ---
 
 ## Phase 3 — 体验与缓存 ✅ 已完成
 
-预取强化、图片管道、sled 块分页索引、大章 chunked IR。详见 [PHASE3_EXIT.md](./PHASE3_EXIT.md)。
+预取强化、图片管道、缓存和大章 chunked IR。历史退出检查已完成。
 
 | # | 项 | 状态 |
 | --- | ----- | ------ |
@@ -68,13 +71,13 @@ EPUB 分页内联图 + 大图独占页；`BlockPaginator`；charOffset 兼容 AD
 | P3-5 | 大章 chunked IR | ✅ |
 | P3-6 | sled block 分页索引 | ✅ |
 
-**退出标准**：[PHASE3_EXIT.md](./PHASE3_EXIT.md) 全绿 ✅
+**退出标准**：历史退出检查已完成；当前状态以本文和测试门禁为准。
 
 ---
 
 ## Phase 4 — 引擎完善 ✅ 已完成（核心链路完成，真机签退待 Phase 5 M1）
 
-**目标**：统一 IR 渲染管线、块级 CSS、staging 硬保证、metrics 校准、。详见 [PHASE4_SCOPE.md](./PHASE4_SCOPE.md)。
+**目标**：统一历史 IR 渲染管线、块级 CSS、staging 硬保证和 metrics 校准；本阶段已结束。
 
 > **2026-06-26 收敛完成**：scroll 仅走 IR，分页 miss 用骨架替代 spinner，I1 持久化清理，block font-size 贯穿 IR 管线，FFI 集成测试恢复（29 pass），金路径测试 24/24。
 > **2026-07-02～03 全 bug 修复**：A/B 已修、P0 架构统一（纯文本书走 IR）、P1 sled 双缓存合并、P2 避尾标点、P3 configHash BigInt、精排 P1/P2 CSS 投射完成。真机签退推迟至 Phase 5 M5 收尾。
@@ -87,7 +90,7 @@ EPUB 分页内联图 + 大图独占页；`BlockPaginator`；charOffset 兼容 AD
 | P4-4 | Flutter Metrics 回传校准 | 013 | ✅ |
 | P4-5 | 双语独立 feature 模块 | 011 | ❌ 已移除 |
 
-**退出标准**：[PHASE4_SCOPE.md](./PHASE4_SCOPE.md) §退出标准 — 代码交付 ✅，真机签退推迟至 Phase 5
+**退出标准**：代码交付已完成，历史真机签退记录不再作为当前路线门禁。
 
 ---
 
@@ -118,7 +121,7 @@ Phase 7 代码清理完成后，此阶段各项已自然完成。
 | 6.3 | `FlutterPaginationSession` 替代 Rust session | ✅ |
 | 6.4 | Staging 预加载适配 Flutter 装箱 | ✅ |
 | 6.5 | 大章 chunked IR + partial → full expand | ✅ |
-| 6.6 | Phase 7 清理冗余 | 🔄 进行中 |
+| 6.6 | Phase 7 清理冗余 | ✅ 已完成 |
 
 **退出标准**：Flutter 分页覆盖全量场景，Rust 分页 API 无实际调用方。
 
@@ -167,7 +170,7 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 **目标**：将排版渲染核心从 reader feature 提取为独立 `reader_engine/` 模块，
 消除假抽象接口和中间人。
 
-**讨论**：`discuss/PHASE12_FLUTTER_ARCHITECTURE.md`
+**历史讨论**：`discuss/archived/PHASE12_FLUTTER_ARCHITECTURE.md`
 
 ### 任务清单
 
@@ -221,9 +224,9 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 
 **不该下沉的（留在 service）：**
 
-- 跨模块编排（如删书→删搜索索引涉及 book + search 两个领域）
+- 跨模块编排（如删书同时清理关联资源）
 - 包含业务规则的操作（如分类删除前的安全校验）
-- 计算/转换逻辑（如从笔记统计估算阅读时长）
+- 计算/转换逻辑（如从阅读会话估算阅读时长）
 
 #### 方向 B：业务简化
 
@@ -245,20 +248,23 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 | # | 优先级 | 项 | 说明 |
 | --- | -------- | ----- | ------ |
 | 1 | **P1** | 扫描 `domain/*/service.rs` | ✅ 已完成 — 13 个 service 逐文件审查，标出 7 个纯中间人（progress/chapter/stats/bookmark/vocabulary/sessions/category） |
-| 2 | **P1** | 逐项整改下沉 | ✅ 已完成 — 7 个纯中间人 service 合并到对应 API 层，删除 7 个 service.rs（~470 行），保留 cover/bilingual/backup/book/dictionary/note 等有业务逻辑的 service |
+| 2 | **P1** | 逐项整改下沉 | ✅ 已完成 — 7 个纯中间人 service 合并到对应 API 层，删除 7 个 service.rs（~470 行）；当前保留 book/cover/backup/dictionary service |
 | 3 | **P2** | 扫描 `api/*.rs` 聚合机会 | ✅ 已完成 — 识别 4 书架 API → 1 统一 API 机会 + upsertProgress/createSession 事务化机会 |
 | 4 | **P2** | 逐项聚合整改 | ✅ 已完成 — 新增 `list_bookshelf_books` 统一接口（支持可选 category/status/sort）；待 FRB codegen 后 Flutter 端简化 |
 | 5 | **P2** | 验证 | ✅ 已完成 — `cargo clippy -D warnings` 零告警，FRB codegen 成功，`flutter analyze lib/` 零错误 |
 
 ---
 
-## Phase 12 — TXT 章节检测可配置化 + Flutter 排版管线优化 ⏳ 进行中
+## Phase 12 — TXT 章节检测可配置化 + Flutter 排版管线优化 ⏹ 已终止（历史方案）
+
+> ADR-020 将当前路线收敛为 EPUB-only Readium MVP，TXT/Builtin 链随后删除。
+> 下列条目仅保留为历史设计记录，不是未完成待办，也不得据此恢复 TXT 支持。
 
 **目标**：两件事顺手一起做。① 将硬编码在 `chapter_detect.rs` 中的四组章节检测正则改为可配置，
 支持用户自定义章节标题模式，覆盖更多网文/轻小说格式。② 顺手做 3 项低成本 Flutter 排版优化。
 
-**讨论**：`discuss/archived/PHASE10_CHAPTER_DETECT_CONFIG.md`、`discuss/reader-text-engine-roadmap.md`
-**讨论**：`discuss/archived/PHASE10_CHAPTER_DETECT_CONFIG.md`
+**历史讨论**：`discuss/archived/PHASE10_CHAPTER_DETECT_CONFIG.md`、`discuss/archived/reader-text-engine-roadmap.md`
+**历史讨论**：`discuss/archived/PHASE10_CHAPTER_DETECT_CONFIG.md`
 
 ### 背景
 
@@ -383,13 +389,13 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 
 | # | 项 | 说明 |
 | --- | ----- | ------ |
-| 1 | 大 TXT 打开与翻页 | 百万字级别文件 |
+| 1 | 大 TXT 打开与翻页 | ⏹ 随 TXT/Builtin 路线退出，不再验收 |
 | 2 | 含图 EPUB 章节切换 | 高清图片密集章节流畅度 |
 | 3 | 切换排版即时生效 | 字号/行距/主题切换无延迟 |
 | 4 | 快速连续翻页 | 5+ 页/秒状态不混乱 |
 | 5 | 打断操作 | 翻页动画中点击目录不崩溃 |
 | 6 | 反复换章 | 多章来回切换稳定性 |
-| 7 | scroll 跨章进度与批注 | 自然跨章不丢失批注 |
+| 7 | scroll 跨章进度与批注 | ⏹ Builtin scroll 与完整批注均已退出当前路线 |
 
 ---
 
@@ -456,17 +462,27 @@ M1 路线与边界对齐
 | Ready 门槛 | 原生 viewport `onReady` 前不导航、不应用 preference、不发布 ready |
 | 单一状态源 | ViewModel 统一接收 locator/status/error 并驱动 Flutter 壳层 |
 | 真机为准 | Platform View 的渲染、旋转、后台与 TTS 必须由 Android/iOS 回归确认 |
----
-## Phase 14 — 阅读中增强（规划中）
 
-**目标**：优化用户在阅读过程中直接使用的外围功能。
+### 能力边界
+
+- 全文/章内内容搜索子系统已删除；仅保留书架中的书名查询能力。
+- 生词本、笔记、双语和 TXT/Builtin 阅读链已删除，不属于后续默认规划。
+- 书签当前仅保留 Readium 阅读页的基础添加、列表与跳转，不扩展为批注系统。
+- 任何已退出能力若要恢复，必须重新立项并更新 ADR、边界和数据模型，不能直接从历史 Phase 续做。
+
+---
+## Phase 14 — Readium 阅读体验收口（候选，未立项）
+
+**目标**：只在 EPUB Readium 主链上改善已存在能力；不恢复已删除子系统。
 
 | 模块 | 预期优化 |
 | ------ | --------- |
-| 搜索 | 搜索结果分段预览、跳转体验优化 |
 | TTS | 跨章连续播放、后台播放、朗读进度恢复 |
-| 双语 | 翻译缓存减少重复请求、离线回退 |
-| 生词本 | 阅读中快捷操作、标记后即时反馈 |
+| 书签 | 基础添加、列表和 Locator 跳转的稳定性与真机回归 |
+| 阅读壳层 | 工具栏、目录、排版设置与连续滚动体验收口 |
+
+> 全文搜索、章内搜索、生词本、笔记、双语不在本阶段。以上候选项也只有在
+> EPUB Readium MVP 真机签退后，才可按新的范围决策进入执行。
 
 ---
 
@@ -477,10 +493,11 @@ M1 路线与边界对齐
 | 模块 | 预期优化 |
 | ------ | --------- |
 | 书架 | 视图切换流畅度、批量操作交互 |
-| 笔记管理 | 按书/章筛选、批量导出 |
 | 阅读统计 | 周报/月报摘要 |
 | 备份/WebDAV | 自动备份计划、完整性校验 |
 | 主题/外观 | 预设主题包（<!-- TBD -->） |
+
+> 本阶段不包含全文搜索、生词本、笔记管理或已删除学习功能的恢复。
 
 ---
 
@@ -502,42 +519,22 @@ M1 路线与边界对齐
 
 ---
 
-## Phase 19 — 测试全面修复
+## Phase 19 — 测试基线收口 ✅ 已完成
 
-**目标**：统一修复 Phase 0-18 架构重构积累的所有测试编译/运行时错误，
-包括但不限于 Rust 集成测试 import 路径、Dart 侧 FRB 类型引用、
-Widget 测试构造参数。**其他阶段允许顺带修，但不作为优先级**。
+**目标**：修复历史重构造成的 Rust/Dart 测试断裂，并恢复可重复执行的本地质量门禁。
 
-### 背景
+### 当前结果（2026-08-03）
 
-Phase 9 以来多次目录重组（api/*→ domain/*/service.rs、FRB 生成结构变动）
-导致跨层测试大面积断裂（79 处 `library/models.dart`、18 处 `reader/content_ir.dart` 等）。
-为了避免每次重构被测试同步拖慢，决定将测试修复集中到 Phase 19，
-其余阶段仅在改动极小或恰好涉及时顺手修复。
+| 门禁 | 结果 |
+| --- | --- |
+| FRB codegen | ✅ 生成成功，生成文件与 Rust 接口同步 |
+| `cargo clippy -- -D warnings` | ✅ 通过 |
+| Rust 测试 | ✅ 99 passed，7 ignored |
+| `dart analyze --fatal-infos` | ✅ 通过 |
+| Flutter 测试 | ✅ 26 passed |
 
-### 工作项
-
-| # | 项 | 说明 |
-| --- | ----- | ------ |
-| 1 | Rust 集成测试 import 修复 | `api::*` → 对应 `domain::*::service` |
-| 2 | Dart 测试 FRB import 路径修复 | 反映 FRB 生成文件最终结构 |
-| 3 | Dart 测试 FRB 类型构造修复 | 反映 Rust struct 字段最终形状 |
-| 4 | Widget 测试 Rust 数据依赖修复 | `paginated_renderer_test.dart` 等 |
-| 5 | `flutter analyze --fatal-infos` 零错误 | |
-| 6 | `cargo clippy -- -D warnings` 零告警（test 目标） | |
-| 7 | **可选：引入测试数据工厂** | 用 `fixture()` builder 取代直接 `const` FRB 类型，避免下次重构再碎 |
-
-### 此前已积累的测试问题
-
-- `test/` 下 31 处 `src/rust/...` import 可能已过期
-- `rust/tests/` 下 19 个文件依赖旧 API 模块路径
-- 部分测试用 `const` 构造 Rust 生成的 struct（字段变更时全部断裂）
-
-### Phase 19 启动条件
-
-- Phase 18 及以前架构变动全部稳定
-- `cargo clippy -- -D warnings`（非 test 目标）通过
-- `flutter analyze --fatal-infos`（不含测试文件）通过
+历史 import、FRB 类型构造和 Widget fixture 断裂已处理，不再作为未来 Phase 待办。
+后续新增或修改功能必须同步维护对应测试；CI 与 Android/iOS 真机回归仍按各自阶段验收。
 
 ---
 

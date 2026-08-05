@@ -6,12 +6,12 @@ use flutter_rust_bridge::frb;
 //   - CategoryRepository — 分类仓储结构体
 //   - list() / find_by_id() — 查询分类
 //   - save() / delete_by_id() / reorder() — 写入与排序
-//   - assign_by_book() / remove_by_book() / set_by_book() — 书籍分类关联
-//   - list_by_book() / list_books_by_category() — 按分类查询
+//   - set_by_book() — 书籍分类关联
+//   - list_by_book() / list_bookshelf_by_category() — 按分类查询
 // ============================================================
 
 use crate::domain::AppError;
-use crate::domain::book::{Book, BookStatus, BookshelfBook};
+use crate::domain::book::{BookStatus, BookshelfBook};
 use crate::domain::category::Category;
 use sqlx::SqlitePool;
 
@@ -75,38 +75,6 @@ impl CategoryRepository {
         )
     }
 
-    /// 为书籍分配分类（幂等操作）
-    pub async fn assign_by_book(
-        pool: &SqlitePool,
-        book_id: &str,
-        category_id: &str,
-    ) -> Result<(), AppError> {
-        // 关联表无需 UPDATE SET，DO NOTHING 即可实现幂等
-        sqlx::query(
-            "INSERT INTO book_categories (book_id, category_id) VALUES (?, ?) \
-             ON CONFLICT(book_id, category_id) DO NOTHING",
-        )
-        .bind(book_id)
-        .bind(category_id)
-        .execute(pool)
-        .await?;
-        Ok(())
-    }
-
-    /// 移除书籍的某个分类
-    pub async fn remove_by_book(
-        pool: &SqlitePool,
-        book_id: &str,
-        category_id: &str,
-    ) -> Result<(), AppError> {
-        sqlx::query("DELETE FROM book_categories WHERE book_id = ? AND category_id = ?")
-            .bind(book_id)
-            .bind(category_id)
-            .execute(pool)
-            .await?;
-        Ok(())
-    }
-
     /// 获取书籍的所有分类
     pub async fn list_by_book(pool: &SqlitePool, book_id: &str) -> Result<Vec<Category>, AppError> {
         Ok(sqlx::query_as::<_, Category>(
@@ -115,21 +83,6 @@ impl CategoryRepository {
              WHERE bc.book_id = ? ORDER BY c.sort_order",
         )
         .bind(book_id)
-        .fetch_all(pool)
-        .await?)
-    }
-
-    /// 获取指定分类下的所有书籍
-    pub async fn list_books_by_category(
-        pool: &SqlitePool,
-        category_id: &str,
-    ) -> Result<Vec<Book>, AppError> {
-        Ok(sqlx::query_as::<_, Book>(
-            "SELECT b.* FROM books b \
-             INNER JOIN book_categories bc ON b.id = bc.book_id \
-             WHERE bc.category_id = ? ORDER BY b.added_at DESC",
-        )
-        .bind(category_id)
         .fetch_all(pool)
         .await?)
     }
@@ -170,15 +123,6 @@ impl CategoryRepository {
         .bind(status.as_ref())
         .fetch_all(pool)
         .await?)
-    }
-
-    /// 清除书籍的所有分类
-    pub async fn clear_by_book(pool: &SqlitePool, book_id: &str) -> Result<(), AppError> {
-        sqlx::query("DELETE FROM book_categories WHERE book_id = ?")
-            .bind(book_id)
-            .execute(pool)
-            .await?;
-        Ok(())
     }
 
     /// 设置书籍的分类列表（事务内先清后加）

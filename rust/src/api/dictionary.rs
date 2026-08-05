@@ -5,29 +5,10 @@ use flutter_rust_bridge::frb;
 use crate::common::AppError;
 use crate::domain::dictionary::dictionary_repo::DictionaryRepository;
 use crate::domain::dictionary::service;
-use crate::domain::dictionary::{models::Dictionary, DictSearchResult};
+use crate::domain::dictionary::{DictSearchResult, models::Dictionary};
 use crate::infra::manager::storage_pool;
 
 // ==================== 词典数据 CRUD ====================
-
-/// 创建词典记录
-#[frb]
-pub async fn create_dictionary(
-    name: String,
-    file_path: String,
-    dict_type: String,
-    lang_from: Option<String>,
-    lang_to: Option<String>,
-    is_enabled: bool,
-    word_count: i64,
-) -> Result<Dictionary, AppError> {
-    tracing::info!("[dictionary] create_dictionary: name={}", name);
-    let dict = Dictionary::new(
-        &name, &file_path, &dict_type, lang_from, lang_to, is_enabled, word_count,
-    );
-    let pool = storage_pool()?;
-    DictionaryRepository::save(&pool, &dict).await
-}
 
 /// 新增或更新词典
 #[frb]
@@ -41,13 +22,6 @@ pub async fn upsert_dictionary(dict: Dictionary) -> Result<(), AppError> {
 pub async fn list_dictionaries() -> Result<Vec<Dictionary>, AppError> {
     let pool = storage_pool()?;
     DictionaryRepository::find_all(&pool).await
-}
-
-/// 根据 ID 获取词典
-#[frb]
-pub async fn get_dictionary(id: String) -> Result<Option<Dictionary>, AppError> {
-    let pool = storage_pool()?;
-    DictionaryRepository::find_by_id(&pool, &id).await
 }
 
 /// 删除词典

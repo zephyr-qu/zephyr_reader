@@ -16,12 +16,27 @@ void main() {
     final config = _MockReaderConfig();
     final fontSize = _MockPersistedSignal<double>();
     final padding = _MockPersistedSignal<double>();
+    final lineHeight = _MockPersistedSignal<double>();
+    final letterSpacing = _MockPersistedSignal<double>();
+    final paragraphSpacing = _MockPersistedSignal<double>();
+    final paragraphIndent = _MockPersistedSignal<double>();
+    final textAlign = _MockPersistedSignal<ReaderTextAlign>();
     var selectedMode = ReadingMode.pagination;
 
     when(() => config.fontSize).thenReturn(fontSize);
     when(() => fontSize.value).thenReturn(100);
     when(() => config.padding).thenReturn(padding);
     when(() => padding.value).thenReturn(20);
+    when(() => config.lineHeight).thenReturn(lineHeight);
+    when(() => lineHeight.value).thenReturn(1.4);
+    when(() => config.letterSpacing).thenReturn(letterSpacing);
+    when(() => letterSpacing.value).thenReturn(0.0);
+    when(() => config.paragraphSpacing).thenReturn(paragraphSpacing);
+    when(() => paragraphSpacing.value).thenReturn(0.0);
+    when(() => config.paragraphIndent).thenReturn(paragraphIndent);
+    when(() => paragraphIndent.value).thenReturn(0.0);
+    when(() => config.textAlign).thenReturn(textAlign);
+    when(() => textAlign.value).thenReturn(ReaderTextAlign.auto);
 
     await tester.pumpWidget(
       MaterialApp(
@@ -43,6 +58,11 @@ void main() {
     expect(find.text('阅读模式'), findsOneWidget);
     expect(find.text('分页'), findsOneWidget);
     expect(find.text('滚动'), findsOneWidget);
+    expect(find.text('行间距'), findsOneWidget);
+    expect(find.text('字间距'), findsOneWidget);
+    expect(find.text('段间距'), findsOneWidget);
+    expect(find.text('首行缩进'), findsOneWidget);
+    expect(find.text('文本对齐'), findsOneWidget);
 
     final scrollButton = find.ancestor(
       of: find.text('滚动'),

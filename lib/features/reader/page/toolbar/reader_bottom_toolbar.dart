@@ -3,24 +3,28 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
-/// 阅读器底部四按钮工具栏。
+/// 阅读器底部五按钮工具栏。
 ///
-/// 章节 | 文字排版 | 外观主题 | 阅读辅助
+/// 章节 | 书签 | 文字排版 | 外观主题 | 阅读辅助
 class ReaderBottomToolbar extends StatelessWidget {
   final ReaderThemeExtension readerTheme;
   final VoidCallback onShowCatalog;
+  final VoidCallback onShowBookmarks;
   final VoidCallback onToggleTypesetting;
   final VoidCallback onToggleDisplay;
   final VoidCallback onToggleAssist;
+  final bool isBookmarked;
   final bool isTtsPlaying;
 
   const ReaderBottomToolbar({
     super.key,
     required this.readerTheme,
     required this.onShowCatalog,
+    required this.onShowBookmarks,
     required this.onToggleTypesetting,
     required this.onToggleDisplay,
     required this.onToggleAssist,
+    required this.isBookmarked,
     required this.isTtsPlaying,
   });
 
@@ -41,6 +45,17 @@ class ReaderBottomToolbar extends StatelessWidget {
                 label: l10n.chapterList,
                 color: readerTheme.textColor,
                 onTap: onShowCatalog,
+              ),
+              _ToolbarButton(
+                icon: isBookmarked
+                    ? PhosphorIconsFill.bookmarkSimple
+                    : PhosphorIconsLight.bookmarkSimple,
+                label: l10n.bookmarks,
+                color: isBookmarked
+                    ? readerTheme.accentColor
+                    : readerTheme.textColor,
+                isSelected: isBookmarked,
+                onTap: onShowBookmarks,
               ),
               _ToolbarButton(
                 icon: PhosphorIconsLight.textT,
@@ -74,12 +89,14 @@ class _ToolbarButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
+  final bool isSelected;
   final VoidCallback onTap;
 
   const _ToolbarButton({
     required this.icon,
     required this.label,
     required this.color,
+    this.isSelected = false,
     required this.onTap,
   });
 
@@ -88,37 +105,43 @@ class _ToolbarButton extends StatelessWidget {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 2),
-        child: Tooltip(
-          message: label,
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(8),
-              onTap: onTap,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 56),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 4,
-                    horizontal: 4,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(icon, size: 22, color: color),
-                      const SizedBox(height: 2),
-                      Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: color.withValues(alpha: 0.7),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w400,
+        child: Semantics(
+          button: true,
+          selected: isSelected,
+          label: label,
+          excludeSemantics: true,
+          child: Tooltip(
+            message: label,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: onTap,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 56),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 4,
+                      horizontal: 4,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(icon, size: 22, color: color),
+                        const SizedBox(height: 2),
+                        Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: color.withValues(alpha: 0.7),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

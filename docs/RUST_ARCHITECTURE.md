@@ -1,5 +1,7 @@
 # Zephyr Reader Rust 引擎架构
 
+> **历史文档（非当前规范）**：本文记录过往 Builtin/IR/分页架构。当前路线是 EPUB Readium MVP；正文渲染由 Flutter 的 `flutter_readium` 承担。当前 Rust 职责以根目录 `README.md`、`discuss/READING_BOUNDARIES.md` 和 `discuss/ROADMAP.md` 为准。
+
 > 版本：3.1 | 最后更新：2026-07-07
 
 ---

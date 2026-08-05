@@ -52,43 +52,6 @@ impl BookmarkRepository {
         Ok(())
     }
 
-    pub async fn find_by_id(
-        pool: &SqlitePool,
-        bookmark_id: &str,
-    ) -> Result<Option<Bookmark>, AppError> {
-        Ok(
-            sqlx::query_as::<_, Bookmark>("SELECT * FROM bookmarks WHERE id = ?")
-                .bind(bookmark_id)
-                .fetch_optional(pool)
-                .await?,
-        )
-    }
-
-    pub async fn import_bookmarks(
-        pool: &SqlitePool,
-        bookmarks: &[Bookmark],
-    ) -> Result<(), AppError> {
-        if bookmarks.is_empty() {
-            return Ok(());
-        }
-        let mut tx = pool.begin().await?;
-        for bookmark in bookmarks {
-            sqlx::query(SQL_UPSERT_BOOKMARK)
-                .bind(&bookmark.id)
-                .bind(&bookmark.book_id)
-                .bind(bookmark.chapter_index)
-                .bind(&bookmark.chapter_id)
-                .bind(bookmark.char_offset)
-                .bind(&bookmark.locator_json)
-                .bind(&bookmark.title)
-                .bind(bookmark.created_at)
-                .execute(&mut *tx)
-                .await?;
-        }
-        tx.commit().await?;
-        Ok(())
-    }
-
     pub async fn delete_by_book(pool: &SqlitePool, book_id: &str) -> Result<(), AppError> {
         sqlx::query("DELETE FROM bookmarks WHERE book_id = ?")
             .bind(book_id)

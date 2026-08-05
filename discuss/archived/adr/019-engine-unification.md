@@ -1,5 +1,7 @@
 # ADR-019：阅读器引擎统一 — 双引擎共用一个阅读入口
 
+> **已取代**：本 ADR 是历史双引擎方案。当前路线由 [ADR-020](./020-epub-readium-mvp.md) 取代，依赖迁移由 [ADR-021](./021-flutter-readium-migration.md) 记录。
+
 - **状态**：已被 [ADR-020](./020-epub-readium-mvp.md) 取代（保留为历史设计）
 - **日期**：2026-07-19（初稿）/ 2026-07-22（重写为 Phase R1 方案）
 - **关联**：[ADR-006](./006-rust-flutter-division.md)、[DOMAIN_MODEL.md](../DOMAIN_MODEL.md)、[ROADMAP.md](../ROADMAP.md)、[READING_BOUNDARIES.md](../READING_BOUNDARIES.md)

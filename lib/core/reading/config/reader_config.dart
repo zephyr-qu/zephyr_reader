@@ -15,6 +15,8 @@ enum ReadingMode {
   pagination,
 }
 
+enum ReaderTextAlign { auto, left, center, right, justify }
+
 /// 阅读器主题 — 亮色、深色、护眼色
 enum ReaderTheme {
   light('light'),
@@ -91,6 +93,37 @@ class ReaderConfig {
     ReaderTypographyDefaults.fontWeight,
   );
 
+  late final lineHeight = persistedDouble(
+    prefs,
+    SettingsKeys.readerLineHeight,
+    ReaderTypographyDefaults.lineHeight,
+  );
+
+  late final letterSpacing = persistedDouble(
+    prefs,
+    SettingsKeys.readerLetterSpacing,
+    ReaderTypographyDefaults.letterSpacing,
+  );
+
+  late final paragraphSpacing = persistedDouble(
+    prefs,
+    SettingsKeys.readerParagraphSpacing,
+    ReaderTypographyDefaults.paragraphSpacing,
+  );
+
+  late final paragraphIndent = persistedDouble(
+    prefs,
+    SettingsKeys.readerParagraphIndent,
+    ReaderTypographyDefaults.paragraphIndent,
+  );
+
+  late final textAlign = persistedEnum(
+    prefs,
+    SettingsKeys.readerTextAlign,
+    ReaderTextAlign.auto,
+    (s) => ReaderTextAlign.values.asNameMap()[s] ?? ReaderTextAlign.auto,
+  );
+
   /// 阅读模式（分页 / 滚动）
   late final readingMode = persistedEnum(
     prefs,
@@ -136,6 +169,11 @@ class ReaderConfig {
     fontFamily.reset();
     padding.reset();
     fontWeight.reset();
+    lineHeight.reset();
+    letterSpacing.reset();
+    paragraphSpacing.reset();
+    paragraphIndent.reset();
+    textAlign.reset();
     readingMode.reset();
     readerBgColorIndex.reset();
     autoScroll.reset();
@@ -149,6 +187,11 @@ class ReaderConfig {
     fontFamily.dispose();
     padding.dispose();
     fontWeight.dispose();
+    lineHeight.dispose();
+    letterSpacing.dispose();
+    paragraphSpacing.dispose();
+    paragraphIndent.dispose();
+    textAlign.dispose();
     readingMode.dispose();
     readerBgColorIndex.dispose();
     autoScrollSpeed.dispose();

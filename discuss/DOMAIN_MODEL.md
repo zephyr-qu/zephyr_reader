@@ -19,11 +19,11 @@ flowchart LR
     Settings["ReaderConfig"] --> Preferences["EPUBPreferences"]
     Preferences --> Viewport
 ```
-
+ 
 | 概念 | 当前语义 |
 |---|---|
 | `Publication` | EPUB 打开产物，提供 metadata、TOC 和 reading order |
-| `ReadiumReaderWidget` | 唯一正文渲染视口；`onReady` 是生命周期门槛 |
+| `ReadiumReaderWidget` | 唯一正文渲染视口；reader status `ready` 是生命周期门槛 |
 | `Locator` | MVP 导航、进度与恢复坐标；不存页码 |
 | `ReaderConfig` | Flutter 侧用户设置，viewport ready 后映射为 `EPUBPreferences` |
 | `ReadiumViewModel` | publication、viewport 事件、Locator 保存和 UI 状态的单一协调者 |
@@ -194,7 +194,7 @@ class EnginePositionHint {
 ### EPUB Readium MVP（当前）
 
 1. **M1**：只有 EPUB 可进入阅读视口；非 EPUB 必须显式拒绝。
-2. **M2**：原生 viewport `onReady` 前不得应用设置、导航或发布 ready。
+2. **M2**：原生 reader status `ready` 前不得应用设置、导航或发布 ready。
 3. **M3**：进度和恢复使用 Locator，不持久化页码。
 4. **M4**：关闭必须幂等；退出后事件不得回写 UI。
 5. **M5**：打开失败必须可见且可重试；不得发布 ready。
