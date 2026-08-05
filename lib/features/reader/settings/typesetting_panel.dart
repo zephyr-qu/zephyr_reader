@@ -9,6 +9,8 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// Exposes the typography preferences supported by the Readium bridge.
 /// Publisher-owned layout controls remain intentionally out of this panel.
+/// 仅保留常用项（字号/页边距/行高/文本对齐/阅读模式）；
+/// 字间距/段间距/首行缩进等低频项在设置页「排版与字体」中提供。
 class TypesettingPanel extends StatefulWidget {
   final ReaderConfig config;
   final ReadingMode readingMode;
@@ -96,47 +98,6 @@ class _TypesettingPanelState extends State<TypesettingPanel> {
           },
           readerTheme: readerTheme,
         ),
-        sliderTile(
-          label: l10n.letterSpacing,
-          value: widget.config.letterSpacing.value,
-          min: ReaderTypographyDefaults.minLetterSpacing,
-          max: ReaderTypographyDefaults.maxLetterSpacing,
-          divisions: 25,
-          display: '${widget.config.letterSpacing.value.toStringAsFixed(2)}em',
-          onChanged: (value) {
-            widget.config.letterSpacing.value = value;
-            widget.onChanged();
-          },
-          readerTheme: readerTheme,
-        ),
-        sliderTile(
-          label: l10n.paragraphSpacing,
-          value: widget.config.paragraphSpacing.value,
-          min: 0,
-          max: ReaderTypographyDefaults.maxParagraphSpacing,
-          divisions: 8,
-          display:
-              '${widget.config.paragraphSpacing.value.toStringAsFixed(1)}em',
-          onChanged: (value) {
-            widget.config.paragraphSpacing.value = value;
-            widget.onChanged();
-          },
-          readerTheme: readerTheme,
-        ),
-        sliderTile(
-          label: l10n.paragraphIndent,
-          value: widget.config.paragraphIndent.value,
-          min: 0,
-          max: ReaderTypographyDefaults.maxParagraphIndent,
-          divisions: 8,
-          display:
-              '${widget.config.paragraphIndent.value.toStringAsFixed(1)}em',
-          onChanged: (value) {
-            widget.config.paragraphIndent.value = value;
-            widget.onChanged();
-          },
-          readerTheme: readerTheme,
-        ),
         const SizedBox(height: 4),
         _buildTextAlignmentSelector(readerTheme, l10n),
         const SizedBox(height: 4),
@@ -150,11 +111,7 @@ class _TypesettingPanelState extends State<TypesettingPanel> {
     AppLocalizations l10n,
   ) {
     final options = [
-      (
-        ReaderTextAlign.auto,
-        l10n.textAlignAuto,
-        PhosphorIconsRegular.textAa,
-      ),
+      (ReaderTextAlign.auto, l10n.textAlignAuto, PhosphorIconsRegular.textAa),
       (
         ReaderTextAlign.left,
         l10n.textAlignLeft,

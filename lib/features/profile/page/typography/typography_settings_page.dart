@@ -35,6 +35,15 @@ class TypographySettingsPage extends HookWidget {
     final double fontSize = useSignalValue(config.fontSize.signal);
     final double fontWeight = useSignalValue(config.fontWeight.signal);
     final double padding = useSignalValue(config.padding.signal);
+    final double lineHeight = useSignalValue(config.lineHeight.signal);
+    final double letterSpacing = useSignalValue(config.letterSpacing.signal);
+    final double paragraphSpacing = useSignalValue(
+      config.paragraphSpacing.signal,
+    );
+    final double paragraphIndent = useSignalValue(
+      config.paragraphIndent.signal,
+    );
+    final ReaderTextAlign textAlign = useSignalValue(config.textAlign.signal);
     final String fontFamily = useSignalValue(config.fontFamily.signal);
     final ReadingMode readingMode = useSignalValue(config.readingMode.signal);
 
@@ -47,7 +56,19 @@ class TypographySettingsPage extends HookWidget {
           const SizedBox(height: 16),
           _buildFontSection(l10n, fontFamily, config),
           const SizedBox(height: 16),
-          _buildTypographySection(l10n, fontSize, fontWeight, padding, config),
+          _buildTypographySection(
+            l10n,
+            fontSize,
+            fontWeight,
+            padding,
+            lineHeight,
+            letterSpacing,
+            paragraphSpacing,
+            paragraphIndent,
+            config,
+          ),
+          const SizedBox(height: 16),
+          _buildTextAlignSection(context, l10n, textAlign, config),
           const SizedBox(height: 16),
           _buildReadingModeSection(context, l10n, readingMode, config),
         ],
@@ -90,6 +111,10 @@ class TypographySettingsPage extends HookWidget {
     double fontSize,
     double fontWeight,
     double padding,
+    double lineHeight,
+    double letterSpacing,
+    double paragraphSpacing,
+    double paragraphIndent,
     ReaderConfig config,
   ) {
     return Column(
@@ -125,6 +150,139 @@ class TypographySettingsPage extends HookWidget {
               max: ReaderTypographyDefaults.maxPadding,
               step: 2,
               onChanged: (v) => config.padding.value = v,
+            ),
+            SettingsSliderTile(
+              label: l10n.lineHeight,
+              value: '${lineHeight.toStringAsFixed(1)}x',
+              current: lineHeight,
+              min: 1.0,
+              max: 2.0,
+              step: 0.1,
+              onChanged: (v) => config.lineHeight.value = v,
+            ),
+            SettingsSliderTile(
+              label: l10n.letterSpacing,
+              value: '${letterSpacing.toStringAsFixed(2)}em',
+              current: letterSpacing,
+              min: ReaderTypographyDefaults.minLetterSpacing,
+              max: ReaderTypographyDefaults.maxLetterSpacing,
+              step: 0.05,
+              onChanged: (v) => config.letterSpacing.value = v,
+            ),
+            SettingsSliderTile(
+              label: l10n.paragraphSpacing,
+              value: '${paragraphSpacing.toStringAsFixed(1)}em',
+              current: paragraphSpacing,
+              min: 0,
+              max: ReaderTypographyDefaults.maxParagraphSpacing,
+              step: 0.25,
+              onChanged: (v) => config.paragraphSpacing.value = v,
+            ),
+            SettingsSliderTile(
+              label: l10n.paragraphIndent,
+              value: '${paragraphIndent.toStringAsFixed(1)}em',
+              current: paragraphIndent,
+              min: 0,
+              max: ReaderTypographyDefaults.maxParagraphIndent,
+              step: 0.25,
+              onChanged: (v) => config.paragraphIndent.value = v,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// 文本对齐平铺选择器，选项与阅读页一致：跟随原书/左对齐/两端对齐。
+  Widget _buildTextAlignSection(
+    BuildContext context,
+    AppLocalizations l10n,
+    ReaderTextAlign textAlign,
+    ReaderConfig config,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final options = [
+      (ReaderTextAlign.auto, l10n.textAlignAuto, PhosphorIconsRegular.textAa),
+      (
+        ReaderTextAlign.left,
+        l10n.textAlignLeft,
+        PhosphorIconsRegular.textAlignLeft,
+      ),
+      (
+        ReaderTextAlign.justify,
+        l10n.textAlignJustify,
+        PhosphorIconsRegular.textAlignJustify,
+      ),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionLabel(label: l10n.textAlignment),
+        SettingsCard(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: options.map((option) {
+                  final isSelected = textAlign == option.$1;
+                  return Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(10),
+                          onTap: () => config.textAlign.value = option.$1,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? colorScheme.primary.withValues(alpha: 0.08)
+                                  : colorScheme.onSurface.withValues(
+                                      alpha: 0.03,
+                                    ),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isSelected
+                                    ? colorScheme.primary
+                                    : Colors.transparent,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  option.$3,
+                                  size: 16,
+                                  color: isSelected
+                                      ? colorScheme.primary
+                                      : colorScheme.onSurfaceVariant,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  option.$2,
+                                  style: TextStyle(
+                                    color: isSelected
+                                        ? colorScheme.primary
+                                        : colorScheme.onSurface,
+                                    fontSize: 13,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
             ),
           ],
         ),

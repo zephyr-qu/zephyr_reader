@@ -17,9 +17,6 @@ void main() {
     final fontSize = _MockPersistedSignal<double>();
     final padding = _MockPersistedSignal<double>();
     final lineHeight = _MockPersistedSignal<double>();
-    final letterSpacing = _MockPersistedSignal<double>();
-    final paragraphSpacing = _MockPersistedSignal<double>();
-    final paragraphIndent = _MockPersistedSignal<double>();
     final textAlign = _MockPersistedSignal<ReaderTextAlign>();
     var selectedMode = ReadingMode.pagination;
 
@@ -29,12 +26,6 @@ void main() {
     when(() => padding.value).thenReturn(20);
     when(() => config.lineHeight).thenReturn(lineHeight);
     when(() => lineHeight.value).thenReturn(1.4);
-    when(() => config.letterSpacing).thenReturn(letterSpacing);
-    when(() => letterSpacing.value).thenReturn(0.0);
-    when(() => config.paragraphSpacing).thenReturn(paragraphSpacing);
-    when(() => paragraphSpacing.value).thenReturn(0.0);
-    when(() => config.paragraphIndent).thenReturn(paragraphIndent);
-    when(() => paragraphIndent.value).thenReturn(0.0);
     when(() => config.textAlign).thenReturn(textAlign);
     when(() => textAlign.value).thenReturn(ReaderTextAlign.auto);
 
@@ -59,9 +50,10 @@ void main() {
     expect(find.text('分页'), findsOneWidget);
     expect(find.text('滚动'), findsOneWidget);
     expect(find.text('行间距'), findsOneWidget);
-    expect(find.text('字间距'), findsOneWidget);
-    expect(find.text('段间距'), findsOneWidget);
-    expect(find.text('首行缩进'), findsOneWidget);
+    // 低频项已移除，移至设置页「排版与字体」
+    expect(find.text('字间距'), findsNothing);
+    expect(find.text('段间距'), findsNothing);
+    expect(find.text('首行缩进'), findsNothing);
     expect(find.text('文本对齐'), findsOneWidget);
     // 对齐方式平铺展示，只保留 跟随原书 / 左对齐 / 两端对齐
     expect(find.text('跟随原书'), findsOneWidget);
