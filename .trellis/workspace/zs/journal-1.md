@@ -289,3 +289,14 @@ REDUNDANCY_REPORT_V2 的 A/B/C/D 四类清理项全部执行完毕，5 个 commi
 **发现的结构问题（已顺带修复）**：bookshelf 'settings' 菜单项点击无效（switch 无该 case）——已把 _showSettingsSheet 从 wifi case 移到 settings case。
 
 全绿：dart analyze 0 / flutter test 22 / cargo clippy 0 / cargo test 102。
+
+### 修复阅读器滚动模式（2026-08-05）✅
+
+任务 08-04-fix-scroll-mode：滚动模式被实现成"上下翻页"（每滑一次跳一章），章节内不能滚。
+
+- **根因 A**：项目从不调 `FlutterReadium.setDefaultPreferences()` → 原生 WebView 以分页模式创建，ready 后才热切 scroll，重建与手势检测竞争
+- **根因 B**：`readium_reader_content.dart` 的 Listener 手势 hack（48px + 200ms + goToLocator）抢在原生滚动前消费手势成跳章
+- **修复**：open() 前 setDefaultPreferences(scroll) 预置正确模式；删除手势 hack 与 3 个边界方法；边界衔接交原生 goForwardVertical；测试与 ADR-021 更新
+- **提交**：fc24fc81（含迁移分支 WIP 整体 checkpoint）
+- **门禁**：dart analyze 0 / flutter test 25 全绿 / cargo clippy 0 / cargo test 99 passed
+- **待真机验证**：scroll 章节内连续滚动、滚到章尾原生是否自动衔接（若不自动需轻量边界信号兜底，design.md 有预案）

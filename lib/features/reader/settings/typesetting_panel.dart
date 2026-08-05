@@ -149,13 +149,23 @@ class _TypesettingPanelState extends State<TypesettingPanel> {
     ReaderThemeExtension readerTheme,
     AppLocalizations l10n,
   ) {
-    final labels = <ReaderTextAlign, String>{
-      ReaderTextAlign.auto: l10n.textAlignAuto,
-      ReaderTextAlign.left: l10n.textAlignLeft,
-      ReaderTextAlign.center: l10n.textAlignCenter,
-      ReaderTextAlign.right: l10n.textAlignRight,
-      ReaderTextAlign.justify: l10n.textAlignJustify,
-    };
+    final options = [
+      (
+        ReaderTextAlign.auto,
+        l10n.textAlignAuto,
+        PhosphorIconsRegular.textAa,
+      ),
+      (
+        ReaderTextAlign.left,
+        l10n.textAlignLeft,
+        PhosphorIconsRegular.textAlignLeft,
+      ),
+      (
+        ReaderTextAlign.justify,
+        l10n.textAlignJustify,
+        PhosphorIconsRegular.textAlignJustify,
+      ),
+    ];
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -169,24 +179,75 @@ class _TypesettingPanelState extends State<TypesettingPanel> {
             ),
           ),
           Expanded(
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<ReaderTextAlign>(
-                isExpanded: true,
-                value: widget.config.textAlign.value,
-                items: labels.entries
-                    .map(
-                      (entry) => DropdownMenuItem<ReaderTextAlign>(
-                        value: entry.key,
-                        child: Text(entry.value),
+            child: Row(
+              children: options.map((option) {
+                final isSelected = widget.config.textAlign.value == option.$1;
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: Semantics(
+                      button: true,
+                      selected: isSelected,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(6),
+                          onTap: () {
+                            if (isSelected) return;
+                            widget.config.textAlign.value = option.$1;
+                            widget.onChanged();
+                          },
+                          child: AnimatedContainer(
+                            duration: AnimTokens.medium,
+                            constraints: const BoxConstraints(minHeight: 48),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? readerTheme.accentColor.withValues(
+                                      alpha: 0.1,
+                                    )
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: isSelected
+                                    ? readerTheme.accentColor
+                                    : readerTheme.mutedColor.withValues(
+                                        alpha: 0.2,
+                                      ),
+                                width: isSelected ? 1.5 : 0.5,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  option.$3,
+                                  size: 16,
+                                  color: isSelected
+                                      ? readerTheme.accentColor
+                                      : readerTheme.mutedColor,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  option.$2,
+                                  style: TextStyle(
+                                    color: isSelected
+                                        ? readerTheme.accentColor
+                                        : readerTheme.textColor,
+                                    fontSize: 12,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  if (value == null) return;
-                  widget.config.textAlign.value = value;
-                  widget.onChanged();
-                },
-              ),
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ),
           const SizedBox(width: 36),
