@@ -20,11 +20,6 @@ use crate::domain::AppError;
 use crate::domain::book::{Book, BookFormat};
 use crate::domain::chapter::Chapter;
 use crate::parser::types::ParseResult;
-/// EPUB 分页：每页最小行数
-/// 防止每页行数过少导致显示异常
-/// EPUB 分页：每页最小字符数
-/// 防止分页过小导致性能问题
-pub const EPUB_MIN_CHARS_PER_PAGE: usize = 500;
 /// 解析 EPUB 文件
 ///
 /// # 参数

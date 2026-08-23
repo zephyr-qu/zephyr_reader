@@ -175,9 +175,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ttsSpeed => 'Speed';
 
   @override
-  String get dictionary => 'Dictionary Management';
-
-  @override
   String get wordCount => 'Words';
 
   @override
@@ -486,16 +483,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get feedback => 'Feedback';
-
-  @override
-  String get selectDictionaryFile => 'Select Dictionary File';
-
-  @override
-  String get selectMdxDescription => 'Please select a .mdx dictionary file…';
-
-  @override
-  String get dictionaryLoadFailed =>
-      'Dictionary load failed, please check the file';
 
   @override
   String get categoryManagement => 'Category Management';
@@ -982,11 +969,4 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get themePreviewSampleText =>
       'The spring wind has greened the southern shore again.';
-
-  @override
-  String get aboutFeatureLookup => 'Dictionary & Translation';
-
-  @override
-  String get aboutFeatureLookupDesc =>
-      'Offline dictionary with configurable translation API';
 }

@@ -24,7 +24,7 @@ Flutter UI / 状态 / 路由 / 设置
         ▼
 Rust API（薄 FFI 层）
         ├─ EPUB 导入、元数据、封面、目录
-        ├─ 书籍、分类、书签、进度、会话、统计、词典管理
+        ├─ 书籍、分类、书签、进度、会话、统计
         └─ SQLite 存储与备份
 
 flutter_readium ── EPUB 原生视口渲染

@@ -175,9 +175,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get ttsSpeed => '语速';
 
   @override
-  String get dictionary => '词典管理';
-
-  @override
   String get wordCount => '词数';
 
   @override
@@ -485,15 +482,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get feedback => '问题反馈';
-
-  @override
-  String get selectDictionaryFile => '选择词典文件';
-
-  @override
-  String get selectMdxDescription => '请选择一个 .mdx 词典文件…';
-
-  @override
-  String get dictionaryLoadFailed => '词典加载失败，请检查文件';
 
   @override
   String get categoryManagement => '分类管理';
@@ -969,10 +957,4 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get themePreviewSampleText => '春风又绿江南岸，明月何时照我还。';
-
-  @override
-  String get aboutFeatureLookup => '词典与翻译';
-
-  @override
-  String get aboutFeatureLookupDesc => '离线词典 + 可配置翻译 API';
 }

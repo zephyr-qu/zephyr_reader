@@ -728,7 +728,6 @@ version = "1.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "843fba2746e448b37e26a819579957415c8cef339bf08564fe8b7ddbd959573c"
 dependencies = [
- "crc32fast",
  "miniz_oxide",
  "zlib-rs",
 ]
@@ -1386,15 +1385,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6b947ae49db0d222b1dbc6b113ce7248a3fc3a6ca21b696717bfc000ba4484d8"
 
 [[package]]
-name = "minilzo-rs"
-version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c71a19a4b57d7712a7946e51a7a998f1d8252e16000706ae63243e951fcfce09"
-dependencies = [
- "cc",
-]
-
-[[package]]
 name = "miniz_oxide"
 version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1737,20 +1727,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rs-mdict"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd3d020651142866d554f182efc49e2e798f0ef9db4522df527729cc16d1fcc2"
-dependencies = [
- "base64",
- "encoding_rs",
- "flate2",
- "minilzo-rs",
- "regex",
- "thiserror",
-]
-
-[[package]]
 name = "rust_lib_zephyr_reader"
 version = "0.1.0"
 dependencies = [
@@ -1763,7 +1739,6 @@ dependencies = [
  "lru",
  "parking_lot",
  "pretty_assertions",
- "rs-mdict",
  "serde",
  "serde_json",
  "sqlx",

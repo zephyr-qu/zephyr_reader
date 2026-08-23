@@ -101,11 +101,6 @@ abstract final class SettingsKeys {
   static const ttsHighlightFollow = 'tts_highlight_follow';
   static const ttsDimOnLock = 'tts_dim_on_lock';
 
-  // ==================== 词典 ====================
-
-  /// 词典 MDX 文件路径
-  static const dictMdxPath = 'dict_mdx_path';
-
   // ==================== 其他 ====================
 
   /// 通知

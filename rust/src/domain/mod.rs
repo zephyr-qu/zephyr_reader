@@ -8,7 +8,6 @@ pub mod bookmark;
 pub mod category;
 pub mod chapter;
 pub mod cover;
-pub mod dictionary;
 pub mod engine_positions;
 pub mod progress;
 pub mod sessions;

@@ -5,7 +5,6 @@ pub mod book;
 pub mod bookmark;
 pub mod category;
 pub mod cover;
-pub mod dictionary;
 pub mod engine_position;
 pub mod progress;
 pub mod session;

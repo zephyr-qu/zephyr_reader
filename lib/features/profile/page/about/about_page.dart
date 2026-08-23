@@ -31,11 +31,6 @@ class AboutPage extends HookWidget {
       l10n.aboutFeaturePerformanceDesc,
     ),
     (
-      PhosphorIconsRegular.translate,
-      l10n.aboutFeatureLookup,
-      l10n.aboutFeatureLookupDesc,
-    ),
-    (
       PhosphorIconsRegular.palette,
       l10n.aboutFeatureThemes,
       l10n.aboutFeatureThemesDesc,

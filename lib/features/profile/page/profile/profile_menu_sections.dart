@@ -40,12 +40,6 @@ class ProfileMenuSections extends StatelessWidget {
             semantic: MenuItemSemantic.info,
             onTap: () => context.push(AppRoute.ttsSettings.path),
           ),
-          _SectionItem(
-            icon: PhosphorIconsRegular.bookOpen,
-            title: l10n.dictionary,
-            semantic: MenuItemSemantic.primary,
-            onTap: () => context.push(AppRoute.dictionarySettings.path),
-          ),
         ],
       ),
       // ── 显示与外观 ──

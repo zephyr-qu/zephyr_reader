@@ -71,7 +71,6 @@ flutter:
   generate: true
   assets:
     - .env
-    - assets/dictionary.mdx
 
   fonts:
     - family: Noto Serif SC

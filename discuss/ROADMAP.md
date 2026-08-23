@@ -248,7 +248,7 @@ Phase 7 已完成（`phase/7-cleanup-redundant-code` → `master`）。以下项
 | # | 优先级 | 项 | 说明 |
 | --- | -------- | ----- | ------ |
 | 1 | **P1** | 扫描 `domain/*/service.rs` | ✅ 已完成 — 13 个 service 逐文件审查，标出 7 个纯中间人（progress/chapter/stats/bookmark/vocabulary/sessions/category） |
-| 2 | **P1** | 逐项整改下沉 | ✅ 已完成 — 7 个纯中间人 service 合并到对应 API 层，删除 7 个 service.rs（~470 行）；当前保留 book/cover/backup/dictionary service |
+| 2 | **P1** | 逐项整改下沉 | ✅ 已完成 — 7 个纯中间人 service 合并到对应 API 层，删除 7 个 service.rs（~470 行）；当前保留 book/cover/backup service |
 | 3 | **P2** | 扫描 `api/*.rs` 聚合机会 | ✅ 已完成 — 识别 4 书架 API → 1 统一 API 机会 + upsertProgress/createSession 事务化机会 |
 | 4 | **P2** | 逐项聚合整改 | ✅ 已完成 — 新增 `list_bookshelf_books` 统一接口（支持可选 category/status/sort）；待 FRB codegen 后 Flutter 端简化 |
 | 5 | **P2** | 验证 | ✅ 已完成 — `cargo clippy -D warnings` 零告警，FRB codegen 成功，`flutter analyze lib/` 零错误 |

@@ -15,7 +15,6 @@ enum AppRoute {
   readingSessions('/statistics/sessions'),
   dataManagement('/settings/data-management'),
   ttsSettings('/settings/tts'),
-  dictionarySettings('/settings/dictionary'),
   typographySettings('/settings/typography'),
   themeBrightness('/settings/theme'),
   otherSettings('/settings/other');

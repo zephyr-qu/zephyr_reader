@@ -10,7 +10,6 @@ import 'package:zephyr_reader/features/home/page/home_page.dart';
 import 'package:zephyr_reader/features/home/page/splash_page.dart';
 import 'package:zephyr_reader/features/main_layout.dart';
 import 'package:zephyr_reader/features/profile/page/about/about_page.dart';
-import 'package:zephyr_reader/features/profile/page/dictionary/dictionary_settings_page.dart';
 import 'package:zephyr_reader/features/profile/page/other/other_settings_page.dart';
 import 'package:zephyr_reader/features/profile/page/profile/profile_page.dart';
 import 'package:zephyr_reader/features/profile/page/theme/theme_brightness_page.dart';
@@ -103,11 +102,6 @@ final router = GoRouter(
       name: AppRoute.ttsSettings.name,
       path: AppRoute.ttsSettings.path,
       builder: (_, _) => const TtsSettingsPage(),
-    ),
-    GoRoute(
-      name: AppRoute.dictionarySettings.name,
-      path: AppRoute.dictionarySettings.path,
-      builder: (_, _) => const DictionarySettingsPage(),
     ),
     GoRoute(
       name: AppRoute.typographySettings.name,

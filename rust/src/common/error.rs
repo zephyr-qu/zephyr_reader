@@ -115,7 +115,7 @@ pub enum AppError {
     InternalError { reason: String },
 
     /// 任务恐慌：tokio::spawn 的异步任务因 panic 而崩溃。
-    /// 用于双语对齐、MDict 查找、章节 IR 构建等跨线程操作。
+    /// 用于章节 IR 构建等跨线程操作。
     #[error("Task panic in {task_name}: {details}")]
     TaskPanic { task_name: String, details: String },
 

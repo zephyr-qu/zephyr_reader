@@ -422,12 +422,6 @@ abstract class AppLocalizations {
   /// **'语速'**
   String get ttsSpeed;
 
-  /// No description provided for @dictionary.
-  ///
-  /// In zh, this message translates to:
-  /// **'词典管理'**
-  String get dictionary;
-
   /// No description provided for @wordCount.
   ///
   /// In zh, this message translates to:
@@ -1009,24 +1003,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'问题反馈'**
   String get feedback;
-
-  /// No description provided for @selectDictionaryFile.
-  ///
-  /// In zh, this message translates to:
-  /// **'选择词典文件'**
-  String get selectDictionaryFile;
-
-  /// No description provided for @selectMdxDescription.
-  ///
-  /// In zh, this message translates to:
-  /// **'请选择一个 .mdx 词典文件…'**
-  String get selectMdxDescription;
-
-  /// No description provided for @dictionaryLoadFailed.
-  ///
-  /// In zh, this message translates to:
-  /// **'词典加载失败，请检查文件'**
-  String get dictionaryLoadFailed;
 
   /// No description provided for @categoryManagement.
   ///
@@ -1883,7 +1859,7 @@ abstract class AppLocalizations {
   /// No description provided for @clearAllDataContent.
   ///
   /// In zh, this message translates to:
-  /// **'此操作将清除阅读缓存和临时文件。\n\n不会删除书籍、笔记和生词数据。'**
+  /// **'此操作将清除阅读缓存和临时文件。\n\n不会删除书籍和阅读进度。'**
   String get clearAllDataContent;
 
   /// No description provided for @confirmClear.
@@ -1921,18 +1897,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'春风又绿江南岸，明月何时照我还。'**
   String get themePreviewSampleText;
-
-  /// No description provided for @aboutFeatureLookup.
-  ///
-  /// In zh, this message translates to:
-  /// **'词典与翻译'**
-  String get aboutFeatureLookup;
-
-  /// No description provided for @aboutFeatureLookupDesc.
-  ///
-  /// In zh, this message translates to:
-  /// **'离线词典 + 可配置翻译 API'**
-  String get aboutFeatureLookupDesc;
 }
 
 class _AppLocalizationsDelegate
