@@ -1,9 +1,7 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:signals_hooks/signals_hooks.dart';
-import 'package:zephyr_reader/core/presentation/widgets/settings/section_label.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.dart';
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_slider_tile.dart';
 import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart';
@@ -13,21 +11,15 @@ class PlaybackSection extends HookWidget {
   final TtsSettingsViewModel vm;
   final AppLocalizations l10n;
 
-  const PlaybackSection({
-    super.key,
-    required this.vm,
-    required this.l10n,
-  });
+  const PlaybackSection({super.key, required this.vm, required this.l10n});
 
   @override
   Widget build(BuildContext context) {
     final double speed = useSignalValue(vm.speed.signal);
     final double pitch = useSignalValue(vm.pitch.signal);
-    final int pauseBetween = useSignalValue(vm.pauseBetween.signal);
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SectionLabel(label: l10n.ttsPlaybackParams),
             SettingsCard(
               children: [
                 SettingsSliderTile(
@@ -49,17 +41,6 @@ class PlaybackSection extends HookWidget {
                   onChanged: (v) {
                     vm.pitch.value = v;
                   },
-                ),
-                SettingsSliderTile(
-                  label: l10n.ttsPauseBetween,
-                  value: '${pauseBetween}ms',
-                  current: pauseBetween.toDouble(),
-                  min: 0,
-                  max: 1000,
-                  onChanged: (v) {
-                    vm.pauseBetween.value = v.toInt();
-                  },
-                  step: 50,
                 ),
               ],
             ),

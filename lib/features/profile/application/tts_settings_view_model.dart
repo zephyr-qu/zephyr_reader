@@ -22,62 +22,6 @@ class TtsSettingsViewModel {
   /// 音调 (0.5–2.0)
   late final pitch = persistedDouble(_prefs, SettingsKeys.ttsPitch, 1.0);
 
-  /// 句间停顿 (ms, 0–1000)
-  late final pauseBetween = persistedInt(
-    _prefs,
-    SettingsKeys.ttsPauseBetween,
-    300,
-  );
-
-  // ==================== 双语朗读 ====================
-
-  /// 双语交替朗读
-  late final bilingualAlternate = persistedBool(
-    _prefs,
-    SettingsKeys.ttsBilingualAlternate,
-    true,
-  );
-
-  /// 仅朗读原文
-  late final originalOnly = persistedBool(
-    _prefs,
-    SettingsKeys.ttsOriginalOnly,
-    false,
-  );
-
-  /// 中英切换间隔 (ms)
-  late final switchInterval = persistedInt(
-    _prefs,
-    SettingsKeys.ttsSwitchInterval,
-    500,
-  );
-
-  // ==================== 行为偏好 ====================
-
-  /// 后台播放
-  late final backgroundPlay = persistedBool(
-    _prefs,
-    SettingsKeys.ttsBackgroundPlay,
-    true,
-  );
-
-  /// 自动翻页
-  late final autoPage = persistedBool(_prefs, SettingsKeys.ttsAutoPage, true);
-
-  /// 高亮跟随
-  late final highlightFollow = persistedBool(
-    _prefs,
-    SettingsKeys.ttsHighlightFollow,
-    true,
-  );
-
-  /// 息屏时降低音量
-  late final dimOnLock = persistedBool(
-    _prefs,
-    SettingsKeys.ttsDimOnLock,
-    false,
-  );
-
   /// Converts the settings supported by Readium's native TTS bridge.
   ///
   /// The remaining app-level settings are intentionally not encoded here:
@@ -89,13 +33,5 @@ class TtsSettingsViewModel {
   void dispose() {
     speed.dispose();
     pitch.dispose();
-    pauseBetween.dispose();
-    bilingualAlternate.dispose();
-    originalOnly.dispose();
-    switchInterval.dispose();
-    backgroundPlay.dispose();
-    autoPage.dispose();
-    highlightFollow.dispose();
-    dimOnLock.dispose();
   }
 }

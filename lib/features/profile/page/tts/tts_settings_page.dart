@@ -4,7 +4,6 @@ import 'package:zephyr_reader/features/profile/page/widgets/settings_app_bar.dar
 import 'package:zephyr_reader/di/service_locator.dart';
 import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart';
 import 'package:zephyr_reader/features/profile/page/tts/playback_section.dart';
-import 'package:zephyr_reader/features/profile/page/tts/behavior_section.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// TTS settings page.
@@ -20,10 +19,7 @@ class TtsSettingsPage extends HookWidget {
       appBar: SettingsAppBar(title: l10n.ttsSettings),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
-        children: [
-          BehaviorSection(vm: vm, l10n: l10n),
-          PlaybackSection(vm: vm, l10n: l10n),
-        ],
+        children: [PlaybackSection(vm: vm, l10n: l10n)],
       ),
     );
   }

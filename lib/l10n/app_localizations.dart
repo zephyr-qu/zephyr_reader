@@ -1676,89 +1676,11 @@ abstract class AppLocalizations {
   /// **'翻页间隔'**
   String get autoScrollSpeed;
 
-  /// No description provided for @ttsPlaybackParams.
-  ///
-  /// In zh, this message translates to:
-  /// **'播放参数'**
-  String get ttsPlaybackParams;
-
   /// No description provided for @ttsPitch.
   ///
   /// In zh, this message translates to:
   /// **'音调'**
   String get ttsPitch;
-
-  /// No description provided for @ttsPauseBetween.
-  ///
-  /// In zh, this message translates to:
-  /// **'句间停顿'**
-  String get ttsPauseBetween;
-
-  /// No description provided for @ttsOriginalOnly.
-  ///
-  /// In zh, this message translates to:
-  /// **'仅朗读原文'**
-  String get ttsOriginalOnly;
-
-  /// No description provided for @ttsSwitchInterval.
-  ///
-  /// In zh, this message translates to:
-  /// **'中英切换间隔'**
-  String get ttsSwitchInterval;
-
-  /// No description provided for @ttsBehavior.
-  ///
-  /// In zh, this message translates to:
-  /// **'行为偏好'**
-  String get ttsBehavior;
-
-  /// No description provided for @ttsBackgroundPlay.
-  ///
-  /// In zh, this message translates to:
-  /// **'后台播放'**
-  String get ttsBackgroundPlay;
-
-  /// No description provided for @ttsBackgroundPlayDesc.
-  ///
-  /// In zh, this message translates to:
-  /// **'切出应用或锁屏后继续朗读'**
-  String get ttsBackgroundPlayDesc;
-
-  /// No description provided for @ttsAutoPage.
-  ///
-  /// In zh, this message translates to:
-  /// **'自动翻页'**
-  String get ttsAutoPage;
-
-  /// No description provided for @ttsAutoPageDesc.
-  ///
-  /// In zh, this message translates to:
-  /// **'读完当前章节自动跳转下一章'**
-  String get ttsAutoPageDesc;
-
-  /// No description provided for @ttsHighlightFollow.
-  ///
-  /// In zh, this message translates to:
-  /// **'高亮跟随'**
-  String get ttsHighlightFollow;
-
-  /// No description provided for @ttsHighlightFollowDesc.
-  ///
-  /// In zh, this message translates to:
-  /// **'朗读时实时高亮当前句子'**
-  String get ttsHighlightFollowDesc;
-
-  /// No description provided for @ttsDimOnLock.
-  ///
-  /// In zh, this message translates to:
-  /// **'息屏时降低音量'**
-  String get ttsDimOnLock;
-
-  /// No description provided for @ttsDimOnLockDesc.
-  ///
-  /// In zh, this message translates to:
-  /// **'节省电量，适合睡前听书'**
-  String get ttsDimOnLockDesc;
 
   /// No description provided for @otherBehavior.
   ///
@@ -1781,7 +1703,7 @@ abstract class AppLocalizations {
   /// No description provided for @otherNotificationsDesc.
   ///
   /// In zh, this message translates to:
-  /// **'阅读目标提醒、同步完成通知'**
+  /// **'阅读目标提醒'**
   String get otherNotificationsDesc;
 
   /// No description provided for @otherStartupCheck.
@@ -1823,7 +1745,7 @@ abstract class AppLocalizations {
   /// No description provided for @resetAllSettingsDesc.
   ///
   /// In zh, this message translates to:
-  /// **'恢复默认排版、主题、同步配置'**
+  /// **'恢复默认排版、主题等设置'**
   String get resetAllSettingsDesc;
 
   /// No description provided for @clearAllData.
@@ -1847,7 +1769,7 @@ abstract class AppLocalizations {
   /// No description provided for @confirmResetContent.
   ///
   /// In zh, this message translates to:
-  /// **'此操作将恢复排版、主题、同步配置等所有设置为默认值。\n\n不会删除书籍、笔记和生词数据。'**
+  /// **'此操作将恢复排版、主题等所有设置为默认值。\n\n不会删除书籍和阅读进度。'**
   String get confirmResetContent;
 
   /// No description provided for @clearAllDataTitle.

@@ -847,46 +847,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get autoScrollSpeed => '翻页间隔';
 
   @override
-  String get ttsPlaybackParams => '播放参数';
-
-  @override
   String get ttsPitch => '音调';
-
-  @override
-  String get ttsPauseBetween => '句间停顿';
-
-  @override
-  String get ttsOriginalOnly => '仅朗读原文';
-
-  @override
-  String get ttsSwitchInterval => '中英切换间隔';
-
-  @override
-  String get ttsBehavior => '行为偏好';
-
-  @override
-  String get ttsBackgroundPlay => '后台播放';
-
-  @override
-  String get ttsBackgroundPlayDesc => '切出应用或锁屏后继续朗读';
-
-  @override
-  String get ttsAutoPage => '自动翻页';
-
-  @override
-  String get ttsAutoPageDesc => '读完当前章节自动跳转下一章';
-
-  @override
-  String get ttsHighlightFollow => '高亮跟随';
-
-  @override
-  String get ttsHighlightFollowDesc => '朗读时实时高亮当前句子';
-
-  @override
-  String get ttsDimOnLock => '息屏时降低音量';
-
-  @override
-  String get ttsDimOnLockDesc => '节省电量，适合睡前听书';
 
   @override
   String get otherBehavior => '应用行为';
@@ -898,7 +859,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get otherNotifications => '通知与提醒';
 
   @override
-  String get otherNotificationsDesc => '阅读目标提醒、同步完成通知';
+  String get otherNotificationsDesc => '阅读目标提醒';
 
   @override
   String get otherStartupCheck => '启动时检查更新';
@@ -919,7 +880,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get resetAllSettings => '重置所有设置';
 
   @override
-  String get resetAllSettingsDesc => '恢复默认排版、主题、同步配置';
+  String get resetAllSettingsDesc => '恢复默认排版、主题等设置';
 
   @override
   String get clearAllData => '清理缓存';
@@ -931,14 +892,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get confirmReset => '确认重置';
 
   @override
-  String get confirmResetContent =>
-      '此操作将恢复排版、主题、同步配置等所有设置为默认值。\n\n不会删除书籍、笔记和生词数据。';
+  String get confirmResetContent => '此操作将恢复排版、主题等所有设置为默认值。\n\n不会删除书籍和阅读进度。';
 
   @override
   String get clearAllDataTitle => '清理缓存';
 
   @override
-  String get clearAllDataContent => '此操作将清除阅读缓存和临时文件。\n\n不会删除书籍、笔记和生词数据。';
+  String get clearAllDataContent => '此操作将清除阅读缓存和临时文件。\n\n不会删除书籍和阅读进度。';
 
   @override
   String get confirmClear => '确认清除';

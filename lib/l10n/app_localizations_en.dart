@@ -852,47 +852,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get autoScrollSpeed => 'Scroll Interval';
 
   @override
-  String get ttsPlaybackParams => 'Playback';
-
-  @override
   String get ttsPitch => 'Pitch';
-
-  @override
-  String get ttsPauseBetween => 'Pause Between Sentences';
-
-  @override
-  String get ttsOriginalOnly => 'Original Only';
-
-  @override
-  String get ttsSwitchInterval => 'Switch Interval';
-
-  @override
-  String get ttsBehavior => 'Behavior';
-
-  @override
-  String get ttsBackgroundPlay => 'Background Play';
-
-  @override
-  String get ttsBackgroundPlayDesc =>
-      'Continue reading when app is backgrounded';
-
-  @override
-  String get ttsAutoPage => 'Auto Page Turn';
-
-  @override
-  String get ttsAutoPageDesc => 'Auto-advance to next chapter';
-
-  @override
-  String get ttsHighlightFollow => 'Highlight Follow';
-
-  @override
-  String get ttsHighlightFollowDesc => 'Highlight current sentence during TTS';
-
-  @override
-  String get ttsDimOnLock => 'Dim on Lock';
-
-  @override
-  String get ttsDimOnLockDesc => 'Save battery, ideal for bedtime listening';
 
   @override
   String get otherBehavior => 'Behavior';
@@ -904,8 +864,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get otherNotifications => 'Notifications';
 
   @override
-  String get otherNotificationsDesc =>
-      'Reading goal reminders, sync notifications';
+  String get otherNotificationsDesc => 'Reading goal reminders';
 
   @override
   String get otherStartupCheck => 'Check Updates on Start';
@@ -928,7 +887,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get resetAllSettingsDesc =>
-      'Reset typography, themes, sync to defaults';
+      'Reset typography, themes and other settings';
 
   @override
   String get clearAllData => 'Clear Cache';
@@ -942,14 +901,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get confirmResetContent =>
-      'This will reset typography, theme, sync settings to defaults.\n\nBooks, notes and vocabulary won\'t be deleted.';
+      'This will reset typography, theme and other settings to defaults.\n\nBooks and reading progress won\'t be deleted.';
 
   @override
   String get clearAllDataTitle => 'Clear Cache';
 
   @override
   String get clearAllDataContent =>
-      'This will clear reading cache and temporary files.\n\nBooks, notes and vocabulary won\'t be deleted.';
+      'This will clear reading cache and temporary files.\n\nBooks and reading progress won\'t be deleted.';
 
   @override
   String get confirmClear => 'Confirm Clear';

@@ -92,14 +92,6 @@ abstract final class SettingsKeys {
 
   static const ttsSpeed = 'tts_speed';
   static const ttsPitch = 'tts_pitch';
-  static const ttsPauseBetween = 'tts_pause_between';
-  static const ttsBilingualAlternate = 'tts_bilingual_alternate';
-  static const ttsOriginalOnly = 'tts_original_only';
-  static const ttsSwitchInterval = 'tts_switch_interval';
-  static const ttsBackgroundPlay = 'tts_background_play';
-  static const ttsAutoPage = 'tts_auto_page';
-  static const ttsHighlightFollow = 'tts_highlight_follow';
-  static const ttsDimOnLock = 'tts_dim_on_lock';
 
   // ==================== 其他 ====================
 
