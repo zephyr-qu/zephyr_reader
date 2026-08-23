@@ -11,7 +11,7 @@ Flutter + Rust 的离线 EPUB 阅读器。当前产品路线是 **EPUB Readium M
 - Readium EPUB 阅读器、翻页/滚动、Locator 进度恢复
 - 字号、主题、阅读排版设置
 - 基础书签、阅读统计、TTS 设置
-- 本地 SQLite 数据存储、备份/还原和 WebDAV 数据链路
+- 本地 SQLite 数据存储、备份/还原
 - 中文/英文界面
 
 当前不属于 MVP：TXT/Builtin 阅读器、PDF、裸 WebView、双引擎切换、全文搜索 UI、生词本、笔记/批注、多端账号同步。

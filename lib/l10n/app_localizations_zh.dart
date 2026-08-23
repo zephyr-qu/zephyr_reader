@@ -232,66 +232,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get resetToDefault => '重置为默认值';
 
   @override
-  String get webdavConfig => 'WebDAV 配置';
-
-  @override
-  String get serverUrl => '服务器地址';
-
-  @override
-  String get username => '用户名';
-
-  @override
-  String get password => '密码';
-
-  @override
-  String get remotePath => '远程路径';
-
-  @override
-  String get selectPreset => '选择预设';
-
-  @override
-  String get clearConfig => '清除配置';
-
-  @override
-  String get serverUrlRequired => '请输入服务器地址';
-
-  @override
-  String get serverUrlInvalid => '请输入完整的 URL（包含 http:// 或 https://）';
-
-  @override
-  String get usernameRequired => '请输入用户名';
-
-  @override
-  String get passwordRequired => '请输入密码';
-
-  @override
-  String get remotePathRequired => '请输入远程路径';
-
-  @override
-  String get remotePathInvalid => '远程路径应以 / 开头';
-
-  @override
-  String get configSaved => 'WebDAV 配置已保存';
-
-  @override
-  String get saveConfigFailed => '保存配置失败';
-
-  @override
-  String get configCleared => '配置已清除';
-
-  @override
-  String get testConnection => '测试连接';
-
-  @override
-  String get syncSuccess => '同步成功';
-
-  @override
-  String get syncFailed => '同步失败';
-
-  @override
-  String get syncConfigInvalid => '同步配置无效，请检查 WebDAV 设置';
-
-  @override
   String get dataCleared => '已清理缓存';
 
   @override
@@ -602,12 +542,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aboutFeatureAdaptiveDesc => '手机和平板自动适配';
 
   @override
-  String get aboutFeatureSync => 'WebDAV 同步';
-
-  @override
-  String get aboutFeatureSyncDesc => '多端同步与安全备份';
-
-  @override
   String get aboutCheckUpdate => '检查更新';
 
   @override
@@ -719,11 +653,6 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String timeHoursAgo(Object hours) {
     return '$hours 小时前';
-  }
-
-  @override
-  String lastSyncTime(Object time) {
-    return '上次同步：$time';
   }
 
   @override

@@ -536,126 +536,6 @@ abstract class AppLocalizations {
   /// **'重置为默认值'**
   String get resetToDefault;
 
-  /// No description provided for @webdavConfig.
-  ///
-  /// In zh, this message translates to:
-  /// **'WebDAV 配置'**
-  String get webdavConfig;
-
-  /// No description provided for @serverUrl.
-  ///
-  /// In zh, this message translates to:
-  /// **'服务器地址'**
-  String get serverUrl;
-
-  /// No description provided for @username.
-  ///
-  /// In zh, this message translates to:
-  /// **'用户名'**
-  String get username;
-
-  /// No description provided for @password.
-  ///
-  /// In zh, this message translates to:
-  /// **'密码'**
-  String get password;
-
-  /// No description provided for @remotePath.
-  ///
-  /// In zh, this message translates to:
-  /// **'远程路径'**
-  String get remotePath;
-
-  /// No description provided for @selectPreset.
-  ///
-  /// In zh, this message translates to:
-  /// **'选择预设'**
-  String get selectPreset;
-
-  /// No description provided for @clearConfig.
-  ///
-  /// In zh, this message translates to:
-  /// **'清除配置'**
-  String get clearConfig;
-
-  /// No description provided for @serverUrlRequired.
-  ///
-  /// In zh, this message translates to:
-  /// **'请输入服务器地址'**
-  String get serverUrlRequired;
-
-  /// No description provided for @serverUrlInvalid.
-  ///
-  /// In zh, this message translates to:
-  /// **'请输入完整的 URL（包含 http:// 或 https://）'**
-  String get serverUrlInvalid;
-
-  /// No description provided for @usernameRequired.
-  ///
-  /// In zh, this message translates to:
-  /// **'请输入用户名'**
-  String get usernameRequired;
-
-  /// No description provided for @passwordRequired.
-  ///
-  /// In zh, this message translates to:
-  /// **'请输入密码'**
-  String get passwordRequired;
-
-  /// No description provided for @remotePathRequired.
-  ///
-  /// In zh, this message translates to:
-  /// **'请输入远程路径'**
-  String get remotePathRequired;
-
-  /// No description provided for @remotePathInvalid.
-  ///
-  /// In zh, this message translates to:
-  /// **'远程路径应以 / 开头'**
-  String get remotePathInvalid;
-
-  /// No description provided for @configSaved.
-  ///
-  /// In zh, this message translates to:
-  /// **'WebDAV 配置已保存'**
-  String get configSaved;
-
-  /// No description provided for @saveConfigFailed.
-  ///
-  /// In zh, this message translates to:
-  /// **'保存配置失败'**
-  String get saveConfigFailed;
-
-  /// No description provided for @configCleared.
-  ///
-  /// In zh, this message translates to:
-  /// **'配置已清除'**
-  String get configCleared;
-
-  /// No description provided for @testConnection.
-  ///
-  /// In zh, this message translates to:
-  /// **'测试连接'**
-  String get testConnection;
-
-  /// No description provided for @syncSuccess.
-  ///
-  /// In zh, this message translates to:
-  /// **'同步成功'**
-  String get syncSuccess;
-
-  /// No description provided for @syncFailed.
-  ///
-  /// In zh, this message translates to:
-  /// **'同步失败'**
-  String get syncFailed;
-
-  /// No description provided for @syncConfigInvalid.
-  ///
-  /// In zh, this message translates to:
-  /// **'同步配置无效，请检查 WebDAV 设置'**
-  String get syncConfigInvalid;
-
   /// No description provided for @dataCleared.
   ///
   /// In zh, this message translates to:
@@ -1238,18 +1118,6 @@ abstract class AppLocalizations {
   /// **'手机和平板自动适配'**
   String get aboutFeatureAdaptiveDesc;
 
-  /// No description provided for @aboutFeatureSync.
-  ///
-  /// In zh, this message translates to:
-  /// **'WebDAV 同步'**
-  String get aboutFeatureSync;
-
-  /// No description provided for @aboutFeatureSyncDesc.
-  ///
-  /// In zh, this message translates to:
-  /// **'多端同步与安全备份'**
-  String get aboutFeatureSyncDesc;
-
   /// No description provided for @aboutCheckUpdate.
   ///
   /// In zh, this message translates to:
@@ -1465,12 +1333,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'{hours} 小时前'**
   String timeHoursAgo(Object hours);
-
-  /// No description provided for @lastSyncTime.
-  ///
-  /// In zh, this message translates to:
-  /// **'上次同步：{time}'**
-  String lastSyncTime(Object time);
 
   /// No description provided for @todayReading.
   ///

@@ -36,7 +36,7 @@ class UserAgreementPage extends StatelessWidget {
             title: '2. 服务说明',
             content: [
               '本应用是一款纯本地、高性能、双语友好的安卓离线小说阅读器。',
-              '核心功能 100% 离线可用，仅 WebDAV 同步功能需要网络连接。',
+              '核心功能 100% 离线可用。',
               '本应用采用 Flutter + Rust 技术架构，提供优质的阅读体验。',
             ],
           ),

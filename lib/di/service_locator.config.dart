@@ -9,12 +9,10 @@
 // coverage:ignore-file
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'package:dio/dio.dart' as _i361;
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
 import 'package:zephyr_reader/core/local/file_storage.dart' as _i772;
 import 'package:zephyr_reader/core/local/preferences_service.dart' as _i985;
-import 'package:zephyr_reader/core/network/network_module.dart' as _i510;
 import 'package:zephyr_reader/core/reading/config/reader_config.dart' as _i1067;
 import 'package:zephyr_reader/core/theme/theme_manager.dart' as _i182;
 import 'package:zephyr_reader/di/app_module.dart' as _i431;
@@ -26,10 +24,6 @@ import 'package:zephyr_reader/features/bookshelf/application/category_view_model
     as _i5;
 import 'package:zephyr_reader/features/data/application/backup_view_model.dart'
     as _i1022;
-import 'package:zephyr_reader/features/data/application/data_management_view_model.dart'
-    as _i965;
-import 'package:zephyr_reader/features/data/application/services/webdav_sync_service.dart'
-    as _i415;
 import 'package:zephyr_reader/features/profile/application/dictionary_settings_view_model.dart'
     as _i236;
 import 'package:zephyr_reader/features/profile/application/other_settings_view_model.dart'
@@ -47,23 +41,17 @@ extension GetItInjectableX on _i174.GetIt {
   }) async {
     final gh = _i526.GetItHelper(this, environment, environmentFilter);
     final appModule = _$AppModule();
-    final networkModule = _$NetworkModule();
     await gh.factoryAsync<_i985.PreferencesService>(
       () => appModule.providePreferencesService(),
       preResolve: true,
     );
     gh.factory<_i5.CategoryViewModel>(() => _i5.CategoryViewModel());
-    gh.factory<_i965.DataManagementViewModel>(
-      () => _i965.DataManagementViewModel(),
-    );
     gh.singleton<_i1067.ReaderBgColors>(() => _i1067.ReaderBgColors());
     gh.lazySingletonAsync<_i772.FileStorage>(() {
       final i = _i772.FileStorage();
       return i.init().then((_) => i);
     });
-    gh.lazySingleton<_i361.Dio>(() => networkModule.dio);
     gh.lazySingleton<_i339.BookImportService>(() => _i339.BookImportService());
-    gh.lazySingleton<_i415.WebDavSyncService>(() => _i415.WebDavSyncService());
     gh.lazySingleton<_i790.BookshelfViewModel>(
       () => _i790.BookshelfViewModel(
         gh<_i985.PreferencesService>(),
@@ -96,5 +84,3 @@ extension GetItInjectableX on _i174.GetIt {
 }
 
 class _$AppModule extends _i431.AppModule {}
-
-class _$NetworkModule extends _i510.NetworkModule {}

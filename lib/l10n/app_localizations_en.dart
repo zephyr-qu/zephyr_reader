@@ -232,68 +232,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resetToDefault => 'Reset to Default';
 
   @override
-  String get webdavConfig => 'WebDAV Config';
-
-  @override
-  String get serverUrl => 'Server URL';
-
-  @override
-  String get username => 'Username';
-
-  @override
-  String get password => 'Password';
-
-  @override
-  String get remotePath => 'Remote Path';
-
-  @override
-  String get selectPreset => 'Select Preset';
-
-  @override
-  String get clearConfig => 'Clear Config';
-
-  @override
-  String get serverUrlRequired => 'Please enter server URL';
-
-  @override
-  String get serverUrlInvalid =>
-      'Please enter a full URL (including http:// or https://)';
-
-  @override
-  String get usernameRequired => 'Please enter username';
-
-  @override
-  String get passwordRequired => 'Please enter password';
-
-  @override
-  String get remotePathRequired => 'Please enter remote path';
-
-  @override
-  String get remotePathInvalid => 'Remote path should start with /';
-
-  @override
-  String get configSaved => 'WebDAV config saved';
-
-  @override
-  String get saveConfigFailed => 'Failed to save config';
-
-  @override
-  String get configCleared => 'Config cleared';
-
-  @override
-  String get testConnection => 'Test Connection';
-
-  @override
-  String get syncSuccess => 'Sync Successful';
-
-  @override
-  String get syncFailed => 'Sync Failed';
-
-  @override
-  String get syncConfigInvalid =>
-      'Invalid sync config, please check WebDAV settings';
-
-  @override
   String get dataCleared => 'Cache cleared';
 
   @override
@@ -609,12 +547,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Adaptive layout for phones and tablets';
 
   @override
-  String get aboutFeatureSync => 'WebDAV Sync';
-
-  @override
-  String get aboutFeatureSyncDesc => 'Cross-device sync & secure backup';
-
-  @override
   String get aboutCheckUpdate => 'Check for Updates';
 
   @override
@@ -726,11 +658,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String timeHoursAgo(Object hours) {
     return '$hours hr ago';
-  }
-
-  @override
-  String lastSyncTime(Object time) {
-    return 'Last sync: $time';
   }
 
   @override

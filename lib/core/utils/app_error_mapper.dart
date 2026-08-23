@@ -6,7 +6,6 @@ library;
 
 import 'dart:io';
 
-import 'package:dio/dio.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
 
 // 导入 FRB 生成的类型化 AppError 子类
@@ -51,17 +50,6 @@ class AppErrorMapper {
       );
     }
 
-    // ===== 网络错误 =====
-    if (error is DioException) {
-      return _mapDioError(error);
-    }
-    if (error is SocketException) {
-      return '网络异常，请检查网络连接';
-    }
-    if (error is HandshakeException) {
-      return '安全连接失败，可能是证书问题';
-    }
-
     // ===== 文件/IO 错误 =====
     if (error is FileSystemException) {
       if (error.osError?.errorCode == 2) {
@@ -81,25 +69,5 @@ class AppErrorMapper {
     }
 
     return '操作失败，请稍后重试';
-  }
-
-  static String _mapDioError(DioException e) {
-    switch (e.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.sendTimeout:
-      case DioExceptionType.receiveTimeout:
-        return '网络请求超时，请检查网络连接';
-      case DioExceptionType.connectionError:
-        return '无法连接到服务器';
-      case DioExceptionType.badResponse:
-        final code = e.response?.statusCode;
-        if (code == 404) return '请求的资源不存在';
-        if (code == 500) return '服务器内部错误';
-        return '服务器返回异常 (${code ?? '未知'})';
-      case DioExceptionType.cancel:
-        return '请求已取消';
-      default:
-        return '网络异常，请检查网络连接';
-    }
   }
 }

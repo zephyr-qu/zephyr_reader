@@ -45,11 +45,6 @@ class AboutPage extends HookWidget {
       l10n.aboutFeatureAdaptive,
       l10n.aboutFeatureAdaptiveDesc,
     ),
-    (
-      PhosphorIconsRegular.arrowsClockwise,
-      l10n.aboutFeatureSync,
-      l10n.aboutFeatureSyncDesc,
-    ),
   ];
 
   static const _techStack = [
