@@ -6,6 +6,14 @@ import 'package:zephyr_reader/src/rust/domain/bookmark/models.dart';
 import 'package:flutter_readium/flutter_readium.dart';
 
 typedef BookmarkErrorHandler = void Function(Object error);
+typedef BookmarkCreator =
+    Future<Bookmark> Function({
+      required String bookId,
+      required int chapterIndex,
+      required int charOffset,
+      required String title,
+      String? locatorJson,
+    });
 
 class ReadiumBookmarkController {
   ReadiumBookmarkController({
@@ -13,18 +21,22 @@ class ReadiumBookmarkController {
     required this.onError,
     required this.bookmarks,
     required this.isBookmarked,
+    this.createBookmark = bookmark_api.createBookmark,
   });
 
   final String bookId;
   final BookmarkErrorHandler onError;
   final Signal<List<Bookmark>> bookmarks;
   final Signal<bool> isBookmarked;
+  final BookmarkCreator createBookmark;
 
   Future<void> load() async {
     try {
       bookmarks.value = await bookmark_api.listBookmarksByBook(bookId: bookId);
       _updateState();
-    } catch (_) {}
+    } catch (e) {
+      onError(e);
+    }
   }
 
   Future<void> add({
@@ -33,16 +45,20 @@ class ReadiumBookmarkController {
     required int charOffset,
     required String title,
   }) async {
+    final locatorJson = jsonEncode(locator.toJson());
+    if (bookmarks.value.any((entry) => entry.locatorJson == locatorJson)) {
+      return;
+    }
     try {
-      final bookmark = await bookmark_api.createBookmark(
+      final bookmark = await createBookmark(
         bookId: bookId,
         chapterIndex: chapterIndex,
         charOffset: charOffset,
         title: title,
-        locatorJson: jsonEncode(locator.toJson()),
+        locatorJson: locatorJson,
       );
       bookmarks.value = [...bookmarks.value, bookmark];
-      _updateState();
+      _updateState(locator: locator);
     } catch (e) {
       onError(e);
     }
@@ -68,7 +84,10 @@ class ReadiumBookmarkController {
     required Future<void> Function(Locator locator) navigate,
   }) async {
     final locatorJson = entry.locatorJson;
-    if (locatorJson == null) return;
+    if (locatorJson == null) {
+      onError(StateError('书签缺少定位信息'));
+      return;
+    }
     try {
       final locator = Locator.fromJson(
         jsonDecode(locatorJson) as Map<String, dynamic>,

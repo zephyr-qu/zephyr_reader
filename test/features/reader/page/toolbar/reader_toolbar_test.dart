@@ -11,6 +11,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     var closeCount = 0;
+    var toggleBookmarkCount = 0;
     var catalogCount = 0;
     var bookmarkCount = 0;
     var typesettingCount = 0;
@@ -31,6 +32,8 @@ void main() {
                 progress: '42%',
                 readerTheme: readerTheme,
                 onClose: () => closeCount += 1,
+                isBookmarked: false,
+                onToggleBookmark: () => toggleBookmarkCount += 1,
               ),
               const Spacer(),
               ReaderBottomToolbar(
@@ -40,7 +43,6 @@ void main() {
                 onToggleTypesetting: () => typesettingCount += 1,
                 onToggleDisplay: () => displayCount += 1,
                 onToggleAssist: () => assistCount += 1,
-                isBookmarked: true,
                 isTtsPlaying: false,
               ),
             ],
@@ -54,12 +56,12 @@ void main() {
     expect(find.text('章节列表'), findsOneWidget);
     expect(find.text('书签'), findsOneWidget);
     expect(find.text('文字排版'), findsOneWidget);
-    expect(find.text('外观主题'), findsOneWidget);
+    expect(find.text('阅读外观'), findsOneWidget);
     expect(find.text('阅读辅助'), findsOneWidget);
     expect(find.text('上一个'), findsNothing);
     expect(find.text('下一个'), findsNothing);
 
-    final backButton = find.byType(IconButton);
+    final backButton = find.byTooltip('返回');
     expect(tester.getSize(backButton).height, greaterThanOrEqualTo(48));
     final catalogButton = find.ancestor(
       of: find.text('章节列表'),
@@ -81,14 +83,16 @@ void main() {
     );
 
     await tester.tap(backButton);
+    await tester.tap(find.byTooltip('添加书签'));
     await tester.tap(find.text('章节列表'));
     await tester.tap(find.text('书签'));
     await tester.tap(find.text('文字排版'));
-    await tester.tap(find.text('外观主题'));
+    await tester.tap(find.text('阅读外观'));
     await tester.tap(find.text('阅读辅助'));
     await tester.pump();
 
     expect(closeCount, 1);
+    expect(toggleBookmarkCount, 1);
     expect(catalogCount, 1);
     expect(bookmarkCount, 1);
     expect(typesettingCount, 1);

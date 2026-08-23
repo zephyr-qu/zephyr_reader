@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/core/reading/config/reader_config.dart';
 
-/// 阅读器主题扩展
+/// 阅读页专用配色扩展，不代表整个 App 的 Material 主题。
 ///
 /// 自定义 [ThemeExtension]，定义阅读页专用的颜色体系。
 /// 提供亮色、深色和护眼色（sepia）三套预设配色方案，

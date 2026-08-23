@@ -50,6 +50,9 @@ abstract final class SettingsKeys {
   /// 阅读模式（分页/滚动）
   static const readerReadingMode = 'reader_reading_mode';
 
+  /// 正文对齐方式
+  static const readerTextAlign = 'reader_text_align';
+
   static const readerPadding = 'reader_padding';
 
   /// 阅读背景色预设索引
@@ -65,7 +68,6 @@ abstract final class SettingsKeys {
   static const readerLetterSpacing = 'reader_letter_spacing';
   static const readerParagraphSpacing = 'reader_paragraph_spacing';
   static const readerParagraphIndent = 'reader_paragraph_indent';
-  static const readerTextAlign = 'reader_text_align';
 
   // ==================== 书架 ====================
 

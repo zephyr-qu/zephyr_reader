@@ -17,7 +17,6 @@ class ReadiumReaderContent extends HookWidget {
   final String filePath;
   final Widget Function()? loadingBuilder;
   final Widget Function(String error, VoidCallback retry)? errorBuilder;
-  final VoidCallback? onViewportTap;
   final ValueNotifier<bool>? shouldShowControls;
 
   const ReadiumReaderContent({
@@ -26,7 +25,6 @@ class ReadiumReaderContent extends HookWidget {
     required this.filePath,
     this.loadingBuilder,
     this.errorBuilder,
-    this.onViewportTap,
     this.shouldShowControls,
   });
 
@@ -35,7 +33,14 @@ class ReadiumReaderContent extends HookWidget {
     final retryAttempt = useState(0);
     final horizontalDragDistance = useRef(0.0);
     final readingMode = useSignalValue(vm.readingMode) as ReadingMode;
-    final isPagination = readingMode == ReadingMode.pagination;
+    // Reading mode changes the native pager type, so that change gets a fresh
+    // Platform View. Text alignment is submitted to the existing native
+    // navigator and must not replace the view while it is mounted.
+    final viewportKey = useMemoized(GlobalKey.new, [
+      filePath,
+      retryAttempt.value,
+      readingMode,
+    ]);
     final openFuture = useMemoized(() => vm.open(filePath), [
       filePath,
       retryAttempt.value,
@@ -79,48 +84,59 @@ class ReadiumReaderContent extends HookWidget {
         }
 
         final pub = snapshot.data!;
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onHorizontalDragStart: (_) => horizontalDragDistance.value = 0,
-          onHorizontalDragUpdate: (details) {
-            if (isPagination) {
-              horizontalDragDistance.value += details.primaryDelta ?? 0;
-            }
-          },
-          onHorizontalDragEnd: (details) {
-            final distance = horizontalDragDistance.value;
-            final velocity = details.primaryVelocity ?? 0;
-            horizontalDragDistance.value = 0;
-            if (!isPagination) return;
-
-            if (distance <= -48 || velocity <= -300) {
-              unawaited(vm.goRight());
-            } else if (distance >= 48 || velocity >= 300) {
-              unawaited(vm.goLeft());
-            }
-          },
-          onHorizontalDragCancel: () => horizontalDragDistance.value = 0,
-          onTap: shouldShowControls == null ? onViewportTap : null,
+        final isPagination = readingMode == ReadingMode.pagination;
+        final viewport = GestureDetector(
+          behavior: isPagination
+              ? HitTestBehavior.opaque
+              : HitTestBehavior.deferToChild,
+          onHorizontalDragStart: isPagination
+              ? (_) => horizontalDragDistance.value = 0
+              : null,
+          onHorizontalDragUpdate: isPagination
+              ? (details) {
+                  horizontalDragDistance.value += details.primaryDelta ?? 0;
+                }
+              : null,
+          onHorizontalDragEnd: isPagination
+              ? (details) {
+                  final distance = horizontalDragDistance.value;
+                  final velocity = details.primaryVelocity ?? 0;
+                  horizontalDragDistance.value = 0;
+                  if (distance <= -48 || velocity <= -300) {
+                    unawaited(vm.goRight());
+                  } else if (distance >= 48 || velocity >= 300) {
+                    unawaited(vm.goLeft());
+                  }
+                }
+              : null,
+          onHorizontalDragCancel: isPagination
+              ? () => horizontalDragDistance.value = 0
+              : null,
           child: _ReadiumViewport(
-            vm: vm,
+            viewportKey: viewportKey,
             publication: pub,
-            initialLocator: vm.initialLocator,
+            initialLocator: vm.currentLocator ?? vm.initialLocator,
             shouldShowControls: shouldShowControls,
           ),
         );
+        // Subscribe before the native Platform View is created. Its ready
+        // status is broadcast and can otherwise be emitted before the old
+        // post-frame subscription is installed.
+        unawaited(vm.onViewportReady());
+        return viewport;
       },
     );
   }
 }
 
-class _ReadiumViewport extends HookWidget {
-  final ReadiumViewModel vm;
+class _ReadiumViewport extends StatelessWidget {
+  final GlobalKey viewportKey;
   final Publication publication;
   final Locator? initialLocator;
   final ValueNotifier<bool>? shouldShowControls;
 
   const _ReadiumViewport({
-    required this.vm,
+    required this.viewportKey,
     required this.publication,
     required this.initialLocator,
     required this.shouldShowControls,
@@ -128,14 +144,8 @@ class _ReadiumViewport extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    useEffect(() {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        unawaited(vm.onViewportReady());
-      });
-      return null;
-    }, [publication]);
-
     return ReadiumReaderWidget(
+      key: viewportKey,
       publication: publication,
       initialLocator: initialLocator,
       shouldShowControls: shouldShowControls,

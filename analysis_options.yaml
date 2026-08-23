@@ -48,6 +48,13 @@ analyzer:
     - 'rust_builder/**'
     - 'lib/src/**'
     - 'piolium/**'
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
 
   errors:
     avoid_print: error

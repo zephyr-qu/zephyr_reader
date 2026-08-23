@@ -8,9 +8,13 @@ class ReaderTypographyDefaults {
   /// 默认字号 100%（不缩放 EPUB 原本字号）。
   static const double fontSize = 100.0;
 
+  /// 阅读页字号范围，避免过小或过大导致排版失真。
+  static const double minFontSize = 80.0;
+  static const double maxFontSize = 180.0;
+
   /// 旧设置界面的页边距范围；Readium 侧使用以 [padding] 为 1.0 的倍率。
-  static const double minPadding = 8.0;
-  static const double maxPadding = 40.0;
+  static const double minPadding = 12.0;
+  static const double maxPadding = 36.0;
 
   static const double padding = 20.0;
   static const int readerBgColorIndex = 1; // 羊皮纸 #F5F0E8
@@ -24,6 +28,9 @@ class ReaderTypographyDefaults {
 
   /// Readium line-height multiplier.
   static const double lineHeight = 1.4;
+
+  static const double minLineHeight = 1.2;
+  static const double maxLineHeight = 2.0;
 
   /// Readium letter spacing in em units.
   static const double letterSpacing = 0.0;

@@ -9,24 +9,43 @@ Widget buildHandle({
   required ReaderThemeExtension theme,
   required VoidCallback onClose,
 }) {
-  return GestureDetector(
-    onVerticalDragEnd: (details) {
-      if (details.primaryVelocity != null && details.primaryVelocity! > 300) {
-        onClose();
-      }
-    },
-    child: Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Center(
-        child: Container(
-          width: 36,
-          height: 4,
-          decoration: BoxDecoration(
-            color: theme.mutedColor.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(2),
+  return SizedBox(
+    height: 56,
+    child: Stack(
+      alignment: Alignment.center,
+      children: [
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onVerticalDragEnd: (details) {
+            if (details.primaryVelocity != null &&
+                details.primaryVelocity! > 300) {
+              onClose();
+            }
+          },
+          child: SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: theme.mutedColor.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
           ),
         ),
-      ),
+        Positioned(
+          right: 4,
+          child: IconButton(
+            tooltip: '关闭',
+            onPressed: onClose,
+            icon: Icon(Icons.close, color: theme.textColor),
+          ),
+        ),
+      ],
     ),
   );
 }
@@ -148,6 +167,7 @@ Widget themeSelector({
               },
               child: AnimatedContainer(
                 duration: AnimTokens.medium,
+                constraints: const BoxConstraints(minHeight: 48),
                 padding: const EdgeInsets.symmetric(vertical: 7),
                 decoration: BoxDecoration(
                   color: isSelected
@@ -191,13 +211,12 @@ Widget themeSelector({
   );
 }
 
-
-
-
 Widget bgColorPicker({
   required ReaderThemeExtension readerTheme,
   required AppLocalizations l10n,
   required ReaderConfig config,
+  required int selectedIndex,
+  VoidCallback? onChanged,
 }) {
   final presetColors = ReaderBgColors.presets;
   final accentColor = readerTheme.accentColor;
@@ -208,59 +227,40 @@ Widget bgColorPicker({
       spacing: 8,
       runSpacing: 8,
       children: List.generate(presetColors.length, (i) {
-        final isSelected = config.readerBgColorIndex.value == i;
+        final isSelected = selectedIndex == i;
         return GestureDetector(
-          onTap: () => config.readerBgColorIndex.value = i,
-          child: Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: presetColors[i].withValues(alpha: 1.0),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(
-                color: isSelected
-                    ? accentColor
-                    : readerTheme.mutedColor.withValues(alpha: 0.2),
-                width: isSelected ? 2.5 : 0.5,
+          onTap: () {
+            config.readerBgColorIndex.value = i;
+            onChanged?.call();
+          },
+          child: SizedBox.square(
+            dimension: 48,
+            child: Center(
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: presetColors[i].withValues(alpha: 1.0),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: isSelected
+                        ? accentColor
+                        : readerTheme.mutedColor.withValues(alpha: 0.2),
+                    width: isSelected ? 2.5 : 0.5,
+                  ),
+                ),
+                child: isSelected
+                    ? Icon(
+                        PhosphorIconsRegular.check,
+                        size: 16,
+                        color: accentColor,
+                      )
+                    : null,
               ),
             ),
-            child: isSelected
-                ? Icon(PhosphorIconsRegular.check, size: 16, color: accentColor)
-                : null,
           ),
         );
       }),
-    ),
-  );
-}
-
-Widget autoScrollTile({
-  required ReaderThemeExtension readerTheme,
-  required AppLocalizations l10n,
-  required ReaderConfig config,
-}) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 4),
-    child: Row(
-      children: [
-        Icon(
-          PhosphorIconsRegular.scroll,
-          size: 15,
-          color: readerTheme.mutedColor,
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            l10n.autoScroll,
-            style: TextStyle(color: readerTheme.textColor, fontSize: 13),
-          ),
-        ),
-        Switch(
-          value: config.autoScroll.value,
-          onChanged: (v) => config.autoScroll.value = v,
-          activeThumbColor: readerTheme.accentColor,
-        ),
-      ],
     ),
   );
 }

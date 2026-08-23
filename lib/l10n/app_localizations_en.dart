@@ -142,19 +142,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get textAlignment => 'Text Alignment';
 
   @override
-  String get textAlignAuto => 'Publisher Default';
+  String get textAlignAuto => 'Default';
 
   @override
   String get textAlignLeft => 'Left';
 
   @override
-  String get textAlignCenter => 'Center';
-
-  @override
-  String get textAlignRight => 'Right';
-
-  @override
-  String get textAlignJustify => 'Justified';
+  String get textAlignJustify => 'Justify';
 
   @override
   String get pageMargin => 'Page Margin';
@@ -491,7 +485,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loadFailed => 'Failed to load';
 
   @override
-  String get appearanceSection => 'Appearance';
+  String get appearanceSection => 'Reading Appearance';
 
   @override
   String get readingModeSection => 'Reading Mode';
@@ -1061,9 +1055,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get themePreviewSampleText =>
       'The spring wind has greened the southern shore again.';
-
-  @override
-  String get textAlign => 'Text Alignment';
 
   @override
   String get aboutFeatureLookup => 'Dictionary & Translation';

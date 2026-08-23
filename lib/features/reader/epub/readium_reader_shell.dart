@@ -57,8 +57,12 @@ class ReadiumReaderShell extends HookWidget {
     final bool isTtsPlaying = useSignalValue(vm.isTtsPlaying) as bool;
     final ReadingMode readingMode =
         useSignalValue(vm.readingMode) as ReadingMode;
+    final bool isScrollModeSupported =
+        useSignalValue(vm.isScrollModeSupported) as bool;
     final String? errorMessage = useSignalValue(vm.error) as String?;
     final bool isBookmarked = useSignalValue(vm.isBookmarked) as bool;
+    final List<Bookmark> bookmarks =
+        useSignalValue(vm.bookmarks) as List<Bookmark>;
 
     final scaffoldKey = useRef(GlobalKey<ScaffoldState>());
     final chromeVisible = useState(true);
@@ -78,48 +82,11 @@ class ReadiumReaderShell extends HookWidget {
         lifecycle.dispose();
         unawaited(vm.close());
       };
-    }, []);
+    }, [vm]);
 
     final String progressText = progress > 0 || statusText == 'ready'
         ? '${(progress * 100).toStringAsFixed(0)}%'
         : statusText;
-
-    void showBookmarkList() {
-      final baseTheme = Theme.of(context);
-      showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (sheetContext) => HookBuilder(
-          builder: (_) {
-            final sheetBookmarks =
-                useSignalValue(vm.bookmarks) as List<Bookmark>;
-            final sheetIsBookmarked = useSignalValue(vm.isBookmarked) as bool;
-            return Theme(
-              data: baseTheme.copyWith(extensions: [readerTheme]),
-              child: ReaderBookmarkSheet(
-                bookmarks: sheetBookmarks,
-                readerTheme: readerTheme,
-                isCurrentPageBookmarked: sheetIsBookmarked,
-                onToggleCurrent: () async {
-                  if (vm.isBookmarked.value) {
-                    await vm.removeBookmark();
-                  } else {
-                    await vm.addBookmark();
-                  }
-                },
-                onSelect: (entry) {
-                  Navigator.pop(sheetContext);
-                  chromeVisible.value = false;
-                  unawaited(vm.goToBookmark(entry));
-                },
-                onDelete: vm.deleteBookmarkByEntry,
-              ),
-            );
-          },
-        ),
-      );
-    }
 
     void showSettings(ReaderPanelType panelType) {
       final baseTheme = Theme.of(context);
@@ -133,6 +100,7 @@ class ReadiumReaderShell extends HookWidget {
             panelType: panelType,
             config: config,
             readingMode: readingMode,
+            isScrollModeSupported: isScrollModeSupported,
             onReadingModeChanged: (mode) => unawaited(vm.setReadingMode(mode)),
             isTtsPlaying: isTtsPlaying,
             onTtsToggle: () => unawaited(vm.toggleTts()),
@@ -171,6 +139,19 @@ class ReadiumReaderShell extends HookWidget {
           vm,
           readerTheme,
         ),
+        endDrawer: Theme(
+          data: Theme.of(context).copyWith(extensions: [readerTheme]),
+          child: ReaderBookmarkDrawer(
+            bookmarks: bookmarks,
+            readerTheme: readerTheme,
+            onSelect: (entry) {
+              Navigator.pop(context);
+              chromeVisible.value = false;
+              unawaited(vm.goToBookmark(entry));
+            },
+            onDelete: vm.deleteBookmarkByEntry,
+          ),
+        ),
         body: Stack(
           children: [
             Positioned.fill(
@@ -192,6 +173,8 @@ class ReadiumReaderShell extends HookWidget {
                   progress: progressText,
                   readerTheme: readerTheme,
                   onClose: () => Navigator.maybePop(context),
+                  isBookmarked: isBookmarked,
+                  onToggleBookmark: () => unawaited(vm.toggleBookmark()),
                 ),
               ),
             if (chromeVisible.value)
@@ -203,12 +186,12 @@ class ReadiumReaderShell extends HookWidget {
                   readerTheme: readerTheme,
                   onShowCatalog: () =>
                       scaffoldKey.value.currentState?.openDrawer(),
-                  onShowBookmarks: showBookmarkList,
+                  onShowBookmarks: () =>
+                      scaffoldKey.value.currentState?.openEndDrawer(),
                   onToggleTypesetting: () =>
                       showSettings(ReaderPanelType.typesetting),
                   onToggleDisplay: () => showSettings(ReaderPanelType.display),
                   onToggleAssist: () => showSettings(ReaderPanelType.assist),
-                  isBookmarked: isBookmarked,
                   isTtsPlaying: isTtsPlaying,
                 ),
               ),

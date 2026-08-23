@@ -9,11 +9,12 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// Exposes the typography preferences supported by the Readium bridge.
 /// Publisher-owned layout controls remain intentionally out of this panel.
-/// 仅保留常用项（字号/页边距/行高/文本对齐/阅读模式）；
+/// 仅保留常用项（字号/页边距/行高/对齐方式/阅读模式）；
 /// 字间距/段间距/首行缩进等低频项在设置页「排版与字体」中提供。
 class TypesettingPanel extends StatefulWidget {
   final ReaderConfig config;
   final ReadingMode readingMode;
+  final bool isScrollModeSupported;
   final ValueChanged<ReadingMode> onReadingModeChanged;
   final VoidCallback onChanged;
 
@@ -21,6 +22,7 @@ class TypesettingPanel extends StatefulWidget {
     super.key,
     required this.config,
     required this.readingMode,
+    this.isScrollModeSupported = true,
     required this.onReadingModeChanged,
     required this.onChanged,
   });
@@ -50,6 +52,24 @@ class _TypesettingPanelState extends State<TypesettingPanel> {
   Widget build(BuildContext context) {
     final readerTheme = Theme.of(context).extension<ReaderThemeExtension>()!;
     final l10n = AppLocalizations.of(context)!;
+    final fontSize = widget.config.fontSize.value
+        .clamp(
+          ReaderTypographyDefaults.minFontSize,
+          ReaderTypographyDefaults.maxFontSize,
+        )
+        .toDouble();
+    final padding = widget.config.padding.value
+        .clamp(
+          ReaderTypographyDefaults.minPadding,
+          ReaderTypographyDefaults.maxPadding,
+        )
+        .toDouble();
+    final lineHeight = widget.config.lineHeight.value
+        .clamp(
+          ReaderTypographyDefaults.minLineHeight,
+          ReaderTypographyDefaults.maxLineHeight,
+        )
+        .toDouble();
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -61,44 +81,43 @@ class _TypesettingPanelState extends State<TypesettingPanel> {
         ),
         sliderTile(
           label: l10n.fontSize,
-          value: widget.config.fontSize.value,
-          min: 80,
-          max: 200,
-          divisions: 24,
-          display: '${widget.config.fontSize.value.round()}%',
+          value: fontSize,
+          min: ReaderTypographyDefaults.minFontSize,
+          max: ReaderTypographyDefaults.maxFontSize,
+          divisions: 20,
+          display: '${fontSize.round()}%',
           onChanged: (value) {
-            widget.config.fontSize.value = value;
+            setState(() => widget.config.fontSize.value = value);
             widget.onChanged();
           },
           readerTheme: readerTheme,
         ),
         sliderTile(
           label: l10n.pageMargin,
-          value: widget.config.padding.value,
+          value: padding,
           min: ReaderTypographyDefaults.minPadding,
           max: ReaderTypographyDefaults.maxPadding,
-          divisions: 16,
-          display: '${widget.config.padding.value.round()}',
+          divisions: 12,
+          display: '${padding.round()}',
           onChanged: (value) {
-            widget.config.padding.value = value;
+            setState(() => widget.config.padding.value = value);
             widget.onChanged();
           },
           readerTheme: readerTheme,
         ),
         sliderTile(
           label: l10n.lineHeight,
-          value: widget.config.lineHeight.value,
-          min: 1.0,
-          max: 2.0,
-          divisions: 10,
-          display: '${widget.config.lineHeight.value.toStringAsFixed(1)}x',
+          value: lineHeight,
+          min: ReaderTypographyDefaults.minLineHeight,
+          max: ReaderTypographyDefaults.maxLineHeight,
+          divisions: 8,
+          display: '${lineHeight.toStringAsFixed(1)}x',
           onChanged: (value) {
-            widget.config.lineHeight.value = value;
+            setState(() => widget.config.lineHeight.value = value);
             widget.onChanged();
           },
           readerTheme: readerTheme,
         ),
-        const SizedBox(height: 4),
         _buildTextAlignmentSelector(readerTheme, l10n),
         const SizedBox(height: 4),
         _buildReadingModeSelector(readerTheme, l10n),
@@ -111,103 +130,100 @@ class _TypesettingPanelState extends State<TypesettingPanel> {
     AppLocalizations l10n,
   ) {
     final options = [
-      (ReaderTextAlign.auto, l10n.textAlignAuto, PhosphorIconsRegular.textAa),
-      (
-        ReaderTextAlign.left,
-        l10n.textAlignLeft,
-        PhosphorIconsRegular.textAlignLeft,
-      ),
+      (ReaderTextAlign.auto, l10n.textAlignAuto, Icons.format_align_left),
+      (ReaderTextAlign.left, l10n.textAlignLeft, Icons.format_align_left),
       (
         ReaderTextAlign.justify,
         l10n.textAlignJustify,
-        PhosphorIconsRegular.textAlignJustify,
+        Icons.format_align_justify,
       ),
     ];
+    final selected = widget.config.textAlign.value;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 72,
-            child: Text(
-              l10n.textAlignment,
-              style: TextStyle(color: readerTheme.textColor, fontSize: 13),
-            ),
+          Text(
+            l10n.textAlignment,
+            style: TextStyle(color: readerTheme.textColor, fontSize: 13),
           ),
-          Expanded(
-            child: Row(
-              children: options.map((option) {
-                final isSelected = widget.config.textAlign.value == option.$1;
-                return Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: Semantics(
-                      button: true,
-                      selected: isSelected,
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(6),
-                          onTap: () {
-                            if (isSelected) return;
-                            widget.config.textAlign.value = option.$1;
-                            widget.onChanged();
-                          },
-                          child: AnimatedContainer(
-                            duration: AnimTokens.medium,
-                            constraints: const BoxConstraints(minHeight: 48),
-                            decoration: BoxDecoration(
+          const SizedBox(height: 4),
+          Row(
+            children: options.map((option) {
+              final isSelected = selected == option.$1;
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: Semantics(
+                    button: true,
+                    selected: isSelected,
+                    label: option.$2,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(6),
+                        onTap: () {
+                          if (isSelected) return;
+                          setState(
+                            () => widget.config.textAlign.value = option.$1,
+                          );
+                          widget.onChanged();
+                        },
+                        child: AnimatedContainer(
+                          duration: AnimTokens.medium,
+                          constraints: const BoxConstraints(minHeight: 48),
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? readerTheme.accentColor.withValues(alpha: 0.1)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
                               color: isSelected
-                                  ? readerTheme.accentColor.withValues(
-                                      alpha: 0.1,
-                                    )
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
+                                  ? readerTheme.accentColor
+                                  : readerTheme.mutedColor.withValues(
+                                      alpha: 0.2,
+                                    ),
+                              width: isSelected ? 1.5 : 0.5,
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                option.$3,
+                                size: 16,
                                 color: isSelected
                                     ? readerTheme.accentColor
-                                    : readerTheme.mutedColor.withValues(
-                                        alpha: 0.2,
-                                      ),
-                                width: isSelected ? 1.5 : 0.5,
+                                    : readerTheme.mutedColor,
                               ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  option.$3,
-                                  size: 16,
+                              const SizedBox(height: 2),
+                              Text(
+                                option.$2,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
                                   color: isSelected
                                       ? readerTheme.accentColor
-                                      : readerTheme.mutedColor,
+                                      : readerTheme.textColor,
+                                  fontSize: 10,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
                                 ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  option.$2,
-                                  style: TextStyle(
-                                    color: isSelected
-                                        ? readerTheme.accentColor
-                                        : readerTheme.textColor,
-                                    fontSize: 12,
-                                    fontWeight: isSelected
-                                        ? FontWeight.w600
-                                        : FontWeight.w400,
-                                  ),
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
                   ),
-                );
-              }).toList(),
-            ),
+                ),
+              );
+            }).toList(),
           ),
-          const SizedBox(width: 36),
         ],
       ),
     );
@@ -241,18 +257,22 @@ class _TypesettingPanelState extends State<TypesettingPanel> {
             child: Row(
               children: options.map((option) {
                 final isSelected = _readingMode == option.$1;
+                final isEnabled =
+                    option.$1 != ReadingMode.scroll ||
+                    widget.isScrollModeSupported;
                 return Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 2),
                     child: Semantics(
                       button: true,
+                      enabled: isEnabled,
                       selected: isSelected,
                       child: Material(
                         color: Colors.transparent,
                         child: InkWell(
                           borderRadius: BorderRadius.circular(6),
                           onTap: () {
-                            if (isSelected) return;
+                            if (isSelected || !isEnabled) return;
                             setState(() => _readingMode = option.$1);
                             widget.onReadingModeChanged(option.$1);
                           },
@@ -283,6 +303,10 @@ class _TypesettingPanelState extends State<TypesettingPanel> {
                                   size: 16,
                                   color: isSelected
                                       ? readerTheme.accentColor
+                                      : !isEnabled
+                                      ? readerTheme.mutedColor.withValues(
+                                          alpha: 0.45,
+                                        )
                                       : readerTheme.mutedColor,
                                 ),
                                 const SizedBox(width: 4),
@@ -291,6 +315,10 @@ class _TypesettingPanelState extends State<TypesettingPanel> {
                                   style: TextStyle(
                                     color: isSelected
                                         ? readerTheme.accentColor
+                                        : !isEnabled
+                                        ? readerTheme.mutedColor.withValues(
+                                            alpha: 0.45,
+                                          )
                                         : readerTheme.textColor,
                                     fontSize: 12,
                                     fontWeight: isSelected

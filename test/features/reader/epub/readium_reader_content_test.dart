@@ -40,6 +40,7 @@ void main() {
     when(
       () => vm.readingMode,
     ).thenReturn(signal<ReadingMode>(ReadingMode.pagination));
+    when(() => vm.onViewportReady()).thenAnswer((_) async {});
     when(() => vm.open(any())).thenAnswer((_) {
       attempts += 1;
       if (attempts == 1) {
@@ -65,6 +66,11 @@ void main() {
     expect(attempts, 2);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     expect(find.textContaining('open failed'), findsNothing);
+
+    retryCompleter.complete(_publication());
+    await tester.pump();
+    await tester.pump();
+    expect(find.byType(ReadiumReaderWidget), findsOneWidget);
   });
 
   testWidgets('successful open wires the native viewport callbacks', (
@@ -79,8 +85,6 @@ void main() {
       href: 'chapter.xhtml',
       type: 'application/xhtml+xml',
     );
-    var viewportTapCount = 0;
-
     when(() => vm.open(any())).thenAnswer((_) async => publication);
     when(
       () => vm.readingMode,
@@ -100,11 +104,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: ReadiumReaderContent(
-            vm: vm,
-            filePath: 'book.epub',
-            onViewportTap: () => viewportTapCount += 1,
-          ),
+          body: ReadiumReaderContent(vm: vm, filePath: 'book.epub'),
         ),
       ),
     );
@@ -123,21 +123,45 @@ void main() {
       tester.getSize(find.byType(ReadiumReaderWidget)),
       const Size(400, 800),
     );
+    verify(() => vm.onViewportReady()).called(1);
+  });
 
-    final outerGesture = tester.widget<GestureDetector>(
-      find
-          .ancestor(
-            of: find.byType(ReadiumReaderWidget),
-            matching: find.byType(GestureDetector),
-          )
-          .first,
+  testWidgets('pagination turns pages after a horizontal fling', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(400, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final vm = _MockReadiumViewModel();
+    final publication = _publication();
+
+    when(() => vm.open(any())).thenAnswer((_) async => publication);
+    when(
+      () => vm.readingMode,
+    ).thenReturn(signal<ReadingMode>(ReadingMode.pagination));
+    when(() => vm.initialLocator).thenReturn(null);
+    when(() => vm.onViewportReady()).thenAnswer((_) async {});
+    when(() => vm.onLocatorChanged(any())).thenReturn(null);
+    when(() => vm.goLeft()).thenAnswer((_) async {});
+    when(() => vm.goRight()).thenAnswer((_) async {});
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ReadiumReaderContent(vm: vm, filePath: 'book.epub'),
+        ),
+      ),
     );
-    expect(outerGesture.onTap, isNotNull);
-    outerGesture.onTap!();
     await tester.pump();
 
-    verify(() => vm.onViewportReady()).called(1);
-    expect(viewportTapCount, 1);
+    expect(
+      find.ancestor(
+        of: find.byType(ReadiumReaderWidget),
+        matching: find.byType(GestureDetector),
+      ),
+      findsOneWidget,
+      reason: 'pagination needs one Flutter threshold for responsive swipes',
+    );
 
     await tester.fling(
       find.byType(ReadiumReaderWidget),
@@ -148,6 +172,106 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
 
     verify(() => vm.goRight()).called(1);
+  });
+
+  testWidgets('reading mode changes recreate the native viewport in place', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(400, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final vm = _MockReadiumViewModel();
+    final publication = _publication();
+    final mode = signal<ReadingMode>(ReadingMode.pagination);
+    const locator = Locator(
+      href: 'chapter.xhtml',
+      type: 'application/xhtml+xml',
+      locations: Locations(totalProgression: 0.42),
+    );
+
+    when(() => vm.open(any())).thenAnswer((_) async => publication);
+    when(() => vm.readingMode).thenReturn(mode);
+    when(() => vm.initialLocator).thenReturn(null);
+    when(() => vm.currentLocator).thenReturn(locator);
+    when(() => vm.onViewportReady()).thenAnswer((_) async {});
+    when(() => vm.onLocatorChanged(any())).thenReturn(null);
+
+    Widget buildReader() => MaterialApp(
+      home: Scaffold(
+        body: ReadiumReaderContent(vm: vm, filePath: 'book.epub'),
+      ),
+    );
+
+    await tester.pumpWidget(buildReader());
+    await tester.pump();
+    final before = tester.state<State>(find.byType(ReadiumReaderWidget));
+
+    mode.value = ReadingMode.scroll;
+    await tester.pumpWidget(buildReader());
+    await tester.pump();
+
+    final after = tester.state<State>(find.byType(ReadiumReaderWidget));
+    expect(identical(before, after), isFalse);
+    expect(
+      tester
+          .widget<ReadiumReaderWidget>(find.byType(ReadiumReaderWidget))
+          .initialLocator,
+      locator,
+    );
+    expect(
+      find.ancestor(
+        of: find.byType(ReadiumReaderWidget),
+        matching: find.byType(GestureDetector),
+      ),
+      findsOneWidget,
+      reason: 'mode changes must not reparent the native Platform View',
+    );
+  });
+
+  testWidgets('text alignment changes keep the native viewport in place', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(400, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final vm = _MockReadiumViewModel();
+    final publication = _publication();
+    const locator = Locator(
+      href: 'chapter.xhtml',
+      type: 'application/xhtml+xml',
+      locations: Locations(totalProgression: 0.42),
+    );
+
+    when(() => vm.open(any())).thenAnswer((_) async => publication);
+    when(
+      () => vm.readingMode,
+    ).thenReturn(signal<ReadingMode>(ReadingMode.pagination));
+    when(() => vm.initialLocator).thenReturn(locator);
+    when(() => vm.currentLocator).thenReturn(locator);
+    when(() => vm.onViewportReady()).thenAnswer((_) async {});
+    when(() => vm.onLocatorChanged(any())).thenReturn(null);
+
+    Widget buildReader() => MaterialApp(
+      home: Scaffold(
+        body: ReadiumReaderContent(vm: vm, filePath: 'book.epub'),
+      ),
+    );
+
+    await tester.pumpWidget(buildReader());
+    await tester.pump();
+    final before = tester.state<State>(find.byType(ReadiumReaderWidget));
+
+    await tester.pumpWidget(buildReader());
+    await tester.pump();
+
+    final after = tester.state<State>(find.byType(ReadiumReaderWidget));
+    expect(identical(before, after), isTrue);
+    expect(
+      tester
+          .widget<ReadiumReaderWidget>(find.byType(ReadiumReaderWidget))
+          .initialLocator,
+      locator,
+    );
   });
 
   testWidgets('scroll mode does not force horizontal page navigation', (
@@ -184,19 +308,15 @@ void main() {
     );
     await tester.pump();
 
-    final horizontalGesture = tester.widget<GestureDetector>(
-      find
-          .ancestor(
-            of: find.byType(ReadiumReaderWidget),
-            matching: find.byType(GestureDetector),
-          )
-          .first,
+    final gestureDetector = find.ancestor(
+      of: find.byType(ReadiumReaderWidget),
+      matching: find.byType(GestureDetector),
     );
-    expect(
-      horizontalGesture.onHorizontalDragStart,
-      isNotNull,
-      reason: '滚动模式应拦截横划，避免原生视口用横划切章',
-    );
+    expect(gestureDetector, findsOneWidget);
+    final gesture = tester.widget<GestureDetector>(gestureDetector);
+    expect(gesture.onHorizontalDragStart, isNull);
+    expect(gesture.onHorizontalDragUpdate, isNull);
+    expect(gesture.onHorizontalDragEnd, isNull);
 
     await tester.fling(
       find.byType(ReadiumReaderWidget),

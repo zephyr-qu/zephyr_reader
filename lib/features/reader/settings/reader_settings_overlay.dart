@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/reading/config/reader_config.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart';
@@ -9,10 +11,11 @@ import 'package:zephyr_reader/features/reader/settings/settings_widgets.dart';
 import 'package:zephyr_reader/features/reader/settings/typesetting_panel.dart';
 
 /// Reader settings bottom sheet (adapted for Readium MVP).
-class ReaderSettingsOverlay extends StatelessWidget {
+class ReaderSettingsOverlay extends HookWidget {
   final ReaderPanelType panelType;
   final ReaderConfig config;
   final ReadingMode readingMode;
+  final bool isScrollModeSupported;
   final ValueChanged<ReadingMode> onReadingModeChanged;
   final bool isTtsPlaying;
   final VoidCallback onTtsToggle;
@@ -25,6 +28,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
     required this.panelType,
     required this.config,
     required this.readingMode,
+    this.isScrollModeSupported = true,
     required this.onReadingModeChanged,
     required this.isTtsPlaying,
     required this.onTtsToggle,
@@ -35,7 +39,10 @@ class ReaderSettingsOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final readerTheme = Theme.of(context).extension<ReaderThemeExtension>()!;
+    // The modal route receives a snapshot of the shell theme when opened.
+    // Subscribe to ReaderConfig so the sheet itself follows theme changes.
+    final selectedTheme = useSignalValue(config.theme.signal) as ReaderTheme;
+    final readerTheme = ReaderThemeExtension.resolve(selectedTheme);
 
     return Container(
       decoration: BoxDecoration(
@@ -59,6 +66,7 @@ class ReaderSettingsOverlay extends StatelessWidget {
                     ReaderPanelType.typesetting => TypesettingPanel(
                       config: config,
                       readingMode: readingMode,
+                      isScrollModeSupported: isScrollModeSupported,
                       onReadingModeChanged: onReadingModeChanged,
                       onChanged: onPreferencesChanged,
                     ),
@@ -67,7 +75,6 @@ class ReaderSettingsOverlay extends StatelessWidget {
                       onChanged: onPreferencesChanged,
                     ),
                     ReaderPanelType.assist => AssistPanel(
-                      config: config,
                       ttsVm: ttsVm,
                       isTtsPlaying: isTtsPlaying,
                       onTtsToggle: onTtsToggle,

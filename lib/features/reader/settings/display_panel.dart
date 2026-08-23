@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
+import 'package:signals_hooks/signals_hooks.dart';
 import 'package:zephyr_reader/core/reading/config/reader_config.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
 import 'package:zephyr_reader/features/reader/settings/settings_widgets.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// Display settings panel (Readium MVP — theme, font, background).
-class DisplayPanel extends StatelessWidget {
+class DisplayPanel extends HookWidget {
   final ReaderConfig config;
   final VoidCallback onChanged;
 
@@ -24,7 +26,17 @@ class DisplayPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final readerTheme = Theme.of(context).extension<ReaderThemeExtension>()!;
+    // The bottom sheet is built in its own route. Subscribe here so the
+    // selected border/checkmark updates immediately after a tap instead of
+    // waiting for the reader shell to rebuild.
+    final selectedTheme = useSignalValue(config.theme.signal) as ReaderTheme;
+    final fontFamily = useSignalValue<String, ReadonlySignal<String>>(
+      config.fontFamily.signal,
+    );
+    final bgColorIndex = useSignalValue<int, ReadonlySignal<int>>(
+      config.readerBgColorIndex.signal,
+    );
+    final readerTheme = ReaderThemeExtension.resolve(selectedTheme);
     final l10n = AppLocalizations.of(context)!;
 
     return Column(
@@ -42,9 +54,15 @@ class DisplayPanel extends StatelessWidget {
           onChanged: onChanged,
         ),
         const SizedBox(height: 8),
-        _fontFamilySelector(readerTheme, l10n),
+        _fontFamilySelector(readerTheme, l10n, fontFamily),
         const SizedBox(height: 4),
-        bgColorPicker(readerTheme: readerTheme, l10n: l10n, config: config),
+        bgColorPicker(
+          readerTheme: readerTheme,
+          l10n: l10n,
+          config: config,
+          selectedIndex: bgColorIndex,
+          onChanged: onChanged,
+        ),
       ],
     );
   }
@@ -52,6 +70,7 @@ class DisplayPanel extends StatelessWidget {
   Widget _fontFamilySelector(
     ReaderThemeExtension readerTheme,
     AppLocalizations l10n,
+    String fontFamily,
   ) {
     final accentColor = readerTheme.accentColor;
     return Padding(
@@ -68,7 +87,7 @@ class DisplayPanel extends StatelessWidget {
           Expanded(
             child: Row(
               children: _fontFamilies.map((f) {
-                final isSelected = config.fontFamily.value == f.$1;
+                final isSelected = fontFamily == f.$1;
                 return Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 2),
@@ -79,6 +98,7 @@ class DisplayPanel extends StatelessWidget {
                       },
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
+                        constraints: const BoxConstraints(minHeight: 48),
                         padding: const EdgeInsets.symmetric(vertical: 7),
                         decoration: BoxDecoration(
                           color: isSelected

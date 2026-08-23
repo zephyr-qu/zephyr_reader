@@ -72,6 +72,7 @@
 | ----- | ------ |
 | [020](./adr/020-epub-readium-mvp.md) | EPUB Readium MVP（当前路线；取代 ADR-019） |
 | [021](./adr/021-flutter-readium-migration.md) | 用 flutter_readium 替换 flureadium |
+| [022](./adr/022-flutter-readium-preference-ack.md) | 等待原生 EPUB 偏好提交并重建布局 |
 
 历史 ADR-001～019 已移至 [`archived/adr/`](archived/adr/)，保留用于追溯。
 ---

@@ -15,7 +15,23 @@ enum ReadingMode {
   pagination,
 }
 
-enum ReaderTextAlign { auto, left, center, right, justify }
+/// EPUB 正文对齐方式。
+enum ReaderTextAlign {
+  auto('auto'),
+  left('left'),
+  justify('justify');
+
+  final String id;
+
+  const ReaderTextAlign(this.id);
+
+  static ReaderTextAlign fromId(String id) {
+    return values.firstWhere(
+      (align) => align.id == id,
+      orElse: () => ReaderTextAlign.auto,
+    );
+  }
+}
 
 /// 阅读器主题 — 亮色、深色、护眼色
 enum ReaderTheme {
@@ -56,7 +72,7 @@ class ReaderConfig {
 
   // ==================== 持久化信号 ====================
 
-  /// 当前主题
+  /// 阅读页配色主题，不影响应用其他页面。
   late final theme = persistedEnum(
     prefs,
     SettingsKeys.readerTheme,
@@ -117,19 +133,21 @@ class ReaderConfig {
     ReaderTypographyDefaults.paragraphIndent,
   );
 
-  late final textAlign = persistedEnum(
-    prefs,
-    SettingsKeys.readerTextAlign,
-    ReaderTextAlign.auto,
-    (s) => ReaderTextAlign.values.asNameMap()[s] ?? ReaderTextAlign.auto,
-  );
-
   /// 阅读模式（分页 / 滚动）
   late final readingMode = persistedEnum(
     prefs,
     SettingsKeys.readerReadingMode,
     ReadingMode.pagination,
     (s) => ReadingMode.values.asNameMap()[s] ?? ReadingMode.pagination,
+    debounce: Duration.zero,
+  );
+
+  /// EPUB 正文对齐方式；auto 保留出版物默认样式。
+  late final textAlign = persistedEnum(
+    prefs,
+    SettingsKeys.readerTextAlign,
+    ReaderTextAlign.auto,
+    ReaderTextAlign.fromId,
     debounce: Duration.zero,
   );
 
@@ -173,8 +191,8 @@ class ReaderConfig {
     letterSpacing.reset();
     paragraphSpacing.reset();
     paragraphIndent.reset();
-    textAlign.reset();
     readingMode.reset();
+    textAlign.reset();
     readerBgColorIndex.reset();
     autoScroll.reset();
     autoScrollSpeed.reset();
@@ -191,8 +209,8 @@ class ReaderConfig {
     letterSpacing.dispose();
     paragraphSpacing.dispose();
     paragraphIndent.dispose();
-    textAlign.dispose();
     readingMode.dispose();
+    textAlign.dispose();
     readerBgColorIndex.dispose();
     autoScrollSpeed.dispose();
     brightnessOverlay.dispose();

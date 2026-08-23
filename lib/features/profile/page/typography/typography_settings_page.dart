@@ -32,10 +32,26 @@ class TypographySettingsPage extends HookWidget {
   Widget build(BuildContext context) {
     final config = useMemoized(() => getIt<ReaderConfig>(), []);
     final l10n = AppLocalizations.of(context)!;
-    final double fontSize = useSignalValue(config.fontSize.signal);
+    final double fontSize = (useSignalValue(config.fontSize.signal) as double)
+        .clamp(
+          ReaderTypographyDefaults.minFontSize,
+          ReaderTypographyDefaults.maxFontSize,
+        )
+        .toDouble();
     final double fontWeight = useSignalValue(config.fontWeight.signal);
-    final double padding = useSignalValue(config.padding.signal);
-    final double lineHeight = useSignalValue(config.lineHeight.signal);
+    final double padding = (useSignalValue(config.padding.signal) as double)
+        .clamp(
+          ReaderTypographyDefaults.minPadding,
+          ReaderTypographyDefaults.maxPadding,
+        )
+        .toDouble();
+    final double lineHeight =
+        (useSignalValue(config.lineHeight.signal) as double)
+            .clamp(
+              ReaderTypographyDefaults.minLineHeight,
+              ReaderTypographyDefaults.maxLineHeight,
+            )
+            .toDouble();
     final double letterSpacing = useSignalValue(config.letterSpacing.signal);
     final double paragraphSpacing = useSignalValue(
       config.paragraphSpacing.signal,
@@ -43,7 +59,6 @@ class TypographySettingsPage extends HookWidget {
     final double paragraphIndent = useSignalValue(
       config.paragraphIndent.signal,
     );
-    final ReaderTextAlign textAlign = useSignalValue(config.textAlign.signal);
     final String fontFamily = useSignalValue(config.fontFamily.signal);
     final ReadingMode readingMode = useSignalValue(config.readingMode.signal);
 
@@ -67,8 +82,6 @@ class TypographySettingsPage extends HookWidget {
             paragraphIndent,
             config,
           ),
-          const SizedBox(height: 16),
-          _buildTextAlignSection(context, l10n, textAlign, config),
           const SizedBox(height: 16),
           _buildReadingModeSection(context, l10n, readingMode, config),
         ],
@@ -128,8 +141,8 @@ class TypographySettingsPage extends HookWidget {
               label: l10n.fontSize,
               value: '${fontSize.round()}%',
               current: fontSize,
-              min: 80,
-              max: 200,
+              min: ReaderTypographyDefaults.minFontSize,
+              max: ReaderTypographyDefaults.maxFontSize,
               step: 5,
               onChanged: (v) => config.fontSize.value = v,
             ),
@@ -155,8 +168,8 @@ class TypographySettingsPage extends HookWidget {
               label: l10n.lineHeight,
               value: '${lineHeight.toStringAsFixed(1)}x',
               current: lineHeight,
-              min: 1.0,
-              max: 2.0,
+              min: ReaderTypographyDefaults.minLineHeight,
+              max: ReaderTypographyDefaults.maxLineHeight,
               step: 0.1,
               onChanged: (v) => config.lineHeight.value = v,
             ),
@@ -186,103 +199,6 @@ class TypographySettingsPage extends HookWidget {
               max: ReaderTypographyDefaults.maxParagraphIndent,
               step: 0.25,
               onChanged: (v) => config.paragraphIndent.value = v,
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  /// 文本对齐平铺选择器，选项与阅读页一致：跟随原书/左对齐/两端对齐。
-  Widget _buildTextAlignSection(
-    BuildContext context,
-    AppLocalizations l10n,
-    ReaderTextAlign textAlign,
-    ReaderConfig config,
-  ) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final options = [
-      (ReaderTextAlign.auto, l10n.textAlignAuto, PhosphorIconsRegular.textAa),
-      (
-        ReaderTextAlign.left,
-        l10n.textAlignLeft,
-        PhosphorIconsRegular.textAlignLeft,
-      ),
-      (
-        ReaderTextAlign.justify,
-        l10n.textAlignJustify,
-        PhosphorIconsRegular.textAlignJustify,
-      ),
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SectionLabel(label: l10n.textAlignment),
-        SettingsCard(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: options.map((option) {
-                  final isSelected = textAlign == option.$1;
-                  return Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(10),
-                          onTap: () => config.textAlign.value = option.$1,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? colorScheme.primary.withValues(alpha: 0.08)
-                                  : colorScheme.onSurface.withValues(
-                                      alpha: 0.03,
-                                    ),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: isSelected
-                                    ? colorScheme.primary
-                                    : Colors.transparent,
-                                width: 1.5,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  option.$3,
-                                  size: 16,
-                                  color: isSelected
-                                      ? colorScheme.primary
-                                      : colorScheme.onSurfaceVariant,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  option.$2,
-                                  style: TextStyle(
-                                    color: isSelected
-                                        ? colorScheme.primary
-                                        : colorScheme.onSurface,
-                                    fontSize: 13,
-                                    fontWeight: isSelected
-                                        ? FontWeight.w600
-                                        : FontWeight.w400,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
             ),
           ],
         ),

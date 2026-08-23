@@ -53,6 +53,10 @@ dependencies:
   phosphoricons_flutter: 1.0.0
   flutter_readium: ^0.3.1
 
+dependency_overrides:
+  flutter_readium:
+    path: third_party/flutter_readium
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

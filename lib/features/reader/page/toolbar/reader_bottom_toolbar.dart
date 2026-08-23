@@ -13,7 +13,6 @@ class ReaderBottomToolbar extends StatelessWidget {
   final VoidCallback onToggleTypesetting;
   final VoidCallback onToggleDisplay;
   final VoidCallback onToggleAssist;
-  final bool isBookmarked;
   final bool isTtsPlaying;
 
   const ReaderBottomToolbar({
@@ -24,7 +23,6 @@ class ReaderBottomToolbar extends StatelessWidget {
     required this.onToggleTypesetting,
     required this.onToggleDisplay,
     required this.onToggleAssist,
-    required this.isBookmarked,
     required this.isTtsPlaying,
   });
 
@@ -47,14 +45,9 @@ class ReaderBottomToolbar extends StatelessWidget {
                 onTap: onShowCatalog,
               ),
               _ToolbarButton(
-                icon: isBookmarked
-                    ? PhosphorIconsFill.bookmarkSimple
-                    : PhosphorIconsLight.bookmarkSimple,
+                icon: PhosphorIconsLight.bookmarkSimple,
                 label: l10n.bookmarks,
-                color: isBookmarked
-                    ? readerTheme.accentColor
-                    : readerTheme.textColor,
-                isSelected: isBookmarked,
+                color: readerTheme.textColor,
                 onTap: onShowBookmarks,
               ),
               _ToolbarButton(
@@ -89,14 +82,12 @@ class _ToolbarButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
-  final bool isSelected;
   final VoidCallback onTap;
 
   const _ToolbarButton({
     required this.icon,
     required this.label,
     required this.color,
-    this.isSelected = false,
     required this.onTap,
   });
 
@@ -107,7 +98,6 @@ class _ToolbarButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 2),
         child: Semantics(
           button: true,
-          selected: isSelected,
           label: label,
           excludeSemantics: true,
           child: Tooltip(

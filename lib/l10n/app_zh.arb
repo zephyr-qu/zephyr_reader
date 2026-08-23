@@ -44,10 +44,8 @@
   "paragraphSpacing": "段间距",
   "paragraphIndent": "首行缩进",
   "textAlignment": "文本对齐",
-  "textAlignAuto": "跟随原书",
+  "textAlignAuto": "默认",
   "textAlignLeft": "左对齐",
-  "textAlignCenter": "居中",
-  "textAlignRight": "右对齐",
   "textAlignJustify": "两端对齐",
   "pageMargin": "页边距",
   "brightness": "亮度",
@@ -154,7 +152,7 @@
   "confirmDeleteBookMessage": "确定要删除本书吗？此操作不可恢复。",
   "deleteFailed": "删除失败：{error}",
   "loadFailed": "加载失败",
-  "appearanceSection": "外观主题",
+  "appearanceSection": "阅读外观",
   "readingModeSection": "阅读模式",
   "typographySection": "文字排版",
   "previous": "上一个",
@@ -330,7 +328,6 @@
   "add": "添加",
   "charOffset": "偏移",
   "themePreviewSampleText": "春风又绿江南岸，明月何时照我还。",
-  "textAlign": "文字对齐",
   "aboutFeatureLookup": "词典与翻译",
   "aboutFeatureLookupDesc": "离线词典 + 可配置翻译 API"
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
+import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// 阅读器顶部工具栏：返回、书名和阅读进度。
 class ReaderToolbar extends StatelessWidget {
@@ -8,6 +9,8 @@ class ReaderToolbar extends StatelessWidget {
   final String progress;
   final ReaderThemeExtension readerTheme;
   final VoidCallback onClose;
+  final bool isBookmarked;
+  final VoidCallback onToggleBookmark;
 
   const ReaderToolbar({
     super.key,
@@ -15,10 +18,13 @@ class ReaderToolbar extends StatelessWidget {
     required this.progress,
     required this.readerTheme,
     required this.onClose,
+    required this.isBookmarked,
+    required this.onToggleBookmark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ColoredBox(
       color: readerTheme.surfaceColor,
       child: SafeArea(
@@ -66,6 +72,29 @@ class ReaderToolbar extends StatelessWidget {
                         ),
                       ),
                   ],
+                ),
+              ),
+              const SizedBox(width: 4),
+              Semantics(
+                button: true,
+                toggled: isBookmarked,
+                label: isBookmarked ? l10n.deleteBookmark : l10n.addBookmark,
+                child: IconButton(
+                  tooltip: isBookmarked
+                      ? l10n.deleteBookmark
+                      : l10n.addBookmark,
+                  constraints: const BoxConstraints(
+                    minWidth: 48,
+                    minHeight: 48,
+                  ),
+                  icon: Icon(
+                    isBookmarked
+                        ? PhosphorIconsFill.bookmarkSimple
+                        : PhosphorIconsLight.bookmarkSimple,
+                    size: 20,
+                    color: readerTheme.textColor,
+                  ),
+                  onPressed: onToggleBookmark,
                 ),
               ),
               const SizedBox(width: 4),

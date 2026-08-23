@@ -82,13 +82,7 @@ void main() {
     expect(find.text('字间距'), findsOneWidget);
     expect(find.text('段间距'), findsOneWidget);
     expect(find.text('首行缩进'), findsOneWidget);
-    expect(find.text('文本对齐'), findsOneWidget);
-    // 对齐方式平铺展示，只保留 跟随原书 / 左对齐 / 两端对齐
-    expect(find.text('跟随原书'), findsOneWidget);
-    expect(find.text('左对齐'), findsOneWidget);
-    expect(find.text('两端对齐'), findsOneWidget);
-    expect(find.text('居中'), findsNothing);
-    expect(find.text('右对齐'), findsNothing);
+    expect(find.text('文本对齐'), findsNothing);
     expect(find.text('阅读模式'), findsOneWidget);
     expect(find.text('分页'), findsOneWidget);
     expect(find.text('滚动'), findsOneWidget);

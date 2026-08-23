@@ -19,9 +19,12 @@ class ReaderPage extends HookWidget {
   Widget build(BuildContext context) {
     final filePath = useState<String?>(null);
     final error = useState<String?>(null);
+    final loadAttempt = useState(0);
 
     useEffect(() {
       var active = true;
+      filePath.value = null;
+      error.value = null;
       book_api
           .getBook(bookId: bookId)
           .then((book) {
@@ -39,7 +42,7 @@ class ReaderPage extends HookWidget {
             error.value = 'Failed to load: $e';
           });
       return () => active = false;
-    }, [bookId]);
+    }, [bookId, loadAttempt.value]);
 
     if (error.value != null) {
       return Scaffold(
@@ -47,10 +50,20 @@ class ReaderPage extends HookWidget {
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Text(
-              error.value!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.red),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  error.value!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.red),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => loadAttempt.value += 1,
+                  child: const Text('重试'),
+                ),
+              ],
             ),
           ),
         ),

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui' show TextAlign;
 
 // Readium test fixtures require non-const localized metadata constructors.
 // ignore_for_file: prefer_const_literals_to_create_immutables
@@ -36,7 +37,9 @@ class _MockPersistedSignal<T> extends Mock implements PersistedSignal<T> {}
 
 class _FakeEpubPreferences extends Fake implements EPUBPreferences {}
 
-void _stubAdvancedTypography(_MockReaderConfig config) {
+_MockPersistedSignal<ReaderTextAlign> _stubAdvancedTypography(
+  _MockReaderConfig config,
+) {
   final lineHeight = _MockPersistedSignal<double>();
   when(() => lineHeight.value).thenReturn(1.4);
   when(() => config.lineHeight).thenReturn(lineHeight);
@@ -56,6 +59,7 @@ void _stubAdvancedTypography(_MockReaderConfig config) {
   final textAlign = _MockPersistedSignal<ReaderTextAlign>();
   when(() => textAlign.value).thenReturn(ReaderTextAlign.auto);
   when(() => config.textAlign).thenReturn(textAlign);
+  return textAlign;
 }
 
 Future<void> _mountViewport(ReadiumViewModel vm) async {
@@ -75,7 +79,7 @@ void main() {
   test('waits for the native viewport before applying preferences', () async {
     final reader = _MockFlutterReadium();
     final config = _MockReaderConfig();
-    _stubAdvancedTypography(config);
+    final textAlign = _stubAdvancedTypography(config);
     final ttsSettings = _MockTtsSettingsViewModel();
     final theme = _MockPersistedSignal<ReaderTheme>();
     final fontSize = _MockPersistedSignal<double>();
@@ -120,7 +124,9 @@ void main() {
     ).thenAnswer((_) => Stream.value(ReadiumReaderStatus.ready));
     when(() => reader.onErrorEvent).thenAnswer((_) => const Stream.empty());
     when(() => reader.setEPUBPreferences(any())).thenAnswer((_) async {});
+    when(() => reader.goToLocator(any())).thenAnswer((_) async => true);
     when(() => reader.ttsEnable(any())).thenAnswer((_) async {});
+    when(() => reader.play(null)).thenAnswer((_) async {});
     when(() => reader.ttsSetPreferences(any())).thenAnswer((_) async {});
     when(() => reader.stop()).thenAnswer((_) async {});
     when(() => reader.closePublication()).thenAnswer((_) async {});
@@ -140,32 +146,61 @@ void main() {
     await _mountViewport(vm);
 
     expect(vm.status.value, 'ready');
+    await vm.onViewportReady();
+    verify(() => reader.onReaderStatusChanged).called(1);
     final capturedPreferences =
         verify(() => reader.setEPUBPreferences(captureAny())).captured.single
             as EPUBPreferences;
     expect(capturedPreferences.fontSize, 1.0);
+    expect(capturedPreferences.fontWeight, 1.0);
     expect(capturedPreferences.lineHeight, 1.4);
     expect(capturedPreferences.letterSpacing, 0.0);
     expect(capturedPreferences.paragraphSpacing, 0.0);
     expect(capturedPreferences.paragraphIndent, 0.0);
     expect(capturedPreferences.textAlign, isNull);
+    expect(capturedPreferences.publisherStyles, isFalse);
     await vm.toggleTts();
     final capturedTtsPreferences =
         verify(() => reader.ttsEnable(captureAny())).captured.single
             as TTSPreferences;
     expect(capturedTtsPreferences.speed, 1.25);
     expect(capturedTtsPreferences.pitch, 0.9);
+    verify(() => reader.play(null)).called(1);
     await vm.applyTtsPreferences();
     verify(() => reader.ttsSetPreferences(captureAny())).called(1);
     // ReaderConfig stores the legacy UI value where 20 is the default.
     // Readium expects a multiplier where 1.0 is the default margin.
     expect(capturedPreferences.pageMargins, 1.2);
     expect(capturedPreferences.scroll, isFalse);
-    await vm.setReadingMode(ReadingMode.scroll);
-    final scrollPreferences =
-        verify(() => reader.setEPUBPreferences(captureAny())).captured.single
+
+    vm.onLocatorChanged(
+      const Locator(
+        href: 'chapter.xhtml',
+        type: 'application/xhtml+xml',
+        locations: Locations(progression: 0.42),
+      ),
+    );
+    when(() => fontSize.value).thenReturn(120.0);
+    when(() => textAlign.value).thenReturn(ReaderTextAlign.justify);
+    expect(await vm.applyPreferences(), isTrue);
+    final updatedPreferences =
+        verify(() => reader.setEPUBPreferences(captureAny())).captured.last
             as EPUBPreferences;
-    expect(scrollPreferences.scroll, isTrue);
+    expect(updatedPreferences.textAlign, TextAlign.justify);
+    verify(() => reader.goToLocator(any())).called(1);
+
+    when(
+      () => reader.setEPUBPreferences(any()),
+    ).thenThrow(StateError('native preference apply failed'));
+    expect(await vm.applyPreferences(), isFalse);
+    expect(vm.status.value, 'error');
+
+    await vm.setReadingMode(ReadingMode.scroll);
+    expect(vm.readingMode.value, ReadingMode.scroll);
+    expect(vm.status.value, 'applying preferences...');
+    expect(reader.defaultPreferencesCalls.last.scroll, isTrue);
+    // The full preferences are applied by the new native viewport's ready
+    // handshake, not against the old pager that is being replaced.
 
     await vm.close();
     await vm.close();

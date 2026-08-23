@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zephyr_reader/core/local/shared_preferences_service.dart';
 import 'package:zephyr_reader/core/reading/config/reader_config.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/core/theme/reader_theme_extension.dart';
@@ -28,7 +30,6 @@ void main() {
     when(() => lineHeight.value).thenReturn(1.4);
     when(() => config.textAlign).thenReturn(textAlign);
     when(() => textAlign.value).thenReturn(ReaderTextAlign.auto);
-
     await tester.pumpWidget(
       MaterialApp(
         locale: const Locale('zh'),
@@ -55,13 +56,8 @@ void main() {
     expect(find.text('段间距'), findsNothing);
     expect(find.text('首行缩进'), findsNothing);
     expect(find.text('文本对齐'), findsOneWidget);
-    // 对齐方式平铺展示，只保留 跟随原书 / 左对齐 / 两端对齐
-    expect(find.text('跟随原书'), findsOneWidget);
     expect(find.text('左对齐'), findsOneWidget);
     expect(find.text('两端对齐'), findsOneWidget);
-    expect(find.text('居中'), findsNothing);
-    expect(find.text('右对齐'), findsNothing);
-
     final scrollButton = find.ancestor(
       of: find.text('滚动'),
       matching: find.byType(InkWell),
@@ -72,5 +68,67 @@ void main() {
     await tester.pump();
 
     expect(selectedMode, ReadingMode.scroll);
+  });
+
+  testWidgets('text alignment selection updates ReaderConfig', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final config = ReaderConfig(SharedPreferencesService(prefs));
+    addTearDown(config.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('zh'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        theme: ThemeData(extensions: [ReaderThemeExtension.light()]),
+        home: Scaffold(
+          body: TypesettingPanel(
+            config: config,
+            readingMode: ReadingMode.pagination,
+            onReadingModeChanged: (_) {},
+            onChanged: () {},
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('两端对齐'));
+    await tester.pump();
+
+    expect(config.textAlign.value, ReaderTextAlign.justify);
+  });
+
+  testWidgets('slider changes are rendered immediately', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final config = ReaderConfig(SharedPreferencesService(prefs));
+    addTearDown(config.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('zh'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        theme: ThemeData(extensions: [ReaderThemeExtension.light()]),
+        home: Scaffold(
+          body: TypesettingPanel(
+            config: config,
+            readingMode: ReadingMode.pagination,
+            onReadingModeChanged: (_) {},
+            onChanged: () {},
+          ),
+        ),
+      ),
+    );
+
+    await tester.drag(find.byType(Slider).first, const Offset(60, 0));
+    await tester.pump();
+
+    final displayedFontSize = '${config.fontSize.value.round()}%';
+    expect(config.fontSize.value, greaterThan(100));
+    expect(find.text(displayedFontSize), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 200));
   });
 }

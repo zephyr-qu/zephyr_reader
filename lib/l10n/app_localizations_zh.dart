@@ -142,16 +142,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get textAlignment => '文本对齐';
 
   @override
-  String get textAlignAuto => '跟随原书';
+  String get textAlignAuto => '默认';
 
   @override
   String get textAlignLeft => '左对齐';
-
-  @override
-  String get textAlignCenter => '居中';
-
-  @override
-  String get textAlignRight => '右对齐';
 
   @override
   String get textAlignJustify => '两端对齐';
@@ -488,7 +482,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get loadFailed => '加载失败';
 
   @override
-  String get appearanceSection => '外观主题';
+  String get appearanceSection => '阅读外观';
 
   @override
   String get readingModeSection => '阅读模式';
@@ -1046,9 +1040,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get themePreviewSampleText => '春风又绿江南岸，明月何时照我还。';
-
-  @override
-  String get textAlign => '文字对齐';
 
   @override
   String get aboutFeatureLookup => '词典与翻译';

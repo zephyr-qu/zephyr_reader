@@ -300,3 +300,21 @@ REDUNDANCY_REPORT_V2 的 A/B/C/D 四类清理项全部执行完毕，5 个 commi
 - **提交**：fc24fc81（含迁移分支 WIP 整体 checkpoint）
 - **门禁**：dart analyze 0 / flutter test 25 全绿 / cargo clippy 0 / cargo test 99 passed
 - **待真机验证**：scroll 章节内连续滚动、滚到章尾原生是否自动衔接（若不自动需轻量边界信号兜底，design.md 有预案）
+
+### 排版设置分工 + 子代理提速（2026-08-05）✅
+
+任务 08-05-typesetting-split：阅读页精简常用项，设置页补齐完整排版。
+
+- **阅读页排版面板**：移除 字间距/段间距/首行缩进，保留 字号/页边距/行高/文本对齐平铺/阅读模式
+- **设置页**：补齐 行高/字间距/段间距/首行缩进/文本对齐（平铺三选项，colorScheme 风格）
+- 两侧共享 ReaderConfig 信号，行为一致
+- 提交：f26bc59（任务）+ 94f0ccd（agent 配置）
+
+**子代理提速（重要）**：诊断发现 trellis-implement/check 只有 6 个基础工具（无 replace/read_symbol/ffgrep），子代理每次编辑 read+write 整文件；thinking 继承 high；fresh context。修复：
+
+- tools 扩到 16 个（+replace/read_symbol/module_report/ffgrep/fffind/lsp_diagnostics 等）
+- thinking: low；implement timeout 900s / check 600s；turnBudget 上限
+- inheritProjectContext/Skills: true
+- 预期大幅缩短子代理运行时间（之前 77~180 分钟）
+
+全绿：dart analyze 0 / flutter test 定向用例通过。

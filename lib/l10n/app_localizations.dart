@@ -359,7 +359,7 @@ abstract class AppLocalizations {
   /// No description provided for @textAlignAuto.
   ///
   /// In zh, this message translates to:
-  /// **'跟随原书'**
+  /// **'默认'**
   String get textAlignAuto;
 
   /// No description provided for @textAlignLeft.
@@ -367,18 +367,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'左对齐'**
   String get textAlignLeft;
-
-  /// No description provided for @textAlignCenter.
-  ///
-  /// In zh, this message translates to:
-  /// **'居中'**
-  String get textAlignCenter;
-
-  /// No description provided for @textAlignRight.
-  ///
-  /// In zh, this message translates to:
-  /// **'右对齐'**
-  String get textAlignRight;
 
   /// No description provided for @textAlignJustify.
   ///
@@ -1019,7 +1007,7 @@ abstract class AppLocalizations {
   /// No description provided for @appearanceSection.
   ///
   /// In zh, this message translates to:
-  /// **'外观主题'**
+  /// **'阅读外观'**
   String get appearanceSection;
 
   /// No description provided for @readingModeSection.
@@ -2071,12 +2059,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'春风又绿江南岸，明月何时照我还。'**
   String get themePreviewSampleText;
-
-  /// No description provided for @textAlign.
-  ///
-  /// In zh, this message translates to:
-  /// **'文字对齐'**
-  String get textAlign;
 
   /// No description provided for @aboutFeatureLookup.
   ///

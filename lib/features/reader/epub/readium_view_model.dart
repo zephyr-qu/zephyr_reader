@@ -44,11 +44,15 @@ class ReadiumViewModel {
   final Future<EnginePositionHint?> Function({required String bookId})
   loadEnginePosition;
   Timer? _saveTimer;
+  Future<void> _saveQueue = Future<void>.value();
   Future<void>? _closeFuture;
   bool _viewportReady = false;
   bool _closing = false;
   bool _navigationInProgress = false;
   int _openGeneration = 0;
+  Future<void> _preferencesQueue = Future<void>.value();
+  int _preferencesVersion = 0;
+  bool _preferencesDirty = false;
 
   // ==================== Progress / Session persistence ====================
   int _totalChars = 0;
@@ -67,6 +71,7 @@ class ReadiumViewModel {
   final currentChapterHref = signal<String>('');
   final isTtsPlaying = signal<bool>(false);
   final readingMode = signal<ReadingMode>(ReadingMode.pagination);
+  final isScrollModeSupported = signal<bool>(true);
   final bookmarks = signal<List<Bookmark>>([]);
   final isBookmarked = signal<bool>(false);
   Locator? _currentLocator;
@@ -121,15 +126,32 @@ class ReadiumViewModel {
     await Future(() {});
 
     final generation = ++_openGeneration;
+    var nativePublicationOpened = false;
     try {
+      _preferencesVersion++;
+      _closeFuture = null;
+
+      // A ViewModel can be reused after close, or a retry can race with a
+      // still-mounted native viewport. Invalidate the old Dart listeners and
+      // close the old native session before opening the next publication.
+      await _cancelViewportSubscriptions();
+      if (_publication != null || _viewportReady || _statusSub != null) {
+        await reader.closePublication();
+      }
+
       final uriPath = path.startsWith('file://')
           ? path
           : Uri.file(path).toString();
       status.value = 'opening...';
       error.value = null;
       _viewportReady = false;
+      _preferencesDirty = true;
       _closing = false;
       _navigationInProgress = false;
+      _publication = null;
+      _currentLocator = null;
+      _initialLocator = null;
+      _publicationFingerprint = '';
       readingMode.value = config.readingMode.value;
       _sessionTracker.reset();
       _accumulatedReadingSeconds = 0;
@@ -142,12 +164,18 @@ class ReadiumViewModel {
       );
 
       final pub = await reader.openPublication(uriPath);
+      nativePublicationOpened = true;
       if (generation != _openGeneration) {
         await reader.closePublication();
         throw StateError('Open cancelled');
       }
       _publication = pub;
       _publicationFingerprint = pub.metadata.identifier ?? '';
+      isScrollModeSupported.value = _supportsScrollMode(pub);
+      if (!isScrollModeSupported.value &&
+          readingMode.value == ReadingMode.scroll) {
+        readingMode.value = ReadingMode.pagination;
+      }
       final links = pub.tocFlattened;
       await _loadBookMetadata();
       unawaited(_touchBook());
@@ -157,9 +185,12 @@ class ReadiumViewModel {
         _publication = null;
         throw StateError('Open cancelled');
       }
-      if (_initialLocator == null && links.isNotEmpty) {
-        final chapterIndex = initialChapterIndex.clamp(0, links.length - 1);
-        _initialLocator = pub.locatorFromLink(links[chapterIndex]);
+      if (_initialLocator == null && pub.readingOrder.isNotEmpty) {
+        final chapterIndex = initialChapterIndex.clamp(
+          0,
+          pub.readingOrder.length - 1,
+        );
+        _initialLocator = pub.locatorFromLink(pub.readingOrder[chapterIndex]);
       }
       _currentLocator = _initialLocator;
       batch(() {
@@ -173,6 +204,14 @@ class ReadiumViewModel {
       return pub;
     } catch (e) {
       if (generation == _openGeneration) {
+        if (nativePublicationOpened || _publication != null) {
+          try {
+            await reader.closePublication();
+          } catch (_) {
+            // Preserve the original open error for the retry UI.
+          }
+          _publication = null;
+        }
         error.value = e.toString();
         status.value = 'error';
       }
@@ -183,40 +222,63 @@ class ReadiumViewModel {
   /// Position restored when constructing the native viewport.
   Locator? get initialLocator => _initialLocator;
 
+  /// Current native position, used when the viewport is recreated for a layout
+  /// mode change.
+  Locator? get currentLocator => _currentLocator;
+
   /// Progress within the currently rendered EPUB resource.
   double? get currentResourceProgression =>
       _currentLocator?.locations?.progression;
 
-  /// Subscribes to the native reader lifecycle after the platform widget is
-  /// mounted. The platform emits the first ready status once its channel is
-  /// usable, so preferences are applied only from that status callback.
+  /// Subscribes to the native reader lifecycle before the platform widget is
+  /// mounted. This avoids missing the broadcast `ready` status emitted while
+  /// the native view is being created.
   Future<void> onViewportReady() async {
     if (_publication == null || _viewportReady || _closing) return;
 
-    await _statusSub?.cancel();
-    _statusSub = reader.onReaderStatusChanged.listen((s) {
-      if (_closing) return;
-      status.value = s.name;
-      if (s.isReady) unawaited(_markViewportReady());
-    });
+    // Register the first listeners synchronously. Readium exposes a broadcast
+    // status stream (not a replaying stream), so deferring this registration
+    // until after the first frame can miss the native `ready` event and leave
+    // every navigation command blocked by `_viewportReady`.
+    final generation = _openGeneration;
 
-    await _locatorSub?.cancel();
-    _locatorSub = reader.onTextLocatorChanged.listen(onLocatorChanged);
+    void listenToViewportEvents() {
+      _statusSub = reader.onReaderStatusChanged.listen((s) {
+        if (_closing || generation != _openGeneration) return;
+        status.value = s.name;
+        if (s.isReady) unawaited(_markViewportReady(generation));
+      });
 
-    await _errorSub?.cancel();
-    _errorSub = reader.onErrorEvent.listen((e) {
-      if (_closing) return;
-      error.value = e.message;
-      status.value = 'error';
-    });
+      _locatorSub = reader.onTextLocatorChanged.listen(
+        (locator) => _onLocatorChangedForGeneration(locator, generation),
+      );
+
+      _errorSub = reader.onErrorEvent.listen((e) {
+        if (_closing || generation != _openGeneration) return;
+        error.value = e.message;
+        status.value = 'error';
+      });
+    }
+
+    if (_statusSub != null) return;
+    listenToViewportEvents();
   }
 
-  Future<void> _markViewportReady() async {
-    if (_viewportReady || _closing || _publication == null) return;
+  Future<void> _markViewportReady(int generation) async {
+    if (_viewportReady ||
+        _closing ||
+        generation != _openGeneration ||
+        _publication == null) {
+      return;
+    }
     try {
-      await _applyPreferences();
-      if (_closing || _publication == null) return;
+      if (_preferencesDirty) await _applyPreferences();
+      if (_closing || generation != _openGeneration || _publication == null) {
+        return;
+      }
+      _preferencesDirty = false;
       _viewportReady = true;
+      error.value = null;
       status.value = 'ready';
     } catch (e) {
       error.value = e.toString();
@@ -226,11 +288,19 @@ class ReadiumViewModel {
 
   /// Receives the authoritative locator from the rendered viewport.
   void onLocatorChanged(Locator locator) {
-    if (_closing) return;
+    _onLocatorChangedForGeneration(locator, _openGeneration);
+  }
+
+  void _onLocatorChangedForGeneration(Locator locator, int generation) {
+    if (_closing || generation != _openGeneration) return;
     _currentLocator = locator;
     progress.value = locator.locations?.totalProgression ?? 0.0;
     if (locator.href.isNotEmpty) {
       currentChapterHref.value = locator.href;
+    }
+    if (_viewportReady) {
+      error.value = null;
+      status.value = 'ready';
     }
     _sessionTracker.track(locator);
     _scheduleSave();
@@ -239,13 +309,17 @@ class ReadiumViewModel {
 
   /// Navigate to a TOC link.
   Future<bool> goToLink(Link link) async {
-    if (_publication == null || !_viewportReady) return false;
+    final publication = _publication;
+    if (publication == null || !_viewportReady) return false;
+    var navigated = false;
     try {
-      return await reader.goByLink(link, _publication!);
+      await _runNavigation(() async {
+        navigated = await reader.goByLink(link, publication);
+      });
     } catch (e) {
       error.value = e.toString();
-      return false;
     }
+    return navigated;
   }
 
   /// Close the current publication.
@@ -258,33 +332,54 @@ class ReadiumViewModel {
     if (_closing || !_viewportReady) return;
     _saveTimer?.cancel();
     await _sessionTracker.finalize();
-    await _savePositionNow();
+    await _queueSave();
   }
 
   Future<void> _close() async {
     _closing = true;
+    _preferencesVersion++;
     _openGeneration += 1;
     status.value = 'closing';
     _viewportReady = false;
+    _preferencesDirty = false;
     _saveTimer?.cancel();
-    try {
-      await _sessionTracker.finalize();
-      await _savePositionNow();
-      await _statusSub?.cancel();
-      _statusSub = null;
-      await _locatorSub?.cancel();
-      _locatorSub = null;
-      await _errorSub?.cancel();
-      _errorSub = null;
-      if (_ttsEnabled) await stopTts();
-      if (_publication != null) await reader.closePublication();
-    } catch (e) {
-      error.value = e.toString();
-    } finally {
-      _publication = null;
-      _initialLocator = null;
-      status.value = 'closed';
+    Object? closeError;
+
+    Future<void> attempt(Future<void> Function() action) async {
+      try {
+        await action();
+      } catch (e) {
+        closeError ??= e;
+      }
     }
+
+    await attempt(_sessionTracker.finalize);
+    await attempt(_queueSave);
+
+    await attempt(_cancelViewportSubscriptions);
+
+    if (_ttsEnabled) await attempt(stopTts);
+    if (_publication != null) await attempt(reader.closePublication);
+
+    _publication = null;
+    isScrollModeSupported.value = true;
+    _initialLocator = null;
+    if (closeError != null) error.value = closeError.toString();
+    status.value = 'closed';
+  }
+
+  Future<void> _cancelViewportSubscriptions() async {
+    final statusSub = _statusSub;
+    _statusSub = null;
+    await statusSub?.cancel();
+
+    final locatorSub = _locatorSub;
+    _locatorSub = null;
+    await locatorSub?.cancel();
+
+    final errorSub = _errorSub;
+    _errorSub = null;
+    await errorSub?.cancel();
   }
 
   // ==================== Navigation ====================
@@ -325,6 +420,11 @@ class ReadiumViewModel {
     _navigationInProgress = true;
     try {
       await navigation();
+      error.value = null;
+      status.value = 'ready';
+    } catch (e) {
+      error.value = e.toString();
+      status.value = 'error';
     } finally {
       _navigationInProgress = false;
     }
@@ -333,18 +433,74 @@ class ReadiumViewModel {
 
   Future<void> setReadingMode(ReadingMode mode) async {
     if (readingMode.value == mode) return;
+
+    // Readium's Android navigator creates its resource pager with the initial
+    // layout. Runtime scroll changes invalidate that pager asynchronously, so
+    // recreating the Platform View is the only reliable way to make the new
+    // layout take effect immediately. Set the default first so the new native
+    // view is born in the requested mode.
+    reader.setDefaultPreferences(
+      EPUBPreferences(scroll: mode == ReadingMode.scroll),
+    );
+
+    if (_viewportReady) {
+      _viewportReady = false;
+      _preferencesDirty = true;
+      status.value = 'applying preferences...';
+    }
+
     readingMode.value = mode;
     config.readingMode.value = mode;
-    await applyPreferences();
   }
 
-  Future<void> applyPreferences() async {
-    if (!_viewportReady) return;
-    try {
-      await _applyPreferences();
-    } catch (e) {
-      error.value = e.toString();
-    }
+  Future<bool> applyPreferences() async {
+    _preferencesDirty = true;
+    if (!_viewportReady) return false;
+
+    // A slider emits many values during one drag. Keep the queue serialized,
+    // but let stale requests exit before another native reflow is started.
+    final requestVersion = ++_preferencesVersion;
+    final next = _preferencesQueue.then((_) async {
+      if (!_viewportReady || _closing) return false;
+      if (requestVersion != _preferencesVersion) return true;
+      try {
+        final locator = _currentLocator;
+        await _applyPreferences();
+        if (requestVersion != _preferencesVersion) return true;
+
+        // The native MethodChannel completes only after Readium and the
+        // custom CSS have finished applying. Revisit the current locator
+        // immediately after that acknowledgement; timing delays here make
+        // the result depend on device performance.
+        if (locator != null && !_closing) {
+          if (requestVersion == _preferencesVersion &&
+              !_closing &&
+              _viewportReady) {
+            await reader.goToLocator(locator);
+          }
+        }
+        if (requestVersion != _preferencesVersion) return true;
+        _preferencesDirty = false;
+        error.value = null;
+        status.value = 'ready';
+        return true;
+      } catch (e) {
+        error.value = e.toString();
+        status.value = 'error';
+        return false;
+      }
+    });
+    _preferencesQueue = next.then<void>((_) {});
+    return next;
+  }
+
+  bool _supportsScrollMode(Publication publication) {
+    final rendition = publication.metadata.rendition;
+    return publication.readingOrder.every(
+      (link) =>
+          link.properties.layout != EpubLayout.fixed &&
+          rendition?.layoutOf(link) != EpubLayout.fixed,
+    );
   }
 
   Future<void> _applyPreferences() async {
@@ -376,24 +532,52 @@ class ReadiumViewModel {
       case ReaderTheme.light:
         text = const Color(0xFF1A1A1A);
     }
-    final fontFamily = config.fontFamily.value;
+    final fontFamily = switch (config.fontFamily.value) {
+      // Readium expects CSS generic family names for these built-in choices.
+      'System' => 'sans-serif',
+      'Serif' => 'serif',
+      final value => value,
+    };
+    final fontSizePercent = config.fontSize.value < 50
+        ? 100.0
+        : config.fontSize.value
+              .clamp(
+                ReaderTypographyDefaults.minFontSize,
+                ReaderTypographyDefaults.maxFontSize,
+              )
+              .toDouble();
+    final lineHeight = config.lineHeight.value
+        .clamp(
+          ReaderTypographyDefaults.minLineHeight,
+          ReaderTypographyDefaults.maxLineHeight,
+        )
+        .toDouble();
+    // ReaderConfig stores the CSS numeric weight (300..700), while Readium
+    // expects a relative boldness value (0..2.5). Convert persisted UI values
+    // at this native bridge instead of changing the public config semantics.
+    final fontWeight =
+        config.fontWeight.value
+            .clamp(
+              ReaderTypographyDefaults.minFontWeight,
+              ReaderTypographyDefaults.maxFontWeight,
+            )
+            .toDouble() /
+        ReaderTypographyDefaults.fontWeight;
     final prefs = EPUBPreferences(
       fontFamily: fontFamily,
+      // Readium only applies user alignment/typography overrides when
+      // publisher CSS is disabled for the navigator.
+      publisherStyles: false,
       // Migrate old built-in dp values (< 50) to Readium's ratio scale.
-      fontSize: (() {
-        final v = config.fontSize.value.round();
-        return v < 50 ? 1.0 : v / 100.0;
-      })(),
-      fontWeight: config.fontWeight.value,
-      lineHeight: config.lineHeight.value,
+      fontSize: fontSizePercent / 100.0,
+      fontWeight: fontWeight,
+      lineHeight: lineHeight,
       letterSpacing: config.letterSpacing.value,
       paragraphSpacing: config.paragraphSpacing.value,
       paragraphIndent: config.paragraphIndent.value,
       textAlign: switch (config.textAlign.value) {
         ReaderTextAlign.auto => null,
         ReaderTextAlign.left => TextAlign.left,
-        ReaderTextAlign.center => TextAlign.center,
-        ReaderTextAlign.right => TextAlign.right,
         ReaderTextAlign.justify => TextAlign.justify,
       },
       scroll: readingMode.value == ReadingMode.scroll,
@@ -416,6 +600,7 @@ class ReadiumViewModel {
     try {
       if (!_ttsEnabled) {
         await reader.ttsEnable(ttsSettings?.toReadiumPreferences());
+        await reader.play(null);
         _ttsEnabled = true;
         isTtsPlaying.value = true;
       } else if (isTtsPlaying.value) {
@@ -481,7 +666,15 @@ class ReadiumViewModel {
 
   void _scheduleSave() {
     _saveTimer?.cancel();
-    _saveTimer = Timer(const Duration(seconds: 2), _savePositionNow);
+    _saveTimer = Timer(const Duration(seconds: 2), () {
+      unawaited(_queueSave());
+    });
+  }
+
+  Future<void> _queueSave() {
+    final next = _saveQueue.then((_) => _savePositionNow());
+    _saveQueue = next;
+    return next;
   }
 
   Future<void> _savePositionNow() async {
@@ -491,7 +684,7 @@ class ReadiumViewModel {
     await _saveReadingProgress();
   }
 
-  /// 进度写入 Rust `reading_progress` 表（尽力而为，失败静默）。
+  /// 进度写入 Rust `reading_progress` 表；失败时保留阅读流程并提示用户。
   Future<void> _saveReadingProgress() async {
     final locator = _currentLocator;
     if (locator == null) return;
@@ -518,12 +711,12 @@ class ReadiumViewModel {
             bookId: bookId,
             status: BookStatus.completed,
           );
-        } catch (_) {
-          // 静默失败：状态标记是尽力而为，不中断阅读流程。
+        } catch (e) {
+          error.value = '标记阅读完成失败：$e';
         }
       }
-    } catch (_) {
-      // 静默失败：逻辑进度是尽力而为，不中断阅读流程。
+    } catch (e) {
+      error.value = '保存阅读进度失败：$e';
     }
     // ADR-019：完整 Locator 作为引擎私有恢复提示，存 reading_engine_positions。
     // 与逻辑进度相互独立 —— 恢复提示失败不应阻塞进度，反之亦然。
@@ -537,8 +730,8 @@ class ReadiumViewModel {
           updatedAt: DateTime.now().toUtc(),
         ),
       );
-    } catch (_) {
-      // 静默失败：恢复提示是尽力而为，不中断阅读流程。
+    } catch (e) {
+      error.value = '保存阅读位置失败：$e';
     }
   }
 
@@ -558,7 +751,7 @@ class ReadiumViewModel {
       final opaque = hint.opaquePosition;
       if (opaque.isEmpty) return null;
       // ADR-019：Locator 与当前 EPUB 指纹不匹配时必须丢弃。
-      if (hint.publicationFingerprint.isNotEmpty &&
+      if (hint.publicationFingerprint.isEmpty ||
           hint.publicationFingerprint != _publicationFingerprint) {
         return null;
       }
@@ -588,8 +781,19 @@ class ReadiumViewModel {
     await _bookmarkController.removeCurrent(locator);
   }
 
+  Future<void> toggleBookmark() async {
+    if (isBookmarked.value) {
+      await removeBookmark();
+    } else {
+      await addBookmark();
+    }
+  }
+
   Future<void> goToBookmark(Bookmark entry) async {
-    await _bookmarkController.goTo(entry, navigate: reader.goToLocator);
+    if (!_viewportReady || _closing) return;
+    await _runNavigation(
+      () => _bookmarkController.goTo(entry, navigate: reader.goToLocator),
+    );
   }
 
   Future<void> deleteBookmarkByEntry(Bookmark entry) async {
@@ -601,18 +805,20 @@ class ReadiumViewModel {
   }
 
   String _tocTitleForHref(String href) {
+    final path = _hrefPath(href);
     for (final link in tocLinks.value) {
-      if (link.href == href) return link.title ?? '';
+      if (_hrefPath(link.href) == path) return link.title ?? '';
     }
     return '';
   }
 
-  /// href → 扁平目录索引（Readium 语义：flattenToc 下标）。
+  /// href → 正文阅读顺序索引。
   int _chapterIndexForHref(String href) {
     if (href.isEmpty) return _sessionTracker.currentChapterIndex ?? 0;
     final path = _hrefPath(href);
-    for (var i = 0; i < tocLinks.value.length; i++) {
-      final linkHref = tocLinks.value[i].href;
+    final readingOrder = _publication?.readingOrder ?? const <Link>[];
+    for (var i = 0; i < readingOrder.length; i++) {
+      final linkHref = readingOrder[i].href;
       if (_hrefPath(linkHref) == path) return i;
     }
     // 资源不在目录中（如附录）：沿用当前会话章节，避免误拆会话。
