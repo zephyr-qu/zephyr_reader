@@ -6,7 +6,7 @@ Rust 是 Flutter 的本地能力层，通过 `flutter_rust_bridge` 暴露薄 API
 
 - EPUB 导入：解析书名、作者、章节和封面路径
 - 封面提取与本地文件管理
-- 书籍、分类、书签、进度、会话、统计和词典管理
+- 书籍、分类、书签、进度、会话和统计管理
 - SQLite 迁移、仓储和备份/还原
 - FRB API 的错误转换与异步边界
 
@@ -24,7 +24,7 @@ migrations/           SQLite schema 迁移
 tests/                Rust 集成测试
 ```
 
-当前 API 模块：`backup`、`book`、`bookmark`、`category`、`cover`、`dictionary`、`engine_position`、`progress`、`session`、`stats`。
+当前 API 模块：`backup`、`book`、`bookmark`、`category`、`cover`、`engine_position`、`progress`、`session`、`stats`。
 
 ## 开发约束
 
