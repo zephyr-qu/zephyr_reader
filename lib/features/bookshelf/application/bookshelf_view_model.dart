@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/features/bookshelf/model/bookshelf_sort_type.dart';
@@ -14,6 +15,7 @@ import 'package:zephyr_reader/src/rust/domain/book/models.dart';
 import 'package:zephyr_reader/src/rust/domain/category/models.dart';
 
 
+@lazySingleton
 class BookshelfViewModel {
   final PreferencesService _prefs;
   final CategoryViewModel _categoryVM;

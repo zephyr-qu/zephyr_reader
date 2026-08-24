@@ -1,4 +1,5 @@
 import 'package:zephyr_reader/core/local/preferences_service.dart';
+import 'package:injectable/injectable.dart';
 import 'package:flutter_readium/flutter_readium.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
@@ -7,6 +8,7 @@ import 'package:zephyr_reader/core/settings/settings_keys.dart';
 ///
 /// 使用 [persisted] 管理 TTS 所有设置项，
 /// 赋值时自动持久化到 PreferencesService（带 debounce），无需手动 _save。
+@injectable
 class TtsSettingsViewModel {
   final PreferencesService _prefs;
 

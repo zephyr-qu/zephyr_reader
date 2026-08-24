@@ -1,9 +1,11 @@
 import 'package:zephyr_reader/core/local/preferences_service.dart';
+import 'package:injectable/injectable.dart';
 
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:zephyr_reader/core/theme/theme_manager.dart';
 
+@injectable
 /// 主题与亮度设置 ViewModel。
 ///
 /// 管理主题类型、阅读器背景色、亮度遮罩等设置的状态和持久化。

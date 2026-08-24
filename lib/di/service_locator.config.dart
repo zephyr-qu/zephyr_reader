@@ -1,0 +1,81 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// dart format width=80
+
+// **************************************************************************
+// InjectableConfigGenerator
+// **************************************************************************
+
+// ignore_for_file: type=lint
+// coverage:ignore-file
+
+// ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'package:get_it/get_it.dart' as _i174;
+import 'package:injectable/injectable.dart' as _i526;
+import 'package:zephyr_reader/core/local/file_storage.dart' as _i772;
+import 'package:zephyr_reader/core/local/preferences_service.dart' as _i985;
+import 'package:zephyr_reader/core/reading/config/reader_config.dart' as _i1067;
+import 'package:zephyr_reader/core/theme/theme_manager.dart' as _i182;
+import 'package:zephyr_reader/di/app_module.dart' as _i431;
+import 'package:zephyr_reader/features/bookshelf/application/book_import_service.dart'
+    as _i339;
+import 'package:zephyr_reader/features/bookshelf/application/bookshelf_view_model.dart'
+    as _i790;
+import 'package:zephyr_reader/features/bookshelf/application/category_view_model.dart'
+    as _i5;
+import 'package:zephyr_reader/features/data/application/backup_view_model.dart'
+    as _i1022;
+import 'package:zephyr_reader/features/profile/application/other_settings_view_model.dart'
+    as _i362;
+import 'package:zephyr_reader/features/profile/application/theme_brightness_view_model.dart'
+    as _i583;
+import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart'
+    as _i136;
+
+extension GetItInjectableX on _i174.GetIt {
+  // initializes the registration of main-scope dependencies inside of GetIt
+  Future<_i174.GetIt> init({
+    String? environment,
+    _i526.EnvironmentFilter? environmentFilter,
+  }) async {
+    final gh = _i526.GetItHelper(this, environment, environmentFilter);
+    final appModule = _$AppModule();
+    await gh.factoryAsync<_i985.PreferencesService>(
+      () => appModule.providePreferencesService(),
+      preResolve: true,
+    );
+    gh.factory<_i5.CategoryViewModel>(() => _i5.CategoryViewModel());
+    gh.singleton<_i1067.ReaderBgColors>(() => _i1067.ReaderBgColors());
+    gh.lazySingletonAsync<_i772.FileStorage>(() {
+      final i = _i772.FileStorage();
+      return i.init().then((_) => i);
+    });
+    gh.lazySingleton<_i339.BookImportService>(() => _i339.BookImportService());
+    gh.lazySingleton<_i790.BookshelfViewModel>(
+      () => _i790.BookshelfViewModel(
+        gh<_i985.PreferencesService>(),
+        gh<_i5.CategoryViewModel>(),
+      ),
+    );
+    gh.factory<_i362.OtherSettingsViewModel>(
+      () => _i362.OtherSettingsViewModel(gh<_i985.PreferencesService>()),
+    );
+    gh.factory<_i583.ThemeBrightnessViewModel>(
+      () => _i583.ThemeBrightnessViewModel(gh<_i985.PreferencesService>()),
+    );
+    gh.factory<_i136.TtsSettingsViewModel>(
+      () => _i136.TtsSettingsViewModel(gh<_i985.PreferencesService>()),
+    );
+    gh.lazySingleton<_i1022.BackupViewModel>(
+      () => _i1022.BackupViewModel(gh<_i985.PreferencesService>()),
+    );
+    gh.singleton<_i1067.ReaderConfig>(
+      () => _i1067.ReaderConfig(gh<_i985.PreferencesService>()),
+    );
+    gh.singleton<_i182.ThemeManager>(
+      () => _i182.ThemeManager(gh<_i985.PreferencesService>()),
+    );
+    return this;
+  }
+}
+
+class _$AppModule extends _i431.AppModule {}

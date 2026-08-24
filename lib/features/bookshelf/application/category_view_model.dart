@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/src/rust/api/category.dart' as category_api;
 import 'package:zephyr_reader/src/rust/domain/category/models.dart';
 
 
+@injectable
 class CategoryViewModel {
   /// 所有分类
   final categories = asyncSignal<List<Category>>(AsyncState.loading());

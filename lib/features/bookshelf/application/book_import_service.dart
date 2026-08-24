@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:injectable/injectable.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
@@ -11,6 +12,7 @@ import 'package:zephyr_reader/src/rust/api/cover.dart' as cover_api;
 ///
 /// 处理文件导入、文件夹扫描和封面提取等 I/O 密集型操作。
 /// 不持有状态，所有方法为纯函数（有副作用但无实例可变状态）。
+@lazySingleton
 class BookImportService {
   /// 从文件导入书籍（解析并存入数据库）。
   ///

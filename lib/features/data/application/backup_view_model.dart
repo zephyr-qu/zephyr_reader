@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/core/utils/app_error_mapper.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
@@ -30,6 +31,7 @@ enum BackupStatus {
 ///   idle → exporting → exportingDone → idle
 ///   idle → restoring → restoringDone → idle
 ///   任意 → error → idle
+@lazySingleton
 class BackupViewModel {
   final PreferencesService _prefs;
 

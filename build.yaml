@@ -1,0 +1,28 @@
+# 项目根目录/build.yaml
+targets:
+  $default:
+    builders:
+      # injectable 配置生成器
+      injectable_generator:injectable_config_builder:
+        generate_for:
+          - lib/**
+        options:
+          package_name: zephyr_reader
+          output_file: lib/di/service_locator.config.dart
+
+      injectable_generator:injectable_builder:
+        generate_for:
+          - lib/**
+
+      retrofit_generator:
+        generate_for:
+          - lib/features/**/api/**
+          - lib/features/**/data/**
+
+      freezed:
+        generate_for:
+          - lib/**
+
+      json_serializable:
+        generate_for:
+          - lib/**
