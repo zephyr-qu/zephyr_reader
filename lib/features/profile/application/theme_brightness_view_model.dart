@@ -1,11 +1,9 @@
 import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:injectable/injectable.dart';
 
-import 'package:zephyr_reader/core/reading/config/reader_config.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:zephyr_reader/core/theme/theme_manager.dart';
-import 'package:zephyr_reader/di/service_locator.dart';
 
 @injectable
 /// 主题与亮度设置 ViewModel。
@@ -14,7 +12,6 @@ import 'package:zephyr_reader/di/service_locator.dart';
 class ThemeBrightnessViewModel {
   final PreferencesService _prefs;
   final _themeManager = ThemeManager.instance;
-  final _readerConfig = getIt<ReaderConfig>();
 
   late final brightness = persistedInt(_prefs, SettingsKeys.brightness, 80);
   late final useSystemBrightness = persistedBool(
@@ -28,11 +25,6 @@ class ThemeBrightnessViewModel {
   /// 切换主题类型（light/dark/system）。
   Future<void> setThemeType(AppThemeType type) async {
     _themeManager.themeType.value = type;
-  }
-
-  /// 设置阅读器背景色索引。
-  Future<void> setReaderBgColorIndex(int index) async {
-    _readerConfig.readerBgColorIndex.value = index;
   }
 
   /// 设置屏幕亮度值（30–100 范围）。

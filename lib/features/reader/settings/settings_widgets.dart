@@ -216,6 +216,7 @@ Widget bgColorPicker({
   required AppLocalizations l10n,
   required ReaderConfig config,
   required int selectedIndex,
+  bool enabled = true,
   VoidCallback? onChanged,
 }) {
   final presetColors = ReaderBgColors.presets;
@@ -223,44 +224,50 @@ Widget bgColorPicker({
 
   return Padding(
     padding: const EdgeInsets.symmetric(horizontal: 4),
-    child: Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: List.generate(presetColors.length, (i) {
-        final isSelected = selectedIndex == i;
-        return GestureDetector(
-          onTap: () {
-            config.readerBgColorIndex.value = i;
-            onChanged?.call();
-          },
-          child: SizedBox.square(
-            dimension: 48,
-            child: Center(
-              child: Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: presetColors[i].withValues(alpha: 1.0),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: isSelected
-                        ? accentColor
-                        : readerTheme.mutedColor.withValues(alpha: 0.2),
-                    width: isSelected ? 2.5 : 0.5,
+    child: Opacity(
+      opacity: enabled ? 1 : 0.45,
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: List.generate(presetColors.length, (i) {
+          final isSelected = selectedIndex == i;
+          return GestureDetector(
+            key: ValueKey('reader-bg-$i'),
+            onTap: enabled
+                ? () {
+                    config.readerBgColorIndex.value = i;
+                    onChanged?.call();
+                  }
+                : null,
+            child: SizedBox.square(
+              dimension: 48,
+              child: Center(
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: presetColors[i].withValues(alpha: 1.0),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: isSelected
+                          ? accentColor
+                          : readerTheme.mutedColor.withValues(alpha: 0.2),
+                      width: isSelected ? 2.5 : 0.5,
+                    ),
                   ),
+                  child: isSelected
+                      ? Icon(
+                          PhosphorIconsRegular.check,
+                          size: 16,
+                          color: accentColor,
+                        )
+                      : null,
                 ),
-                child: isSelected
-                    ? Icon(
-                        PhosphorIconsRegular.check,
-                        size: 16,
-                        color: accentColor,
-                      )
-                    : null,
               ),
             ),
-          ),
-        );
-      }),
+          );
+        }),
+      ),
     ),
   );
 }

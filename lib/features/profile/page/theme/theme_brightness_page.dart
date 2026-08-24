@@ -9,13 +9,10 @@ import 'package:zephyr_reader/core/presentation/widgets/settings/settings_card.d
 import 'package:zephyr_reader/core/presentation/widgets/settings/settings_toggle_tile.dart';
 import 'package:zephyr_reader/core/theme/menu_colors.dart';
 import 'package:zephyr_reader/core/theme/theme_manager.dart';
-import 'package:zephyr_reader/features/profile/page/theme/bg_color_picker.dart';
 import 'package:zephyr_reader/features/profile/page/theme/brightness_slider.dart';
-import 'package:zephyr_reader/features/profile/page/theme/theme_preview_card.dart';
 import 'package:zephyr_reader/features/profile/page/widgets/settings_app_bar.dart';
 import 'package:zephyr_reader/features/profile/page/theme/theme_mode_option.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/core/reading/config/reader_config.dart';
 import 'package:zephyr_reader/features/profile/application/theme_brightness_view_model.dart';
 
 /// 主题与亮度设置页面。
@@ -29,9 +26,6 @@ class ThemeBrightnessPage extends HookWidget {
   Widget build(BuildContext context) {
     final vm = useMemoized(() => getIt<ThemeBrightnessViewModel>());
     final l10n = AppLocalizations.of(context)!;
-    final int bgIndex = useSignalValue(
-      getIt<ReaderConfig>().readerBgColorIndex.signal,
-    );
     final AppThemeType themeType = useSignalValue(
       ThemeManager.instance.themeType.signal,
     );
@@ -45,10 +39,7 @@ class ThemeBrightnessPage extends HookWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
         children: [
-          ThemePreviewCard(bgIndex: bgIndex),
           _buildAppThemeSection(themeType, l10n, vm),
-          const SizedBox(height: 16),
-          _buildBgColorSection(bgIndex, vm),
           const SizedBox(height: 16),
           _buildBrightnessSection(context, brightness, useSystemBrightness, vm),
           const SizedBox(height: 16),
@@ -105,26 +96,6 @@ class ThemeBrightnessPage extends HookWidget {
         )
         .animate()
         .fadeIn(duration: 300.ms, delay: 100.ms)
-        .slideY(begin: 0.03, end: 0);
-  }
-
-  Widget _buildBgColorSection(int activeIdx, ThemeBrightnessViewModel vm) {
-    return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SectionLabel(label: '阅读背景色'),
-            SettingsCard(
-              children: [
-                BgColorPicker(
-                  activeIndex: activeIdx,
-                  onSelected: vm.setReaderBgColorIndex,
-                ),
-              ],
-            ),
-          ],
-        )
-        .animate()
-        .fadeIn(duration: 300.ms, delay: 150.ms)
         .slideY(begin: 0.03, end: 0);
   }
 

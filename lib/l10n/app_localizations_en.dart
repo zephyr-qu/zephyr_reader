@@ -573,6 +573,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readerThemeSepia => 'Sepia';
 
   @override
+  String get readerCustomBackground => 'Custom background';
+
+  @override
+  String get readerCustomBackgroundDisabled =>
+      'Dark and sepia themes use fixed backgrounds';
+
+  @override
   String get sortLastRead => 'Last Read';
 
   @override

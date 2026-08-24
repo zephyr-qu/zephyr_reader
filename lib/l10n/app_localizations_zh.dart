@@ -569,6 +569,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get readerThemeSepia => '护眼';
 
   @override
+  String get readerCustomBackground => '自定义背景';
+
+  @override
+  String get readerCustomBackgroundDisabled => '深色和护眼主题使用固定背景';
+
+  @override
   String get sortLastRead => '最近阅读';
 
   @override

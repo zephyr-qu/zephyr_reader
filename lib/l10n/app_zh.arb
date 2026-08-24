@@ -180,6 +180,8 @@
   "readerThemeLight": "白天",
   "readerThemeDark": "夜间",
   "readerThemeSepia": "护眼",
+  "readerCustomBackground": "自定义背景",
+  "readerCustomBackgroundDisabled": "深色和护眼主题使用固定背景",
   "sortLastRead": "最近阅读",
   "sortCreatedAt": "添加时间",
   "sortTitle": "书名",

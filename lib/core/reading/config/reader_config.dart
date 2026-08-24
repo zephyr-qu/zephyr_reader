@@ -53,7 +53,8 @@ enum ReaderTheme {
 
 @Singleton()
 class ReaderBgColors {
-  static const darkBackground = Color(0xFF0A0A0A);
+  /// 深色阅读主题使用纯黑正文背景，适配 AMOLED 屏幕。
+  static const darkBackground = Color(0xFF000000);
   static const presets = [
     Color(0xFFFAFAFA), // 默认白
     Color(0xFFF5F0E8), // 羊皮纸

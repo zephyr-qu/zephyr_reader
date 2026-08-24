@@ -1172,6 +1172,18 @@ abstract class AppLocalizations {
   /// **'护眼'**
   String get readerThemeSepia;
 
+  /// No description provided for @readerCustomBackground.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义背景'**
+  String get readerCustomBackground;
+
+  /// No description provided for @readerCustomBackgroundDisabled.
+  ///
+  /// In zh, this message translates to:
+  /// **'深色和护眼主题使用固定背景'**
+  String get readerCustomBackgroundDisabled;
+
   /// No description provided for @sortLastRead.
   ///
   /// In zh, this message translates to:

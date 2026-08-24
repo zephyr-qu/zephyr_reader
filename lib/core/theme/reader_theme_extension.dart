@@ -52,7 +52,7 @@ class ReaderThemeExtension extends ThemeExtension<ReaderThemeExtension> {
   factory ReaderThemeExtension.dark() => const ReaderThemeExtension(
     textColor: Color(0xFFE8E6E1),
     mutedColor: Color(0xFF8E8E99),
-    backgroundColor: Color(0xFF111118),
+    backgroundColor: ReaderBgColors.darkBackground,
     surfaceColor: Color(0xFF1A1A24),
     dividerColor: Color(0xFF2A2A35),
     accentColor: DesignTokens.warmAccent,

@@ -180,6 +180,8 @@
   "readerThemeLight": "Day",
   "readerThemeDark": "Night",
   "readerThemeSepia": "Sepia",
+  "readerCustomBackground": "Custom background",
+  "readerCustomBackgroundDisabled": "Dark and sepia themes use fixed backgrounds",
   "sortLastRead": "Last Read",
   "sortCreatedAt": "Date Added",
   "sortTitle": "Title",

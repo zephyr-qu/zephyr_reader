@@ -56,11 +56,30 @@ class DisplayPanel extends HookWidget {
         const SizedBox(height: 8),
         _fontFamilySelector(readerTheme, l10n, fontFamily),
         const SizedBox(height: 4),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 4, 4, 2),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.readerCustomBackground,
+                  style: TextStyle(color: readerTheme.textColor, fontSize: 13),
+                ),
+              ),
+              if (selectedTheme != ReaderTheme.light)
+                Text(
+                  l10n.readerCustomBackgroundDisabled,
+                  style: TextStyle(color: readerTheme.mutedColor, fontSize: 11),
+                ),
+            ],
+          ),
+        ),
         bgColorPicker(
           readerTheme: readerTheme,
           l10n: l10n,
           config: config,
           selectedIndex: bgColorIndex,
+          enabled: selectedTheme == ReaderTheme.light,
           onChanged: onChanged,
         ),
       ],

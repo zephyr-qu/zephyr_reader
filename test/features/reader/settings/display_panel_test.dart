@@ -43,6 +43,18 @@ void main() {
     expect(config.theme.value, ReaderTheme.dark);
     expect(selectedDecoration('白天').border!.top.width, 0.5);
     expect(selectedDecoration('夜间').border!.top.width, 1.5);
+    expect(find.text('深色和护眼主题使用固定背景'), findsOneWidget);
+
+    final backgroundIndexBeforeDisabledTap = config.readerBgColorIndex.value;
+    await tester.tap(find.byKey(const ValueKey('reader-bg-2')));
+    await tester.pump();
+    expect(config.readerBgColorIndex.value, backgroundIndexBeforeDisabledTap);
+
+    await tester.tap(find.text('白天'));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('reader-bg-2')));
+    await tester.pump();
+    expect(config.readerBgColorIndex.value, 2);
 
     config.dispose();
   });
