@@ -14,7 +14,6 @@ setup:
 
 gen:
     flutter_rust_bridge_codegen generate
-    dart run build_runner build --delete-conflicting-outputs
 
 # ── Lint ──
 

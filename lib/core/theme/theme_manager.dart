@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
@@ -23,7 +22,6 @@ enum AppThemeType {
 ///
 /// 管理应用的主题状态，包括主题类型（浅色/深色/跟随系统）、
 /// 语言偏好和自定义主题色。使用 persisted signals 实现自动持久化。
-@Singleton()
 class ThemeManager {
   final PreferencesService prefs;
 

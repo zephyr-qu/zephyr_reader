@@ -1,5 +1,4 @@
 import 'package:zephyr_reader/core/local/preferences_service.dart';
-import 'package:injectable/injectable.dart';
 import 'package:zephyr_reader/core/reading/config/reader_config.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/di/service_locator.dart';
@@ -7,7 +6,6 @@ import 'package:zephyr_reader/core/settings/settings_keys.dart';
 import 'package:zephyr_reader/core/theme/theme_manager.dart';
 import 'package:zephyr_reader/core/utils/cache_utils.dart';
 
-@injectable
 /// 其他设置 ViewModel。
 ///
 /// 管理通知、学习目标等杂项设置的持久化状态。

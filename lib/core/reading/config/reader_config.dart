@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
-import 'package:injectable/injectable.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:zephyr_reader/core/reading/config/reader_typography_defaults.dart';
@@ -51,7 +50,6 @@ enum ReaderTheme {
   }
 }
 
-@Singleton()
 class ReaderBgColors {
   /// 深色阅读主题使用纯黑正文背景，适配 AMOLED 屏幕。
   static const darkBackground = Color(0xFF000000);
@@ -64,7 +62,6 @@ class ReaderBgColors {
   ];
 }
 
-@Singleton()
 /// 阅读器配置
 ///
 /// 管理阅读页参数，使用 PersistedSignal 自动持久化。
