@@ -14,10 +14,13 @@ import 'package:zephyr_reader/features/reader/epub/readium_view_model.dart';
 
 class _MockReadiumViewModel extends Mock implements ReadiumViewModel {}
 
-Publication _publication() => Publication(
+Publication _publication({
+  ReadingProgression progression = ReadingProgression.ltr,
+}) => Publication(
   metadata: Metadata(
     localizedTitle: LocalizedString.fromString('Test Book'),
     identifier: 'test-book',
+    readingProgression: progression,
   ),
   readingOrder: [
     const Link(href: 'chapter.xhtml', type: 'application/xhtml+xml'),
@@ -172,6 +175,46 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
 
     verify(() => vm.goRight()).called(1);
+  });
+
+  testWidgets('pagination reverses horizontal fling direction for RTL books', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(400, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final vm = _MockReadiumViewModel();
+    final publication = _publication(progression: ReadingProgression.rtl);
+
+    when(() => vm.open(any())).thenAnswer((_) async => publication);
+    when(
+      () => vm.readingMode,
+    ).thenReturn(signal<ReadingMode>(ReadingMode.pagination));
+    when(() => vm.initialLocator).thenReturn(null);
+    when(() => vm.onViewportReady()).thenAnswer((_) async {});
+    when(() => vm.onLocatorChanged(any())).thenReturn(null);
+    when(() => vm.goLeft()).thenAnswer((_) async {});
+    when(() => vm.goRight()).thenAnswer((_) async {});
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ReadiumReaderContent(vm: vm, filePath: 'rtl-book.epub'),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.fling(
+      find.byType(ReadiumReaderWidget),
+      const Offset(-180, 0),
+      1000,
+    );
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+
+    verify(() => vm.goLeft()).called(1);
+    verifyNever(() => vm.goRight());
   });
 
   testWidgets('reading mode changes recreate the native viewport in place', (

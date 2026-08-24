@@ -18,12 +18,14 @@ class ReaderPage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final filePath = useState<String?>(null);
+    final publicationFingerprint = useState<String?>(null);
     final error = useState<String?>(null);
     final loadAttempt = useState(0);
 
     useEffect(() {
       var active = true;
       filePath.value = null;
+      publicationFingerprint.value = null;
       error.value = null;
       book_api
           .getBook(bookId: bookId)
@@ -35,6 +37,7 @@ class ReaderPage extends HookWidget {
               error.value = '当前 MVP 仅支持 EPUB 阅读';
             } else {
               filePath.value = book.filePath;
+              publicationFingerprint.value = _publicationFingerprint(book);
             }
           })
           .catchError((Object e) {
@@ -76,7 +79,14 @@ class ReaderPage extends HookWidget {
     return ReadiumReaderShell(
       filePath: filePath.value!,
       bookId: bookId,
+      publicationFingerprint: publicationFingerprint.value,
       initialChapterIndex: initialChapterIndex,
     );
+  }
+
+  static String _publicationFingerprint(Book book) {
+    final hash = book.fileHash?.trim();
+    if (hash != null && hash.isNotEmpty) return 'hash:$hash';
+    return 'file:${book.filePath}|size:${book.fileSize}|mtime:${book.fileMtime ?? 'unknown'}';
   }
 }

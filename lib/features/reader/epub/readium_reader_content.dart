@@ -17,6 +17,8 @@ class ReadiumReaderContent extends HookWidget {
   final String filePath;
   final Widget Function()? loadingBuilder;
   final Widget Function(String error, VoidCallback retry)? errorBuilder;
+  final int? retryAttempt;
+  final VoidCallback? onRetry;
   final ValueNotifier<bool>? shouldShowControls;
 
   const ReadiumReaderContent({
@@ -25,12 +27,15 @@ class ReadiumReaderContent extends HookWidget {
     required this.filePath,
     this.loadingBuilder,
     this.errorBuilder,
+    this.retryAttempt,
+    this.onRetry,
     this.shouldShowControls,
   });
 
   @override
   Widget build(BuildContext context) {
-    final retryAttempt = useState(0);
+    final localRetryAttempt = useState(0);
+    final attempt = retryAttempt ?? localRetryAttempt.value;
     final horizontalDragDistance = useRef(0.0);
     final readingMode = useSignalValue(vm.readingMode) as ReadingMode;
     // Reading mode changes the native pager type, so that change gets a fresh
@@ -38,16 +43,20 @@ class ReadiumReaderContent extends HookWidget {
     // navigator and must not replace the view while it is mounted.
     final viewportKey = useMemoized(GlobalKey.new, [
       filePath,
-      retryAttempt.value,
+      attempt,
       readingMode,
     ]);
     final openFuture = useMemoized(() => vm.open(filePath), [
       filePath,
-      retryAttempt.value,
+      attempt,
     ]);
 
     void retry() {
-      retryAttempt.value += 1;
+      if (onRetry != null) {
+        onRetry!();
+      } else {
+        localRetryAttempt.value += 1;
+      }
     }
 
     return FutureBuilder<Publication>(
@@ -102,10 +111,12 @@ class ReadiumReaderContent extends HookWidget {
                   final distance = horizontalDragDistance.value;
                   final velocity = details.primaryVelocity ?? 0;
                   horizontalDragDistance.value = 0;
+                  final isRtl =
+                      pub.metadata.readingProgression == ReadingProgression.rtl;
                   if (distance <= -48 || velocity <= -300) {
-                    unawaited(vm.goRight());
+                    unawaited(isRtl ? vm.goLeft() : vm.goRight());
                   } else if (distance >= 48 || velocity >= 300) {
-                    unawaited(vm.goLeft());
+                    unawaited(isRtl ? vm.goRight() : vm.goLeft());
                   }
                 }
               : null,

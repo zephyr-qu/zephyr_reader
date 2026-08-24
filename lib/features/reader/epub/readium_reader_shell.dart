@@ -23,12 +23,14 @@ import 'readium_view_model.dart';
 class ReadiumReaderShell extends HookWidget {
   final String filePath;
   final String bookId;
+  final String? publicationFingerprint;
   final int initialChapterIndex;
 
   const ReadiumReaderShell({
     super.key,
     required this.filePath,
     required this.bookId,
+    this.publicationFingerprint,
     this.initialChapterIndex = 0,
   });
 
@@ -43,10 +45,11 @@ class ReadiumReaderShell extends HookWidget {
       () => ReadiumViewModel(
         config: config,
         bookId: bookId,
+        sourceFingerprint: publicationFingerprint,
         ttsSettings: ttsVm,
         initialChapterIndex: initialChapterIndex,
       ),
-      [bookId, initialChapterIndex],
+      [bookId, initialChapterIndex, publicationFingerprint],
     );
 
     final double progress = useSignalValue(vm.progress) as double;
@@ -66,6 +69,8 @@ class ReadiumReaderShell extends HookWidget {
 
     final scaffoldKey = useRef(GlobalKey<ScaffoldState>());
     final chromeVisible = useState(true);
+    final retryAttempt = useState(0);
+    final canRetry = useSignalValue(vm.canRetry) as bool;
 
     // Lifecycle — clean up ViewModel resources
     // Lifecycle — flush on background, clean up ViewModel resources on exit
@@ -159,6 +164,11 @@ class ReadiumReaderShell extends HookWidget {
                 child: ReadiumReaderContent(
                   vm: vm,
                   filePath: filePath,
+                  retryAttempt: retryAttempt.value,
+                  onRetry: () {
+                    vm.prepareRetry();
+                    retryAttempt.value += 1;
+                  },
                   shouldShowControls: chromeVisible,
                 ),
               ),
@@ -205,11 +215,27 @@ class ReadiumReaderShell extends HookWidget {
                   borderRadius: BorderRadius.circular(8),
                   child: Padding(
                     padding: const EdgeInsets.all(12),
-                    child: Text(
-                      errorMessage,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onErrorContainer,
-                      ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            errorMessage,
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onErrorContainer,
+                            ),
+                          ),
+                        ),
+                        if (canRetry)
+                          TextButton(
+                            onPressed: () {
+                              vm.prepareRetry();
+                              retryAttempt.value += 1;
+                            },
+                            child: const Text('重试'),
+                          ),
+                      ],
                     ),
                   ),
                 ),
@@ -259,7 +285,7 @@ class ReadiumReaderShell extends HookWidget {
               itemCount: links.length,
               itemBuilder: (context, index) {
                 final link = links[index];
-                final isCurrent = _sameResource(link.href, currentHref);
+                final isCurrent = index == _currentTocIndex(links, currentHref);
                 return ListTile(
                   selected: isCurrent,
                   selectedTileColor: readerTheme.accentColor.withValues(
@@ -289,10 +315,17 @@ class ReadiumReaderShell extends HookWidget {
     );
   }
 
-  static bool _sameResource(String left, String right) {
-    if (left.isEmpty || right.isEmpty) return false;
-    final leftUri = Uri.tryParse(left);
-    final rightUri = Uri.tryParse(right);
-    return (leftUri?.path ?? left) == (rightUri?.path ?? right);
+  static int _currentTocIndex(List<Link> links, String currentHref) {
+    if (currentHref.isEmpty) return -1;
+    final exactIndex = links.indexWhere((link) => link.href == currentHref);
+    if (exactIndex >= 0) return exactIndex;
+    final currentPath = _hrefPath(currentHref);
+    return links.indexWhere((link) => _hrefPath(link.href) == currentPath);
+  }
+
+  static String _hrefPath(String href) {
+    final uri = Uri.tryParse(href);
+    final path = uri?.path ?? href.split('#').first;
+    return path.startsWith('/') ? path.substring(1) : path;
   }
 }

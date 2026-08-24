@@ -36,6 +36,7 @@ class ReadiumViewModel {
   final ReaderConfig config;
   final TtsSettingsViewModel? ttsSettings;
   final String bookId;
+  final String? sourceFingerprint;
   final int initialChapterIndex;
   final Future<void> Function(ReadingProgress progress) persistProgress;
   final SessionRecorder recordSession;
@@ -49,13 +50,13 @@ class ReadiumViewModel {
   bool _viewportReady = false;
   bool _closing = false;
   bool _navigationInProgress = false;
+  bool _bookmarkMutationInProgress = false;
   int _openGeneration = 0;
   Future<void> _preferencesQueue = Future<void>.value();
   int _preferencesVersion = 0;
   bool _preferencesDirty = false;
 
   // ==================== Progress / Session persistence ====================
-  int _totalChars = 0;
   int _accumulatedReadingSeconds = 0;
   DateTime _lastReadingTick = DateTime.now();
   String _publicationFingerprint = '';
@@ -72,6 +73,7 @@ class ReadiumViewModel {
   final isTtsPlaying = signal<bool>(false);
   final readingMode = signal<ReadingMode>(ReadingMode.pagination);
   final isScrollModeSupported = signal<bool>(true);
+  final canRetry = signal<bool>(false);
   final bookmarks = signal<List<Bookmark>>([]);
   final isBookmarked = signal<bool>(false);
   Locator? _currentLocator;
@@ -89,6 +91,7 @@ class ReadiumViewModel {
   ReadiumViewModel({
     required this.config,
     required this.bookId,
+    this.sourceFingerprint,
     this.ttsSettings,
     this.initialChapterIndex = 0,
     FlutterReadium? reader,
@@ -135,6 +138,10 @@ class ReadiumViewModel {
       // still-mounted native viewport. Invalidate the old Dart listeners and
       // close the old native session before opening the next publication.
       await _cancelViewportSubscriptions();
+      if (_currentLocator != null || _viewportReady) {
+        await _sessionTracker.finalize();
+        await _queueSave();
+      }
       if (_publication != null || _viewportReady || _statusSub != null) {
         await reader.closePublication();
       }
@@ -144,6 +151,7 @@ class ReadiumViewModel {
           : Uri.file(path).toString();
       status.value = 'opening...';
       error.value = null;
+      canRetry.value = false;
       _viewportReady = false;
       _preferencesDirty = true;
       _closing = false;
@@ -170,7 +178,7 @@ class ReadiumViewModel {
         throw StateError('Open cancelled');
       }
       _publication = pub;
-      _publicationFingerprint = pub.metadata.identifier ?? '';
+      _publicationFingerprint = _publicationFingerprintFor(pub);
       isScrollModeSupported.value = _supportsScrollMode(pub);
       if (!isScrollModeSupported.value &&
           readingMode.value == ReadingMode.scroll) {
@@ -213,6 +221,7 @@ class ReadiumViewModel {
           _publication = null;
         }
         error.value = e.toString();
+        canRetry.value = true;
         status.value = 'error';
       }
       rethrow;
@@ -256,6 +265,7 @@ class ReadiumViewModel {
       _errorSub = reader.onErrorEvent.listen((e) {
         if (_closing || generation != _openGeneration) return;
         error.value = e.message;
+        canRetry.value = true;
         status.value = 'error';
       });
     }
@@ -278,10 +288,12 @@ class ReadiumViewModel {
       }
       _preferencesDirty = false;
       _viewportReady = true;
+      canRetry.value = false;
       error.value = null;
       status.value = 'ready';
     } catch (e) {
       error.value = e.toString();
+      canRetry.value = true;
       status.value = 'error';
     }
   }
@@ -300,6 +312,7 @@ class ReadiumViewModel {
     }
     if (_viewportReady) {
       error.value = null;
+      canRetry.value = false;
       status.value = 'ready';
     }
     _sessionTracker.track(locator);
@@ -315,6 +328,7 @@ class ReadiumViewModel {
     try {
       await _runNavigation(() async {
         navigated = await reader.goByLink(link, publication);
+        if (!navigated) throw StateError('目录定位失败');
       });
     } catch (e) {
       error.value = e.toString();
@@ -324,6 +338,12 @@ class ReadiumViewModel {
 
   /// Close the current publication.
   Future<void> close() => _closeFuture ??= _close();
+
+  /// Clears a retryable viewport error before rebuilding the native reader.
+  void prepareRetry() {
+    canRetry.value = false;
+    error.value = null;
+  }
 
   /// 应用进入后台/被中断时调用：结束当前会话并保存进度，但不关闭出版刊物。
   ///
@@ -362,6 +382,7 @@ class ReadiumViewModel {
     if (_publication != null) await attempt(reader.closePublication);
 
     _publication = null;
+    _currentLocator = null;
     isScrollModeSupported.value = true;
     _initialLocator = null;
     if (closeError != null) error.value = closeError.toString();
@@ -406,7 +427,7 @@ class ReadiumViewModel {
     );
     if (target == null) return;
 
-    await _runNavigation(() => reader.goToLocator(target));
+    await _runNavigation(() => _goToLocator(target));
   }
 
   static String _hrefPath(String href) {
@@ -421,12 +442,20 @@ class ReadiumViewModel {
     try {
       await navigation();
       error.value = null;
+      canRetry.value = false;
       status.value = 'ready';
     } catch (e) {
       error.value = e.toString();
+      canRetry.value = false;
       status.value = 'error';
     } finally {
       _navigationInProgress = false;
+    }
+  }
+
+  Future<void> _goToLocator(Locator locator) async {
+    if (!await reader.goToLocator(locator)) {
+      throw StateError('定位失败');
     }
   }
   // ==================== Preferences ====================
@@ -486,6 +515,7 @@ class ReadiumViewModel {
         return true;
       } catch (e) {
         error.value = e.toString();
+        canRetry.value = false;
         status.value = 'error';
         return false;
       }
@@ -516,7 +546,7 @@ class ReadiumViewModel {
     } else {
       switch (theme) {
         case ReaderTheme.dark:
-          bg = const Color(0xFF1A1A1A);
+          bg = ReaderBgColors.darkBackground;
         case ReaderTheme.sepia:
           bg = const Color(0xFFF5E6D3);
         case ReaderTheme.light:
@@ -748,6 +778,7 @@ class ReadiumViewModel {
     try {
       final hint = await loadEnginePosition(bookId: bookId);
       if (hint == null) return null;
+      if (hint.engineKind != 'readium') return null;
       final opaque = hint.opaquePosition;
       if (opaque.isEmpty) return null;
       // ADR-019：Locator 与当前 EPUB 指纹不匹配时必须丢弃。
@@ -782,17 +813,23 @@ class ReadiumViewModel {
   }
 
   Future<void> toggleBookmark() async {
-    if (isBookmarked.value) {
-      await removeBookmark();
-    } else {
-      await addBookmark();
+    if (_bookmarkMutationInProgress) return;
+    _bookmarkMutationInProgress = true;
+    try {
+      if (isBookmarked.value) {
+        await removeBookmark();
+      } else {
+        await addBookmark();
+      }
+    } finally {
+      _bookmarkMutationInProgress = false;
     }
   }
 
   Future<void> goToBookmark(Bookmark entry) async {
     if (!_viewportReady || _closing) return;
     await _runNavigation(
-      () => _bookmarkController.goTo(entry, navigate: reader.goToLocator),
+      () => _bookmarkController.goTo(entry, navigate: _goToLocator),
     );
   }
 
@@ -801,10 +838,13 @@ class ReadiumViewModel {
   }
 
   Future<void> _loadBookmarks() async {
-    await _bookmarkController.load();
+    await _bookmarkController.load(currentLocator: _currentLocator);
   }
 
   String _tocTitleForHref(String href) {
+    for (final link in tocLinks.value) {
+      if (link.href == href) return link.title ?? '';
+    }
     final path = _hrefPath(href);
     for (final link in tocLinks.value) {
       if (_hrefPath(link.href) == path) return link.title ?? '';
@@ -825,31 +865,32 @@ class ReadiumViewModel {
     return _sessionTracker.currentChapterIndex ?? 0;
   }
 
-  /// Locator → 逻辑字符偏移。
+  /// Locator → legacy auxiliary offset.
   ///
-  /// Readium 不提供全局字符偏移，用 totalProgression × 全书字符数估算；
-  /// 全书字符数未知（加载失败/测试环境）时退回出版页码位置。
+  /// MVP 的恢复真相是完整 Locator，Readium 也不提供章节字符偏移。
+  /// 因此不能把全书 progression 伪装成章节 offset；这里只保留原生位置
+  /// 作为会话/书签列表的辅助字段。
   int _charOffsetFor(Locator locator) {
-    final totalProgression = locator.locations?.totalProgression ?? 0.0;
-    if (_totalChars > 0 && totalProgression > 0) {
-      return (totalProgression * _totalChars)
-          .round()
-          .clamp(0, _totalChars)
-          .toInt();
-    }
     return locator.locations?.position ?? 0;
   }
 
-  /// 预载书籍元数据（总字符数 + 既有进度累计时长）。
+  /// 预载既有阅读累计时长。
   Future<void> _loadBookMetadata() async {
     try {
       final detail = await book_api.getBookDetail(bookId: bookId);
-      _totalChars = detail.book.totalCharacters;
       _accumulatedReadingSeconds = detail.progress?.readingTimeSeconds ?? 0;
       _lastIsCompleted = detail.progress?.isCompleted ?? false;
     } catch (_) {
       // 元数据加载失败不影响阅读；进度估算退化为页码位置。
     }
+  }
+
+  String _publicationFingerprintFor(Publication publication) {
+    final source = sourceFingerprint?.trim();
+    final identifier = publication.metadata.identifier?.trim();
+    if (source == null || source.isEmpty) return identifier ?? '';
+    if (identifier == null || identifier.isEmpty) return source;
+    return '$source|id:$identifier';
   }
 
   /// 记录打开时间（最近阅读/书架排序依据，尽力而为）。
