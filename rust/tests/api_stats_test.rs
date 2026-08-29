@@ -43,9 +43,8 @@ async fn test_get_reading_stats_by_days_with_fill_contains_aggregated_sessions()
     session::create_session(
         "stats_test_book_fill".to_string(),
         0,
-        1000,
-        2000,
         now.timestamp(),
+        1000,
     )
     .await
     .unwrap();
@@ -53,7 +52,6 @@ async fn test_get_reading_stats_by_days_with_fill_contains_aggregated_sessions()
     let results = stats::get_reading_stats_by_days_with_fill(7).await.unwrap();
     let entry = results.iter().find(|s| s.book_id == "stats_test_book_fill");
     assert!(entry.is_some(), "会话聚合的数据应出现在补零查询中");
-    assert_eq!(entry.unwrap().characters_read, 1000);
     assert_eq!(entry.unwrap().session_count, 1);
 }
 

@@ -26,6 +26,7 @@ const SQL_UPSERT_READING_STATS: &str = "\
 INSERT INTO reading_stats (book_id, date, reading_time_seconds, session_count, last_session_id) \
 VALUES (?1, ?2, ?3, ?4, ?5) \
 ON CONFLICT(book_id, date) DO UPDATE SET \
+reading_time_seconds = excluded.reading_time_seconds, \
 session_count = excluded.session_count, \
 last_session_id = excluded.last_session_id";
 

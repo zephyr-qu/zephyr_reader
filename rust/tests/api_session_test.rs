@@ -16,18 +16,16 @@ async fn test_create_and_list_session() {
     let now = chrono::Utc::now().timestamp();
     let result = session::create_session(
         "session-test-book".to_string(),
-        0,   // chapter_index
-        0,   // start_char_offset
-        100, // end_char_offset
-        now, // started_at (Unix timestamp)
+        0,    // chapter_index
+        now,  // started_at (Unix timestamp)
+        100,  // duration_seconds
     )
     .await;
     assert!(result.is_ok(), "创建会话应该成功: {:?}", result);
     let s = result.unwrap();
     assert_eq!(s.book_id, "session-test-book");
     assert_eq!(s.chapter_index, 0);
-    assert_eq!(s.start_char_offset, 0);
-    assert_eq!(s.end_char_offset, 100);
+    assert_eq!(s.duration_seconds, 100);
 
     let sessions = session::list_sessions_by_book("session-test-book".to_string(), 10)
         .await
@@ -47,9 +45,8 @@ async fn test_list_sessions_by_book_limit() {
         session::create_session(
             "session-limit-book".to_string(),
             0,
-            i * 100,
-            (i + 1) * 100,
             ts,
+            (i + 1) as i64 * 100,
         )
         .await
         .unwrap();
@@ -73,7 +70,7 @@ async fn test_list_sessions_by_recent() {
     common::ensure_test_book("session-recent-book").await;
 
     let ts = chrono::Utc::now().timestamp();
-    session::create_session("session-recent-book".to_string(), 0, 0, 50, ts)
+    session::create_session("session-recent-book".to_string(), 0, ts, 50)
         .await
         .unwrap();
 
@@ -88,7 +85,7 @@ async fn test_clear_sessions_by_book() {
     common::ensure_test_book("session-clear-book").await;
 
     let ts = chrono::Utc::now().timestamp();
-    session::create_session("session-clear-book".to_string(), 0, 0, 50, ts)
+    session::create_session("session-clear-book".to_string(), 0, ts, 50)
         .await
         .unwrap();
 
@@ -110,20 +107,19 @@ async fn test_create_session_aggregates_daily_stats() {
     common::init_test_storage().await;
     common::ensure_test_book("session-stats-book").await;
 
-    // 同一天内两次会话（跨章节）：时长与字符数应增量聚合到 reading_stats。
+    // 同一天内两次会话（跨章节）：时长应增量聚合到 reading_stats。
     // 注意：不能用 get_reading_stats_by_days_with_fill 断言——它按日期折叠（一天一行，
     // 与书无关），并行测试的其他书会遮蔽本行。直接查 reading_stats 表验证聚合结果。
     let now = chrono::Utc::now();
     let started_at = now.timestamp();
-    let s1 = session::create_session("session-stats-book".to_string(), 0, 1000, 2000, started_at)
+    let s1 = session::create_session("session-stats-book".to_string(), 0, started_at, 1000)
         .await
         .unwrap();
     let s2 = session::create_session(
         "session-stats-book".to_string(),
         1,
-        2000,
-        2500,
         started_at + 300,
+        500,
     )
     .await
     .unwrap();
@@ -139,7 +135,6 @@ async fn test_create_session_aggregates_daily_stats() {
         s1.duration_seconds + s2.duration_seconds,
         "两次会话时长应累加",
     );
-    assert_eq!(row.characters_read, 1500, "字符数应累加（1000 + 500）");
     assert_eq!(row.session_count, 2);
     assert_eq!(
         row.last_session_id.as_deref(),
