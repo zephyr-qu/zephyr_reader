@@ -2,14 +2,14 @@ appId: com.zephyr.reader
 # 前提：设备 locale=en（断言为英文文案；中文设备 flow 会失败，真机验证后再统一）。
 ---
 - launchApp:
-    stopApp: false
+      stopApp: false
 - extendedWaitUntil:
-    visible: "Home"
-    timeout: 20000
+      visible: "Home"
+      timeout: 20000
 - tapOn: "Home"
 - extendedWaitUntil:
-    visible: "Continue Reading"
-    timeout: 20000
+      visible: "Continue Reading"
+      timeout: 20000
 - tapOn: "Bookshelf"
 - waitForAnimationToEnd
 - assertVisible: "Bookshelf"

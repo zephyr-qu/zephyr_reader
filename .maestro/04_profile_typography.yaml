@@ -2,22 +2,22 @@ appId: com.zephyr.reader
 # 前提：设备 locale=en（断言为英文文案；中文设备 flow 会失败，真机验证后再统一）。
 ---
 - launchApp:
-    stopApp: false
+      stopApp: false
 - extendedWaitUntil:
-    visible: "Home"
-    timeout: 20000
+      visible: "Home"
+      timeout: 20000
 - tapOn: "Profile"
 - extendedWaitUntil:
-    visible: "Reading History"
-    timeout: 10000
+      visible: "Reading History"
+      timeout: 10000
 - tapOn: "Typography"
 - extendedWaitUntil:
-    visible: ".*Live Preview.*"
-    timeout: 10000
+      visible: ".*Live Preview.*"
+      timeout: 10000
 - assertVisible: "Typography"
 - assertVisible: "Font Family"
 - scrollUntilVisible:
-    element: ".*Font Size.*"
-    direction: DOWN
-    timeout: 10000
+      element: ".*Font Size.*"
+      direction: DOWN
+      timeout: 10000
 - assertVisible: ".*Font Size.*"
