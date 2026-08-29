@@ -32,7 +32,7 @@ class HomePage extends HookWidget {
       return null;
     }, []);
     final AsyncState<List<Book>> recentBooks = useSignalValue(vm.recentBooks);
-    final AsyncState<List<ReadingStats>> dailyRecords = useSignalValue(
+    final AsyncState<List<DailyReadingStats>> dailyRecords = useSignalValue(
       vm.dailyRecords,
     );
 
@@ -114,7 +114,7 @@ class HomePage extends HookWidget {
                                 errorMessage: error.toString(),
                                 onRetry: () => vm.loadData(),
                               ),
-                          data: (List<ReadingStats> value) =>
+                          data: (List<DailyReadingStats> value) =>
                               ReadingTrend(dailyRecords: value),
                         ),
                       ),

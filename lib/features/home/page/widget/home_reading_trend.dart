@@ -13,7 +13,7 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 class ReadingTrend extends StatelessWidget {
   const ReadingTrend({super.key, required this.dailyRecords});
 
-  final List<ReadingStats> dailyRecords;
+  final List<DailyReadingStats> dailyRecords;
 
   @override
   Widget build(BuildContext context) {

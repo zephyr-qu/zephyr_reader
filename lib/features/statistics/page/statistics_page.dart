@@ -26,7 +26,7 @@ class StatisticsPage extends HookWidget {
     final vm = useMemoized(() => ReadingStatsViewModel());
 
     final AsyncState<GlobalStats?> gs = useSignalValue(vm.globalStats);
-    final AsyncState<List<ReadingStats>> records = useSignalValue(
+    final AsyncState<List<DailyReadingStats>> records = useSignalValue(
       vm.dailyRecords,
     );
     final periodSignal = useSignal(StatisticsPeriod.today);

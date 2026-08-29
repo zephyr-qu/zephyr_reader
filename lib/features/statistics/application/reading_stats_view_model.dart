@@ -14,7 +14,7 @@ class ReadingStatsViewModel {
   final globalStats = asyncSignal<GlobalStats?>(AsyncState.loading());
 
   /// 近 N 天阅读记录
-  final dailyRecords = asyncSignal<List<ReadingStats>>(AsyncState.loading());
+  final dailyRecords = asyncSignal<List<DailyReadingStats>>(AsyncState.loading());
 
   /// 全局统计已加载（与周期无关，仅需加载一次）
   bool _globalLoaded = false;
@@ -43,12 +43,12 @@ class ReadingStatsViewModel {
       StatisticsPeriod.year => 365,
     };
     try {
-      dailyRecords.value = AsyncState<List<ReadingStats>>.loading();
-      dailyRecords.value = AsyncState<List<ReadingStats>>.data(
+      dailyRecords.value = AsyncState<List<DailyReadingStats>>.loading();
+      dailyRecords.value = AsyncState<List<DailyReadingStats>>.data(
         await stats_api.getReadingStatsByDaysWithFill(days: days),
       );
     } catch (e) {
-      dailyRecords.value = AsyncState<List<ReadingStats>>.error(e);
+      dailyRecords.value = AsyncState<List<DailyReadingStats>>.error(e);
     }
   }
 

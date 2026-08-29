@@ -10,7 +10,7 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 ///
 /// 使用 fl_chart 绘制折线图，展示一段时间内的每日阅读时长变化。
 class ReadingTrendChart extends StatelessWidget {
-  final List<ReadingStats> records;
+  final List<DailyReadingStats> records;
 
   const ReadingTrendChart({super.key, required this.records});
 
