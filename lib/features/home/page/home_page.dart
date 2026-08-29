@@ -16,7 +16,6 @@ import 'package:zephyr_reader/features/home/page/widget/home_hero_section.dart';
 import 'package:zephyr_reader/features/home/page/widget/home_recent_list.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
-
 /// 首页。
 ///
 /// 展示最近阅读书籍、阅读趋势、每日语录等概览信息。

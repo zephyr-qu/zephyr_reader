@@ -2,7 +2,6 @@ import 'package:signals_flutter/signals_flutter.dart';
 import 'package:zephyr_reader/src/rust/api/stats.dart' as stats_api;
 import 'package:zephyr_reader/src/rust/domain/stats/models.dart';
 
-
 /// 统计时段枚举
 enum StatisticsPeriod { today, week, month, year }
 
@@ -14,10 +13,13 @@ class ReadingStatsViewModel {
   final globalStats = asyncSignal<GlobalStats?>(AsyncState.loading());
 
   /// 近 N 天阅读记录
-  final dailyRecords = asyncSignal<List<DailyReadingStats>>(AsyncState.loading());
+  final dailyRecords = asyncSignal<List<DailyReadingStats>>(
+    AsyncState.loading(),
+  );
 
   /// 全局统计已加载（与周期无关，仅需加载一次）
   bool _globalLoaded = false;
+
   /// 加载该时段的每日记录；全局统计仅首载（与周期无关）。
   Future<void> loadData({required StatisticsPeriod period}) async {
     await _loadGlobalOnce();

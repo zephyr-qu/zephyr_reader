@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import 'package:zephyr_reader/core/theme/theme_constants.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
-
 /// 阅读趋势图表。
 ///
 /// 使用 fl_chart 绘制柱状图，展示近期的每日阅读时长。

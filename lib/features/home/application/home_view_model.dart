@@ -5,7 +5,6 @@ import 'package:zephyr_reader/src/rust/api/stats.dart' as stats_api;
 import 'package:zephyr_reader/src/rust/domain/book/models.dart';
 import 'package:zephyr_reader/src/rust/domain/stats/models.dart';
 
-
 /// 首页最近阅读列表最大条目数
 final _recentBookLimit = 4;
 
@@ -14,7 +13,9 @@ final _recentBookLimit = 4;
 /// 管理最近阅读书籍列表和阅读趋势数据的异步加载状态。
 class HomeViewModel {
   final recentBooks = asyncSignal<List<Book>>(AsyncState.loading());
-  final dailyRecords = asyncSignal<List<DailyReadingStats>>(AsyncState.loading());
+  final dailyRecords = asyncSignal<List<DailyReadingStats>>(
+    AsyncState.loading(),
+  );
 
   /// 分别加载两个数据源，避免一个 API 失败连带另一个。
   Future<void> loadData() async {

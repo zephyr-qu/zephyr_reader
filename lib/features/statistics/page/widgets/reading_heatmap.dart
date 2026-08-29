@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:zephyr_reader/core/utils/logging.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
 
-
 /// 30 天阅读热力图组件。
 ///
 /// 以 3×10 网格展示过去 30 天的阅读情况，色块深浅反映当日阅读时长。
