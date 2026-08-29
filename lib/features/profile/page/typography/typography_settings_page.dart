@@ -15,7 +15,7 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// 排版与字体设置页面。
 ///
-/// 提供字体选择、字号、字重、页边距和阅读模式设置，全部映射到
+/// 提供字体选择、字号、页边距、行高和阅读模式设置，全部映射到
 /// [ReaderConfig] 持久化信号 —— 与阅读器内的设置面板共享同一份配置，
 /// 修改后下一次打开阅读器即生效。
 class TypographySettingsPage extends HookWidget {

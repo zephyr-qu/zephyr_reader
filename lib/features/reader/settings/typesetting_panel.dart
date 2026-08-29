@@ -9,8 +9,7 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 
 /// Exposes the typography preferences supported by the Readium bridge.
 /// Publisher-owned layout controls remain intentionally out of this panel.
-/// 仅保留常用项（字号/页边距/行高/对齐方式/阅读模式）；
-/// 字间距/段间距/首行缩进等低频项在设置页「排版与字体」中提供。
+/// 仅保留常用项（字号/页边距/行高/对齐方式/阅读模式）。
 class TypesettingPanel extends StatefulWidget {
   final ReaderConfig config;
   final ReadingMode readingMode;

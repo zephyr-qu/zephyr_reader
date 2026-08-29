@@ -6,6 +6,6 @@ enum ReaderPanelType {
   /// 显示：主题切换、背景色、亮度
   display,
 
-  /// 阅读辅助：朗读者 + 自动翻页
+  /// 阅读辅助：朗读（TTS）
   assist,
 }

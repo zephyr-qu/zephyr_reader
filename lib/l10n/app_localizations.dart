@@ -434,12 +434,6 @@ abstract class AppLocalizations {
   /// **'阅读统计'**
   String get statistics;
 
-  /// No description provided for @readingWords.
-  ///
-  /// In zh, this message translates to:
-  /// **'阅读字数'**
-  String get readingWords;
-
   /// No description provided for @booksCompleted.
   ///
   /// In zh, this message translates to:
@@ -817,12 +811,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'已选 {count} 本'**
   String selectedBooksCount(Object count);
-
-  /// No description provided for @totalChars.
-  ///
-  /// In zh, this message translates to:
-  /// **'总字符'**
-  String get totalChars;
 
   /// No description provided for @addedTime.
   ///

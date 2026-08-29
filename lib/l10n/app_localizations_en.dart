@@ -181,9 +181,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statistics => 'Statistics';
 
   @override
-  String get readingWords => 'Words Read';
-
-  @override
   String get booksCompleted => 'Books Finished';
 
   @override
@@ -385,9 +382,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String selectedBooksCount(Object count) {
     return '$count selected';
   }
-
-  @override
-  String get totalChars => 'Total Characters';
 
   @override
   String get addedTime => 'Added';

@@ -12,7 +12,7 @@ import 'package:zephyr_reader/core/utils/time_formatters.dart';
 /// 按书籍分组的阅读会话区块。
 ///
 /// 显示书名（从 [bookCache] 解析）、删除整组按钮、以及该书籍下所有
-/// 会话的汇总（总时长、总字数）及逐条记录。
+/// 会话的汇总（总时长、次数）及逐条记录。
 class ReadingSessionBookGroup extends StatelessWidget {
   final String bookId;
   final List<ReadingSession> sessions;

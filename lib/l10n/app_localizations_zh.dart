@@ -181,9 +181,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get statistics => '阅读统计';
 
   @override
-  String get readingWords => '阅读字数';
-
-  @override
   String get booksCompleted => '读完书籍';
 
   @override
@@ -385,9 +382,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String selectedBooksCount(Object count) {
     return '已选 $count 本';
   }
-
-  @override
-  String get totalChars => '总字符';
 
   @override
   String get addedTime => '添加时间';
