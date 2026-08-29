@@ -1,5 +1,6 @@
 -- Zephyr Reader 数据库初始建表
--- 全量建表（非发布阶段，不提供增量迁移）
+-- 基线全量建表。增量政策：schema 变更一律新建独立迁移文件（sqlx 校验已应用基线 checksum），
+-- 禁止修改本文件——对已应用基线的任何编辑都会使所有现有安装因 checksum 不匹配而启动失败。
 
 -- ==================== 书籍（热字段） ====================
 
@@ -12,7 +13,6 @@ CREATE TABLE IF NOT EXISTS books (
     title           TEXT NOT NULL,
     author          TEXT,
     chapter_count   INTEGER DEFAULT 0,
-    total_characters INTEGER DEFAULT 0,
     format          TEXT NOT NULL,
     added_at        INTEGER NOT NULL,
     last_opened_at  INTEGER,

@@ -19,7 +19,6 @@ fn create_test_book(file_path: &str) -> Book {
         author: Some("测试作者".to_string()),
         cover_path: None,
         chapter_count: 5,
-        total_characters: 10000,
         format: BookFormat::Txt,
         added_at: chrono::Utc::now(),
         last_opened_at: None,

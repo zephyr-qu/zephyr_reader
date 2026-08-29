@@ -16,14 +16,14 @@ use sqlx::SqlitePool;
 
 /// 书籍热字段 UPSERT
 const SQL_UPSERT_BOOK: &str = "\
-INSERT INTO books (id, file_path, file_size, file_mtime, file_hash, title, author, cover_path, chapter_count, total_characters, format, added_at, last_opened_at, status, is_pinned) \
-VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15) \
+INSERT INTO books (id, file_path, file_size, file_mtime, file_hash, title, author, cover_path, chapter_count, format, added_at, last_opened_at, status, is_pinned) \
+VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14) \
 ON CONFLICT(id) DO UPDATE SET \
 file_path = excluded.file_path, file_size = excluded.file_size, \
 file_mtime = excluded.file_mtime, file_hash = excluded.file_hash, \
 title = excluded.title, author = excluded.author, \
 cover_path = excluded.cover_path, \
-chapter_count = excluded.chapter_count, total_characters = excluded.total_characters, \
+chapter_count = excluded.chapter_count, \
 format = excluded.format, added_at = excluded.added_at, \
 last_opened_at = excluded.last_opened_at, \
 status = excluded.status, is_pinned = excluded.is_pinned";
@@ -177,7 +177,6 @@ impl BookRepository {
             .bind(&book.author)
             .bind(&book.cover_path)
             .bind(book.chapter_count)
-            .bind(book.total_characters)
             .bind(book.format.as_ref())
             .bind(book.added_at)
             .bind(book.last_opened_at)

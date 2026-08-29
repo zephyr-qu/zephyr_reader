@@ -68,7 +68,6 @@ pub async fn ensure_test_book(book_id: &str) {
         file_size: 1024,
         title: book_id.to_string(),
         chapter_count: 1,
-        total_characters: 1000,
         added_at: chrono::Utc::now(),
         ..Default::default()
     };

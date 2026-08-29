@@ -18,7 +18,6 @@ use super::archive_reader::EpubFile;
 use super::toc::extract_chapters_from_epub;
 use crate::domain::AppError;
 use crate::domain::book::{Book, BookFormat};
-use crate::domain::chapter::Chapter;
 use crate::parser::types::ParseResult;
 /// 解析 EPUB 文件
 ///
@@ -61,9 +60,6 @@ pub fn parse_epub(file_path: String) -> Result<ParseResult, AppError> {
     let chapter_count = chapters.len() as i32;
     tracing::debug!("TOC extracted, chapters: {}", chapter_count);
 
-    // 计算总字符数（需要读取所有章节）
-    let total_chars = estimate_total_chars(&mut epub_file, &chapters);
-    tracing::debug!("character count estimated: {}", total_chars);
 
     let book_info = Book {
         book_id,
@@ -72,7 +68,6 @@ pub fn parse_epub(file_path: String) -> Result<ParseResult, AppError> {
         author: Some(author),
         cover_path,
         chapter_count: chapter_count as i64,
-        total_characters: total_chars,
         publisher,
         translator,
         isbn,
@@ -86,9 +81,8 @@ pub fn parse_epub(file_path: String) -> Result<ParseResult, AppError> {
 
     let elapsed = start_time.elapsed();
     tracing::info!(
-        "EPUB parse complete: {} chapters, {} chars, elapsed: {:?}",
+        "EPUB parse complete: {} chapters, elapsed: {:?}",
         chapter_count,
-        total_chars,
         elapsed
     );
 
@@ -98,58 +92,6 @@ pub fn parse_epub(file_path: String) -> Result<ParseResult, AppError> {
     })
 }
 
-/// 估算总字符数
-///
-/// 使用首/中/尾三章采样取平均，避免因章节长度分布不均导致的估算偏差。
-fn estimate_total_chars(epub_file: &mut EpubFile, chapters: &[Chapter]) -> i64 {
-    if chapters.is_empty() {
-        return 0;
-    }
-
-    // 采样策略：取首章、中章、尾章（避免仅采样前几章导致的偏差）
-    let sample_indices = if chapters.len() >= 3 {
-        vec![0, chapters.len() / 2, chapters.len() - 1]
-    } else if chapters.len() == 2 {
-        vec![0, 1]
-    } else {
-        vec![0]
-    };
-
-    let mut total_sampled = 0i64;
-    let mut sampled_count = 0i64;
-
-    for &idx in &sample_indices {
-        // Inline: read_chapter_content logic
-        let content: String = {
-            let spine = epub_file.spine();
-            let start = chapters[idx].start_index as usize;
-            let end = (chapters[idx].end_index as usize)
-                .min(spine.len())
-                .max(start + 1);
-            let mut parts = Vec::new();
-            for i in start..end {
-                if let Some(href) = spine.get(i)
-                    && let Ok(text) = epub_file.read_resource(href)
-                {
-                    parts.push(text);
-                }
-            }
-            parts.join("\n")
-        };
-        if !content.is_empty() {
-            total_sampled += content.chars().count() as i64;
-            sampled_count += 1;
-        }
-    }
-
-    // 根据采样章节估算总数
-    if sampled_count > 0 {
-        let avg_chars_per_chapter = total_sampled / sampled_count;
-        avg_chars_per_chapter * chapters.len() as i64
-    } else {
-        0
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -167,18 +109,4 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_estimate_total_chars_empty() {
-        use tempfile::TempDir;
-
-        // 创建一个最小的有效 EPUB 文件用于测试
-        let temp_dir = TempDir::new().unwrap();
-        let epub_path = temp_dir.path().join("test.epub");
-
-        // EPUB 文件最小结构（ZIP 格式）
-        // 这里我们创建一个简单的 EPUB 用于测试
-        // 注意：实际测试中应该使用真实的 EPUB 文件
-        let result = parse_epub(epub_path.to_str().unwrap().to_string());
-        assert!(result.is_err()); // 文件不存在或无效
-    }
 }

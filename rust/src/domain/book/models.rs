@@ -17,7 +17,6 @@ pub struct Book {
     pub author: Option<String>,
     pub cover_path: Option<String>,
     pub chapter_count: i64,
-    pub total_characters: i64,
     #[sqlx(try_from = "String")]
     pub format: BookFormat,
     pub added_at: DateTime<Utc>,
@@ -57,7 +56,6 @@ impl Book {
         title: String,
         format: BookFormat,
         chapter_count: i64,
-        total_characters: i64,
         file_hash: Option<String>,
         file_mtime: Option<i64>,
         author: Option<String>,
@@ -77,7 +75,6 @@ impl Book {
             author,
             cover_path,
             chapter_count,
-            total_characters,
             format,
             added_at: Utc::now(),
             last_opened_at: None,

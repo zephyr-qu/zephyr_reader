@@ -50,7 +50,6 @@ class ReadiumViewModel {
   bool _viewportReady = false;
   bool _closing = false;
   bool _navigationInProgress = false;
-  bool _bookmarkMutationInProgress = false;
   int _openGeneration = 0;
   Future<void> _preferencesQueue = Future<void>.value();
   int _preferencesVersion = 0;
@@ -801,16 +800,11 @@ class ReadiumViewModel {
   }
 
   Future<void> toggleBookmark() async {
-    if (_bookmarkMutationInProgress) return;
-    _bookmarkMutationInProgress = true;
-    try {
-      if (isBookmarked.value) {
-        await removeBookmark();
-      } else {
-        await addBookmark();
-      }
-    } finally {
-      _bookmarkMutationInProgress = false;
+    // 互斥守卫由 ReadiumBookmarkController 内部持有（_add/_removeCurrent/_delete）。
+    if (isBookmarked.value) {
+      await removeBookmark();
+    } else {
+      await addBookmark();
     }
   }
 
