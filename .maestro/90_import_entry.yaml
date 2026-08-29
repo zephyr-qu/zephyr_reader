@@ -1,0 +1,21 @@
+appId: com.zephyr.reader
+---
+- launchApp:
+    stopApp: false
+- runFlow:
+    when:
+      visible: "Typography"
+    commands:
+      - pressKey: Back
+- extendedWaitUntil:
+    visible: "Home"
+    timeout: 20000
+- tapOn: "Bookshelf"
+- extendedWaitUntil:
+    visible: "Import"
+    timeout: 10000
+- tapOn: "Import"
+- extendedWaitUntil:
+    visible: "Recent"
+    timeout: 10000
+- assertVisible: "No items"

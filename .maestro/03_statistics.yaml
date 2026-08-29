@@ -1,0 +1,16 @@
+appId: com.zephyr.reader
+---
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Home"
+    timeout: 20000
+- tapOn: "Stats"
+- extendedWaitUntil:
+    visible: "Statistics"
+    timeout: 10000
+- assertVisible: "Today"
+- assertVisible: "Week"
+- assertVisible: "Month"
+- assertVisible: "Year"
+- assertVisible: ".*Reading Heatmap.*"

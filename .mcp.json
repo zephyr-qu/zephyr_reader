@@ -8,6 +8,10 @@
         "run",
         "dart_mcp_server"
       ]
+    },
+    "maestro": {
+      "command": "C:\\Users\\20840\\maestro\\maestro-mcp.cmd",
+      "args": []
     }
   }
 }
