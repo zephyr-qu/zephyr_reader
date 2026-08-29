@@ -26,8 +26,8 @@ const SQL_UPSERT_READING_STATS: &str = "\
 INSERT INTO reading_stats (book_id, date, reading_time_seconds, session_count, last_session_id) \
 VALUES (?1, ?2, ?3, ?4, ?5) \
 ON CONFLICT(book_id, date) DO UPDATE SET \
-reading_time_seconds = excluded.reading_time_seconds, \
-session_count = excluded.session_count, \
+reading_time_seconds = reading_time_seconds + excluded.reading_time_seconds, \
+session_count = session_count + 1, \
 last_session_id = excluded.last_session_id";
 
 /// 计算连续阅读天数（从今日起向前回溯）
@@ -102,44 +102,20 @@ impl StatsRepository {
     /// 聚合单个阅读会话到每日统计（阅读会话结束时调用）
     ///
     /// 不变量：`reading_stats` 仅在阅读会话结束时由 `reading_sessions` 增量聚合更新。
-    /// 按 (book_id, date) 读取现有累计值并叠加本次会话的时长与阅读字符数。
+    /// 按 (book_id, date) 原子叠加本次会话的时长与次数。
     pub async fn aggregate_session(
         pool: &SqlitePool,
         session: &crate::domain::sessions::models::ReadingSession,
     ) -> Result<(), AppError> {
         let date = session.started_at.date_naive().to_string();
 
-        let existing: Option<ReadingStats> = sqlx::query_as::<_, ReadingStats>(
-            "SELECT * FROM reading_stats WHERE book_id = ? AND date = ?",
-        )
-        .bind(&session.book_id)
-        .bind(&date)
-        .fetch_optional(pool)
-        .await?;
-
-        let stats = match existing {
-            Some(prev) => ReadingStats {
-                book_id: prev.book_id,
-                date: prev.date,
-                reading_time_seconds: prev.reading_time_seconds + session.duration_seconds,
-                session_count: prev.session_count + 1,
-                last_session_id: Some(session.id.clone()),
-            },
-            None => ReadingStats {
-                book_id: session.book_id.clone(),
-                date,
-                reading_time_seconds: session.duration_seconds,
-                session_count: 1,
-                last_session_id: Some(session.id.clone()),
-            },
-        };
-
+        // 单语句原子叠加：INSERT 即加，避免 SELECT→累加→UPSERT 的并发丢增量。
         sqlx::query(SQL_UPSERT_READING_STATS)
-            .bind(&stats.book_id)
-            .bind(&stats.date)
-            .bind(stats.reading_time_seconds)
-            .bind(stats.session_count)
-            .bind(&stats.last_session_id)
+            .bind(&session.book_id)
+            .bind(&date)
+            .bind(session.duration_seconds)
+            .bind(1)
+            .bind(&session.id)
             .execute(pool)
             .await?;
         Ok(())

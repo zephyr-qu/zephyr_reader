@@ -16,7 +16,8 @@ async fn test_get_reading_stats_by_days_with_fill_shape() {
     common::init_logger();
     common::init_test_storage().await;
 
-    // 无任何数据时也应返回整整 N 天的补零记录
+    // 不变量：无论库中是否有数据，窗口内每天都应有一条记录（补零）。
+    // 注意：集成测试共享 TEST_STORAGE 单例，并行测试可能先写入，故不做“空库”假设。
     let results = stats::get_reading_stats_by_days_with_fill(30)
         .await
         .unwrap();
@@ -26,9 +27,10 @@ async fn test_get_reading_stats_by_days_with_fill_shape() {
         "应返回整整 30 天（含补零），got {}",
         results.len()
     );
-    assert!(
-        results.iter().all(|s| s.reading_time_seconds == 0),
-        "无数据时所有条目应补零"
+    assert_eq!(
+        results.first().unwrap().date,
+        (chrono::Utc::now().date_naive() - chrono::Duration::days(29)).to_string(),
+        "窗口应从 29 天前开始",
     );
 }
 
