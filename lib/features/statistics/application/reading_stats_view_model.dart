@@ -18,28 +18,30 @@ class ReadingStatsViewModel {
 
   /// 全局统计已加载（与周期无关，仅需加载一次）
   bool _globalLoaded = false;
-  /// 按时段加载统计数据（全局统计、每日阅读记录、生词统计）。
-  Future<void> loadData({
-    required StatisticsPeriod period,
-    required int goalMinutes,
-  }) async {
+  /// 加载该时段的每日记录；全局统计仅首载（与周期无关）。
+  Future<void> loadData({required StatisticsPeriod period}) async {
+    await _loadGlobalOnce();
+    await _loadDaily(period);
+  }
+
+  Future<void> _loadGlobalOnce() async {
+    if (_globalLoaded) return;
+    _globalLoaded = true;
+    try {
+      final gs = await stats_api.getGlobalReadingStats();
+      globalStats.value = AsyncState<GlobalStats?>.data(gs);
+    } catch (e) {
+      globalStats.value = AsyncState<GlobalStats?>.error(e);
+    }
+  }
+
+  Future<void> _loadDaily(StatisticsPeriod period) async {
     final days = switch (period) {
       StatisticsPeriod.today => 1,
       StatisticsPeriod.week => 7,
       StatisticsPeriod.month => 30,
       StatisticsPeriod.year => 365,
     };
-    // 全局统计：与周期无关，仅首次加载
-    if (!_globalLoaded) {
-      _globalLoaded = true;
-      try {
-        final gs = await stats_api.getGlobalReadingStats();
-        globalStats.value = AsyncState<GlobalStats?>.data(gs);
-      } catch (e) {
-        globalStats.value = AsyncState<GlobalStats?>.error(e);
-      }
-    }
-    // 每日阅读统计
     try {
       dailyRecords.value = AsyncState<List<ReadingStats>>.loading();
       dailyRecords.value = AsyncState<List<ReadingStats>>.data(

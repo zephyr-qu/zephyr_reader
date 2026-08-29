@@ -32,7 +32,7 @@ class StatisticsPage extends HookWidget {
     final periodSignal = useSignal(StatisticsPeriod.today);
     final StatisticsPeriod period = useSignalValue(periodSignal);
     useEffect(() {
-      vm.loadData(period: period, goalMinutes: 60);
+      vm.loadData(period: period);
       return null;
     }, [period]);
 

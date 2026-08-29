@@ -1,5 +1,6 @@
 import 'package:zephyr_reader/src/rust/domain/book/models.dart';
 import 'package:zephyr_reader/src/rust/domain/sessions/models.dart';
+import 'package:zephyr_reader/src/rust/domain/stats/models.dart';
 
 import 'dart:async';
 
@@ -32,7 +33,7 @@ class ReadingSessionsPage extends HookWidget {
       vm.sessions,
     );
     final Map<String, Book> bookCache = useSignalValue(vm.bookCache);
-
+    final AsyncState<GlobalStats?> globalStats = useSignalValue(vm.globalStats);
     Future<void> deleteSessionsByBook(String bookId) async {
       final confirmed = await showDialog<bool>(
         context: context,
@@ -74,6 +75,7 @@ class ReadingSessionsPage extends HookWidget {
         cs,
         sessionsState,
         bookCache,
+        globalStats,
         deleteSessionsByBook,
         () => vm.load(),
         context,
@@ -86,6 +88,7 @@ class ReadingSessionsPage extends HookWidget {
     ColorScheme cs,
     AsyncState<List<ReadingSession>> sessionsState,
     Map<String, Book> bookCache,
+    AsyncState<GlobalStats?> globalStats,
     Future<void> Function(String) deleteSessionsByBook,
     VoidCallback onRetry,
     BuildContext context,
@@ -104,6 +107,7 @@ class ReadingSessionsPage extends HookWidget {
         cs,
         value,
         bookCache,
+        globalStats,
         deleteSessionsByBook,
       ),
     };
@@ -155,6 +159,7 @@ class ReadingSessionsPage extends HookWidget {
     ColorScheme cs,
     List<ReadingSession> sessions,
     Map<String, Book> bookCache,
+    AsyncState<GlobalStats?> globalStats,
     Future<void> Function(String) deleteSessionsByBook,
   ) {
     if (sessions.isEmpty) {
@@ -190,12 +195,12 @@ class ReadingSessionsPage extends HookWidget {
       grouped.putIfAbsent(s.bookId, () => []).add(s);
     }
 
-    final totalDuration = sessions.fold<int>(
-      0,
-      (sum, s) => sum + s.durationSeconds,
-    );
     final totalSessions = sessions.length;
-
+    // 总时长取全局权威聚合（与统计页/详情页一致），会话列表仅展示最近一批
+    final totalDuration = switch (globalStats) {
+      AsyncData(:final value) => value?.totalReadingTimeSeconds ?? 0,
+      _ => sessions.fold<int>(0, (sum, s) => sum + s.durationSeconds),
+    };
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       children: [
