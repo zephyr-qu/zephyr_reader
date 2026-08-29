@@ -76,12 +76,13 @@ void main() {
     expect(find.text('Serif'), findsOneWidget);
     expect(find.text('Noto Serif SC'), findsOneWidget);
     expect(find.text('字体大小'), findsOneWidget);
-    expect(find.text('字重'), findsOneWidget);
     expect(find.text('页边距'), findsOneWidget);
     expect(find.text('行间距'), findsOneWidget);
-    expect(find.text('字间距'), findsOneWidget);
-    expect(find.text('段间距'), findsOneWidget);
-    expect(find.text('首行缩进'), findsOneWidget);
+    // 低频/技术项已移除：字重、字间距、段间距、首行缩进
+    expect(find.text('字重'), findsNothing);
+    expect(find.text('字间距'), findsNothing);
+    expect(find.text('段间距'), findsNothing);
+    expect(find.text('首行缩进'), findsNothing);
     expect(find.text('文本对齐'), findsNothing);
     expect(find.text('阅读模式'), findsOneWidget);
     expect(find.text('分页'), findsOneWidget);

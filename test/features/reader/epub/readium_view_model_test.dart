@@ -470,7 +470,7 @@ void main() {
     when(() => reader.setEPUBPreferences(any())).thenAnswer((_) async {});
     when(() => reader.closePublication()).thenAnswer((_) async {});
 
-    final recorded = <({int chapterIndex, int startOffset, int endOffset})>[];
+    final recorded = <({int chapterIndex})>[];
     final vm = ReadiumViewModel(
       config: config,
       bookId: 'book-sessions',
@@ -479,15 +479,10 @@ void main() {
           ({
             required bookId,
             required chapterIndex,
-            required startCharOffset,
-            required endCharOffset,
             required startedAt,
+            required durationSeconds,
           }) async {
-            recorded.add((
-              chapterIndex: chapterIndex,
-              startOffset: startCharOffset,
-              endOffset: endCharOffset,
-            ));
+            recorded.add((chapterIndex: chapterIndex));
           },
     );
 
@@ -513,8 +508,6 @@ void main() {
     expect(recorded.length, 2);
     expect(recorded[0].chapterIndex, 0, reason: '离开第一章时应结束第一章会话');
     expect(recorded[1].chapterIndex, 1, reason: '关闭时应结束第二章会话');
-    expect(recorded[0].endOffset, 10, reason: '第一章会话结束于离开前的偏移');
-    expect(recorded[1].startOffset, 12, reason: '第二章会话从进入时的偏移开始');
   });
 
   test('persists reading progress to the persistence layer on close', () async {
@@ -643,9 +636,8 @@ void main() {
           ({
             required bookId,
             required chapterIndex,
-            required startCharOffset,
-            required endCharOffset,
             required startedAt,
+            required durationSeconds,
           }) async {
             sessionCount++;
           },
