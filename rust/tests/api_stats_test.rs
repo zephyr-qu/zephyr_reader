@@ -50,8 +50,12 @@ async fn test_get_reading_stats_by_days_with_fill_contains_aggregated_sessions()
     .unwrap();
 
     let results = stats::get_reading_stats_by_days_with_fill(7).await.unwrap();
-    let entry = results.iter().find(|s| s.book_id == "stats_test_book_fill");
-    assert!(entry.is_some(), "会话聚合的数据应出现在补零查询中");
+    // GROUP BY date 后 book_id 为聚合占位符，按“有阅读时长”的行断言
+    let today_str = chrono::Utc::now().date_naive().to_string();
+    let entry = results
+        .iter()
+        .find(|s| s.date == today_str && s.reading_time_seconds > 0);
+    assert!(entry.is_some(), "今天应有聚合后的会话数据");
     assert_eq!(entry.unwrap().session_count, 1);
 }
 

@@ -159,21 +159,27 @@ impl StatsRepository {
         let start = start_date.to_string();
         let end = today.to_string();
 
-        // 查询已有的数据
-        let mut stats_list: Vec<ReadingStats> = sqlx::query_as::<_, ReadingStats>(
-            "SELECT * FROM reading_stats
-         WHERE date >= ? AND date <= ?
-         ORDER BY date",
+        // 查询并按日期聚合多本书（趋势/热力图按天显示，忽略书粒度）
+        use std::collections::HashMap;
+        let stats_list: Vec<ReadingStats> = sqlx::query_as(
+            "SELECT \
+                ?2 AS book_id, \
+                date, \
+                SUM(reading_time_seconds) AS reading_time_seconds, \
+                SUM(session_count) AS session_count, \
+                MAX(last_session_id) AS last_session_id \
+             FROM reading_stats \
+             WHERE date >= ?1 AND date <= ?2 \
+             GROUP BY date \
+             ORDER BY date",
         )
         .bind(&start)
         .bind(&end)
         .fetch_all(pool)
         .await?;
 
-        // 将已有数据转为 HashMap 方便查找
-        use std::collections::HashMap;
         let mut stats_map: HashMap<String, ReadingStats> =
-            stats_list.drain(..).map(|s| (s.date.clone(), s)).collect();
+            stats_list.into_iter().map(|s| (s.date.clone(), s)).collect();
 
         // 补全缺失的日期
         let mut result = Vec::with_capacity(days as usize);
