@@ -73,10 +73,6 @@ impl BookRepository {
             .execute(&mut *tx)
             .await?;
 
-        sqlx::query("DELETE FROM reading_stats WHERE book_id = ?")
-            .bind(book_id)
-            .execute(&mut *tx)
-            .await?;
 
         sqlx::query("DELETE FROM book_categories WHERE book_id = ?")
             .bind(book_id)

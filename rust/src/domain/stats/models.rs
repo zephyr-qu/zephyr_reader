@@ -3,11 +3,10 @@
 use flutter_rust_bridge::frb;
 use serde::{Deserialize, Serialize};
 
-/// 每日阅读统计
+/// 按日聚合阅读统计（来自 reading_sessions 直算，无书粒度）。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, sqlx::FromRow)]
 #[frb(dart_metadata = ("freezed"))]
-pub struct ReadingStats {
-    pub book_id: String,
+pub struct DailyReadingStats {
     pub date: String,
     pub reading_time_seconds: i64,
     pub session_count: i64,

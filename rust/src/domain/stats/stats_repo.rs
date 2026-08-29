@@ -1,42 +1,33 @@
 use flutter_rust_bridge::frb;
 // ============================================================
-// 文件作用：阅读统计仓储，管理每日阅读统计和全局统计
+// 文件作用：阅读统计仓储，管理全局统计与每日阅读统计
 //
 // 公有类型/函数：
 //   - StatsRepository — 阅读统计仓储结构体
 //   - find_by_global() — 全局统计汇总
-//   - aggregate_session() — 会话结束时的每日统计增量聚合（唯一写入路径）
-//   - find_by_days_with_fill() — 最近 N 天含补零
+//   - find_by_days_with_fill() — 最近 N 天含补零（每日直读 reading_sessions）
 //
 // 私有函数：
 //   - calculate_consecutive_reading_days() — 连续阅读天数
+//
+// 真相源：`reading_sessions` 是唯一事实来源；所有聚合（全局/每日/连续
+// 天数）均由它实时计算，不维护 `reading_stats` 中间缓存表。
 // ============================================================
 
 use std::collections::HashSet;
 
 use crate::domain::AppError;
-use crate::domain::stats::models::{GlobalStats, ReadingStats};
+use crate::domain::stats::models::{DailyReadingStats, GlobalStats};
 use chrono::Utc;
 use sqlx::SqlitePool;
 
-/// 不变量：`reading_stats` 仅在阅读会话结束时由 `reading_sessions` 增量聚合更新，
-/// 不允许直接写入。`last_session_id` 记录最后一次聚合的会话 ID，用于排查聚合遗漏/重复。
-/// 如需新增写入入口，必须确保此不变量不被破坏。
-const SQL_UPSERT_READING_STATS: &str = "\
-INSERT INTO reading_stats (book_id, date, reading_time_seconds, session_count, last_session_id) \
-VALUES (?1, ?2, ?3, ?4, ?5) \
-ON CONFLICT(book_id, date) DO UPDATE SET \
-reading_time_seconds = reading_time_seconds + excluded.reading_time_seconds, \
-session_count = session_count + 1, \
-last_session_id = excluded.last_session_id";
-
-/// 计算连续阅读天数（从今日起向前回溯）
+/// 计算连续阅读天数（从今日起向前回溯，基于 reading_sessions 活跃日）
 async fn calculate_consecutive_reading_days(pool: &SqlitePool) -> Result<i64, AppError> {
     let rows: Vec<String> = sqlx::query_scalar(
-        "SELECT DISTINCT date FROM reading_stats \
-     WHERE reading_time_seconds > 0 \
-       AND date >= date('now', '-365 days') \
-     ORDER BY date DESC",
+        "SELECT DISTINCT date(started_at) AS d FROM reading_sessions \
+     WHERE duration_seconds > 0 \
+       AND d >= date('now', '-365 days') \
+     ORDER BY d DESC",
     )
     .fetch_all(pool)
     .await?;
@@ -64,13 +55,12 @@ async fn calculate_consecutive_reading_days(pool: &SqlitePool) -> Result<i64, Ap
     Ok(days)
 }
 
-/// 阅读统计仓储 — 管理每日阅读统计和全局统计
+/// 阅读统计仓储 — 管理全局统计与每日统计（均为 reading_sessions 实时聚合）
 #[frb(opaque)]
 pub struct StatsRepository;
 
 impl StatsRepository {
     /// 获取全局统计汇总
-    /// 将 7 次独立查询合并为 1 次聚合查询 + 1 次连续天数查询
     pub async fn find_by_global(pool: &SqlitePool) -> Result<GlobalStats, AppError> {
         let today_start = Utc::now()
             .date_naive()
@@ -99,54 +89,32 @@ impl StatsRepository {
         Ok(stats)
     }
 
-    /// 聚合单个阅读会话到每日统计（阅读会话结束时调用）
+    /// 获取最近 N 天的每日聚合（按本地日期），缺失的日期补 0。
     ///
-    /// 不变量：`reading_stats` 仅在阅读会话结束时由 `reading_sessions` 增量聚合更新。
-    /// 按 (book_id, date) 原子叠加本次会话的时长与次数。
-    pub async fn aggregate_session(
-        pool: &SqlitePool,
-        session: &crate::domain::sessions::models::ReadingSession,
-    ) -> Result<(), AppError> {
-        let date = session.started_at.date_naive().to_string();
-
-        // 单语句原子叠加：INSERT 即加，避免 SELECT→累加→UPSERT 的并发丢增量。
-        sqlx::query(SQL_UPSERT_READING_STATS)
-            .bind(&session.book_id)
-            .bind(&date)
-            .bind(session.duration_seconds)
-            .bind(1)
-            .bind(&session.id)
-            .execute(pool)
-            .await?;
-        Ok(())
-    }
-
-    /// 获取最近 N 天的统计数据（包含今天），缺失的日期补 0
-    ///
-    /// 这个方法会确保返回整整 `days` 天的数据，如果某天没有阅读记录，
-    /// 会补全一个阅读时间为 0 的记录。
+    /// 直接按 `reading_sessions.started_at` 分组（unixepoch localtime），
+    /// 不再依赖 `reading_stats` 缓存表。
     pub async fn find_by_days_with_fill(
         pool: &SqlitePool,
         days: i32,
-    ) -> Result<Vec<ReadingStats>, AppError> {
+    ) -> Result<Vec<DailyReadingStats>, AppError> {
         let today = Utc::now().date_naive();
         let start_date = today - chrono::Duration::days((days - 1) as i64);
 
         let start = start_date.to_string();
         let end = today.to_string();
 
-        // 查询并按日期聚合多本书（趋势/热力图按天显示，忽略书粒度）
+        // 按本地日期聚合多本书（趋势/热力图按天显示，忽略书粒度）
         use std::collections::HashMap;
-        let stats_list: Vec<ReadingStats> = sqlx::query_as(
+        let stats_list: Vec<DailyReadingStats> = sqlx::query_as(
             "SELECT \
-                ?2 AS book_id, \
-                date, \
-                SUM(reading_time_seconds) AS reading_time_seconds, \
-                SUM(session_count) AS session_count, \
-                MAX(last_session_id) AS last_session_id \
-             FROM reading_stats \
-             WHERE date >= ?1 AND date <= ?2 \
-             GROUP BY date \
+                date(started_at) AS date, \
+                SUM(duration_seconds) AS reading_time_seconds, \
+                COUNT(*) AS session_count, \
+                MAX(id) AS last_session_id \
+             FROM reading_sessions \
+             WHERE date(started_at) >= ?1 \
+               AND date(started_at) <= ?2 \
+             GROUP BY date(started_at) \
              ORDER BY date",
         )
         .bind(&start)
@@ -154,7 +122,7 @@ impl StatsRepository {
         .fetch_all(pool)
         .await?;
 
-        let mut stats_map: HashMap<String, ReadingStats> =
+        let mut stats_map: HashMap<String, DailyReadingStats> =
             stats_list.into_iter().map(|s| (s.date.clone(), s)).collect();
 
         // 补全缺失的日期
@@ -167,8 +135,7 @@ impl StatsRepository {
                 Some(stats) => result.push(stats),
                 None => {
                     // 创建空的统计数据
-                    result.push(ReadingStats {
-                        book_id: "".to_string(),
+                    result.push(DailyReadingStats {
                         date: date_str,
                         reading_time_seconds: 0,
                         session_count: 0,

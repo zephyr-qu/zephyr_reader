@@ -4,7 +4,7 @@ use flutter_rust_bridge::frb;
 
 use crate::common::AppError;
 use crate::domain::stats::stats_repo::StatsRepository;
-use crate::domain::stats::{GlobalStats, ReadingStats};
+use crate::domain::stats::models::{DailyReadingStats, GlobalStats};
 use crate::infra::manager::storage_pool;
 
 /// 获取全局阅读统计信息
@@ -15,9 +15,12 @@ pub async fn get_global_reading_stats() -> Result<GlobalStats, AppError> {
     StatsRepository::find_by_global(&pool).await
 }
 
-/// 获取最近 N 天的阅读统计数据（自动填充缺失日期）
+/// 获取最近 N 天的每日阅读统计（自动填充缺失日期）
+/// 返回按日聚合结果（无书粒度），来自 reading_sessions 实时聚合。
 #[frb]
-pub async fn get_reading_stats_by_days_with_fill(days: i32) -> Result<Vec<ReadingStats>, AppError> {
+pub async fn get_reading_stats_by_days_with_fill(
+    days: i32,
+) -> Result<Vec<DailyReadingStats>, AppError> {
     let pool = storage_pool()?;
     StatsRepository::find_by_days_with_fill(&pool, days).await
 }

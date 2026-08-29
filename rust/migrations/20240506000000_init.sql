@@ -133,20 +133,7 @@ CREATE TABLE IF NOT EXISTS reading_sessions (
 CREATE INDEX IF NOT EXISTS idx_sessions_book ON reading_sessions(book_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_started_at ON reading_sessions(started_at);
 
--- ==================== 阅读统计 ====================
-
-CREATE TABLE IF NOT EXISTS reading_stats (
-    book_id               TEXT NOT NULL,
-    date                  TEXT NOT NULL,
-    reading_time_seconds  INTEGER DEFAULT 0,
-    session_count         INTEGER DEFAULT 0,
-    last_session_id       TEXT,
-    PRIMARY KEY (book_id, date),
-    FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS idx_reading_stats_date ON reading_stats(date);
-
+-- 阅读统计：reading_stats 已移除，每日/全局均实时聚合 reading_sessions。
 -- ==================== 分类 ====================
 
 CREATE TABLE IF NOT EXISTS categories (
