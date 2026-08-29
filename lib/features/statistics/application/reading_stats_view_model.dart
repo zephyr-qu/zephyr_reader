@@ -16,6 +16,8 @@ class ReadingStatsViewModel {
   /// 近 N 天阅读记录
   final dailyRecords = asyncSignal<List<ReadingStats>>(AsyncState.loading());
 
+  /// 全局统计已加载（与周期无关，仅需加载一次）
+  bool _globalLoaded = false;
   /// 按时段加载统计数据（全局统计、每日阅读记录、生词统计）。
   Future<void> loadData({
     required StatisticsPeriod period,
@@ -27,12 +29,15 @@ class ReadingStatsViewModel {
       StatisticsPeriod.month => 30,
       StatisticsPeriod.year => 365,
     };
-    // 全局统计
-    try {
-      final gs = await stats_api.getGlobalReadingStats();
-      globalStats.value = AsyncState<GlobalStats?>.data(gs);
-    } catch (e) {
-      globalStats.value = AsyncState<GlobalStats?>.error(e);
+    // 全局统计：与周期无关，仅首次加载
+    if (!_globalLoaded) {
+      _globalLoaded = true;
+      try {
+        final gs = await stats_api.getGlobalReadingStats();
+        globalStats.value = AsyncState<GlobalStats?>.data(gs);
+      } catch (e) {
+        globalStats.value = AsyncState<GlobalStats?>.error(e);
+      }
     }
     // 每日阅读统计
     try {

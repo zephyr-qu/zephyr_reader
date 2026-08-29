@@ -4,13 +4,11 @@ use flutter_rust_bridge::frb;
 use sqlx::SqlitePool;
 
 const SQL_UPSERT_SESSION: &str = "\
-INSERT INTO reading_sessions (id, book_id, chapter_index, start_char_offset, end_char_offset, started_at, ended_at, duration_seconds) \
-VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8) \
+INSERT INTO reading_sessions (id, book_id, chapter_index, started_at, ended_at, duration_seconds) \
+VALUES (?1, ?2, ?3, ?4, ?5, ?6) \
 ON CONFLICT(id) DO UPDATE SET \
 book_id = excluded.book_id, \
 chapter_index = excluded.chapter_index, \
-start_char_offset = excluded.start_char_offset, \
-end_char_offset = excluded.end_char_offset, \
 started_at = excluded.started_at, \
 ended_at = excluded.ended_at, \
 duration_seconds = excluded.duration_seconds";
@@ -27,8 +25,6 @@ impl SessionRepository {
             .bind(&session.id)
             .bind(&session.book_id)
             .bind(session.chapter_index)
-            .bind(session.start_char_offset)
-            .bind(session.end_char_offset)
             .bind(session.started_at)
             .bind(session.ended_at)
             .bind(session.duration_seconds)
@@ -79,5 +75,16 @@ impl SessionRepository {
                 .fetch_one(pool)
                 .await?;
         Ok(count)
+    }
+
+    /// 获取指定书籍的累计阅读时长（秒）——与统计页同一真相源。
+    pub async fn total_duration_by_book(pool: &SqlitePool, book_id: &str) -> Result<i64, AppError> {
+        let total: i64 = sqlx::query_scalar(
+            "SELECT COALESCE(SUM(duration_seconds), 0) FROM reading_sessions WHERE book_id = ?",
+        )
+        .bind(book_id)
+        .fetch_one(pool)
+        .await?;
+        Ok(total)
     }
 }

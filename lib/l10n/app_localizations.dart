@@ -1397,14 +1397,14 @@ abstract class AppLocalizations {
   /// No description provided for @sessionSummary.
   ///
   /// In zh, this message translates to:
-  /// **'共 {count} 次 · {duration} · 阅读 {chars}'**
-  String sessionSummary(Object chars, Object count, Object duration);
+  /// **'共 {count} 次 · {duration}'**
+  String sessionSummary(Object count, Object duration);
 
   /// No description provided for @chapterInfo.
   ///
   /// In zh, this message translates to:
-  /// **'第 {index} 章 · {chars}'**
-  String chapterInfo(Object chars, Object index);
+  /// **'第 {index} 章'**
+  String chapterInfo(Object index);
 
   /// No description provided for @deleteSessionTitle.
   ///

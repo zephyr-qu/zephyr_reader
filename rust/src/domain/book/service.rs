@@ -30,6 +30,8 @@ pub async fn get_book_detail(book_id: &str) -> Result<BookDetail, AppError> {
     let chapters = ChapterRepository::find_by_book(&pool, book_id).await?;
     let categories = CategoryRepository::list_by_book(&pool, book_id).await?;
     let session_count = SessionRepository::count_by_book(&pool, book_id).await?;
+    let total_reading_seconds =
+        SessionRepository::total_duration_by_book(&pool, book_id).await?;
 
 
     Ok(BookDetail {
@@ -38,6 +40,7 @@ pub async fn get_book_detail(book_id: &str) -> Result<BookDetail, AppError> {
         chapters,
         categories,
         session_count,
+        total_reading_seconds,
     })
 }
 

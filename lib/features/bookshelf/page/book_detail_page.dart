@@ -81,6 +81,7 @@ class BookDetailPage extends HookWidget {
                     BookDetailProgressCard(
                       progress: progress,
                       sessionCount: detail.sessionCount,
+                      totalReadingSeconds: detail.totalReadingSeconds,
                     ),
                   if (book.description != null)
                     BookDetailDescSection(description: book.description!),

@@ -23,6 +23,8 @@ pub struct BookDetail {
     pub chapters: Vec<Chapter>,
     pub categories: Vec<Category>,
     pub session_count: i32,
+    /// 本书累计阅读时长（秒），来自 reading_sessions 聚合（与统计页同一真相源）。
+    pub total_reading_seconds: i64,
 }
 // ============================================================
 // 书籍 CRUD — 薄 FFI 封装

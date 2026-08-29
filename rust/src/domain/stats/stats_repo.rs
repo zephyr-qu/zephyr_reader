@@ -15,7 +15,7 @@ use flutter_rust_bridge::frb;
 use std::collections::HashSet;
 
 use crate::domain::AppError;
-use crate::domain::stats::models::{AggregatedStats, GlobalStats, ReadingStats};
+use crate::domain::stats::models::{GlobalStats, ReadingStats};
 use chrono::Utc;
 use sqlx::SqlitePool;
 
@@ -23,11 +23,9 @@ use sqlx::SqlitePool;
 /// 不允许直接写入。`last_session_id` 记录最后一次聚合的会话 ID，用于排查聚合遗漏/重复。
 /// 如需新增写入入口，必须确保此不变量不被破坏。
 const SQL_UPSERT_READING_STATS: &str = "\
-INSERT INTO reading_stats (book_id, date, reading_time_seconds, characters_read, session_count, last_session_id) \
-VALUES (?1, ?2, ?3, ?4, ?5, ?6) \
+INSERT INTO reading_stats (book_id, date, reading_time_seconds, session_count, last_session_id) \
+VALUES (?1, ?2, ?3, ?4, ?5) \
 ON CONFLICT(book_id, date) DO UPDATE SET \
-reading_time_seconds = excluded.reading_time_seconds, \
-characters_read = excluded.characters_read, \
 session_count = excluded.session_count, \
 last_session_id = excluded.last_session_id";
 
@@ -80,43 +78,24 @@ impl StatsRepository {
             .and_utc()
             .timestamp();
         let today_end = today_start + 86400;
-        let agg: AggregatedStats = sqlx::query_as(
+        let mut stats: GlobalStats = sqlx::query_as(
         "SELECT \
             COALESCE((SELECT SUM(duration_seconds) FROM reading_sessions), 0) AS total_reading_time_seconds, \
-            COALESCE((SELECT SUM(CASE WHEN end_char_offset > start_char_offset THEN end_char_offset - start_char_offset ELSE 0 END) FROM reading_sessions), 0) AS total_characters_read, \
             (SELECT COUNT(DISTINCT book_id) FROM reading_sessions) AS books_read_count, \
             (SELECT COUNT(*) FROM reading_progress WHERE is_completed != 0) AS books_completed_count, \
+            COALESCE((SELECT SUM(duration_seconds) FROM reading_sessions WHERE started_at >= ?1 AND started_at < ?2), 0) AS today_reading_time_seconds, \
             (SELECT COUNT(*) FROM books) AS total_books_count, \
             (SELECT COUNT(*) FROM notes) AS total_notes_count, \
-            (SELECT COUNT(*) FROM bookmarks) AS total_bookmarks_count, \
-            COALESCE((SELECT SUM(duration_seconds) FROM reading_sessions WHERE started_at >= ?1 AND started_at < ?2), 0) AS today_reading_time_seconds, \
-            COALESCE((SELECT SUM(CASE WHEN end_char_offset > start_char_offset THEN end_char_offset - start_char_offset ELSE 0 END) FROM reading_sessions WHERE started_at >= ?1 AND started_at < ?2), 0) AS today_characters_read",
-    )
-    .bind(today_start)
-    .bind(today_end)
-    .fetch_one(pool)
-    .await?;
+            (SELECT COUNT(*) FROM bookmarks) AS total_bookmarks_count",
+        )
+        .bind(today_start)
+        .bind(today_end)
+        .fetch_one(pool)
+        .await?;
 
-        let average_reading_speed = if agg.total_reading_time_seconds > 0 {
-            (agg.total_characters_read as f64 / agg.total_reading_time_seconds as f64 * 60.0) as f32
-        } else {
-            0.0
-        };
+        stats.consecutive_reading_days = calculate_consecutive_reading_days(pool).await?;
 
-        let consecutive_reading_days = calculate_consecutive_reading_days(pool).await?;
-        Ok(GlobalStats {
-            total_reading_time_seconds: agg.total_reading_time_seconds,
-            total_characters_read: agg.total_characters_read,
-            books_read_count: agg.books_read_count,
-            books_completed_count: agg.books_completed_count,
-            consecutive_reading_days,
-            today_reading_time_seconds: agg.today_reading_time_seconds,
-            today_characters_read: agg.today_characters_read,
-            average_reading_speed,
-            total_books_count: agg.total_books_count,
-            total_notes_count: agg.total_notes_count,
-            total_bookmarks_count: agg.total_bookmarks_count,
-        })
+        Ok(stats)
     }
 
     /// 聚合单个阅读会话到每日统计（阅读会话结束时调用）
@@ -128,7 +107,6 @@ impl StatsRepository {
         session: &crate::domain::sessions::models::ReadingSession,
     ) -> Result<(), AppError> {
         let date = session.started_at.date_naive().to_string();
-        let characters = (session.end_char_offset - session.start_char_offset).max(0);
 
         let existing: Option<ReadingStats> = sqlx::query_as::<_, ReadingStats>(
             "SELECT * FROM reading_stats WHERE book_id = ? AND date = ?",
@@ -143,7 +121,6 @@ impl StatsRepository {
                 book_id: prev.book_id,
                 date: prev.date,
                 reading_time_seconds: prev.reading_time_seconds + session.duration_seconds,
-                characters_read: prev.characters_read + characters,
                 session_count: prev.session_count + 1,
                 last_session_id: Some(session.id.clone()),
             },
@@ -151,7 +128,6 @@ impl StatsRepository {
                 book_id: session.book_id.clone(),
                 date,
                 reading_time_seconds: session.duration_seconds,
-                characters_read: characters,
                 session_count: 1,
                 last_session_id: Some(session.id.clone()),
             },
@@ -161,7 +137,6 @@ impl StatsRepository {
             .bind(&stats.book_id)
             .bind(&stats.date)
             .bind(stats.reading_time_seconds)
-            .bind(stats.characters_read)
             .bind(stats.session_count)
             .bind(&stats.last_session_id)
             .execute(pool)
@@ -213,7 +188,6 @@ impl StatsRepository {
                         book_id: "".to_string(),
                         date: date_str,
                         reading_time_seconds: 0,
-                        characters_read: 0,
                         session_count: 0,
                         last_session_id: None,
                     });

@@ -8,10 +8,13 @@ import 'package:zephyr_reader/l10n/app_localizations.dart';
 class BookDetailProgressCard extends StatelessWidget {
   final ReadingProgress progress;
   final int sessionCount;
+  /// 本书累计阅读时长（秒），来自阅读会话聚合，与统计页一致。
+  final int totalReadingSeconds;
   const BookDetailProgressCard({
     super.key,
     required this.progress,
     required this.sessionCount,
+    required this.totalReadingSeconds,
   });
 
   @override
@@ -19,15 +22,15 @@ class BookDetailProgressCard extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final pct = (progress.progress) * 100;
-    final totalMinutes = (progress.readingTimeSeconds.toInt()) ~/ 60;
+    final totalMinutes = totalReadingSeconds ~/ 60;
     final hours = totalMinutes ~/ 60;
     final minutes = totalMinutes % 60;
     final timeStr = hours > 0 ? '${hours}h ${minutes}min' : '${minutes}min';
 
-    // Estimated remaining time
+    // Estimated remaining time（基于会话聚合时长，避免墙钟漂移）
     String? remainingStr;
     final p = progress.progress;
-    final readingTime = progress.readingTimeSeconds.toDouble();
+    final readingTime = totalReadingSeconds.toDouble();
     if (p > 0.01 && readingTime > 0) {
       final remainingSec = ((1.0 - p) * readingTime / p).round();
       if (remainingSec > 0) {

@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:zephyr_reader/core/presentation/widgets/confirm_action_dialog.dart';
 import 'package:zephyr_reader/l10n/app_localizations.dart';
-import 'package:zephyr_reader/core/utils/format_utils.dart';
 import 'package:zephyr_reader/core/utils/time_formatters.dart';
 
 
@@ -37,10 +36,6 @@ class ReadingSessionBookGroup extends StatelessWidget {
     final totalTime = sessions.fold<int>(
       0,
       (sum, s) => sum + s.durationSeconds,
-    );
-    final totalChars = sessions.fold<int>(
-      0,
-      (sum, s) => sum + (s.endCharOffset - s.startCharOffset),
     );
 
     return Column(
@@ -89,7 +84,6 @@ class ReadingSessionBookGroup extends StatelessWidget {
             l10n.sessionSummary(
               sessions.length,
               formatDuration(totalTime, l10n),
-              formatChars(totalChars, l10n),
             ),
             style: TextStyle(
               fontSize: 12,
@@ -107,7 +101,6 @@ class ReadingSessionBookGroup extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final dateStr = DateFormat('MM/dd HH:mm').format(s.startedAt);
     final duration = formatDuration(s.durationSeconds, l10n);
-    final chars = s.endCharOffset - s.startCharOffset;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
@@ -136,7 +129,7 @@ class ReadingSessionBookGroup extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  l10n.chapterInfo(s.chapterIndex, formatChars(chars, l10n)),
+                  l10n.chapterInfo(s.chapterIndex),
                   style: TextStyle(
                     fontSize: 12,
                     color: theme.colorScheme.onSurfaceVariant,

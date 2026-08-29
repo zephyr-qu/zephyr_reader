@@ -695,13 +695,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unknownBook => 'Unknown book';
 
   @override
-  String sessionSummary(Object chars, Object count, Object duration) {
-    return '$count sessions · $duration · $chars read';
+  String sessionSummary(Object count, Object duration) {
+    return '$count sessions · $duration';
   }
 
   @override
-  String chapterInfo(Object chars, Object index) {
-    return 'Ch. $index · $chars';
+  String chapterInfo(Object index) {
+    return 'Ch. $index';
   }
 
   @override

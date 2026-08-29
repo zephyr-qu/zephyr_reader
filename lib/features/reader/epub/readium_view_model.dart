@@ -57,8 +57,6 @@ class ReadiumViewModel {
   bool _preferencesDirty = false;
 
   // ==================== Progress / Session persistence ====================
-  int _accumulatedReadingSeconds = 0;
-  DateTime _lastReadingTick = DateTime.now();
   String _publicationFingerprint = '';
   bool _lastIsCompleted = false;
 
@@ -117,8 +115,7 @@ class ReadiumViewModel {
       recordSession: recordSession,
       chapterIndexForHref: _chapterIndexForHref,
       charOffsetFor: _charOffsetFor,
-      isReady: () => _viewportReady,
-      isClosing: () => _closing,
+      isActive: () => _viewportReady && !_closing,
     );
   }
 
@@ -162,8 +159,6 @@ class ReadiumViewModel {
       _publicationFingerprint = '';
       readingMode.value = config.readingMode.value;
       _sessionTracker.reset();
-      _accumulatedReadingSeconds = 0;
-      _lastReadingTick = DateTime.now();
 
       // ADR-021 修订：预置默认偏好，让原生 WebView 首次创建即处于正确布局
       // （scroll 或分页），消除"先分页后热切 scroll"的时序竞争。
@@ -710,7 +705,6 @@ class ReadiumViewModel {
   Future<void> _savePositionNow() async {
     final locator = _currentLocator;
     if (locator == null) return;
-    _accumulateReadingSeconds();
     await _saveReadingProgress();
   }
 
@@ -728,7 +722,9 @@ class ReadiumViewModel {
         chapterId: locator.href,
         charOffset: _charOffsetFor(locator),
         progress: totalProgression,
-        readingTimeSeconds: _accumulatedReadingSeconds,
+        // 阅读时长由 reading_sessions 聚合提供（详情卡读 totalReadingSeconds）；
+        // 此字段保留兼容写入，不再被统计消费。
+        readingTimeSeconds: 0,
         lastReadAt: DateTime.now().toUtc(),
         isCompleted: isCompleted,
       );
@@ -765,14 +761,6 @@ class ReadiumViewModel {
     }
   }
 
-  void _accumulateReadingSeconds() {
-    final now = DateTime.now();
-    final elapsed = now.difference(_lastReadingTick).inSeconds;
-    if (elapsed > 0) {
-      _accumulatedReadingSeconds += elapsed;
-      _lastReadingTick = now;
-    }
-  }
 
   Future<Locator?> _loadSavedPosition() async {
     try {
@@ -878,7 +866,6 @@ class ReadiumViewModel {
   Future<void> _loadBookMetadata() async {
     try {
       final detail = await book_api.getBookDetail(bookId: bookId);
-      _accumulatedReadingSeconds = detail.progress?.readingTimeSeconds ?? 0;
       _lastIsCompleted = detail.progress?.isCompleted ?? false;
     } catch (_) {
       // 元数据加载失败不影响阅读；进度估算退化为页码位置。

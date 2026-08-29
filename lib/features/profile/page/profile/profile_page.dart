@@ -109,7 +109,6 @@ class ProfilePage extends HookWidget {
               final hours = stats != null
                   ? (stats.totalReadingTimeSeconds / 3600).round()
                   : 0;
-              final chars = stats?.totalCharactersRead ?? 0;
               final completed = stats?.booksCompletedCount ?? 0;
               return Row(
                 children: [
@@ -119,14 +118,6 @@ class ProfilePage extends HookWidget {
                     icon: PhosphorIconsRegular.clock,
                   ),
                   _divider(),
-                  ProfileStatItem(
-                    value: chars >= 1000
-                        ? '${(chars / 1000).toStringAsFixed(1)}K'
-                        : '$chars',
-                    unit: 'W',
-                    label: l10n.readingWords,
-                    icon: PhosphorIconsRegular.book,
-                  ),
                   _divider(),
                   ProfileStatItem(
                     value: '$completed',

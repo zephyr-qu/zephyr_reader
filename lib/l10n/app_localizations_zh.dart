@@ -690,13 +690,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get unknownBook => '未知书籍';
 
   @override
-  String sessionSummary(Object chars, Object count, Object duration) {
-    return '共 $count 次 · $duration · 阅读 $chars';
+  String sessionSummary(Object count, Object duration) {
+    return '共 $count 次 · $duration';
   }
 
   @override
-  String chapterInfo(Object chars, Object index) {
-    return '第 $index 章 · $chars';
+  String chapterInfo(Object index) {
+    return '第 $index 章';
   }
 
   @override

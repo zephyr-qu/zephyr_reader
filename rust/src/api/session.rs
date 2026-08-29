@@ -32,9 +32,8 @@ pub async fn list_sessions_by_recent(limit: i32) -> Result<Vec<ReadingSession>, 
 pub async fn create_session(
     book_id: String,
     chapter_index: i32,
-    start_char_offset: i32,
-    end_char_offset: i32,
     started_at: i64,
+    duration_seconds: i64,
 ) -> Result<ReadingSession, AppError> {
     tracing::info!(
         "[session] create_session: book_id={}, chapter_index={}",
@@ -48,9 +47,8 @@ pub async fn create_session(
     let session = ReadingSession::new(
         &book_id,
         chapter_index as i64,
-        start_char_offset as i64,
-        end_char_offset as i64,
         started,
+        duration_seconds.max(0),
     );
     let pool = storage_pool()?;
     SessionRepository::save(&pool, &session).await?;

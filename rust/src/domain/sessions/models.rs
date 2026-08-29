@@ -9,8 +9,6 @@ pub struct ReadingSession {
     pub id: String,
     pub book_id: String,
     pub chapter_index: i64,
-    pub start_char_offset: i64,
-    pub end_char_offset: i64,
     pub started_at: DateTime<Utc>,
     pub ended_at: DateTime<Utc>,
     pub duration_seconds: i64,
@@ -22,18 +20,14 @@ impl ReadingSession {
     pub fn new(
         book_id: &str,
         chapter_index: i64,
-        start_char_offset: i64,
-        end_char_offset: i64,
         started_at: DateTime<Utc>,
+        duration_seconds: i64,
     ) -> Self {
-        let ended_at = Utc::now();
-        let duration_seconds = (ended_at - started_at).num_seconds().max(0);
+        let ended_at = started_at + chrono::Duration::seconds(duration_seconds.max(0));
         Self {
             id: uuid::Uuid::new_v4().to_string(),
             book_id: book_id.to_string(),
             chapter_index,
-            start_char_offset,
-            end_char_offset: end_char_offset.max(start_char_offset),
             started_at,
             ended_at,
             duration_seconds,
