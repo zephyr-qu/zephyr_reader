@@ -38,7 +38,6 @@ class TypographySettingsPage extends HookWidget {
           ReaderTypographyDefaults.maxFontSize,
         )
         .toDouble();
-    final double fontWeight = useSignalValue(config.fontWeight.signal);
     final double padding = (useSignalValue(config.padding.signal) as double)
         .clamp(
           ReaderTypographyDefaults.minPadding,
@@ -52,13 +51,6 @@ class TypographySettingsPage extends HookWidget {
               ReaderTypographyDefaults.maxLineHeight,
             )
             .toDouble();
-    final double letterSpacing = useSignalValue(config.letterSpacing.signal);
-    final double paragraphSpacing = useSignalValue(
-      config.paragraphSpacing.signal,
-    );
-    final double paragraphIndent = useSignalValue(
-      config.paragraphIndent.signal,
-    );
     final String fontFamily = useSignalValue(config.fontFamily.signal);
     final ReadingMode readingMode = useSignalValue(config.readingMode.signal);
 
@@ -74,12 +66,8 @@ class TypographySettingsPage extends HookWidget {
           _buildTypographySection(
             l10n,
             fontSize,
-            fontWeight,
             padding,
             lineHeight,
-            letterSpacing,
-            paragraphSpacing,
-            paragraphIndent,
             config,
           ),
           const SizedBox(height: 16),
@@ -122,12 +110,8 @@ class TypographySettingsPage extends HookWidget {
   Widget _buildTypographySection(
     AppLocalizations l10n,
     double fontSize,
-    double fontWeight,
     double padding,
     double lineHeight,
-    double letterSpacing,
-    double paragraphSpacing,
-    double paragraphIndent,
     ReaderConfig config,
   ) {
     return Column(
@@ -147,15 +131,6 @@ class TypographySettingsPage extends HookWidget {
               onChanged: (v) => config.fontSize.value = v,
             ),
             SettingsSliderTile(
-              label: l10n.fontWeight,
-              value: '${fontWeight.round()}',
-              current: fontWeight,
-              min: ReaderTypographyDefaults.minFontWeight,
-              max: ReaderTypographyDefaults.maxFontWeight,
-              step: 100,
-              onChanged: (v) => config.fontWeight.value = v,
-            ),
-            SettingsSliderTile(
               label: l10n.pageMargin,
               value: '${padding.round()}',
               current: padding,
@@ -172,33 +147,6 @@ class TypographySettingsPage extends HookWidget {
               max: ReaderTypographyDefaults.maxLineHeight,
               step: 0.1,
               onChanged: (v) => config.lineHeight.value = v,
-            ),
-            SettingsSliderTile(
-              label: l10n.letterSpacing,
-              value: '${letterSpacing.toStringAsFixed(2)}em',
-              current: letterSpacing,
-              min: ReaderTypographyDefaults.minLetterSpacing,
-              max: ReaderTypographyDefaults.maxLetterSpacing,
-              step: 0.05,
-              onChanged: (v) => config.letterSpacing.value = v,
-            ),
-            SettingsSliderTile(
-              label: l10n.paragraphSpacing,
-              value: '${paragraphSpacing.toStringAsFixed(1)}em',
-              current: paragraphSpacing,
-              min: 0,
-              max: ReaderTypographyDefaults.maxParagraphSpacing,
-              step: 0.25,
-              onChanged: (v) => config.paragraphSpacing.value = v,
-            ),
-            SettingsSliderTile(
-              label: l10n.paragraphIndent,
-              value: '${paragraphIndent.toStringAsFixed(1)}em',
-              current: paragraphIndent,
-              min: 0,
-              max: ReaderTypographyDefaults.maxParagraphIndent,
-              step: 0.25,
-              onChanged: (v) => config.paragraphIndent.value = v,
             ),
           ],
         ),

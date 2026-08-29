@@ -14,7 +14,6 @@ enum AppRoute {
   categoryManagement('/bookshelf/categories'),
   readingSessions('/statistics/sessions'),
   dataManagement('/settings/data-management'),
-  ttsSettings('/settings/tts'),
   typographySettings('/settings/typography'),
   themeBrightness('/settings/theme'),
   otherSettings('/settings/other');

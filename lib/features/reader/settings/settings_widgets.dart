@@ -85,9 +85,12 @@ Widget sliderTile({
   required ValueChanged<double> onChanged,
   required ReaderThemeExtension readerTheme,
   bool enabled = true,
+  /// 滑块下方的刻度锚点：(数值, 标签)。不传则不显示。
+  List<(double, String)> ticks = const [],
 }) {
   final accentColor = readerTheme.accentColor;
   final textColor = readerTheme.textColor;
+  final mutedColor = readerTheme.mutedColor;
   return Padding(
     padding: const EdgeInsets.symmetric(vertical: 4),
     child: Row(
@@ -103,23 +106,57 @@ Widget sliderTile({
           ),
         ),
         Expanded(
-          child: SliderTheme(
-            data: SliderThemeData(
-              activeTrackColor: accentColor,
-              inactiveTrackColor: accentColor.withValues(alpha: 0.15),
-              thumbColor: accentColor,
-              overlayColor: accentColor.withValues(alpha: 0.1),
-              trackHeight: 3,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
-            ),
-            child: Slider(
-              value: value.clamp(min, max),
-              min: min,
-              max: max,
-              divisions: divisions,
-              onChanged: enabled ? onChanged : null,
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SliderTheme(
+                data: SliderThemeData(
+                  activeTrackColor: accentColor,
+                  inactiveTrackColor: accentColor.withValues(alpha: 0.15),
+                  thumbColor: accentColor,
+                  overlayColor: accentColor.withValues(alpha: 0.1),
+                  trackHeight: 3,
+                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
+                ),
+                child: Slider(
+                  value: value.clamp(min, max),
+                  min: min,
+                  max: max,
+                  divisions: divisions,
+                  onChanged: enabled ? onChanged : null,
+                ),
+              ),
+              if (ticks.isNotEmpty)
+                SizedBox(
+                  height: 14,
+                  child: Stack(
+                    children: [
+                      for (final (tickValue, tickLabel) in ticks)
+                        Positioned.fill(
+                          child: Align(
+                            alignment: Alignment(
+                              (tickValue.clamp(min, max) - min) /
+                                      (max - min) *
+                                      2 -
+                                      1,
+                              0,
+                            ),
+                            child: Text(
+                              tickLabel,
+                              style: TextStyle(
+                                fontSize: 9,
+                                color: enabled
+                                    ? mutedColor
+                                    : mutedColor.withValues(alpha: 0.35),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+            ],
           ),
         ),
         SizedBox(

@@ -30,18 +30,6 @@ class ProfileMenuSections extends StatelessWidget {
           ),
         ],
       ),
-      // ── 阅读工具 ──
-      _SectionData(
-        label: l10n.sectionReadingTools,
-        items: [
-          _SectionItem(
-            icon: PhosphorIconsRegular.waveform,
-            title: l10n.ttsSettings,
-            semantic: MenuItemSemantic.info,
-            onTap: () => context.push(AppRoute.ttsSettings.path),
-          ),
-        ],
-      ),
       // ── 显示与外观 ──
       _SectionData(
         label: l10n.sectionDisplayAppearance,

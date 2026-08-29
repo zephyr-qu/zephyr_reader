@@ -110,6 +110,10 @@ class ReadingHeatmap extends StatelessWidget {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: cs.outlineVariant.withValues(alpha: 0.15),
+          width: 0.5,
+        ),
       ),
       alignment: Alignment.center,
       child: Text(

@@ -13,7 +13,6 @@ import 'package:zephyr_reader/features/profile/page/about/about_page.dart';
 import 'package:zephyr_reader/features/profile/page/other/other_settings_page.dart';
 import 'package:zephyr_reader/features/profile/page/profile/profile_page.dart';
 import 'package:zephyr_reader/features/profile/page/theme/theme_brightness_page.dart';
-import 'package:zephyr_reader/features/profile/page/tts/tts_settings_page.dart';
 import 'package:zephyr_reader/features/profile/page/typography/typography_settings_page.dart';
 import 'package:zephyr_reader/features/reader/page/reader_page.dart';
 import 'package:zephyr_reader/features/statistics/page/reading_sessions_page.dart';
@@ -99,11 +98,6 @@ final router = GoRouter(
 
     // 个人中心设置子页面（独立页面，不使用 MainLayout）
     GoRoute(
-      name: AppRoute.ttsSettings.name,
-      path: AppRoute.ttsSettings.path,
-      builder: (_, _) => const TtsSettingsPage(),
-    ),
-    GoRoute(
       name: AppRoute.typographySettings.name,
       path: AppRoute.typographySettings.path,
       builder: (_, _) => const TypographySettingsPage(),
@@ -164,7 +158,6 @@ final router = GoRouter(
       },
     ),
 
-
     // 同步相关路由
     GoRoute(
       name: AppRoute.dataManagement.name,
@@ -172,9 +165,7 @@ final router = GoRouter(
       builder: (_, _) => const DataManagementPage(),
     ),
 
-
     // 笔记管理
-
 
     // 阅读会话历史
     GoRoute(

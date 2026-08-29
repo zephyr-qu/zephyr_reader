@@ -86,6 +86,13 @@ class _TypesettingPanelState extends State<TypesettingPanel> {
           max: ReaderTypographyDefaults.maxFontSize,
           divisions: 20,
           display: '${fontSize.round()}%',
+          // 锚点：两端 + 中间两档
+          ticks: const [
+            (80.0, '80'),
+            (120.0, '120'),
+            (150.0, '150'),
+            (180.0, '180'),
+          ],
           onChanged: (value) {
             setState(() => widget.config.fontSize.value = value);
             widget.onChanged();
@@ -99,6 +106,11 @@ class _TypesettingPanelState extends State<TypesettingPanel> {
           max: ReaderTypographyDefaults.maxPadding,
           divisions: 12,
           display: '${padding.round()}',
+          ticks: const [
+            (12.0, '12'),
+            (24.0, '24'),
+            (36.0, '36'),
+          ],
           onChanged: (value) {
             setState(() => widget.config.padding.value = value);
             widget.onChanged();
@@ -112,6 +124,11 @@ class _TypesettingPanelState extends State<TypesettingPanel> {
           max: ReaderTypographyDefaults.maxLineHeight,
           divisions: 8,
           display: '${lineHeight.toStringAsFixed(1)}x',
+          ticks: const [
+            (1.2, '1.2'),
+            (1.6, '1.6'),
+            (2.0, '2.0'),
+          ],
           onChanged: (value) {
             setState(() => widget.config.lineHeight.value = value);
             widget.onChanged();

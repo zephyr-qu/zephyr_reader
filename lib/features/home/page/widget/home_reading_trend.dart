@@ -99,18 +99,30 @@ class ReadingTrend extends StatelessWidget {
                         reservedSize: 24,
                         interval: 1,
                         getTitlesWidget: (value, meta) {
-                          if (value.toInt() == 0 || value.toInt() == 6) {
-                            return const SizedBox.shrink();
-                          }
+                          final idx = value.toInt();
+                          final label = df.format(
+                            now.subtract(Duration(days: 6 - idx)),
+                          );
+                          // 首尾标签分别靠左/靠右对齐，避免被图表边界裁切。
+                          final alignment = switch (idx) {
+                            0 => Alignment.centerLeft,
+                            6 => Alignment.centerRight,
+                            _ => Alignment.center,
+                          };
                           return Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              df.format(
-                                now.subtract(Duration(days: 6 - value.toInt())),
-                              ),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
+                            padding: EdgeInsets.only(
+                              top: 8,
+                              left: idx == 0 ? 2 : 0,
+                              right: idx == 6 ? 2 : 0,
+                            ),
+                            child: Align(
+                              alignment: alignment,
+                              child: Text(
+                                label,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           );
