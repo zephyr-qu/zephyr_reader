@@ -1,6 +1,5 @@
 import 'package:zephyr_reader/core/local/preferences_service.dart';
 import 'package:injectable/injectable.dart';
-import 'package:flutter_readium/flutter_readium.dart';
 import 'package:zephyr_reader/core/settings/persisted_signal.dart';
 import 'package:zephyr_reader/core/settings/settings_keys.dart';
 
@@ -21,13 +20,6 @@ class TtsSettingsViewModel {
 
   /// 音调 (0.5–2.0)
   late final pitch = persistedDouble(_prefs, SettingsKeys.ttsPitch, 1.0);
-
-  /// Converts the settings supported by Readium's native TTS bridge.
-  ///
-  /// The remaining app-level settings are intentionally not encoded here:
-  /// [TTSPreferences] has no corresponding fields for them.
-  TTSPreferences toReadiumPreferences() =>
-      TTSPreferences(speed: speed.value, pitch: pitch.value);
 
   /// 释放所有 signal 资源。
   void dispose() {

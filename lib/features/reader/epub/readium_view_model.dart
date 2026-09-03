@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter_readium/flutter_readium.dart';
 import 'package:flutter/material.dart';
@@ -8,26 +7,10 @@ import 'package:zephyr_reader/core/reading/config/reader_config.dart';
 import 'package:zephyr_reader/core/reading/config/reader_typography_defaults.dart';
 import 'package:zephyr_reader/features/profile/application/tts_settings_view_model.dart';
 import 'package:zephyr_reader/features/reader/epub/readium_bookmark_controller.dart';
+import 'package:zephyr_reader/features/reader/epub/readium_session_persistence.dart';
 import 'package:zephyr_reader/features/reader/epub/readium_session_tracker.dart';
 import 'package:zephyr_reader/src/rust/api/book.dart' as book_api;
-import 'package:zephyr_reader/src/rust/api/engine_position.dart'
-    as engine_position_api;
-import 'package:zephyr_reader/src/rust/api/progress.dart' as progress_api;
-import 'package:zephyr_reader/src/rust/api/session.dart' as session_api;
-import 'package:zephyr_reader/src/rust/domain/book/models.dart';
 import 'package:zephyr_reader/src/rust/domain/bookmark/models.dart';
-import 'package:zephyr_reader/src/rust/domain/engine_positions/models.dart';
-import 'package:zephyr_reader/src/rust/domain/progress/models.dart';
-
-Future<void> _defaultPersistProgress(ReadingProgress progress) =>
-    progress_api.upsertProgress(progress: progress);
-
-Future<void> _defaultSaveEnginePosition({required EnginePositionHint hint}) =>
-    engine_position_api.saveEnginePosition(hint: hint);
-
-Future<EnginePositionHint?> _defaultLoadEnginePosition({
-  required String bookId,
-}) => engine_position_api.getEnginePosition(bookId: bookId);
 
 ///
 /// Wraps [FlutterReadium] directly, exposes reading state via signals.
@@ -38,14 +21,6 @@ class ReadiumViewModel {
   final String bookId;
   final String? sourceFingerprint;
   final int initialChapterIndex;
-  final Future<void> Function(ReadingProgress progress) persistProgress;
-  final SessionRecorder recordSession;
-  final Future<void> Function({required EnginePositionHint hint})
-  saveEnginePosition;
-  final Future<EnginePositionHint?> Function({required String bookId})
-  loadEnginePosition;
-  Timer? _saveTimer;
-  Future<void> _saveQueue = Future<void>.value();
   Future<void>? _closeFuture;
   bool _viewportReady = false;
   bool _closing = false;
@@ -54,10 +29,6 @@ class ReadiumViewModel {
   Future<void> _preferencesQueue = Future<void>.value();
   int _preferencesVersion = 0;
   bool _preferencesDirty = false;
-
-  // ==================== Progress / Session persistence ====================
-  String _publicationFingerprint = '';
-  bool _lastIsCompleted = false;
 
   // ==================== Signals ====================
 
@@ -73,7 +44,6 @@ class ReadiumViewModel {
   final canRetry = signal<bool>(false);
   final bookmarks = signal<List<Bookmark>>([]);
   final isBookmarked = signal<bool>(false);
-  Locator? _currentLocator;
   Locator? _initialLocator;
   Publication? _publication;
   bool _ttsEnabled = false;
@@ -83,7 +53,7 @@ class ReadiumViewModel {
   StreamSubscription<Locator>? _locatorSub;
   StreamSubscription<ReadiumError>? _errorSub;
   late final ReadiumBookmarkController _bookmarkController;
-  late final ReadiumSessionTracker _sessionTracker;
+  late final ReadiumSessionPersistence _sessionPersistence;
 
   ReadiumViewModel({
     required this.config,
@@ -92,29 +62,27 @@ class ReadiumViewModel {
     this.ttsSettings,
     this.initialChapterIndex = 0,
     FlutterReadium? reader,
-    Future<void> Function(ReadingProgress progress)? persistProgress,
+    ProgressPersister? persistProgress,
     SessionRecorder? sessionRecorder,
-    Future<void> Function({required EnginePositionHint hint})?
-    enginePositionSaver,
-    Future<EnginePositionHint?> Function({required String bookId})?
-    enginePositionLoader,
-  }) : reader = reader ?? FlutterReadium(),
-       persistProgress = persistProgress ?? _defaultPersistProgress,
-       recordSession = sessionRecorder ?? session_api.createSession,
-       saveEnginePosition = enginePositionSaver ?? _defaultSaveEnginePosition,
-       loadEnginePosition = enginePositionLoader ?? _defaultLoadEnginePosition {
+    EnginePositionSaver? enginePositionSaver,
+    EnginePositionLoader? enginePositionLoader,
+  }) : reader = reader ?? FlutterReadium() {
+    _sessionPersistence = ReadiumSessionPersistence(
+      bookId: bookId,
+      onError: (message) => error.value = message,
+      chapterIndexForHref: _chapterIndexForHref,
+      charOffsetFor: _charOffsetFor,
+      isActive: () => _viewportReady && !_closing,
+      persistProgress: persistProgress,
+      recordSession: sessionRecorder,
+      saveEnginePosition: enginePositionSaver,
+      loadEnginePosition: enginePositionLoader,
+    );
     _bookmarkController = ReadiumBookmarkController(
       bookId: bookId,
       onError: (e) => error.value = e.toString(),
       bookmarks: bookmarks,
       isBookmarked: isBookmarked,
-    );
-    _sessionTracker = ReadiumSessionTracker(
-      bookId: bookId,
-      recordSession: recordSession,
-      chapterIndexForHref: _chapterIndexForHref,
-      charOffsetFor: _charOffsetFor,
-      isActive: () => _viewportReady && !_closing,
     );
   }
 
@@ -134,9 +102,9 @@ class ReadiumViewModel {
       // still-mounted native viewport. Invalidate the old Dart listeners and
       // close the old native session before opening the next publication.
       await _cancelViewportSubscriptions();
-      if (_currentLocator != null || _viewportReady) {
-        await _sessionTracker.finalize();
-        await _queueSave();
+      if (_sessionPersistence.currentLocator != null || _viewportReady) {
+        await _sessionPersistence.finalizeSession();
+        await _sessionPersistence.queueSave();
       }
       if (_publication != null || _viewportReady || _statusSub != null) {
         await reader.closePublication();
@@ -153,11 +121,9 @@ class ReadiumViewModel {
       _closing = false;
       _navigationInProgress = false;
       _publication = null;
-      _currentLocator = null;
       _initialLocator = null;
-      _publicationFingerprint = '';
       readingMode.value = config.readingMode.value;
-      _sessionTracker.reset();
+      _sessionPersistence.reset();
 
       // ADR-021 修订：预置默认偏好，让原生 WebView 首次创建即处于正确布局
       // （scroll 或分页），消除"先分页后热切 scroll"的时序竞争。
@@ -172,7 +138,6 @@ class ReadiumViewModel {
         throw StateError('Open cancelled');
       }
       _publication = pub;
-      _publicationFingerprint = _publicationFingerprintFor(pub);
       isScrollModeSupported.value = _supportsScrollMode(pub);
       if (!isScrollModeSupported.value &&
           readingMode.value == ReadingMode.scroll) {
@@ -181,7 +146,9 @@ class ReadiumViewModel {
       final links = pub.tocFlattened;
       await _loadBookMetadata();
       unawaited(_touchBook());
-      _initialLocator = await _loadSavedPosition();
+      _initialLocator = await _sessionPersistence.loadSavedPosition(
+        publicationFingerprint: _publicationFingerprintFor(pub),
+      );
       if (generation != _openGeneration) {
         await reader.closePublication();
         _publication = null;
@@ -194,7 +161,7 @@ class ReadiumViewModel {
         );
         _initialLocator = pub.locatorFromLink(pub.readingOrder[chapterIndex]);
       }
-      _currentLocator = _initialLocator;
+      _sessionPersistence.restoreLocator(_initialLocator);
       batch(() {
         title.value = pub.metadata.title;
         tocLinks.value = links;
@@ -227,11 +194,11 @@ class ReadiumViewModel {
 
   /// Current native position, used when the viewport is recreated for a layout
   /// mode change.
-  Locator? get currentLocator => _currentLocator;
+  Locator? get currentLocator => _sessionPersistence.currentLocator;
 
   /// Progress within the currently rendered EPUB resource.
   double? get currentResourceProgression =>
-      _currentLocator?.locations?.progression;
+      currentLocator?.locations?.progression;
 
   /// Subscribes to the native reader lifecycle before the platform widget is
   /// mounted. This avoids missing the broadcast `ready` status emitted while
@@ -299,7 +266,7 @@ class ReadiumViewModel {
 
   void _onLocatorChangedForGeneration(Locator locator, int generation) {
     if (_closing || generation != _openGeneration) return;
-    _currentLocator = locator;
+    _sessionPersistence.acceptLocator(locator);
     progress.value = locator.locations?.totalProgression ?? 0.0;
     if (locator.href.isNotEmpty) {
       currentChapterHref.value = locator.href;
@@ -309,8 +276,6 @@ class ReadiumViewModel {
       canRetry.value = false;
       status.value = 'ready';
     }
-    _sessionTracker.track(locator);
-    _scheduleSave();
     _bookmarkController.updateForLocator(locator);
   }
 
@@ -344,9 +309,7 @@ class ReadiumViewModel {
   /// 之后继续阅读会开启新的会话（后台 = 阅读暂停 = 会话边界）。
   Future<void> flush() async {
     if (_closing || !_viewportReady) return;
-    _saveTimer?.cancel();
-    await _sessionTracker.finalize();
-    await _queueSave();
+    await _sessionPersistence.flush();
   }
 
   Future<void> _close() async {
@@ -356,7 +319,6 @@ class ReadiumViewModel {
     status.value = 'closing';
     _viewportReady = false;
     _preferencesDirty = false;
-    _saveTimer?.cancel();
     Object? closeError;
 
     Future<void> attempt(Future<void> Function() action) async {
@@ -367,8 +329,8 @@ class ReadiumViewModel {
       }
     }
 
-    await attempt(_sessionTracker.finalize);
-    await attempt(_queueSave);
+    await attempt(_sessionPersistence.finalizeSession);
+    await attempt(_sessionPersistence.queueSave);
 
     await attempt(_cancelViewportSubscriptions);
 
@@ -376,7 +338,7 @@ class ReadiumViewModel {
     if (_publication != null) await attempt(reader.closePublication);
 
     _publication = null;
-    _currentLocator = null;
+    _sessionPersistence.reset();
     isScrollModeSupported.value = true;
     _initialLocator = null;
     if (closeError != null) error.value = closeError.toString();
@@ -407,7 +369,7 @@ class ReadiumViewModel {
   Future<void> skipToPrevious() async {
     if (!_viewportReady || _closing || _navigationInProgress) return;
     final publication = _publication;
-    final locator = _currentLocator;
+    final locator = currentLocator;
     if (publication == null || locator == null) return;
 
     final currentPath = _hrefPath(locator.href);
@@ -487,7 +449,7 @@ class ReadiumViewModel {
       if (!_viewportReady || _closing) return false;
       if (requestVersion != _preferencesVersion) return true;
       try {
-        final locator = _currentLocator;
+        final locator = currentLocator;
         await _applyPreferences();
         if (requestVersion != _preferencesVersion) return true;
 
@@ -623,7 +585,7 @@ class ReadiumViewModel {
     if (!_viewportReady) return;
     try {
       if (!_ttsEnabled) {
-        await reader.ttsEnable(ttsSettings?.toReadiumPreferences());
+        await reader.ttsEnable(_readiumTtsPreferences());
         await reader.play(null);
         _ttsEnabled = true;
         isTtsPlaying.value = true;
@@ -643,7 +605,7 @@ class ReadiumViewModel {
   Future<void> applyTtsPreferences() async {
     if (!_viewportReady || !_ttsEnabled || ttsSettings == null) return;
     try {
-      await reader.ttsSetPreferences(ttsSettings!.toReadiumPreferences());
+      await reader.ttsSetPreferences(_readiumTtsPreferences()!);
     } catch (e) {
       error.value = e.toString();
     }
@@ -653,6 +615,15 @@ class ReadiumViewModel {
     if (_ttsEnabled) await reader.stop();
     _ttsEnabled = false;
     isTtsPlaying.value = false;
+  }
+
+  TTSPreferences? _readiumTtsPreferences() {
+    final settings = ttsSettings;
+    if (settings == null) return null;
+    return TTSPreferences(
+      speed: settings.speed.value,
+      pitch: settings.pitch.value,
+    );
   }
 
   /// Skip to next TTS utterance (sentence).
@@ -686,104 +657,10 @@ class ReadiumViewModel {
     }
   }
 
-  // ==================== Position Persistence ====================
-
-  void _scheduleSave() {
-    _saveTimer?.cancel();
-    _saveTimer = Timer(const Duration(seconds: 2), () {
-      unawaited(_queueSave());
-    });
-  }
-
-  Future<void> _queueSave() {
-    final next = _saveQueue.then((_) => _savePositionNow());
-    _saveQueue = next;
-    return next;
-  }
-
-  Future<void> _savePositionNow() async {
-    final locator = _currentLocator;
-    if (locator == null) return;
-    await _saveReadingProgress();
-  }
-
-  /// 进度写入 Rust `reading_progress` 表；失败时保留阅读流程并提示用户。
-  Future<void> _saveReadingProgress() async {
-    final locator = _currentLocator;
-    if (locator == null) return;
-    final totalProgression = locator.locations?.totalProgression ?? 0.0;
-    final isCompleted = totalProgression >= 0.999;
-    try {
-      final progress = ReadingProgress(
-        bookId: bookId,
-        chapterIndex: _chapterIndexForHref(locator.href),
-        chunkIndex: 0,
-        chapterId: locator.href,
-        charOffset: _charOffsetFor(locator),
-        progress: totalProgression,
-        // 阅读时长由 reading_sessions 聚合提供（详情卡读 totalReadingSeconds）；
-        // 此字段保留兼容写入，不再被统计消费。
-        readingTimeSeconds: 0,
-        lastReadAt: DateTime.now().toUtc(),
-        isCompleted: isCompleted,
-      );
-      await persistProgress(progress);
-      // 读完自动标记书架状态（一次性转换，避免重复写）。
-      if (isCompleted && !_lastIsCompleted) {
-        _lastIsCompleted = true;
-        try {
-          await book_api.updateBookStatus(
-            bookId: bookId,
-            status: BookStatus.completed,
-          );
-        } catch (e) {
-          error.value = '标记阅读完成失败：$e';
-        }
-      }
-    } catch (e) {
-      error.value = '保存阅读进度失败：$e';
-    }
-    // ADR-019：完整 Locator 作为引擎私有恢复提示，存 reading_engine_positions。
-    // 与逻辑进度相互独立 —— 恢复提示失败不应阻塞进度，反之亦然。
-    try {
-      await saveEnginePosition(
-        hint: EnginePositionHint(
-          bookId: bookId,
-          engineKind: 'readium',
-          publicationFingerprint: _publicationFingerprint,
-          opaquePosition: jsonEncode(locator.toJson()),
-          updatedAt: DateTime.now().toUtc(),
-        ),
-      );
-    } catch (e) {
-      error.value = '保存阅读位置失败：$e';
-    }
-  }
-
-
-  Future<Locator?> _loadSavedPosition() async {
-    try {
-      final hint = await loadEnginePosition(bookId: bookId);
-      if (hint == null) return null;
-      if (hint.engineKind != 'readium') return null;
-      final opaque = hint.opaquePosition;
-      if (opaque.isEmpty) return null;
-      // ADR-019：Locator 与当前 EPUB 指纹不匹配时必须丢弃。
-      if (hint.publicationFingerprint.isEmpty ||
-          hint.publicationFingerprint != _publicationFingerprint) {
-        return null;
-      }
-      final map = jsonDecode(opaque) as Map<String, dynamic>;
-      return Locator.fromJson(map);
-    } catch (_) {
-      return null;
-    }
-  }
-
   // ==================== Bookmarks ====================
 
   Future<void> addBookmark() async {
-    final locator = _currentLocator;
+    final locator = currentLocator;
     if (locator == null || _closing) return;
     await _bookmarkController.add(
       locator: locator,
@@ -794,7 +671,7 @@ class ReadiumViewModel {
   }
 
   Future<void> removeBookmark() async {
-    final locator = _currentLocator;
+    final locator = currentLocator;
     if (locator == null || _closing) return;
     await _bookmarkController.removeCurrent(locator);
   }
@@ -820,7 +697,7 @@ class ReadiumViewModel {
   }
 
   Future<void> _loadBookmarks() async {
-    await _bookmarkController.load(currentLocator: _currentLocator);
+    await _bookmarkController.load(currentLocator: currentLocator);
   }
 
   String _tocTitleForHref(String href) {
@@ -836,7 +713,7 @@ class ReadiumViewModel {
 
   /// href → 正文阅读顺序索引。
   int _chapterIndexForHref(String href) {
-    if (href.isEmpty) return _sessionTracker.currentChapterIndex ?? 0;
+    if (href.isEmpty) return _sessionPersistence.currentChapterIndex ?? 0;
     final path = _hrefPath(href);
     final readingOrder = _publication?.readingOrder ?? const <Link>[];
     for (var i = 0; i < readingOrder.length; i++) {
@@ -844,7 +721,7 @@ class ReadiumViewModel {
       if (_hrefPath(linkHref) == path) return i;
     }
     // 资源不在目录中（如附录）：沿用当前会话章节，避免误拆会话。
-    return _sessionTracker.currentChapterIndex ?? 0;
+    return _sessionPersistence.currentChapterIndex ?? 0;
   }
 
   /// Locator → legacy auxiliary offset.
@@ -860,7 +737,9 @@ class ReadiumViewModel {
   Future<void> _loadBookMetadata() async {
     try {
       final detail = await book_api.getBookDetail(bookId: bookId);
-      _lastIsCompleted = detail.progress?.isCompleted ?? false;
+      _sessionPersistence.setPreviouslyCompleted(
+        detail.progress?.isCompleted ?? false,
+      );
     } catch (_) {
       // 元数据加载失败不影响阅读；进度估算退化为页码位置。
     }

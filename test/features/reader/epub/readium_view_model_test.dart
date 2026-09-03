@@ -113,9 +113,12 @@ void main() {
     when(() => fontWeight.value).thenReturn(400.0);
     when(() => config.readingMode).thenReturn(readingMode);
     when(() => readingMode.value).thenReturn(ReadingMode.pagination);
-    when(
-      () => ttsSettings.toReadiumPreferences(),
-    ).thenReturn(const TTSPreferences(speed: 1.25, pitch: 0.9));
+    final ttsSpeed = _MockPersistedSignal<double>();
+    when(() => ttsSpeed.value).thenReturn(1.25);
+    when(() => ttsSettings.speed).thenReturn(ttsSpeed);
+    final ttsPitch = _MockPersistedSignal<double>();
+    when(() => ttsPitch.value).thenReturn(0.9);
+    when(() => ttsSettings.pitch).thenReturn(ttsPitch);
     when(
       () => reader.openPublication(any()),
     ).thenAnswer((_) async => publication);
@@ -205,6 +208,7 @@ void main() {
     await vm.close();
     await vm.close();
     verify(() => reader.closePublication()).called(1);
+    expect(vm.currentLocator, isNull);
   });
 
   test('closes a publication that finishes opening after page exit', () async {
