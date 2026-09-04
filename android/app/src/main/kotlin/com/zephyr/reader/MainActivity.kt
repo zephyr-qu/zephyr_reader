@@ -1,4 +1,4 @@
-package com.example.flutter_app
+package com.zephyr.reader
 
 import android.content.Intent
 import android.os.Bundle

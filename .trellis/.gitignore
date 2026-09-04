@@ -15,6 +15,9 @@
 .agent-log
 .session-id
 
+# Per-developer workspace journal & index (private)
+workspace/
+
 # Task directory runtime files
 .plan-log
 

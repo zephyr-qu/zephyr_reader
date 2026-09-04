@@ -4,6 +4,7 @@
 *.pyc
 *.swp
 .env
+.mcp.json
 .DS_Store
 .atom/
 .build/
