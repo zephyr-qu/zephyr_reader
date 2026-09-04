@@ -1,5 +1,5 @@
 name: zephyr_reader
-description: "A new Flutter project."
+description: "Zephyr Reader — 双语对照 EPUB 阅读器（Flutter + Rust + Readium）"
 publish_to: "none"
 version: 1.0.0+1
 
